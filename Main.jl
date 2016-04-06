@@ -6,11 +6,11 @@ using DataArrays
 using Distributions
 
 # Include necessary functions
-include("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/Julia Docs/combgen.jl")
-include("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/Julia Docs/nckr.jl")
-include("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/Julia Docs/probfinder.jl")
-include("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/Julia Docs/probfind2.jl")
-include("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/Julia Docs/tuplefinder.jl")
+include("/Users/austinbean/Desktop/dynhosp/combgen.jl")
+include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
+include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
+include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
+include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
 
 
 # Import Data
@@ -20,7 +20,7 @@ dataf = dataf[notmissing, :];
 
 # regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/ProbabilityCoeffs.csv", header = true);
 
-simdata = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/Julia Docs/Simulated Choice Probs.csv", header = true);
+simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
 sim_f = DataFrame(simdata)
 
 
