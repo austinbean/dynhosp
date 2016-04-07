@@ -67,6 +67,13 @@ future_config1 = 4;
 future_config2 = 5;
 future_config3 = 6;
 
+# Possible choices:
+choices_1 = [(1,1), (1,2), (1,3), (1,4)];
+choices_2 = [(2,1), (2,2), (2,3), (2,4)];
+choices_3 = [(3,1), (3,2), (3,3), (3,4)];
+
+
+
 # Actual entry probabilities will be substituted in later.
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 
@@ -84,6 +91,11 @@ Next thing - 04 05 16
 • Draw uniform probs instead of shocks...  (???)
 • Choose the action based on those probs
 • Perturb policies as already imagined: change by ϵ the probs of actions.
+
+- Also: need to finally write the logit probability function for unobserved state
+combinations to get those probabilities.
+- Or does it make sense to do something like a local linear regression over the
+unobserved state space elements?
 =#
 
 state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
@@ -109,17 +121,28 @@ for i = start:T+1
 			end
 		end
 # For Level 1 firms with type 1, draw actions.  Same for 2, 3.
-# Actions give an aggregate state.
-# The transition probability is the PRODUCT of all of them.  Track that.  Needed for the
-# expectation.
 
-		choices_1 = pvect[1:4] # Cut these into thresholds and use rand to decide which action picked.
-		weights_1 = WeightVec(choices_1[1:4])
-		draws_1 = sample( [1, 2, 3, "ex"], weights_1, level1)
+		pchoices_1 = pvect[1:4]
+		pchoices_2 = pvect[5:8]
+		pchoices_3 = pvect[9:12]
 
-# here I need to 
+		pairs_1 = hcat( pchoices_1, choices_1 ) 
+		weights_1 = WeightVec(pchoices_1)
+		draws_1 = sample( choices_1, weights_1, level1)
+		poutcomes_1 = [ [x, pairs_1[findfirst(pairs_1[:,2], x), 1] ] for x in draws_1]
 
-#		configs =sortrows( nckrexen([max(level1-1, 0) max(level2, 0) max(level3, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
+		pairs_2 = hcat( pchoices_2, choices_2 )
+		weights_2 = WeightVec(pchoices_2)
+		draws_2 = sample( choices_2, weights_2, level2)
+		poutcomes_2 = [ [x, pairs_2[findfirst(pairs_2[:,2], x), 1] ] for x in draws_2]
+
+		pairs_3 = hcat( pchoices_3, choices_3 )
+		weights_3 = WeightVec(pchoices_3)
+		draws_3 = sample( choices_3, weights_3, level3)
+		poutcomes_3 = [ [x, pairs_3[findfirst(pairs_3[:,2], x), 1] ] for x in draws_3]
+
+
+		configs =sortrows( nckrexen([max(level1-1, 0) max(level2, 0) max(level3, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
 		futures = tuplefinder(configs, future_config1, future_config2, future_config3) # potential arrangements of the market, minus the current hospital
 		transitions =hcat( [configs[:,4] configs[:,5] configs[:,6]], prod(broadcast(^,hcat(pvect', entryprobs'), configs[:, 7:22] ), 2))
 		stateholder = hcat(futures, zeros(size(futures)[1], 1))
