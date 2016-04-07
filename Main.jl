@@ -110,6 +110,13 @@ for i = start:T+1
 			end
 		end
 		 # This is currently wrong # shockdraw =  γ -log(pvect_1[1:4]).*pvect_1[1:4]
+		 # don't do this - just draw actions directly from the probabilities.
+
+# For Level 1 firms with type 1, draw actions.  Same for 2, 3.
+# Actions give an aggregate state.
+# The transition probability is the PRODUCT of all of them.  Track that.  Needed for the
+# expectation.
+
 		choices_1 = pvect[1:4] # Cut these into thresholds and use rand to decide which action picked.
 		chosen = 1 + sum(shockdraw .> [ choices_1[1], choices_1[1] + choices_1[2], choices_1[1] + choices_1[2] + choices_1[3] ])
 		configs =sortrows( nckrexen([max(level1-1, 0) max(level2, 0) max(level3, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
