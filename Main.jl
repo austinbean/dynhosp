@@ -23,8 +23,6 @@ dataf = dataf[notmissing, :];
 simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
 sim_f = DataFrame(simdata)
 
-# Here I am making a different non-functional change.
-# Made a single comment - nonfunctional
 
 
 ### Collect Basic Information ###
