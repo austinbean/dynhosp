@@ -76,6 +76,7 @@ choices_3 = [(3,1), (3,2), (3,3), (3,4)];
 
 # Actual entry probabilities will be substituted in later.
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+entrants = [0, 1, 2, 3]
 
 # Note: since I know the simulation periods in advance, I do *not* need to resize dynamically, just fill in.
 #state_history = [ownstate 1 1 level1 level2 level3]
@@ -118,80 +119,35 @@ for y in 1:size(yearins)[1]
 			all_hosp_probs[fid, 1:end] =hcat(el, year_frame[a, :act_int], year_frame[a, :act_solo], year_frame[a, :choicenum0], year_frame[a, :pr_ch_0], year_frame[a, :choicenum1], year_frame[a, :pr_ch_1], year_frame[a, :choicenum2], year_frame[a, :pr_ch_2], year_frame[a, :choicenum3], year_frame[a, :pr_ch_3] )
 		end
 		state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
-		prev1 = -1; prev2 = -1; prev3 = -1;
 		for i = start:T+1
-
-				pchoices_1 = pvect[1:4]
-				pchoices_2 = pvect[5:8]
-				pchoices_3 = pvect[9:12]
-
-				pairs_1 = hcat( pchoices_1, choices_1 )
-				weights_1 = WeightVec(pchoices_1)
-				draws_1 = sample( choices_1, weights_1, level1)
-				poutcomes_1 = [ [x, pairs_1[findfirst(pairs_1[:,2], x), 1] ] for x in draws_1]
-
-				pairs_2 = hcat( pchoices_2, choices_2 )
-				weights_2 = WeightVec(pchoices_2)
-				draws_2 = sample( choices_2, weights_2, level2)
-				poutcomes_2 = [ [x, pairs_2[findfirst(pairs_2[:,2], x), 1] ] for x in draws_2]
-
-				pairs_3 = hcat( pchoices_3, choices_3 )
-				weights_3 = WeightVec(pchoices_3)
-				draws_3 = sample( choices_3, weights_3, level3)
-				poutcomes_3 = [ [x, pairs_3[findfirst(pairs_3[:,2], x), 1] ] for x in draws_3]
-
-
-				configs =sortrows( nckrexen([max(level1-1, 0) max(level2, 0) max(level3, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
-				futures = tuplefinder(configs, future_config1, future_config2, future_config3) # potential arrangements of the market, minus the current hospital
-				transitions =hcat( [configs[:,4] configs[:,5] configs[:,6]], prod(broadcast(^,hcat(pvect', entryprobs'), configs[:, 7:22] ), 2))
-				stateholder = hcat(futures, zeros(size(futures)[1], 1))
-				for k = 1:size(transitions)[1]
-					temptup = (transitions[k,1], transitions[k,2], transitions[k,3])
-					stateholder[findfirst(stateholder[:,1], temptup), 2] += transitions[k, 4]
+			rand_action = zeros(size(fids)[1], 3)
+			for hosp in 1:size(all_hosp_probs)[1]
+				if ((all_hosp_probs[hosp,2] == 0) & (all_hosp_probs[hosp,3] == 0)) # level 1
+					pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_1, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
+				elseif ((all_hosp_probs[hosp,2] == 1) & (all_hosp_probs[hosp,3] == 0))
+					pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_2, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
+				elseif ((all_hosp_probs[hosp,2] == 1) & (all_hosp_probs[hosp,3] == 0))
+					pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_3, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
 				end
-				stweights =WeightVec(Array{Float64}(stateholder[:,2]))
-				next_state = sample(stateholder[:,1], stweights)
-				probstate = stateholder[findfirst(stateholder[:,1], next_state), 2]
-				lp11 = log(choices_1[1]) + shockdraw[1]
-				lp12 = log(choices_1[2]) + shockdraw[2]
-				lp13 = log(choices_1[3]) + shockdraw[3]
-				lp1EX = log(choices_1[4]) + shockdraw[4]
-				max_choice = indmax([lp11, lp12, lp13, lp1EX])
-				if max_choice == 1
-					ownstate = (0,0)
-					prev1 = level1
-					prev2 = level2
-					prev3 = level3
-					level1 = 1 + next_state[1]
-					level2 = next_state[2]
-					level3 = next_state[3]
-				elseif max_choice == 2
-					ownstate = (1,0)
-					prev1 = level1
-					prev2 = level2
-					prev3 = level3
-					level1 = next_state[1]
-					level2 = 1 + next_state[2]
-					level1 = next_state[3]
-				elseif max_choice == 3
-					ownstate = (0,1)
-					prev1 = level1
-					prev2 = level2
-					prev3 = level3
-					level1 = next_state[1]
-					level2 = next_state[2]
-					level3 = 1 + next_state[3]
-				elseif max_choice == 4
-					ownstate = ("EX", "EX")
-					level1 = next_state[1]
-					level2 = next_state[2]
-					level3 = next_state[3]
-				else
-					println("F-ed Up")
-				end
-				total_hosp = level1 + level2 + level3
-				state_history[i, :] =  [ownstate probstate probstate*state_history[i-1,3] level1 level2 level3]
+				weights = WeightVec(Array{Float64}(pairs[:, 3]))
+				draws = sample( pairs[:,2], weights)
+				poutcomes = [draws, pairs[findfirst(pairs[:,2], draws), 3]]
+				rand_action[hosp,:] = hcat(all_hosp_probs[hosp, 1], poutcomes[1], poutcomes[2] )
+			end
+			# Entry draws
+			entrypairs = hcat(entrants, entryprobs)
+			entrantsp = WeightVec(entryprobs)
+			newentrant = sample(entrants, entrantsp)
+			entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
+			# Transitions:
+			total_hosp = level1 + level2 + level3
+			state_history[i, :] =  [ownstate probstate probstate*state_history[i-1,3] level1 level2 level3]
 				#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
+# Now we need to track the aggregate state.
+
+
+
+
 			elseif ownstate == (1,0)
 				if (!((level1 == prev1) & (level2 == prev2) & (level3 == prev3))) # Won't just be relevant at *start*
 					global pvect
