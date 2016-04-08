@@ -120,7 +120,14 @@ for y in 1:size(yearins)[1]
 		end
 		state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
 		for i = start:T+1
-			rand_action = zeros(size(fids)[1], 3)
+			if i > 2
+				if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
+					# get new probabilites.
+				end
+			end
+
+
+			rand_action = Array{Any}(size(fids)[1], 3)
 			for hosp in 1:size(all_hosp_probs)[1]
 				if ((all_hosp_probs[hosp,2] == 0) & (all_hosp_probs[hosp,3] == 0)) # level 1
 					pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_1, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
@@ -139,9 +146,28 @@ for y in 1:size(yearins)[1]
 			entrantsp = WeightVec(entryprobs)
 			newentrant = sample(entrants, entrantsp)
 			entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
-			# Transitions:
-			total_hosp = level1 + level2 + level3
-			state_history[i, :] =  [ownstate probstate probstate*state_history[i-1,3] level1 level2 level3]
+			# Sum the levels for next period:
+			next1 = 0; next2 = 0; next3 = 0;
+			for row in 1:size(rand_action)[1]
+				if rand_action[row,2][2] == 1
+					next1 += 1
+				elseif rand_action[row,2][2] == 2
+					next2 += 1
+				elseif rand_action[row,2][2] == 3
+					next3 += 1
+				end
+			end
+			if newentrant> 0
+				if newentrant == 1
+					next1 += 1
+				elseif newentrant == 2
+					next2 += 1
+				elseif newentrant == 3
+					next3 += 1
+			end
+			# tracking the state history is fine for developing, but I really need to track every firm's history.
+			nexttotal = next1 + next2 + next3
+			state_history[i, :] =  [next1 next2 next3  ]
 				#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
 # Now we need to track the aggregate state.
 
