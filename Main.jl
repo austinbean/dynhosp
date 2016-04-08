@@ -18,7 +18,7 @@ dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
 
-# regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/ProbabilityCoeffs.csv", header = true);
+regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
 simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
 sim_f = DataFrame(simdata)
