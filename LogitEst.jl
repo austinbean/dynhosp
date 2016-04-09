@@ -1,9 +1,6 @@
 # Logit Probs Estimator.
 regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
-
-CHECK THAT ALL OF THESE ARE NUMBERED CORRECTLY!
-
 # Row Locations - enter by hand?
 # Choice specific
 NeoIntensive = regcoeffs[1, 2]
@@ -48,95 +45,158 @@ lev11525_13 = regcoeffs[38, 2]
 lev21525_13 = regcoeffs[39, 2]
 lev31525_13 = regcoeffs[40, 2]
 cons_13 = regcoeffs[41, 2]
-# Casevars 21
-lev105_21 = regcoeffs[42, 2]
-lev205_21 = regcoeffs[43, 2]
-lev305_21 = regcoeffs[44, 2]
-lev1515_21 = regcoeffs[45, 2]
-lev2515_21 = regcoeffs[46, 2]
-lev3515_21 = regcoeffs[47, 2]
-lev11525_21 = regcoeffs[48, 2]
-lev21525_21 = regcoeffs[49, 2]
-lev31525_21 = regcoeffs[50, 2]
-cons_21 = regcoeffs[51, 2]
-# Casevars 23
-lev105_23 = regcoeffs[52, 2]
-lev205_23 = regcoeffs[53, 2]
-lev305_23 = regcoeffs[54, 2]
-lev1515_23 = regcoeffs[55, 2]
-lev2515_23 = regcoeffs[56, 2]
-lev3515_23 = regcoeffs[57, 2]
-lev11525_23 = regcoeffs[58, 2]
-lev21525_23 = regcoeffs[59, 2]
-lev31525_23 = regcoeffs[60, 2]
-cons_23 = regcoeffs[61, 2]
-# Casevars 13
-lev105_13 = regcoeffs[62, 2]
-lev205_13 = regcoeffs[63, 2]
-lev305_13 = regcoeffs[64, 2]
-lev1515_13 = regcoeffs[65, 2]
-lev2515_13 = regcoeffs[66, 2]
-lev3515_13 = regcoeffs[67, 2]
-lev11525_13 = regcoeffs[68, 2]
-lev21525_13 = regcoeffs[69, 2]
-lev31525_13 = regcoeffs[70, 2]
-cons_13 = regcoeffs[71, 2]
 # Casevars 12
-lev105_12 = regcoeffs[72, 2]
-lev205_12 = regcoeffs[73, 2]
-lev305_12 = regcoeffs[74, 2]
-lev1515_12 = regcoeffs[75, 2]
-lev2515_12 = regcoeffs[76, 2]
-lev3515_12 = regcoeffs[77, 2]
-lev11525_12 = regcoeffs[78, 2]
-lev21525_12 = regcoeffs[79, 2]
-lev31525_12 = regcoeffs[80, 2]
-cons_12 = regcoeffs[81, 2]
+lev105_12 = regcoeffs[42, 2]
+lev205_12 = regcoeffs[43, 2]
+lev305_12 = regcoeffs[44, 2]
+lev1515_12 = regcoeffs[45, 2]
+lev2515_12 = regcoeffs[46, 2]
+lev3515_12 = regcoeffs[47, 2]
+lev11525_12 = regcoeffs[48, 2]
+lev21525_12 = regcoeffs[49, 2]
+lev31525_12 = regcoeffs[50, 2]
+cons_12 = regcoeffs[51, 2]
 # Casevars 32
-lev105_32 = regcoeffs[82, 2]
-lev205_32 = regcoeffs[83, 2]
-lev305_32 = regcoeffs[84, 2]
-lev1515_32 = regcoeffs[85, 2]
-lev2515_32 = regcoeffs[86, 2]
-lev3515_32 = regcoeffs[87, 2]
-lev11525_32 = regcoeffs[88, 2]
-lev21525_32 = regcoeffs[89, 2]
-lev31525_32 = regcoeffs[90, 2]
-cons_32 = regcoeffs[91, 2]
+lev105_32 = regcoeffs[52, 2]
+lev205_32 = regcoeffs[53, 2]
+lev305_32 = regcoeffs[54, 2]
+lev1515_32 = regcoeffs[55, 2]
+lev2515_32 = regcoeffs[56, 2]
+lev3515_32 = regcoeffs[57, 2]
+lev11525_32 = regcoeffs[58, 2]
+lev21525_32 = regcoeffs[59, 2]
+lev31525_32 = regcoeffs[60, 2]
+cons_32 = regcoeffs[61, 2]
 # Casevars 31
-lev105_31 = regcoeffs[92, 2]
-lev205_31 = regcoeffs[93, 2]
-lev305_31 = regcoeffs[94, 2]
-lev1515_31 = regcoeffs[95, 2]
-lev2515_31 = regcoeffs[96, 2]
-lev3515_31 = regcoeffs[97, 2]
-lev11525_31 = regcoeffs[98, 2]
-lev21525_31 = regcoeffs[99, 2]
-lev31525_31 = regcoeffs[100, 2]
-cons_31 = regcoeffs[101, 2]
+lev105_31 = regcoeffs[62, 2]
+lev205_31 = regcoeffs[63, 2]
+lev305_31 = regcoeffs[64, 2]
+lev1515_31 = regcoeffs[65, 2]
+lev2515_31 = regcoeffs[66, 2]
+lev3515_31 = regcoeffs[67, 2]
+lev11525_31 = regcoeffs[68, 2]
+lev21525_31 = regcoeffs[69, 2]
+lev31525_31 = regcoeffs[70, 2]
+cons_31 = regcoeffs[71, 2]
+# Casevars 21
+lev105_21 = regcoeffs[72, 2]
+lev205_21 = regcoeffs[73, 2]
+lev305_21 = regcoeffs[74, 2]
+lev1515_21 = regcoeffs[75, 2]
+lev2515_21 = regcoeffs[76, 2]
+lev3515_21 = regcoeffs[77, 2]
+lev11525_21 = regcoeffs[78, 2]
+lev21525_21 = regcoeffs[79, 2]
+lev31525_21 = regcoeffs[80, 2]
+cons_21 = regcoeffs[81, 2]
+# Casevars 23
+lev105_23 = regcoeffs[82, 2]
+lev205_23 = regcoeffs[83, 2]
+lev305_23 = regcoeffs[84, 2]
+lev1515_23 = regcoeffs[85, 2]
+lev2515_23 = regcoeffs[86, 2]
+lev3515_23 = regcoeffs[87, 2]
+lev11525_23 = regcoeffs[88, 2]
+lev21525_23 = regcoeffs[89, 2]
+lev31525_23 = regcoeffs[90, 2]
+cons_23 = regcoeffs[91, 2]
+# casevars exit
+lev105_EX = regcoeffs[92, 2]
+lev205_EX = regcoeffs[93, 2]
+lev305_EX = regcoeffs[94, 2]
+lev1515_EX = regcoeffs[95, 2]
+lev2515_EX = regcoeffs[96, 2]
+lev3515_EX = regcoeffs[97, 2]
+lev11525_EX = regcoeffs[98, 2]
+lev21525_EX = regcoeffs[99, 2]
+lev31525_EX = regcoeffs[100, 2]
+cons_EX = regcoeffs[101, 2]
 
 # Basic Elements:
-NeoIntensive SoloIntermediate level3_hospitals level2solo_hospitals level1_hospitals
+basic = [NeoIntensive SoloIntermediate level3_hospitals level2solo_hospitals level1_hospitals]
 # Polynomial Level 3:
-plevel3_2 plevel3_3 plevel3_4 plevel3_5 plevel3_6 plevel3_7 plevel3_8 plevel3_9 plevel3_10
+poly3 = [plevel3_2 plevel3_3 plevel3_4 plevel3_5 plevel3_6 plevel3_7 plevel3_8 plevel3_9 plevel3_10]
 # Polynomial Level 2:
-plevel2_2 plevel2_3 plevel2_4 plevel2_5 plevel2_6 plevel2_7 plevel2_8 plevel2_9
+poly2 = [plevel2_2 plevel2_3 plevel2_4 plevel2_5 plevel2_6 plevel2_7 plevel2_8 plevel2_9]
 # Polynomial Level 1:
-plevel1_2 plevel1_3 plevel1_4 plevel1_5 plevel1_6 plevel1_7 plevel1_8 plevel1_9 plevel1_10
+poly1 = [plevel1_2 plevel1_3 plevel1_4 plevel1_5 plevel1_6 plevel1_7 plevel1_8 plevel1_9 plevel1_10]
 
 # Case vars
-case13 = [lev105_13 lev205_13 lev305_13 lev1515_13 lev2515_13 lev3515_13 lev11525_13 lev21525_13 lev31525_13 cons_13 ]
-case21 = [lev105_21 lev205_21 lev305_21 lev1515_21 lev2515_21 lev3515_21 lev11525_21 lev21525_21 lev31525_21 cons_21 ]
-case23 = [lev105_23 lev205_23 lev305_23 lev1515_23 lev2515_23 lev3515_23 lev11525_23 lev21525_23 lev31525_23 cons_23 ]
-case13 = [lev105_13 lev205_13 lev305_13 lev1515_13 lev2515_13 lev3515_13 lev11525_13 lev21525_13 lev31525_13 cons_13 ]
-[lev105_12 lev205_12 lev305_12 lev1515_12 lev2515_12 lev3515_12 lev11525_12 lev21525_12 lev31525_12 cons_12 ]
-[lev105_32 lev205_32 lev305_32 lev1515_32 lev2515_32 lev3515_32 lev11525_32 lev21525_32 lev31525_32 cons_32 ]
-[lev105_31 lev205_31 lev305_31 lev1515_31 lev2515_31 lev3515_31 lev11525_31 lev21525_31 lev31525_31 cons_31 ]
+case13 = [lev105_13 lev205_13 lev305_13 lev1515_13 lev2515_13 lev3515_13 lev11525_13 lev21525_13 lev31525_13 cons_13]
+case12 = [lev105_12 lev205_12 lev305_12 lev1515_12 lev2515_12 lev3515_12 lev11525_12 lev21525_12 lev31525_12 cons_12]
+case32 = [lev105_32 lev205_32 lev305_32 lev1515_32 lev2515_32 lev3515_32 lev11525_32 lev21525_32 lev31525_32 cons_32]
+case31 = [lev105_31 lev205_31 lev305_31 lev1515_31 lev2515_31 lev3515_31 lev11525_31 lev21525_31 lev31525_31 cons_31]
+case21 = [lev105_21 lev205_21 lev305_21 lev1515_21 lev2515_21 lev3515_21 lev11525_21 lev21525_21 lev31525_21 cons_21]
+case23 = [lev105_23 lev205_23 lev305_23 lev1515_23 lev2515_23 lev3515_23 lev11525_23 lev21525_23 lev31525_23 cons_23]
+caseEX = [lev105_EX lev205_EX lev305_EX lev1515_EX lev2515_EX lev3515_EX lev11525_EX lev21525_EX lev31525_EX cons_EX]
+
+type ValueException <: Exception end
+
+
+# getting the values of the state variables here is the most annoying part.
+# and it's really, really fucking annoying.  Maybe will need three functions
+function states1(lev1::Int8, lev2::Int8, lev3::Int8)
+  if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
+    return ValueException
+  end
+  # format: Intensive, Intermediate, Lev1, Lev2, Lev3
+    # st11 =  [0 0 lev1 lev2 lev3]
+    # st12 =  [0 1 max(lev1-1, 0) lev2+1 lev3]
+    # st13 =  [1 0 max(lev1-1,0) lev2 lev3+1]
+    # st1ex = [0 0 max(lev1-1,0) lev2 lev3]
+  d1_rename = Dict{Any, Any}(:x1 => :Intensive, :x2 => :Intermediate, :x3 => :Level1, :x4 => :Level2, :x5 => :Level3, )
+  Result = DataFrame([[0 0 lev1 lev2 lev3]; [0 1 max(lev1-1, 0) lev2+1 lev3]; [1 0 max(lev1-1,0) lev2 lev3+1]; [0 0 max(lev1-1,0) lev2 lev3]])
+  rename!(Result, d1_rename)
+  return Result
+end
+
+function states2(lev1::Int8, lev2::Int8, lev3::Int8)
+  if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
+    return ValueException
+  end
+  # format: Intensive, Intermediate, Lev1, Lev2, Lev3
+    # st21  = [0 0 lev1+1 max(lev2-1, 0), lev3]
+    # st22  = [0 1 lev1 lev2 lev3]
+    # st23  = [1 0 lev1 max(lev2-1, 0) lev3]
+    # st2ex = [0 0 lev1 max(lev2-1, 0) lev3]
+  d2_rename = Dict{Any, Any}(:x1 => :Intensive, :x2 => :Intermediate, :x3 => :Level1, :x4 => :Level2, :x5 => :Level3, )
+  Result = DataFrame([[0 0 lev1+1 max(lev2-1, 0) lev3]; [0 1 lev1 lev2 lev3]; [1 0 lev1 max(lev2-1, 0) lev3]; [0 0 lev1 max(lev2-1, 0) lev3]])
+  rename!(Result, d2_rename)
+  return Result
+end
+
+function states3(lev1::Int8, lev2::Int8, lev3::Int8)
+  if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
+    return ValueException
+  end
+  # format: Intensive, Intermediate, Lev1, Lev2, Lev3
+    # st31  = [0 0 lev1+1 lev2 max(lev3-1,0)]
+    # st32  = [0 1 lev1 lev2+1 max(lev3-1,0)]
+    # st33  = [1 0 lev1 lev2 lev3]
+    # st3ex = [0 0 lev1 lev2 max(lev3-1,0)]
+  d3_rename = Dict{Any, Any}(:x1 => :Intensive, :x2 => :Intermediate, :x3 => :Level1, :x4 => :Level2, :x5 => :Level3, )
+  Result = DataFrame([[0 0 lev1+1 lev2 max(lev3-1,0)]; [0 1 lev1 lev2+1 max(lev3-1,0)]; [1 0 lev1 lev2 lev3]; [0 0 lev1 lev2 max(lev3-1,0)]])
+  rename!(Result, d3_rename)
+  return Result
+end
+
+function logitest(lev1, lev2, lev3,  )
+
+    poly1*(lev1.^collect(2:10))
+    poly2*(lev2.^collect(2:9)) # only 9 here.
+    poly3*(lev3.^collect(2:10))
+
+  cons1
+
+end
+
+
+
+
 
 
 
 #=
-
 # These just write the names of the variables above out in an easy way - no useful functionality
 
 for row in 1:size(regcoeffs)[1]
