@@ -180,13 +180,15 @@ function states3(lev1::Int8, lev2::Int8, lev3::Int8)
   return Result
 end
 
-function logitest(lev1, lev2, lev3,  )
+function poly( lev, coeffs)
+  degree = maximum(size(coeffs))+1
+  return coeffs*(lev.^collect(2:degree))
+end
 
-    poly1*(lev1.^collect(2:10))
-    poly2*(lev2.^collect(2:9)) # only 9 here.
-    poly3*(lev3.^collect(2:10))
+function logitest(ownlev, lev1, lev2, lev3, neighbors )
+  
 
-  cons1
+
 
 end
 
