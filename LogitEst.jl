@@ -135,7 +135,7 @@ type ValueException <: Exception end
 
 # getting the values of the state variables here is the most annoying part.
 # and it's really, really fucking annoying.  Maybe will need three functions
-function states1(lev1::Int8, lev2::Int8, lev3::Int8)
+function states1(lev1::Int64, lev2::Int64, lev3::Int64)
   if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
     return ValueException
   end
@@ -150,7 +150,7 @@ function states1(lev1::Int8, lev2::Int8, lev3::Int8)
   return Result
 end
 
-function states2(lev1::Int8, lev2::Int8, lev3::Int8)
+function states2(lev1::Int64, lev2::Int64, lev3::Int64)
   if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
     return ValueException
   end
@@ -165,7 +165,7 @@ function states2(lev1::Int8, lev2::Int8, lev3::Int8)
   return Result
 end
 
-function states3(lev1::Int8, lev2::Int8, lev3::Int8)
+function states3(lev1::Int64, lev2::Int64, lev3::Int64)
   if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
     return ValueException
   end
@@ -185,11 +185,46 @@ function poly( lev, coeffs)
   return coeffs*(lev.^collect(2:degree))
 end
 
-function logitest(ownlev, lev1, lev2, lev3, neighbors )
-  
-
-
-
+function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbors::Array )
+  if ownlev == (0,0) #level 1
+    # choices - continue, 12, 13, ex
+    retst1 = convert(Array, states1(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
+    c11 = retst1[1,:]*basic'  + poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 4], poly3)
+    c12 = retst1[2,:]*basic'  + poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 4], poly3) + neighbors*case12'
+    c13 = retst1[3,:]*basic'  + poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 4], poly3) + neighbors*case13'
+    c1ex = retst1[4,:]*basic' + poly(retst1[4, 3], poly1) + poly(retst1[4, 4], poly2) + poly(retst1[4, 4], poly3) + neighbors*caseEX'
+    # now compute all of these, but keep in mind that they are differenced.
+    p12  = exp(c12 - c11)/(1+ exp(c12-c11) + exp(c13 - c11) + exp(c1ex - c11))
+    p13  = exp(c13 - c11)/(1 + exp(c12-c11) + exp(c13-c11) + exp(c1ex - c11))
+    p1ex = exp(c1ex - c11)/(1 + exp(c12-c11) + exp(c13-c11) + exp(c1ex - c11))
+    p11 = 1 - p12 - p13 - p1ex
+  elseif ownlev == (1,0) # level 2
+    # choices - 21, continue, 23, ex
+    retst2 = convert(Array, states2(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
+    c21 = retst2[1,:]*basic'  + poly(retst2[1, 3], poly1) + poly(retst2[1, 4], poly2) + poly(retst2[1, 4], poly3) + neighbors*case21'
+    c22 = retst2[2,:]*basic'  + poly(retst2[2, 3], poly1) + poly(retst2[2, 4], poly2) + poly(retst2[2, 4], poly3)
+    c23 = retst2[3,:]*basic'  + poly(retst2[3, 3], poly1) + poly(retst2[3, 4], poly2) + poly(retst2[3, 4], poly3) + neighbors*case23'
+    c2ex = retst2[4,:]*basic' + poly(retst2[4, 3], poly1) + poly(retst2[4, 4], poly2) + poly(retst2[4, 4], poly3) + neighbors*caseEX'
+    # compute all of them:
+    p21 = exp(c21 - c22)/(1 + exp(c21 - c22) + exp(c23 - c22) + exp(c2ex - c22))
+    p23 = exp(c23 - c22)/(1 + exp(c21 - c22) + exp(c23 - c22) + exp(c2ex - c22))
+    p2ex = exp(c2ex - c22)/(1 + exp(c21-c22) + exp(c23 - c22) + exp(c2ex - c22))
+    p22 = 1 - p21 - p23 - p2ex
+  elseif ownlev == (0,1) # level 3
+    # choices - 31, 32, continue, ex
+    retst3 = convert(Array, states3(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
+    c31 = retst3[1,:]*basic'  + poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 4], poly3) + neighbors*case31'
+    c32 = retst3[2,:]*basic'  + poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 4], poly3) + neighbors*case32'
+    c33 = retst3[3,:]*basic'  + poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 4], poly3)
+    c2ex = retst3[4,:]*basic' + poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 4], poly3) + neighbors*caseEX'
+    # compute:
+    p31 = exp(c31 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
+    p32 = exp(c32 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
+    p3ex = exp(c3ex - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
+    p33 = 1 - p31 - p32 - p3ex
+  else
+    return ValueException
+  end
 end
 
 
