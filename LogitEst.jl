@@ -113,7 +113,7 @@ lev31525_EX = regcoeffs[100, 2]
 cons_EX = regcoeffs[101, 2]
 
 # Basic Elements:
-basic = [NeoIntensive SoloIntermediate level3_hospitals level2solo_hospitals level1_hospitals]
+basic = [NeoIntensive SoloIntermediate  level1_hospitals level2solo_hospitals level3_hospitals]
 # Polynomial Level 3:
 poly3 = [plevel3_2 plevel3_3 plevel3_4 plevel3_5 plevel3_6 plevel3_7 plevel3_8 plevel3_9 plevel3_10]
 # Polynomial Level 2:
@@ -190,10 +190,10 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   if ownlev == (0,0) #level 1
     # choices - continue, 12, 13, ex
     retst1 = convert(Array, states1(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
-    c11 = retst1[1,:]*basic'  + poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 4], poly3)
-    c12 = retst1[2,:]*basic'  + poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 4], poly3) + case12*neighbors
-    c13 = retst1[3,:]*basic'  + poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 4], poly3) + case13*neighbors
-    c1ex = retst1[4,:]*basic' + poly(retst1[4, 3], poly1) + poly(retst1[4, 4], poly2) + poly(retst1[4, 4], poly3) + caseEX*neighbors
+    c11 = retst1[1,:]*basic'  + poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 5], poly3)
+    c12 = retst1[2,:]*basic'  + poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 5], poly3) + case12*neighbors
+    c13 = retst1[3,:]*basic'  + poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 5], poly3) + case13*neighbors
+    c1ex = retst1[4,:]*basic' + poly(retst1[4, 3], poly1) + poly(retst1[4, 4], poly2) + poly(retst1[4, 5], poly3) + caseEX*neighbors
     # now compute all of these, but keep in mind that they are differenced.
     p12  = exp(c12 - c11)/(1+ exp(c12-c11) + exp(c13 - c11) + exp(c1ex - c11))
     p13  = exp(c13 - c11)/(1 + exp(c12-c11) + exp(c13-c11) + exp(c1ex - c11))
@@ -203,10 +203,10 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   elseif ownlev == (1,0) # level 2
     # choices - 21, continue, 23, ex
     retst2 = convert(Array, states2(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
-    c21 = retst2[1,:]*basic'  + poly(retst2[1, 3], poly1) + poly(retst2[1, 4], poly2) + poly(retst2[1, 4], poly3) + case21*neighbors
-    c22 = retst2[2,:]*basic'  + poly(retst2[2, 3], poly1) + poly(retst2[2, 4], poly2) + poly(retst2[2, 4], poly3)
-    c23 = retst2[3,:]*basic'  + poly(retst2[3, 3], poly1) + poly(retst2[3, 4], poly2) + poly(retst2[3, 4], poly3) + case23*neighbors
-    c2ex = retst2[4,:]*basic' + poly(retst2[4, 3], poly1) + poly(retst2[4, 4], poly2) + poly(retst2[4, 4], poly3) + caseEX*neighbors
+    c21 = retst2[1,:]*basic'  + poly(retst2[1, 3], poly1) + poly(retst2[1, 4], poly2) + poly(retst2[1, 5], poly3) + case21*neighbors
+    c22 = retst2[2,:]*basic'  + poly(retst2[2, 3], poly1) + poly(retst2[2, 4], poly2) + poly(retst2[2, 5], poly3)
+    c23 = retst2[3,:]*basic'  + poly(retst2[3, 3], poly1) + poly(retst2[3, 4], poly2) + poly(retst2[3, 5], poly3) + case23*neighbors
+    c2ex = retst2[4,:]*basic' + poly(retst2[4, 3], poly1) + poly(retst2[4, 4], poly2) + poly(retst2[4, 5], poly3) + caseEX*neighbors
     # compute all of them:
     p21 = exp(c21 - c22)/(1 + exp(c21 - c22) + exp(c23 - c22) + exp(c2ex - c22))
     p23 = exp(c23 - c22)/(1 + exp(c21 - c22) + exp(c23 - c22) + exp(c2ex - c22))
@@ -216,10 +216,10 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   elseif ownlev == (0,1) # level 3
     # choices - 31, 32, continue, ex
     retst3 = convert(Array, states3(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
-    c31 = retst3[1,:]*basic'  + poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 4], poly3) + case31*neighbors
-    c32 = retst3[2,:]*basic'  + poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 4], poly3) + case32*neighbors
-    c33 = retst3[3,:]*basic'  + poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 4], poly3)
-    c2ex = retst3[4,:]*basic' + poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 4], poly3) + caseEX*neighbors
+    c31 = retst3[1,:]*basic'  + poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 5], poly3) + case31*neighbors
+    c32 = retst3[2,:]*basic'  + poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 5], poly3) + case32*neighbors
+    c33 = retst3[3,:]*basic'  + poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 5], poly3)
+    c2ex = retst3[4,:]*basic' + poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 5], poly3) + caseEX*neighbors
     # compute:
     p31 = exp(c31 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
     p32 = exp(c32 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
@@ -232,16 +232,21 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
 end
 
 
-
+#=
 # Testing the function:
-
-logitest(( dataf[1,:act_int], dataf[1,:act_solo]), dataf[1,:level1_hospitals0], dataf[1,:level2solo_hospitals0], dataf[1,:level3_hospitals0],[dataf[1,:lev105], dataf[1,:lev205], dataf[1,:lev305], dataf[1,:lev1515], dataf[1,:lev2515], dataf[1,:lev3515], dataf[1,:lev11525], dataf[1,:lev21525], dataf[1,:lev31525]] )
-
-# check against:
-
-[dataf[1,:choicenum0], dataf[1,:pr_ch_0], dataf[1,:choicenum1], dataf[1,:pr_ch_1], dataf[1,:choicenum2], dataf[1, :pr_ch_2], dataf[1,:choicenum3], dataf[1,:pr_ch_3]]
-
-
+  # Test 1:
+  logitest(( dataf[1,:act_int], dataf[1,:act_solo]), dataf[1,:level1_hospitals0], dataf[1,:level2solo_hospitals0], dataf[1,:level3_hospitals0],[dataf[1,:lev105], dataf[1,:lev205], dataf[1,:lev305], dataf[1,:lev1515], dataf[1,:lev2515], dataf[1,:lev3515], dataf[1,:lev11525], dataf[1,:lev21525], dataf[1,:lev31525]] )
+  # check against:
+  [dataf[1,:choicenum0], dataf[1,:pr_ch_0], dataf[1,:choicenum1], dataf[1,:pr_ch_1], dataf[1,:choicenum2], dataf[1, :pr_ch_2], dataf[1,:choicenum3], dataf[1,:pr_ch_3]]
+  # Test 2:
+  logitest(( dataf[170,:act_int], dataf[170,:act_solo]), dataf[170,:level1_hospitals0], dataf[170,:level2solo_hospitals0], dataf[170,:level3_hospitals0],[dataf[170,:lev105], dataf[170,:lev205], dataf[170,:lev305], dataf[170,:lev1515], dataf[170,:lev2515], dataf[170,:lev3515], dataf[170,:lev11525], dataf[170,:lev21525], dataf[170,:lev31525]] )
+  # check against:
+  [dataf[170,:choicenum0], dataf[170,:pr_ch_0], dataf[170,:choicenum1], dataf[170,:pr_ch_1], dataf[170,:choicenum2], dataf[170, :pr_ch_2], dataf[170,:choicenum3], dataf[170,:pr_ch_3]]
+  # Test 3:
+  logitest(( dataf[5070,:act_int], dataf[5070,:act_solo]), dataf[5070,:level1_hospitals0], dataf[5070,:level2solo_hospitals0], dataf[5070,:level3_hospitals0],[dataf[5070,:lev105], dataf[5070,:lev205], dataf[5070,:lev305], dataf[5070,:lev1515], dataf[5070,:lev2515], dataf[5070,:lev3515], dataf[5070,:lev11525], dataf[5070,:lev21525], dataf[5070,:lev31525]] )
+  # check against:
+  [dataf[5070,:choicenum0], dataf[5070,:pr_ch_0], dataf[5070,:choicenum1], dataf[5070,:pr_ch_1], dataf[5070,:choicenum2], dataf[5070, :pr_ch_2], dataf[5070,:choicenum3], dataf[5070,:pr_ch_3]]
+=#
 
 #=
 # These just write the names of the variables above out in an easy way - no useful functionality
