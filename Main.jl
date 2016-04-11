@@ -175,8 +175,6 @@ for y in 1:size(yearins)[1]
 						end
 					end
 				end
-
-
 				rand_action = Array{Any}(size(fids)[1], 3)
 				for hosp in 1:size(all_hosp_probs)[1]
 					if ((all_hosp_probs[hosp,2] == 0) & (all_hosp_probs[hosp,3] == 0)) # level 1
