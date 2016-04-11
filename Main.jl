@@ -18,7 +18,7 @@ dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
 
-# regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/ProbabilityCoeffs.csv", header = true);
+regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
 simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
 sim_f = DataFrame(simdata)
@@ -67,8 +67,16 @@ future_config1 = 4;
 future_config2 = 5;
 future_config3 = 6;
 
+# Possible choices:
+choices_1 = [(1,1), (1,2), (1,3), (1,4)];
+choices_2 = [(2,1), (2,2), (2,3), (2,4)];
+choices_3 = [(3,1), (3,2), (3,3), (3,4)];
+
+
+
 # Actual entry probabilities will be substituted in later.
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+entrants = [0, 1, 2, 3]
 
 # Note: since I know the simulation periods in advance, I do *not* need to resize dynamically, just fill in.
 #state_history = [ownstate 1 1 level1 level2 level3]
@@ -84,236 +92,123 @@ Next thing - 04 05 16
 • Draw uniform probs instead of shocks...  (???)
 • Choose the action based on those probs
 • Perturb policies as already imagined: change by ϵ the probs of actions.
+
+- Also: need to finally write the logit probability function for unobserved state
+combinations to get those probabilities.
+- Or does it make sense to do something like a local linear regression over the
+unobserved state space elements?
 =#
 
-state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
-prev1 = -1; prev2 = -1; prev3 = -1;
+#=
 
-start = 2;
-for i = start:T+1
-	shockdraw = rand(1) # not using T1EV anymore.  change to rand(d, 4) to go back.
-	if ownstate == (0,0)
-		# First searches for market configs in the real data, then in the simulated data
-		if (!((level1 == prev1) & (level2 == prev2) & (level3 == prev3)) )
-			global pvect # give this global scope so it exists outside this if-block
-			if findprob(dataf, total_hosp, level1, level2, level3) != ProbException
-				pvect = findprob(dataf, total_hosp, level1, level2, level3)
-			elseif findprob(dataf, total_hosp, level1, level2, level3) == ProbException
-				if findprob(simdata, total_hosp, level1, level2, level3) != ProbException
-					pvect = findprob(simdata, total_hosp, level1, level2, level3)
-				else
-					println("Probability Exception at Configuration (L1, L2, L3) = ", level1, level2, level3)
-					println("Market configuration not found in actual or simulated data")
-					break
-				end
-			end
-		end
-		 # This is currently wrong # shockdraw =  γ -log(pvect_1[1:4]).*pvect_1[1:4]
-		 # don't do this - just draw actions directly from the probabilities.
+It probably makes sense to define a data structure over the market configuration.
+Each row is a hospital record
+ - must record facility
+ - and neighbors 0-5, 5-15, 15-25
+ - a new hospital can be added as a row
+ - This will be something like a market type
 
-# For Level 1 firms with type 1, draw actions.  Same for 2, 3.
-# Actions give an aggregate state.
-# The transition probability is the PRODUCT of all of them.  Track that.  Needed for the
-# expectation.
 
-		choices_1 = pvect[1:4] # Cut these into thresholds and use rand to decide which action picked.
-		chosen = 1 + sum(shockdraw .> [ choices_1[1], choices_1[1] + choices_1[2], choices_1[1] + choices_1[2] + choices_1[3] ])
-		configs =sortrows( nckrexen([max(level1-1, 0) max(level2, 0) max(level3, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
-		futures = tuplefinder(configs, future_config1, future_config2, future_config3) # potential arrangements of the market, minus the current hospital
-		transitions =hcat( [configs[:,4] configs[:,5] configs[:,6]], prod(broadcast(^,hcat(pvect', entryprobs'), configs[:, 7:22] ), 2))
-		stateholder = hcat(futures, zeros(size(futures)[1], 1))
-		for k = 1:size(transitions)[1]
-			temptup = (transitions[k,1], transitions[k,2], transitions[k,3])
-			stateholder[findfirst(stateholder[:,1], temptup), 2] += transitions[k, 4]
-		end
-		stweights =WeightVec(Array{Float64}(stateholder[:,2]))
-		next_state = sample(stateholder[:,1], stweights)
-		probstate = stateholder[findfirst(stateholder[:,1], next_state), 2]
-		lp11 = log(choices_1[1]) + shockdraw[1]
-		lp12 = log(choices_1[2]) + shockdraw[2]
-		lp13 = log(choices_1[3]) + shockdraw[3]
-		lp1EX = log(choices_1[4]) + shockdraw[4]
-		max_choice = indmax([lp11, lp12, lp13, lp1EX])
-		if max_choice == 1
-			ownstate = (0,0)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = 1 + next_state[1]
-			level2 = next_state[2]
-			level3 = next_state[3]
-		elseif max_choice == 2
-			ownstate = (1,0)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1]
-			level2 = 1 + next_state[2]
-			level1 = next_state[3]
-		elseif max_choice == 3
-			ownstate = (0,1)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1]
-			level2 = next_state[2]
-			level3 = 1 + next_state[3]
-		elseif max_choice == 4
-			ownstate = ("EX", "EX")
-			level1 = next_state[1]
-			level2 = next_state[2]
-			level3 = next_state[3]
-		else
-			println("F-ed Up")
-		end
-		total_hosp = level1 + level2 + level3
-		state_history[i, :] =  [ownstate probstate probstate*state_history[i-1,3] level1 level2 level3]
-		#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
-	elseif ownstate == (1,0)
-		if (!((level1 == prev1) & (level2 == prev2) & (level3 == prev3))) # Won't just be relevant at *start*
-			global pvect
-			if findprob(dataf, total_hosp, level1, level2, level3) != ProbException
-				pvect = findprob(dataf, total_hosp, level1, level2, level3)
-			elseif findprob(dataf, total_hosp, level1, level2, level3) == ProbException
-				if findprob(simdata, total_hosp, level1, level2, level3) != ProbException
-					pvect = findprob(simdata, total_hosp, level1, level2, level3)
-				else
-					println("Probability Exception at Configuration (L1, L2, L3) = ", level1, level2, level3)
-					println("Market configuration not found in actual or simulated data")
-					break
-				end
-			end
-		end
-		# shockdraw = γ -log(pvect_2[5:8]).*pvect_2[5:8] # This is wrong - correct later
-		choices_2 = pvect[5:8]
-		configs =sortrows( nckrexen([max(level1, 0) max(level2-1, 0) max(level3, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
-		futures = tuplefinder(configs, future_config1, future_config2, future_config3) # potential arrangements of the market, minus the current hospital
-		transitions =hcat( [configs[:,4] configs[:,5] configs[:,6]], prod(broadcast(^,hcat(pvect', entryprobs'), configs[:, 7:22] ), 2))
-		stateholder = hcat(futures, zeros(size(futures)[1], 1))
-		for k = 1:size(transitions)[1]
-			temptup = (transitions[k,1], transitions[k,2], transitions[k,3])
-			stateholder[findfirst(stateholder[:,1], temptup), 2] += transitions[k, 4]
-		end
-		stweights =WeightVec(Array{Float64}(stateholder[:,2]))
-		next_state = sample(stateholder[:,1], stweights)
-		probstate = stateholder[findfirst(stateholder[:,1], next_state), 2]
-		lp21 = log(choices_2[1]) + shockdraw[1]
-		lp22 = log(choices_2[2]) + shockdraw[2]
-		lp23 = log(choices_2[3]) + shockdraw[3]
-		lp2EX = log(choices_2[4]) + shockdraw[4]
-		max_choice = indmax([lp21, lp22, lp23, lp2EX])
-		if max_choice == 1
-			ownstate = (0,0)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1] + 1
-			level2 = next_state[2]
-			level3 = next_state[3]
-		elseif max_choice == 2
-			ownstate = (1,0)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1]
-			level2 = next_state[2] + 1
-			level3 = next_state[3]
-		elseif max_choice == 3
-			ownstate = (0,1)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1]
-			level2 = next_state[2]
-			level3 = next_state[3] + 1
-		elseif max_choice == 4
-			ownstate = ("EX", "EX")
-			level1 = next_state[1]
-			level2 = next_state[2]
-			level3 = next_state[3]
-		else
-			println("F-ed Up")
-		end
-		total_hosp = level1 + level2 + level3
-		state_history[i, :] =  [ownstate probstate probstate*state_history[i-1,3] level1 level2 level3]
+=#
 
-#	state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
-	elseif ownstate == (0,1)
-		if (!((level1 == prev1) & (level2 == prev2) &(level3 == prev3)) )
-			global pvect
-			if findprob(dataf, total_hosp, level1, level2, level3) != ProbException
-				pvect = findprob(dataf, total_hosp, level1, level2, level3)
-			elseif findprob(dataf, total_hosp, level1, level2, level3) == ProbException
-				if findprob(simdata, total_hosp, level1, level2, level3) != ProbException
-					pvect = findprob(simdata, total_hosp, level1, level2, level3)
-				else
-					println("Probability Exception at Configuration (L1, L2, L3) = ", level1, level2, level3)
-					println("Market configuration not found in actual or simulated data")
-					break
-				end
-			end
-		end
-		# shockdraw = γ -log(pvect_3[9:12]).*pvect_3[9:12] # this is wrong - correct later.
-		choices_3 = pvect[9:12]
-		configs =sortrows( nckrexen([max(level1, 0) max(level2, 0) max(level3-1, 0)]), by = x -> (x[4], x[5], x[6]) ) #future market configs ignoring the level 1 hospital
-		futures = tuplefinder(configs, future_config1, future_config2, future_config3) # potential arrangements of the market, minus the current hospital
-		transitions =hcat( [configs[:,4] configs[:,5] configs[:,6]], prod(broadcast(^,hcat(pvect', entryprobs'), configs[:, 7:22] ), 2))
-		stateholder = hcat(futures, zeros(size(futures)[1], 1))
-		for k = 1:size(transitions)[1]
-			temptup = (transitions[k,1], transitions[k,2], transitions[k,3])
-			stateholder[findfirst(stateholder[:,1], temptup), 2] += transitions[k, 4]
-		end
-		stweights =WeightVec(Array{Float64}(stateholder[:,2]))
-		next_state = sample(stateholder[:,1], stweights)
-		probstate = stateholder[findfirst(stateholder[:,1], next_state), 2]
-		lp31 = log(choices_3[1]) + shockdraw[1]
-		lp32 = log(choices_3[2]) + shockdraw[2]
-		lp33 = log(choices_3[3]) + shockdraw[3]
-		lp3EX = log(choices_3[4]) + shockdraw[4]
-		max_choice = indmax([lp31, lp32, lp33, lp3EX])
-		if max_choice == 1
-			ownstate = (0,0)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1] + 1
-			level2 = next_state[2]
-			level3 = next_state[3]
-		elseif max_choice == 2
-			ownstate = (1,0)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1]
-			level2 = next_state[2] + 1
-			level3 = next_state[3]
-		elseif max_choice == 3
-			ownstate = (0,1)
-			prev1 = level1
-			prev2 = level2
-			prev3 = level3
-			level1 = next_state[1]
-			level2 = next_state[2]
-			level3 = next_state[3] + 1
-		elseif max_choice == 4
-			ownstate = ("EX", "EX")
-			level1 = next_state[1]
-			level2 = next_state[2]
-			level3 = next_state[3]
-		else
-			println("F-ed Up")
-		end
-		total_hosp = level1 + level2 + level3
-		state_history[i, :] =  [ownstate probstate probstate*state_history[i-1,3] level1 level2 level3]
-
-#		state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
-	elseif ownstate == ("EX", "EX")
-		state_history[i, :] =  [ownstate 1 1 level1 level2 level3]
-
-		state_history = vcat(state_history, [ownstate 1 1 level1 level2 level3])
-	end
+type Hosp
+	fid::Int
+	name::AbstractString
+	level::Tuple
+	fips::Int
+	lat::Float64
+	long::Float64
+	n05::Array
+	n515::Array
+	n1525::Array
+	choices::Array
+	probs::WeightVec
 end
 
+h1 = Hosp(dataf[1,:fid], dataf[1,:facility], (dataf[1,:act_int], dataf[1,:act_solo]), dataf[1,:fipscode], dataf[1, :v15], dataf[1, :v16],     [dataf[1,:lev105], dataf[1,:lev205], dataf[1,:lev305]], [dataf[1,:lev1515], dataf[1,:lev2515], dataf[1,:lev3515]], [dataf[1,:lev11525], dataf[1,:lev21525], dataf[1,:lev31525]], [1, 2, 3, 4], WeightVec([0.1, 0.1, 0.1, 0.1])     )
+
+type Market
+	fips::Int
+	lev1::Int
+	lev2::Int
+	lev3::Int
+	config::Array{Hosp}
+end
+
+
+start = 2;
+
+for y in 1:size(yearins)[1]
+	market_start = yearins[y][2]
+	market_end = yearins[y][3]
+	market_frame = dataf[market_start:market_end, :]
+		for year in yearins[y][4:end]
+			year_frame = market_frame[(market_frame[:, :year].==year), :]
+			level1 = year_frame[1,:level1_hospitals0]
+			level2 = year_frame[1,:level2solo_hospitals0]
+			level3 = year_frame[1,:level3_hospitals0]
+			fids = unique(year_frame[:fid])
+			all_hosp_probs = zeros(size(fids)[1], 11)
+			for fid in 1:size(fids)[1]
+				el = fids[fid]
+				a = year_frame[:fid].== el
+				all_hosp_probs[fid, 1:end] =hcat(el, year_frame[a, :act_int], year_frame[a, :act_solo], year_frame[a, :choicenum0], year_frame[a, :pr_ch_0], year_frame[a, :choicenum1], year_frame[a, :pr_ch_1], year_frame[a, :choicenum2], year_frame[a, :pr_ch_2], year_frame[a, :choicenum3], year_frame[a, :pr_ch_3] )
+			end
+			state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
+			for i = start:T+1
+				if i > 2
+					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
+						# get new probabilites.
+					end
+				end
+
+
+				rand_action = Array{Any}(size(fids)[1], 3)
+				for hosp in 1:size(all_hosp_probs)[1]
+					if ((all_hosp_probs[hosp,2] == 0) & (all_hosp_probs[hosp,3] == 0)) # level 1
+						pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_1, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
+					elseif ((all_hosp_probs[hosp,2] == 1) & (all_hosp_probs[hosp,3] == 0))
+						pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_2, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
+					elseif ((all_hosp_probs[hosp,2] == 1) & (all_hosp_probs[hosp,3] == 0))
+						pairs = hcat(transpose([all_hosp_probs[hosp,4] all_hosp_probs[hosp,6] all_hosp_probs[hosp,8] all_hosp_probs[hosp,10]]), choices_3, transpose([all_hosp_probs[hosp,5] all_hosp_probs[hosp,7] all_hosp_probs[hosp,9] all_hosp_probs[hosp,11]])  )
+					end
+					weights = WeightVec(Array{Float64}(pairs[:, 3]))
+					draws = sample( pairs[:,2], weights)
+					poutcomes = [draws, pairs[findfirst(pairs[:,2], draws), 3]]
+					rand_action[hosp,:] = hcat(all_hosp_probs[hosp, 1], poutcomes[1], poutcomes[2] )
+				end
+				# Entry draws
+				entrypairs = hcat(entrants, entryprobs)
+				entrantsp = WeightVec(entryprobs)
+				newentrant = sample(entrants, entrantsp)
+				entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
+				# Sum the levels for next period:
+				next1 = 0; next2 = 0; next3 = 0;
+				for row in 1:size(rand_action)[1]
+					if rand_action[row,2][2] == 1
+						next1 += 1
+					elseif rand_action[row,2][2] == 2
+						next2 += 1
+					elseif rand_action[row,2][2] == 3
+						next3 += 1
+					end
+				end
+				if newentrant> 0
+					if newentrant == 1
+						next1 += 1
+					elseif newentrant == 2
+						next2 += 1
+					elseif newentrant == 3
+						next3 += 1
+				end
+				# tracking the state history is fine for developing, but I really need to track every firm's history.
+				nexttotal = next1 + next2 + next3
+				state_history[i, :] =  [next1 next2 next3  ]
+					#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
+					# Now we need to track the aggregate state.
+				end
+	end
+end
 
 # Extract the count of visits to various states in this section
 # Lev 1: (0,0)

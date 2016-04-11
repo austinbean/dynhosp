@@ -3,7 +3,7 @@
 '''
 
 Created: 04 04 16
-Version: 04 04 16
+Version: 04 07 16
 
 This takes the set of all addresses for TX hospital-year observations, computes distances
 and then tracks facilities nearby by year.
@@ -14,7 +14,7 @@ and then tracks facilities nearby by year.
 - Then run the current file
 - It will produce, for every hospital:
     :: a set of only the other facilities within 50 miles
-    :: a count of each of the Level 1, 2 or 3 facilities at 0-5, 5-15 and 15-50 miles
+    :: a count of each of the Level 1, 2 or 3 facilities at 0-5, 5-15 and 15-25 miles
 - The result is saved again in TX Unique Lats Lons.csv
 
 '''
@@ -52,7 +52,13 @@ for row in range(1,len(hospdata)):
     hospdata[row][fid_add] = eval(hospdata[row][fid_add])
     hospdata[row][year_add] = eval(hospdata[row][year_add])
 
-distdata = hospdata
+# If necessary - to start over again using different distances, use these lines
+distdata = []
+for row in hospdata:
+    distdata.append(row[0:16])
+
+# If not, use the following:
+# distdata = hospdata
 
 
 def dfunc (w,x,y,z): #let these be (w,x) = (lat, lon) and (y,z) = (lat, lon)
@@ -73,7 +79,7 @@ bin2 = '5-15 Miles' # column 21
 bin2_c1 = 0 # Level 1 - col 22
 bin2_c2 = 0 # Level 2 - col 23
 bin2_c3 = 0 # Level 3 - col 24
-bin3 = '15-50 Miles' # column 25
+bin3 = '15-25 Miles' # column 25
 bin3_c1 = 0 # Level 1 - col 26
 bin3_c2 = 0 # Level 2 - col 27
 bin3_c3 = 0 # Level 3 - col 28
@@ -90,7 +96,7 @@ for row in range(1,len(distdata)):
     distdata[row].append(bin2_c1)
     distdata[row].append(bin2_c2)
     distdata[row].append(bin2_c3)
-    # Track level 1, 2, 3 at distance 15 - 50
+    # Track level 1, 2, 3 at distance 15 - 25
     distdata[row].append(bin3)
     distdata[row].append(bin3_c1)
     distdata[row].append(bin3_c2)
@@ -101,7 +107,7 @@ for row in range(1,len(distdata)):
     for other in range(1, len(distdata)):
         if distdata[row][year_add] == distdata[other][year_add]:
             oth_dist = dfunc(lat, lon, eval(distdata[other][lat_add]), eval(distdata[other][lon_add]) )
-            if (oth_dist < 50) & (oth_dist > 0): # will append records of those facilities in less than 50 miles, but greater than 0 (i.e., not self)
+            if (oth_dist < 25) & (oth_dist > 0): # will append records of those facilities in less than 25 miles, but greater than 0 (i.e., not self)
                 if (oth_dist <= 5) & (oth_dist > 0):
                     if not (distdata[other][0] in distdata[row]):
                         if (distdata[other][intensive_add] == 1) & (distdata[other][soloint_add] == 0):
