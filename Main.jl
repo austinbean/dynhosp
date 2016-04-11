@@ -158,7 +158,21 @@ for y in 1:size(yearins)[1]
 			for i = start:T+1
 				if i > 2
 					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
-						# get new probabilites.
+						all_hosp_probs = zeros(size(fids)[1], 11)
+						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
+							el = fids[fid]
+							a = (year_frame[:fid].==el)
+							if # level 1, actions:
+								probs = LogitEst((0,0), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
+								all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
+							elseif #level 2, actions:
+								probs = LogitEst((1,0), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
+								all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 5, probs[1], 10, probs[2], 6, probs[3], 11, probs[4])
+							elseif #level 3, actions:
+								probs = LogitEst((0,1), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
+								all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 4, probs[1], 3, probs[2], 10, probs[3], 11, probs[4])
+							end
+						end
 					end
 				end
 
@@ -194,6 +208,7 @@ for y in 1:size(yearins)[1]
 					end
 				end
 				if newentrant> 0
+					# Update fid count in here too.
 					if newentrant == 1
 						next1 += 1
 					elseif newentrant == 2
@@ -203,6 +218,9 @@ for y in 1:size(yearins)[1]
 				end
 				# tracking the state history is fine for developing, but I really need to track every firm's history.
 				nexttotal = next1 + next2 + next3
+
+				# If someone entered here, I need to add a new fid.
+
 				state_history[i, :] =  [next1 next2 next3  ]
 					#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
 					# Now we need to track the aggregate state.
