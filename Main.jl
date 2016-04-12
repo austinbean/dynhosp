@@ -11,6 +11,7 @@ include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
 include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
 include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
 include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
+include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
 
 
 # Import Data
@@ -141,6 +142,7 @@ end
 =#
 
 start = 2;
+non_loc_ends = 107;
 
 for y in 1:size(yearins)[1]
 	market_start = yearins[y][2]
@@ -197,6 +199,8 @@ for y in 1:size(yearins)[1]
 									println("Bad Action Chosen by", el)
 									break
 								end
+
+								#
 
 								# This is the logical place to recompute the demand.
 
