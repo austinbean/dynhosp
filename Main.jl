@@ -20,8 +20,8 @@ dataf = dataf[notmissing, :];
 
 regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
-simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
-sim_f = DataFrame(simdata)
+#simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
+#sim_f = DataFrame(simdata)
 
 
 
@@ -160,7 +160,7 @@ for y in 1:size(yearins)[1]
 					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
 						all_hosp_probs = zeros(size(fids)[1], 11)
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
-							el = fids[fid]
+							el = fids[fid] # This shouldn't be done with a frame - the array is mutable I think.
 							a = (year_frame[:fid].==el)
 							if # level 1, actions:
 								probs = LogitEst((0,0), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
