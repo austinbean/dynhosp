@@ -142,7 +142,7 @@ end
 =#
 
 start = 2;
-non_loc_ends = 107;
+neighbors_start = 108;
 
 for y in 1:size(yearins)[1]
 	market_start = yearins[y][2]
@@ -298,13 +298,20 @@ for y in 1:size(yearins)[1]
 						end
 					end
 				end
-				all_hosp_probs = zeros(size(fids)[1], 11)
+				# Now count all of the different hospitals at each level
+				for i = 1:size(year_frame)[1]
+    			for j = neighbors_start:(2):size(year_frame)[2]
+        		if !isna(market_frame[i,j])
+							
+            	# If something is there:
+							# - check the distance
+							# - find the row with that value
+							# - add one to the value
+        		end
+    			end
+				end
 
-				# Entry draws
-				entrypairs = hcat(entrants, entryprobs)
-				entrantsp = WeightVec(entryprobs)
-				newentrant = sample(entrants, entrantsp)
-				entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
+
 				# Sum the levels for next period:
 				next1 = 0; next2 = 0; next3 = 0;
 				for row in 1:size(year_frame)[1]
@@ -316,8 +323,14 @@ for y in 1:size(yearins)[1]
 						next3 += 1
 					end
 				end
+				# Entry draw
+				entrypairs = hcat(entrants, entryprobs)
+				entrantsp = WeightVec(entryprobs)
+				newentrant = sample(entrants, entrantsp)
+				entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
 				if newentrant> 0
 					# Update fid count in here too.
+					# Find a location for this guy too
 					if newentrant == 1
 						next1 += 1
 					elseif newentrant == 2
