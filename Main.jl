@@ -125,9 +125,22 @@ type Market
 	config::Array{Hosp}
 end
 
+# Action codes:
+#=
+1 "To 3 from 1"
+2 "To 2 from 1"
+3 "To 2 from 3"
+4 "To 1 from 3"
+5 "To 1 from 2"
+6 "To 3 from 2"
+7 "Enter at 1"
+8 "Enter at 2"
+9 "Enter at 3"
+10 "Do Nothing"
+11 "Exit"
+=#
 
 start = 2;
-neighbors = 107; # the values recording neighbors start at 108, so 107 and less is everything else.
 
 for y in 1:size(yearins)[1]
 	market_start = yearins[y][2]
@@ -147,25 +160,118 @@ for y in 1:size(yearins)[1]
 			end
 			state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
 			for i = start:T+1
-				if i > 2
+				if i > 2 # cut this part of the loop out - run each time.
 					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
-						all_hosp_probs = zeros(size(fids)[1], 11)
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
 							el = fids[fid] # the dataframe is mutable.
 							a = (year_frame[:fid].==el)
-							if # level 1, actions:
+							if  ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (0,0)) # level 1, actions:
 								probs = LogitEst((0,0), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
-								all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
-							elseif #level 2, actions:
+								# all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
+								# Reassign action choices -
+								year_frame[a, :choicenum0] = 10
+								year_frame[a, :pr_ch_0] = probs[1]
+								year_frame[a, :choicenum1] = 2
+								year_frame[a, :pr_ch_1] = probs[2]
+								year_frame[a, :choicenum2] = 1
+								year_frame[a, :pr_ch_2] = probs[3]
+								year_frame[a, :choicenum3] = 11
+								year_frame[a, :pr_ch_3] = probs[4]
+								# Draw action:
+								action1 = sample([10, 2, 1, 11] ,WeightVec(probs[1], probs[2], probs[3], probs[4]))
+								# Change things to reflect the action chosen:
+								if action1 == 10
+									# no change to state in the aggregate
+									# no change to distance-state of others
+								elseif action1 == 2
+									year_frame[a,:act_int] = 1
+									year_frame[a,:act_solo] = 0
+								elseif action1 == 1
+									year_frame[a,:act_int] = 0
+									year_frame[a,:act_solo] = 1
+								elseif action1 == 11
+									year_frame[a,:act_int] = "EX"
+									year_frame[a,:act_solo] = "EX"
+								else
+									println("Fail")
+									println("Bad Action Chosen by", el)
+									break
+								end
+
+								# This is the logical place to recompute the demand.
+
+							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (1,0)) #level 2, actions:
 								probs = LogitEst((1,0), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
-								all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 5, probs[1], 10, probs[2], 6, probs[3], 11, probs[4])
-							elseif #level 3, actions:
+								#all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 5, probs[1], 10, probs[2], 6, probs[3], 11, probs[4])
+								year_frame[a, :choicenum0] = 5
+								year_frame[a, :pr_ch_0] = probs[1]
+								year_frame[a, :choicenum1] = 10
+								year_frame[a, :pr_ch_1] = probs[2]
+								year_frame[a, :choicenum2] = 6
+								year_frame[a, :pr_ch_2] = probs[3]
+								year_frame[a, :choicenum3] = 11
+								year_frame[a, :pr_ch_3] = probs[4]
+
+								# Action:
+								action2 = sample([5, 10, 6, 11] ,WeightVec(probs[1], probs[2], probs[3], probs[4]))
+								if action2 == 5
+									year_frame[a,:act_int] = 0
+									year_frame[a,:act_solo] = 0
+								elseif action2 == 10
+									# no change to state
+								elseif action2 == 6
+									year_frame[a,:act_int] = 1
+									year_frame[a,:act_solo] = 0
+								elseif action2 == 11
+									year_frame[a,:act_int] = "EX"
+									year_frame[a,:act_solo] = "EX"
+								else
+									println("Fail")
+									println("Bad Action Chosen by", el)
+									break
+								end
+
+							elseif  ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (0,1)) #level 3, actions:
 								probs = LogitEst((0,1), next1, next2, next3, [year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]] )
-								all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 4, probs[1], 3, probs[2], 10, probs[3], 11, probs[4])
+								#all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 4, probs[1], 3, probs[2], 10, probs[3], 11, probs[4])
+								year_frame[a, :choicenum0] = 4
+								year_frame[a, :pr_ch_0] = probs[1]
+								year_frame[a, :choicenum1] = 3
+								year_frame[a, :pr_ch_1] = probs[2]
+								year_frame[a, :choicenum2] = 10
+								year_frame[a, :pr_ch_2] = probs[3]
+								year_frame[a, :choicenum3] = 11
+								year_frame[a, :pr_ch_3] = probs[4]
+
+								# Action:
+								action3 = sample([4, 3, 10, 11] ,WeightVec(probs[1], probs[2], probs[3], probs[4]))
+
+								if action3 == 3
+									# no change to state
+								elseif action3 == 4
+									year_frame[a, :act_int] =
+									year_frame[a, :act_solo] =
+								elseif action3 == 10
+									year_frame[a, :act_int] =
+									year_frame[a, :act_solo] =
+								elseif action3 == 11
+									year_frame[a, :act_int] =
+									year_frame[a, :act_solo] =
+								else
+									println("Fail")
+									println("Bad Action Chosen by", el)
+									break
+								end
+
+							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == ("EX","EX")) # has exited.
+								# No new actions to compute, but record.
+
 							end
 						end
 					end
 				end
+				all_hosp_probs = zeros(size(fids)[1], 11)
+
 				rand_action = Array{Any}(size(fids)[1], 3)
 				for hosp in 1:size(all_hosp_probs)[1]
 					if ((all_hosp_probs[hosp,2] == 0) & (all_hosp_probs[hosp,3] == 0)) # level 1
