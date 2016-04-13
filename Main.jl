@@ -163,7 +163,10 @@ for y in 1:size(yearins)[1]
 				a = year_frame[:fid].== el
 				all_hosp_probs[fid, 1:end] =hcat(el, year_frame[a, :act_int], year_frame[a, :act_solo], year_frame[a, :choicenum0], year_frame[a, :pr_ch_0], year_frame[a, :choicenum1], year_frame[a, :pr_ch_1], year_frame[a, :choicenum2], year_frame[a, :pr_ch_2], year_frame[a, :choicenum3], year_frame[a, :pr_ch_3] )
 			end
-			state_history = [ownstate 1 1 level1 level2 level3; zeros(T, 6)]
+			# What do I want to track over the whole history?  Own state, action chosen, probability of choice.  Aggregate: prob, levels.
+			# Also think forward: demand realized.
+			fields = 4;
+			state_history = [zeros(size(fids)[1], fields) 1 level1 level2 level3; zeros(T, )]
 			for i = start:T+1
 				if i > 2 # cut this part of the loop out - run each time.
 					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
@@ -301,39 +304,39 @@ for y in 1:size(yearins)[1]
 						end
 					end
 				end
-				# Now count all of the different hospitals at each level and map them
-				# to the appropriate other hospitals.
+				# Count facilities by distance and map results to neighboring hospitals
+				# here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
 				for i = 1:size(year_frame)[1]
 					own_fac = (year_frame[i, :act_solo], year_frame[i, :act_int])
     			for j = neighbors_start:(2):size(year_frame)[2]
-        		if !isna(year_frame[i,j])
+        		if (!isna(year_frame[i,j])) & (!isna(year_frame[i,j+1]))
 							if (year_frame[i, j+1] >0) & (year_frame[i,j+1] < 5)
 								if own_fac == (0,0)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev105] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev105] += 1
 								elseif own_fac == (1,0)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev205] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev205] += 1
 								elseif own_fac == (0,1)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev305] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev305] += 1
 								else
 									println("Bad Own Facility Code", i, j, own_fac)
 								end
 							elseif (year_frame[i, j+1] >5) & (year_frame[i,j+1] < 15)
 								if own_fac == (0,0)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev1515] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev1515] += 1
 								elseif own_fac == (1,0)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev2515] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev2515] += 1
 								elseif own_fac == (0,1)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev3515] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev3515] += 1
 								else
 									println("Bad Own Facility Code", i, j, own_fac)
 								end
 							elseif (year_frame[i,j+1] > 15) & (year_frame[i,j+1] < 25)
 								if own_fac == (0,0)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev11525] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev11525] += 1
 								elseif own_fac == (1,0)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev21525] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev21525] += 1
 								elseif own_fac == (0,1)
-									year_frame[ year_frame[:fid].== year_frame[i,j], :lev31525] += 1
+									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev31525] += 1
 								else
 									println("Bad Own Facility Code", i, j, own_fac)
 								end
