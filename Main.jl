@@ -166,7 +166,7 @@ for y in 1:size(yearins)[1]
 			# What do I want to track over the whole history?  Own state, action chosen, probability of choice.  Aggregate: prob, levels.
 			# Also think forward: demand realized.
 			fields = 4;
-			state_history = [zeros(size(fids)[1], fields) 1 level1 level2 level3; zeros(T, )]
+			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
 			for i = start:T+1
 				if i > 2 # cut this part of the loop out - run each time.
 					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
