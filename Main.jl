@@ -146,6 +146,8 @@ end
 
 start = 2;
 neighbors_start = 108;
+fields = 5;
+
 
 for y in 1:size(yearins)[1]
 	market_start = yearins[y][2]
@@ -158,17 +160,16 @@ for y in 1:size(yearins)[1]
 			level3 = year_frame[1,:level3_hospitals0]
 			fids = unique(year_frame[:fid])
 			all_hosp_probs = zeros(size(fids)[1], 11)
+			# Next section necessary?  Probably not.
 			for fid in 1:size(fids)[1]
 				el = fids[fid]
 				a = year_frame[:fid].== el
 				all_hosp_probs[fid, 1:end] =hcat(el, year_frame[a, :act_int], year_frame[a, :act_solo], year_frame[a, :choicenum0], year_frame[a, :pr_ch_0], year_frame[a, :choicenum1], year_frame[a, :pr_ch_1], year_frame[a, :choicenum2], year_frame[a, :pr_ch_2], year_frame[a, :choicenum3], year_frame[a, :pr_ch_3] )
 			end
-			# What do I want to track over the whole history?  Own state, action chosen, probability of choice.  Aggregate: prob, levels.
+			# What do I want to track over the whole history? fid,  Own state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
 			# Also think forward: demand realized.
-			fields = 4;
 			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
 			for i = start:T+1
-				if i > 2 # cut this part of the loop out - run each time.
 					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
 							el = fids[fid] # the dataframe is mutable.
@@ -210,11 +211,16 @@ for y in 1:size(yearins)[1]
 									println("Bad Action Chosen by", el)
 									break
 								end
-
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 								# This is the logical place to recompute the demand.
 
+								# write out state values - in blocks:
+								state_history[i, (fid-1)*4 + 1] = fid
+								state_history[i, (fid-1)*4 + 2] = ownstate
+								state_history[i, (fid-1)*4 + 3] = chprob
+								state_history[i, (fid-1)*4 + 4] = action1
+#								state_history[i, (fid-1)*4 + 5] = demand
 							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (1,0)) #level 2, actions:
 								probs2 = logitest((1,0), next1, next2, next3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
 								#all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 5, probs[1], 10, probs[2], 6, probs[3], 11, probs[4])
@@ -226,7 +232,6 @@ for y in 1:size(yearins)[1]
 								year_frame[a, :pr_ch_2] = probs2[3]
 								year_frame[a, :choicenum3] = 11
 								year_frame[a, :pr_ch_3] = probs2[4]
-
 								# Action:
 								action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
 								if action2 == 5
@@ -249,11 +254,14 @@ for y in 1:size(yearins)[1]
 									println("Bad Action Chosen by", el)
 									break
 								end
-
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
-
-
+								# write out state values - in blocks:
+								state_history[i, (fid-1)*4 + 1] = fid
+								state_history[i, (fid-1)*4 + 2] = ownstate
+								state_history[i, (fid-1)*4 + 3] = chprob
+								state_history[i, (fid-1)*4 + 4] = action1
+								#state_history[i, (fid-1)*4 + 5] = demand
 							elseif  ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (0,1)) #level 3, actions:
 								probs3 = logitest((0,1), next1, next2, next3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
 								#all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 4, probs[1], 3, probs[2], 10, probs[3], 11, probs[4])
@@ -265,10 +273,8 @@ for y in 1:size(yearins)[1]
 								year_frame[a, :pr_ch_2] = probs3[3]
 								year_frame[a, :choicenum3] = 11
 								year_frame[a, :pr_ch_3] = probs3[4]
-
 								# Action:
 								action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
-
 								if action3 == 3
 									chprob = probs3[2]
 									year_frame[a, :act_int] = 1
@@ -289,21 +295,22 @@ for y in 1:size(yearins)[1]
 									println("Bad Action Chosen by", el)
 									break
 								end
-
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
-
+								# write out state values - in blocks:
+								state_history[i, (fid-1)*4 + 1] = fid
+								state_history[i, (fid-1)*4 + 2] = ownstate
+								state_history[i, (fid-1)*4 + 3] = chprob
+								state_history[i, (fid-1)*4 + 4] = action1
+#								state_history[i, (fid-1)*4 + 5] = demand
 
 							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == ("EX","EX")) # has exited.
 								# No new actions to compute, but record.
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
-
-
 							end
 						end
 					end
-				end
 				# Count facilities by distance and map results to neighboring hospitals
 				# here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
 				for i = 1:size(year_frame)[1]
