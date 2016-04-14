@@ -146,7 +146,7 @@ end
 
 start = 2;
 neighbors_start = 108;
-fields = 5;
+fields = 6;
 
 
 for y in 1:size(yearins)[1]
@@ -166,16 +166,15 @@ for y in 1:size(yearins)[1]
 				a = year_frame[:fid].== el
 				all_hosp_probs[fid, 1:end] =hcat(el, year_frame[a, :act_int], year_frame[a, :act_solo], year_frame[a, :choicenum0], year_frame[a, :pr_ch_0], year_frame[a, :choicenum1], year_frame[a, :pr_ch_1], year_frame[a, :choicenum2], year_frame[a, :pr_ch_2], year_frame[a, :choicenum3], year_frame[a, :pr_ch_3] )
 			end
-			# What do I want to track over the whole history? fid,  Own state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
+			# What do I want to track over the whole history? fid, solo state, int state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
 			# Also think forward: demand realized.
 			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
 			for i = start:T+1
-					if !( (next1 == level1) & (next2 == level2) & (next3 == level3))
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
 							el = fids[fid] # the dataframe is mutable.
 							a = (year_frame[:fid].==el)
-							if  ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (0,0)) # level 1, actions:
-								probs1 = logitest((0,0), next1, next2, next3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
+							if  ((year_frame[a,:act_int][1], year_frame[a,:act_solo][1]) == (0,0)) # level 1, actions:
+								probs1 = logitest((0,0), level1, level2, level3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
 								# all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
 								# Reassign action choices -
 								year_frame[a, :choicenum0] = 10
@@ -216,13 +215,15 @@ for y in 1:size(yearins)[1]
 								# This is the logical place to recompute the demand.
 
 								# write out state values - in blocks:
-								state_history[i, (fid-1)*4 + 1] = fid
-								state_history[i, (fid-1)*4 + 2] = ownstate
-								state_history[i, (fid-1)*4 + 3] = chprob
-								state_history[i, (fid-1)*4 + 4] = action1
-#								state_history[i, (fid-1)*4 + 5] = demand
-							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (1,0)) #level 2, actions:
-								probs2 = logitest((1,0), next1, next2, next3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
+								state_history[i, (fid-1)*fields + 1] = el # Change
+								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1] # can't assign tuple to int
+								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1] # can't assign tuple to int
+								state_history[i, (fid-1)*fields + 4] = chprob
+								state_history[i, (fid-1)*fields + 5] = action1
+#								state_history[i, (fid-1)*fields + 5] = demand
+							elseif ((year_frame[a,:act_int][1], year_frame[a,:act_solo][1]) == (1,0)) #level 2, actions:
+								# Can't evaluation as nexti here if they are initialized to negative 1
+								probs2 = logitest((1,0), level1, level2, level3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
 								#all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 5, probs[1], 10, probs[2], 6, probs[3], 11, probs[4])
 								year_frame[a, :choicenum0] = 5
 								year_frame[a, :pr_ch_0] = probs2[1]
@@ -257,13 +258,14 @@ for y in 1:size(yearins)[1]
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 								# write out state values - in blocks:
-								state_history[i, (fid-1)*4 + 1] = fid
-								state_history[i, (fid-1)*4 + 2] = ownstate
-								state_history[i, (fid-1)*4 + 3] = chprob
-								state_history[i, (fid-1)*4 + 4] = action1
-								#state_history[i, (fid-1)*4 + 5] = demand
-							elseif  ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (0,1)) #level 3, actions:
-								probs3 = logitest((0,1), next1, next2, next3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
+								state_history[i, (fid-1)*fields + 1] = el
+								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1]
+								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1]
+								state_history[i, (fid-1)*fields + 4] = chprob
+								state_history[i, (fid-1)*fields + 5] = action2
+								#state_history[i, (fid-1)*fields + 6] = demand
+							elseif  ((year_frame[a,:act_int][1], year_frame[a,:act_solo][1]) == (0,1)) #level 3, actions:
+								probs3 = logitest((0,1), level1, level2, level3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
 								#all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 4, probs[1], 3, probs[2], 10, probs[3], 11, probs[4])
 								year_frame[a, :choicenum0] = 4
 								year_frame[a, :pr_ch_0] = probs3[1]
@@ -298,11 +300,12 @@ for y in 1:size(yearins)[1]
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 								# write out state values - in blocks:
-								state_history[i, (fid-1)*4 + 1] = fid
-								state_history[i, (fid-1)*4 + 2] = ownstate
-								state_history[i, (fid-1)*4 + 3] = chprob
-								state_history[i, (fid-1)*4 + 4] = action1
-#								state_history[i, (fid-1)*4 + 5] = demand
+								state_history[i, (fid-1)*fields + 1] = el #change
+								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1]
+								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1]
+								state_history[i, (fid-1)*fields + 4] = chprob
+								state_history[i, (fid-1)*fields + 5] = action3
+#								state_history[i, (fid-1)*fields + 6] = demand
 
 							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == ("EX","EX")) # has exited.
 								# No new actions to compute, but record.
@@ -356,14 +359,14 @@ for y in 1:size(yearins)[1]
 
 
 				# Sum the levels for next period:
-				next1 = 0; next2 = 0; next3 = 0;
+				level1 = 0; level2 = 0; level3 = 0;
 				for row in 1:size(year_frame)[1]
 					if  (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(0,0) # count all firms at each row in year_frame
-						next1 += 1
+						level1 += 1
 					elseif (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(1,0)
-						next2 += 1
+						level2 += 1
 					elseif (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(0,1)
-						next3 += 1
+						level3 += 1
 					end
 				end
 				# Entry draw
@@ -375,21 +378,22 @@ for y in 1:size(yearins)[1]
 					# Update fid count in here too.
 					# Find a location for this guy too
 					if newentrant == 1
-						next1 += 1
+						level1 += 1
 					elseif newentrant == 2
-						next2 += 1
+						level2 += 1
 					elseif newentrant == 3
-						next3 += 1
+						level3 += 1
 				end
 				# tracking the state history is fine for developing, but I really need to track every firm's history.
-				nexttotal = next1 + next2 + next3
+				total = level1 + level2 + level3
 
 				# If someone entered here, I need to add a new fid.
-
-				state_history[i, :] =  [next1 next2 next3  ]
+#REWRITE
+				state_history[i, :] =  [level1 level2 level3  ]
 					#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
 					# Now we need to track the aggregate state.
 				end
+		end
 	end
 end
 
