@@ -203,8 +203,8 @@ for y in 1:size(yearins)[1]
 									year_frame[a,:act_solo] = 1
 								elseif action1 == 11
 									chprob = probs1[4]
-									year_frame[a,:act_int] = "EX"
-									year_frame[a,:act_solo] = "EX"
+									year_frame[a,:act_int] = -999
+									year_frame[a,:act_solo] = -999
 								else
 									println("Fail")
 									println("Bad Action Chosen by", el)
@@ -248,8 +248,8 @@ for y in 1:size(yearins)[1]
 									year_frame[a,:act_solo] = 0
 								elseif action2 == 11
 									chprob = probs2[4]
-									year_frame[a,:act_int] = "EX"
-									year_frame[a,:act_solo] = "EX"
+									year_frame[a,:act_int] = -999
+									year_frame[a,:act_solo] = -999
 								else
 									println("Fail")
 									println("Bad Action Chosen by", el)
@@ -290,8 +290,8 @@ for y in 1:size(yearins)[1]
 									# no change to state
 								elseif action3 == 11
 									chprob = probs3[4]
-									year_frame[a, :act_int] = "EX"
-									year_frame[a, :act_solo] = "EX"
+									year_frame[a, :act_int] = -999
+									year_frame[a, :act_solo] = -999
 								else
 									println("Fail")
 									println("Bad Action Chosen by", el)
@@ -300,15 +300,20 @@ for y in 1:size(yearins)[1]
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 								# write out state values - in blocks:
-								state_history[i, (fid-1)*fields + 1] = el #change
+								state_history[i, (fid-1)*fields + 1] = el 
 								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1]
 								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1]
 								state_history[i, (fid-1)*fields + 4] = chprob
 								state_history[i, (fid-1)*fields + 5] = action3
 #								state_history[i, (fid-1)*fields + 6] = demand
 
-							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == ("EX","EX")) # has exited.
+							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (-999,-999)) # has exited.
 								# No new actions to compute, but record.
+								state_history[i, (fid-1)*fields + 1] = el
+								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1]
+								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1]
+								state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
+								state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 							end
@@ -327,6 +332,8 @@ for y in 1:size(yearins)[1]
 									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev205] += 1
 								elseif own_fac == (0,1)
 									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev305] += 1
+								elseif own_fac == (-999,-999)
+									# do nothing - firm exited.
 								else
 									println("Bad Own Facility Code", i, j, own_fac)
 								end
@@ -337,6 +344,8 @@ for y in 1:size(yearins)[1]
 									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev2515] += 1
 								elseif own_fac == (0,1)
 									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev3515] += 1
+								elseif own_fac == (-999,-999)
+									# do nothing - firm exited.
 								else
 									println("Bad Own Facility Code", i, j, own_fac)
 								end
@@ -347,6 +356,8 @@ for y in 1:size(yearins)[1]
 									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev21525] += 1
 								elseif own_fac == (0,1)
 									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev31525] += 1
+								elseif own_fac == (-999,-999)
+									# do nothing - firm exited.
 								else
 									println("Bad Own Facility Code", i, j, own_fac)
 								end
@@ -388,10 +399,9 @@ for y in 1:size(yearins)[1]
 				total = level1 + level2 + level3
 
 				# If someone entered here, I need to add a new fid.
-#REWRITE
-				state_history[i, :] =  [level1 level2 level3  ]
-					#state_history = vcat(state_history, [ownstate probstate probstate*state_history[end,3] level1 level2 level3])
-					# Now we need to track the aggregate state.
+				state_history[i, fid*fields+1] = level1 ;
+				state_history[i, fid*fields+2] = level2 ;
+				state_history[i, fid*fields+3] = level3 ;
 				end
 		end
 	end
