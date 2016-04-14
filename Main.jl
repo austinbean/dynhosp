@@ -210,8 +210,8 @@ for y in 1:size(yearins)[1]
 								# This is the logical place to recompute the demand.
 								# write out state values - in blocks:
 								state_history[i, (fid-1)*fields + 1] = el # Change
-								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1] # can't assign tuple to int
-								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1] # can't assign tuple to int
+								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1] 
+								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1]
 								state_history[i, (fid-1)*fields + 4] = chprob
 								state_history[i, (fid-1)*fields + 5] = action1
 								#state_history[i, (fid-1)*fields + 5] = demand
