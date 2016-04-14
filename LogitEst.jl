@@ -219,7 +219,7 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
     c31 = retst3[1,:]*basic'  + poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 5], poly3) + case31*neighbors
     c32 = retst3[2,:]*basic'  + poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 5], poly3) + case32*neighbors
     c33 = retst3[3,:]*basic'  + poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 5], poly3)
-    c2ex = retst3[4,:]*basic' + poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 5], poly3) + caseEX*neighbors
+    c3ex = retst3[4,:]*basic' + poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 5], poly3) + caseEX*neighbors
     # compute:
     p31 = exp(c31 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
     p32 = exp(c32 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
