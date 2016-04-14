@@ -154,22 +154,17 @@ for y in 1:size(yearins)[1]
 	market_end = yearins[y][3]
 	market_frame = dataf[market_start:market_end, :]
 		for year in yearins[y][4:end]
+			println(year)
 			year_frame = market_frame[(market_frame[:, :year].==year), :]
 			level1 = year_frame[1,:level1_hospitals0]
 			level2 = year_frame[1,:level2solo_hospitals0]
 			level3 = year_frame[1,:level3_hospitals0]
 			fids = unique(year_frame[:fid])
-			all_hosp_probs = zeros(size(fids)[1], 11)
-			# Next section necessary?  Probably not.
-			for fid in 1:size(fids)[1]
-				el = fids[fid]
-				a = year_frame[:fid].== el
-				all_hosp_probs[fid, 1:end] =hcat(el, year_frame[a, :act_int], year_frame[a, :act_solo], year_frame[a, :choicenum0], year_frame[a, :pr_ch_0], year_frame[a, :choicenum1], year_frame[a, :pr_ch_1], year_frame[a, :choicenum2], year_frame[a, :pr_ch_2], year_frame[a, :choicenum3], year_frame[a, :pr_ch_3] )
-			end
 			# What do I want to track over the whole history? fid, solo state, int state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
 			# Also think forward: demand realized.
 			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
 			for i = start:T+1
+				println(i)
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
 							el = fids[fid] # the dataframe is mutable.
 							a = (year_frame[:fid].==el)
@@ -213,14 +208,13 @@ for y in 1:size(yearins)[1]
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 								# This is the logical place to recompute the demand.
-
 								# write out state values - in blocks:
 								state_history[i, (fid-1)*fields + 1] = el # Change
 								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1] # can't assign tuple to int
 								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1] # can't assign tuple to int
 								state_history[i, (fid-1)*fields + 4] = chprob
 								state_history[i, (fid-1)*fields + 5] = action1
-#								state_history[i, (fid-1)*fields + 5] = demand
+								#state_history[i, (fid-1)*fields + 5] = demand
 							elseif ((year_frame[a,:act_int][1], year_frame[a,:act_solo][1]) == (1,0)) #level 2, actions:
 								# Can't evaluation as nexti here if they are initialized to negative 1
 								probs2 = logitest((1,0), level1, level2, level3, convert(Array, [year_frame[a,:lev105]; year_frame[a,:lev205]; year_frame[a,:lev305]; year_frame[a,:lev1515]; year_frame[a,:lev2515]; year_frame[a,:lev3515]; year_frame[a,:lev11525]; year_frame[a,:lev21525]; year_frame[a,:lev31525]]) )
@@ -300,14 +294,13 @@ for y in 1:size(yearins)[1]
 								# Set own distance counts to 0 for all categories
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 								# write out state values - in blocks:
-								state_history[i, (fid-1)*fields + 1] = el 
+								state_history[i, (fid-1)*fields + 1] = el
 								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1]
 								state_history[i, (fid-1)*fields + 3] = year_frame[a,:act_solo][1]
 								state_history[i, (fid-1)*fields + 4] = chprob
 								state_history[i, (fid-1)*fields + 5] = action3
-#								state_history[i, (fid-1)*fields + 6] = demand
-
-							elseif ((year_frame[a,:act_int], year_frame[a,:act_solo]) == (-999,-999)) # has exited.
+								#state_history[i, (fid-1)*fields + 6] = demand
+							elseif ((year_frame[a,:act_int][1], year_frame[a,:act_solo][1]) == (-999,-999)) # has exited.
 								# No new actions to compute, but record.
 								state_history[i, (fid-1)*fields + 1] = el
 								state_history[i, (fid-1)*fields + 2] = year_frame[a,:act_int][1]
@@ -318,91 +311,94 @@ for y in 1:size(yearins)[1]
 								(year_frame[a,:lev105], year_frame[a,:lev205], year_frame[a,:lev305], year_frame[a,:lev1515], year_frame[a,:lev2515], year_frame[a,:lev3515], year_frame[a,:lev11525], year_frame[a,:lev21525], year_frame[a,:lev31525]) = zeros(1,9)
 							end
 						end
-					end
-				# Count facilities by distance and map results to neighboring hospitals
-				# here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
-				for i = 1:size(year_frame)[1]
-					own_fac = (year_frame[i, :act_solo], year_frame[i, :act_int])
-    			for j = neighbors_start:(2):size(year_frame)[2]
-        		if (!isna(year_frame[i,j])) & (!isna(year_frame[i,j+1]))
-							if (year_frame[i, j+1] >0) & (year_frame[i,j+1] < 5)
-								if own_fac == (0,0)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev105] += 1
-								elseif own_fac == (1,0)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev205] += 1
-								elseif own_fac == (0,1)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev305] += 1
-								elseif own_fac == (-999,-999)
-									# do nothing - firm exited.
-								else
-									println("Bad Own Facility Code", i, j, own_fac)
+						# Count facilities by distance and map results to neighboring hospitals
+						# here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
+						for i = 1:size(year_frame)[1]
+							own_fac = (year_frame[i, :act_solo], year_frame[i, :act_int])
+							for j = neighbors_start:(2):size(year_frame)[2]
+								if (!isna(year_frame[i,j])) & (!isna(year_frame[i,j+1]))
+									if (year_frame[i, j+1] >0) & (year_frame[i,j+1] < 5)
+										if own_fac == (0,0)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev105] += 1
+											println("updated facility")
+										elseif own_fac == (1,0)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev205] += 1
+											println("updated facility")
+										elseif own_fac == (0,1)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev305] += 1
+											println("updated facility")
+										elseif own_fac == (-999,-999)
+											# do nothing - firm exited.
+										else
+											println("Bad Own Facility Code", i, j, own_fac)
+										end
+									elseif (year_frame[i, j+1] >5) & (year_frame[i,j+1] < 15)
+										if own_fac == (0,0)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev1515] += 1
+											println("updated facility")
+										elseif own_fac == (1,0)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev2515] += 1
+											println("updated facility")
+										elseif own_fac == (0,1)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev3515] += 1
+											println("updated facility")
+										elseif own_fac == (-999,-999)
+											# do nothing - firm exited.
+										else
+											println("Bad Own Facility Code", i, j, own_fac)
+										end
+									elseif (year_frame[i,j+1] > 15) & (year_frame[i,j+1] < 25)
+										if own_fac == (0,0)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev11525] += 1
+										elseif own_fac == (1,0)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev21525] += 1
+										elseif own_fac == (0,1)
+											dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev31525] += 1
+										elseif own_fac == (-999,-999)
+											# do nothing - firm exited.
+										else
+											println("Bad Own Facility Code", i, j, own_fac)
+										end
+									else
+										println("Bad Distance at frame ", i, j)
+									end
 								end
-							elseif (year_frame[i, j+1] >5) & (year_frame[i,j+1] < 15)
-								if own_fac == (0,0)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev1515] += 1
-								elseif own_fac == (1,0)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev2515] += 1
-								elseif own_fac == (0,1)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev3515] += 1
-								elseif own_fac == (-999,-999)
-									# do nothing - firm exited.
-								else
-									println("Bad Own Facility Code", i, j, own_fac)
-								end
-							elseif (year_frame[i,j+1] > 15) & (year_frame[i,j+1] < 25)
-								if own_fac == (0,0)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev11525] += 1
-								elseif own_fac == (1,0)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev21525] += 1
-								elseif own_fac == (0,1)
-									dataf[ (dataf[:fid].== year_frame[i,j])&(dataf[:year].== year), :lev31525] += 1
-								elseif own_fac == (-999,-999)
-									# do nothing - firm exited.
-								else
-									println("Bad Own Facility Code", i, j, own_fac)
-								end
-							else
-								println("Bad Distance at frame ", i, j)
 							end
-        		end
-    			end
-				end
+						end
+						# Sum the levels for next period:
+						level1 = 0; level2 = 0; level3 = 0;
+						for row in 1:size(year_frame)[1]
+							if  (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(0,0) # count all firms at each row in year_frame
+								level1 += 1
+							elseif (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(1,0)
+								level2 += 1
+							elseif (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(0,1)
+								level3 += 1
+							end
+						end
+						# Entry draw
+						entrypairs = hcat(entrants, entryprobs)
+						entrantsp = WeightVec(entryprobs)
+						newentrant = sample(entrants, entrantsp)
+						entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
+						if newentrant> 0
+							# Update fid count in here too.
+							# Find a location for this guy too
+							if newentrant == 1
+								level1 += 1
+							elseif newentrant == 2
+								level2 += 1
+							elseif newentrant == 3
+								level3 += 1
+						end
+						# tracking the state history is fine for developing, but I really need to track every firm's history.
+						total = level1 + level2 + level3
 
-
-				# Sum the levels for next period:
-				level1 = 0; level2 = 0; level3 = 0;
-				for row in 1:size(year_frame)[1]
-					if  (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(0,0) # count all firms at each row in year_frame
-						level1 += 1
-					elseif (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(1,0)
-						level2 += 1
-					elseif (year_frame[row,:act_solo], year_frame[row,:act_int]) ==(0,1)
-						level3 += 1
-					end
-				end
-				# Entry draw
-				entrypairs = hcat(entrants, entryprobs)
-				entrantsp = WeightVec(entryprobs)
-				newentrant = sample(entrants, entrantsp)
-				entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
-				if newentrant> 0
-					# Update fid count in here too.
-					# Find a location for this guy too
-					if newentrant == 1
-						level1 += 1
-					elseif newentrant == 2
-						level2 += 1
-					elseif newentrant == 3
-						level3 += 1
-				end
-				# tracking the state history is fine for developing, but I really need to track every firm's history.
-				total = level1 + level2 + level3
-
-				# If someone entered here, I need to add a new fid.
-				state_history[i, fid*fields+1] = level1 ;
-				state_history[i, fid*fields+2] = level2 ;
-				state_history[i, fid*fields+3] = level3 ;
-				end
+						# If someone entered here, I need to add a new fid.
+						state_history[i, fid*fields+1] = level1 ;
+						state_history[i, fid*fields+2] = level2 ;
+						state_history[i, fid*fields+3] = level3 ;
+			end
 		end
 	end
 end
