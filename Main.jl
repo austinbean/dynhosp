@@ -36,16 +36,7 @@ allindices = [ (x, findfirst(dataf[:fipscode], x), findlast(dataf[:fipscode], x)
 yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
 
 
-######  Simulation Section Starts Here #######
 
-β = 0.95;
-T = 100;
-choices = 4;
-α₂ = 0.07;  # Fraction of patients admitted to NICU lev 2 on average (PA Data)
-α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
-# Actual entry probabilities will be substituted in later.
-entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
-entrants = [0, 1, 2, 3]
 
 # Parameters of the shock distribution
 # This is wrong - I don't draw shocks from this, I draw conditional means,
@@ -61,24 +52,16 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 
 
 #=
-Next thing - 04 05 16
-• Must keep track of who is where.
-• Add the whole set of hospital neighbors to each year-record
-• How far?  Clearly 50 miles is too far - that will be up to 52 neighbors: far too many
-• Continue with this part of the simulation without worrying about the error.  that can be fixed
-• Need to write a function to get the logit probs, now that it depends on distance.
 
-• Draw uniform probs instead of shocks...  (???)
 • Choose the action based on those probs
 • Perturb policies as already imagined: change by ϵ the probs of actions.
 
-- Also: need to finally write the logit probability function for unobserved state
-combinations to get those probabilities.
-- Or does it make sense to do something like a local linear regression over the
-unobserved state space elements?
+
+ Problem: hospitals may be closer than 25 miles but in different counties - they
+will show up as being in different markets.
 =#
 
-
+# Data Types - currently unused.
 
 type Hosp
 	fid::Int
@@ -119,9 +102,17 @@ end
 11 "Exit"
 =#
 
-# Problem: hospitals may be closer than 25 miles but in different counties - they
-# will show up as being in different markets.
 
+######  Simulation Section Starts Here #######
+
+β = 0.95;
+T = 100;
+choices = 4;
+α₂ = 0.07;  # Fraction of patients admitted to NICU lev 2 on average (PA Data)
+α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
+# Actual entry probabilities will be substituted in later.
+entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+entrants = [0, 1, 2, 3]
 start = 2;
 neighbors_start = 108;
 fields = 6;
@@ -143,6 +134,23 @@ for y in 1:size(yearins)[1]
 			# What do I want to track over the whole history? fid, solo state, int state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
 			# Also think forward: demand realized.
 			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
+			# Includes values for the initial market configuration
+			for n in 1:size(fids)[1]
+				el = fids[n]
+				a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
+				state_history[1, (n-1)*fields + 1] = el # Change
+				state_history[1, (n-1)*fields + 2] = dataf[a,:act_int][1]
+				state_history[1, (n-1)*fields + 3] = dataf[a,:act_solo][1]
+				state_history[1, (n-1)*fields + 4] = 1
+				state_history[1, (n-1)*fields + 5] = 0 # No action at the first period.
+				#state_history[1, (n-1)*fields + 6] = # whatever demand is
+			end
+			# Record aggregte initial values
+			state_history[1, (size(fids)[1])*fields+1] = level1 ;
+			state_history[1, (size(fids)[1])*fields+2] = level2 ;
+			state_history[1, (size(fids)[1])*fields+3] = level3 ;
+			state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
+			# Start simulation here:
 			for i = start:T+1
 				if i%50 == 0
 						println("Period ",i, " in Market-year ", year, " ", mkt_fips)
@@ -387,7 +395,7 @@ for y in 1:size(yearins)[1]
 								level3 += 1
 							end
 						end
-						# tracking the state history is fine for developing, but I really need to track every firm's history.
+				# Total number of firms
 				total = level1 + level2 + level3
 				# If someone entered here, I need to add a new fid.
 				state_history[i, (size(fids)[1])*fields+1] = level1 ;
