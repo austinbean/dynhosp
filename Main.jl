@@ -141,8 +141,8 @@ for y in 1:size(yearins)[1]
 				state_history[1, (n-1)*fields + 1] = el # Change
 				state_history[1, (n-1)*fields + 2] = dataf[a,:act_int][1]
 				state_history[1, (n-1)*fields + 3] = dataf[a,:act_solo][1]
-				state_history[1, (n-1)*fields + 4] = 1
-				state_history[1, (n-1)*fields + 5] = 0 # No action at the first period.
+				state_history[1, (n-1)*fields + 4] = 1 #probability is 1 for the first action
+				state_history[1, (n-1)*fields + 5] = 10 # No action at the first period?  Or should it be 10?
 				#state_history[1, (n-1)*fields + 6] = # whatever demand is
 			end
 			# Record aggregte initial values
@@ -363,7 +363,7 @@ for y in 1:size(yearins)[1]
 								end
 							end
 						end
-						# Sum the levels for next period:
+				# Sum the levels for next period:
 				level1 = 0; level2 = 0; level3 = 0;
 				update_mkt = ((dataf[:year].==year)&(dataf[:fipscode].==mkt_fips)&(dataf[:act_int].!=-999)&(dataf[:act_solo].!=-999))
 				total = sum(update_mkt)
@@ -384,9 +384,12 @@ for y in 1:size(yearins)[1]
 				entrantsp = WeightVec(entryprobs)
 				newentrant = sample(entrants, entrantsp)
 				entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
+				b = (dataf[:fipscode].== mkt_fips)&(dataf[:year].==year) # Market-year observations, whether exited or not.
 						if newentrant> 0
 							# Update fid count in here too.
-							# Find a location for this guy too
+							# 0.1 degrees latitude should be about 6-7 miles.
+							ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1)
+							ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)# draw normal with small variance for distance.
 							if newentrant == 1
 								level1 += 1
 							elseif newentrant == 2
@@ -395,6 +398,17 @@ for y in 1:size(yearins)[1]
 								level3 += 1
 							end
 						end
+				# Aggregate Probability of Action:
+				tprob = 1
+				for els in 1:fields:(size(state_history[i,:])[2]-4) # 4 is the relevant column
+					if (state_history[i,els] < 0) | (state_history[i,els]>1)
+ 							println("Bad probability at row ", i, " ", els )
+					else
+						tprob = tprob*state_history[i,els]
+					end
+				end
+				state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
+
 				# Total number of firms
 				total = level1 + level2 + level3
 				# If someone entered here, I need to add a new fid.
