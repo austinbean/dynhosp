@@ -317,7 +317,7 @@ for y in 1:size(yearins)[1]
 						end
 						# Count facilities by distance and map results to neighboring hospitals
 						# here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
-						for f in fids # This needs changing! 1:size(year_frame)[1]
+						for f in fids
 							own_fac = (dataf[(dataf[:fid].==f)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :act_solo][1], dataf[(dataf[:fid].==f)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :act_int][1])
 							for j = neighbors_start:(2):size(dataf)[2]
 								if (!isna(dataf[(dataf[:fid].==f)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips),j][1])) & (!isna(dataf[(dataf[:fid].==f)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips),j+1][1]))
@@ -386,17 +386,35 @@ for y in 1:size(yearins)[1]
 				entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
 				b = (dataf[:fipscode].== mkt_fips)&(dataf[:year].==year) # Market-year observations, whether exited or not.
 						if newentrant> 0
-							# Update fid count in here too.
+							# Eventually fix the fact that the neighbors here are not going to be exactly right.
 							# 0.1 degrees latitude should be about 6-7 miles.
 							ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1)
-							ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)# draw normal with small variance for distance.
+							ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)
+							newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
+							newrow[:facility] = convert(UTF8String, "Entrant $y $year")
+							newrow[:fid] = sample(collect((maximum(dataf[:fid])+1):(maximum(dataf[:fid])+5)))
+							newrow[:id] = sample(collect((maximum(dataf[:id])+1):(maximum(dataf[:id])+5)))
+							newrow[:fipscode] = mkt_fips
+							newrow[:location] = convert(UTF8String, "entrant - see v15 v16")
+							newrow[:city] = convert(UTF8String, "Entrant - unspecified")
+							newrow[:firstyear] = year
+							newrow[:v15] = ent_lat
+							newrow[:v16] = ent_lon
 							if newentrant == 1
 								level1 += 1
+								newrow[:act_int] = 0
+								newrow[:act_solo] = 0
 							elseif newentrant == 2
 								level2 += 1
+								newrow[:act_int] = 0
+								newrow[:act_solo] = 1
 							elseif newentrant == 3
 								level3 += 1
+								newrow[:act_int] = 0
+								newrow[:act_solo] = 1
 							end
+							# Add the new record to the dataframe.
+							append!(dataf, newrow)
 						end
 				# Aggregate Probability of Action:
 				tprob = 1
@@ -405,6 +423,16 @@ for y in 1:size(yearins)[1]
  							println("Bad probability at row ", i, " ", els )
 					else
 						tprob = tprob*state_history[i,els]
+					end
+				end
+				# Accounting for entry in aggregate prob of action -
+				if newentrant >0
+					if newentrant == 1
+						tprob = tprob*entryprobs[2]
+					elseif newentrant == 2
+						tprob = tprob*entryprobs[3]
+					elseif newentrant == 3
+						tprob = tprob*entryprobs[4]
 					end
 				end
 				state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
