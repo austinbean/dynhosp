@@ -121,16 +121,16 @@ fields = 6;
 for y in 1:size(yearins)[1]
 	market_start = yearins[y][2]
 	market_end = yearins[y][3]
-	market_frame = dataf[market_start:market_end, :]
+#	market_frame = dataf[market_start:market_end, :]
 	mkt_fips = yearins[y][1]
 		for year in yearins[y][4:end]
 			println(year)
 			# There may be times when this is empty - check that.
-			year_frame = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year), :]
+	#		year_frame = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year), :]
 			level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
 			level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
 			level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
-			fids = unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])
+			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # this is run again below to catch entrants each iteration
 			# What do I want to track over the whole history? fid, solo state, int state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
 			# Also think forward: demand realized.
 			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
@@ -155,6 +155,7 @@ for y in 1:size(yearins)[1]
 				if i%50 == 0
 						println("Period ",i, " in Market-year ", year, " ", mkt_fips)
 				end
+				fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # needs to be updated each round to catch entrants
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
 							el = fids[fid] # the dataframe is mutable.
 							println(el)
@@ -387,12 +388,13 @@ for y in 1:size(yearins)[1]
 				b = (dataf[:fipscode].== mkt_fips)&(dataf[:year].==year) # Market-year observations, whether exited or not.
 						if newentrant> 0
 							# Eventually fix the fact that the neighbors here are not going to be exactly right.
-							# 0.1 degrees latitude should be about 6-7 miles.
-							ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1)
+							# Problem here: when new entrant arrives, must track that set of states
+							# but now state_history is the wrong size.  I need to resize it here.
+							ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
 							ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)
 							newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
 							newrow[:facility] = convert(UTF8String, "Entrant $y $year")
-							newrow[:fid] = sample(collect((maximum(dataf[:fid])+1):(maximum(dataf[:fid])+5)))
+							newrow[:fid] = sample(collect((maximum(dataf[:fid])+1):(maximum(dataf[:fid])+5))) # new facility will always have largest fid
 							newrow[:id] = sample(collect((maximum(dataf[:id])+1):(maximum(dataf[:id])+5)))
 							newrow[:fipscode] = mkt_fips
 							newrow[:location] = convert(UTF8String, "entrant - see v15 v16")
@@ -415,10 +417,14 @@ for y in 1:size(yearins)[1]
 							end
 							# Add the new record to the dataframe.
 							append!(dataf, newrow)
+							# append value to fids
+							push!(fids, newrow[:fid])
+							# Reshape state history: fid, solo state, int state, action chosen, probability of choice, demand. [newrow[:fid], 999, 999, 0, 1, 0]
+							state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid] 999 999 0 1 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
 						end
 				# Aggregate Probability of Action:
 				tprob = 1
-				for els in 1:fields:(size(state_history[i,:])[2]-4) # 4 is the relevant column
+				for els in 4:fields:(size(state_history[i,:])[2]-4) # 4 is the relevant column
 					if (state_history[i,els] < 0) | (state_history[i,els]>1)
  							println("Bad probability at row ", i, " ", els )
 					else
