@@ -387,8 +387,7 @@ for y in 1:size(yearins)[1]
 				b = (dataf[:fipscode].== mkt_fips)&(dataf[:year].==year) # Market-year observations, whether exited or not.
 						if newentrant> 0
 							# Eventually fix the fact that the neighbors here are not going to be exactly right.
-							# Problem here: when new entrant arrives, must track that set of states
-							# but now state_history is the wrong size.  I need to resize it here.
+							# I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
 							ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
 							ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)
 							newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
@@ -414,6 +413,11 @@ for y in 1:size(yearins)[1]
 								newrow[:act_int] = 0
 								newrow[:act_solo] = 1
 							end
+							# Handle appending these entrants to the (neighbor, distance) section
+							# Need to write the distance Function
+							# need to check all of the other fids in the market-year (in b)
+
+
 							# Add the new record to the dataframe.
 							append!(dataf, newrow)
 							# append value to fids
