@@ -421,7 +421,7 @@ for y in 1:size(yearins)[1]
 									count = 0 # only want to make an entry once - this is a dumb way
 									for c in neighbors_start:(2):size(dataf)[2]
 										if (isna(row[c]))&(count == 0)
-											# to make changes I need to search for the row in the original DF matching these characteristics. 
+											# to make changes I need to search for the row in the original DF matching these characteristics.
 											dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c ]= newrow[:fid]
 											dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c+1]= distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16])
 											count += 1
@@ -429,14 +429,56 @@ for y in 1:size(yearins)[1]
 									end
 								end
 							end
-
+							# Append the neighbors to the new entrant's frame too
+							for elem in 1:size(fids)[1]
+								neighb = fids[elem]
+								neighb_lat = dataf[(dataf[:fid].==neighb)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :v15][1]
+								neighb_lon = dataf[(dataf[:fid].==neighb)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :v16][1]
+								td = distance(ent_lat[1], ent_lon[1], neighb_lat, neighb_lon)
+								if  td < 25
+									newrow[neighbors_start+2*(elem-1)] = neighb # fid
+									newrow[neighbors_start+2*(elem-1)+1] = td
+									if (td > 0) & (td < 5)
+										if (newrow[:act_solo][1], newrow[:act_int][1]) == (0,0)
+											newrow[:lev105] += 1
+										elseif (newrow[:act_solo][1], newrow[:act_int][1]) == (1,0)
+											newrow[:lev205] += 1
+										elseif (newrow[:act_solo][1], newrow[:act_int][1]) == (0,1)
+											newrow[:lev305] += 1
+										else
+											println("Bad facility in Entrant 1")
+										end
+									elseif (td > 5) & (td < 15)
+										if (newrow[:act_solo][1], newrow[:act_int][1]) == (0,0)
+											newrow[:lev1515] += 1
+										elseif (newrow[:act_solo][1], newrow[:act_int][1]) == (1,0)
+											newrow[:lev2515] += 1
+										elseif (newrow[:act_solo][1], newrow[:act_int][1]) == (0,1)
+											newrow[:lev3515] += 1
+										else
+											println("Bad facility in Entrant 2")
+										end
+									elseif (td > 15) & (td < 25)
+										if (newrow[:act_solo][1], newrow[:act_int][1]) == (0,0)
+											newrow[:lev11525] += 1
+										elseif (newrow[:act_solo][1], newrow[:act_int][1]) == (1,0)
+											newrow[:lev21525] += 1
+										elseif (newrow[:act_solo][1], newrow[:act_int][1]) == (0,1)
+											newrow[:lev31525] += 1
+										else
+											println("Bad facility in Entrant 3")
+										end
+									else
+										println("Bad distance measured from entrant")
+									end
+								end
+							end
 							# Add the new record to the dataframe.
 							append!(dataf, newrow)
 							# append value to fids
 							push!(fids, newrow[:fid][1])
 							# Reshape state history: fid, solo state, int state, action chosen, probability of choice, demand. [newrow[:fid], 999, 999, 0, 1, 0]
 							state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 0 1 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
-							println("reshaped")
 						end
 				# Aggregate Probability of Action:
 				tprob = 1
