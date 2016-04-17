@@ -414,7 +414,6 @@ for y in 1:size(yearins)[1]
 								newrow[:act_solo] = 1
 							end
 							# Handle appending these entrants to the (neighbor, distance) section
-							# Need to write the distance Function
 							# need to check all of the other fids in the market-year (in b)
 
 
