@@ -12,6 +12,7 @@ include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
 include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
 include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
 include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
 
 
 # Import Data
@@ -415,7 +416,19 @@ for y in 1:size(yearins)[1]
 							end
 							# Handle appending these entrants to the (neighbor, distance) section
 							# need to check all of the other fids in the market-year (in b)
-
+							for row in eachrow(dataf[b,:])
+								if  (distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16]) < 25)
+									count = 0 # only want to make an entry once - this is a dumb way
+									for c in neighbors_start:(2):size(dataf)[2]
+										if (isna(row[c]))&(count == 0)
+											# to make changes I need to search for the row in the original DF matching these characteristics. 
+											dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c ]= newrow[:fid]
+											dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c+1]= distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16])
+											count += 1
+										end
+									end
+								end
+							end
 
 							# Add the new record to the dataframe.
 							append!(dataf, newrow)
