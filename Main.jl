@@ -158,7 +158,6 @@ for y in 1:size(yearins)[1]
 				fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # needs to be updated each round to catch entrants
 						for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
 							el = fids[fid] # the dataframe is mutable.
-							println(el)
 							a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
 							if sum(a) > 1
 								println("two entries for ", el, " ", year, " ", mkt_fips)
@@ -418,9 +417,10 @@ for y in 1:size(yearins)[1]
 							# Add the new record to the dataframe.
 							append!(dataf, newrow)
 							# append value to fids
-							push!(fids, newrow[:fid])
+							push!(fids, newrow[:fid][1])
 							# Reshape state history: fid, solo state, int state, action chosen, probability of choice, demand. [newrow[:fid], 999, 999, 0, 1, 0]
-							state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid] 999 999 0 1 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
+							state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 0 1 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
+							println("reshaped")
 						end
 				# Aggregate Probability of Action:
 				tprob = 1
@@ -444,8 +444,6 @@ for y in 1:size(yearins)[1]
 				state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
 
 				# Total number of firms
-				total = level1 + level2 + level3
-				# If someone entered here, I need to add a new fid.
 				state_history[i, (size(fids)[1])*fields+1] = level1 ;
 				state_history[i, (size(fids)[1])*fields+2] = level2 ;
 				state_history[i, (size(fids)[1])*fields+3] = level3 ;
