@@ -27,7 +27,7 @@ dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
 
-fields = 6
+fields = 7
 fids = [12719, 16122]
 T = 100
 state_history = [zeros(1, fields*size(fids)[1]) 1 2 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
@@ -48,6 +48,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
     state_history[1, (n-1)*fields + 4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields + 5] = 10 # No action at the first period?  Or should it be 10?
     #state_history[1, (n-1)*fields + 6] = # whatever demand is
+    #state_history[1, (n-1)*fields + 7] = # record the perturbation 0/1
   end
   # Record aggregte initial values
   state_history[1, (size(fids)[1])*fields+1] = level1 ;
@@ -118,6 +119,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 7] #perturbation
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (1,0)) #level 2, actions:
             # Can't evaluation as nexti here if they are initialized to negative 1
             probs2 = logitest((1,0), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
@@ -164,6 +166,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 7] #perturbation
           elseif  ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (0,1)) #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
             if probs3 == ValueException
@@ -209,6 +212,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action3
             #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 7] #perturbation
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (-999,-999)) # has exited.
             # No new actions to compute, but record.
             state_history[i, (fid-1)*fields + 1] = el
@@ -216,6 +220,8 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 3] = dataf[a,:act_solo][1]
             state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
             state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
+            #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited.
+            #state_history[i, (fid-1)*fields + 7] #perturbation
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
           end
