@@ -114,7 +114,7 @@ choices = 4;
 # Actual entry probabilities will be substituted in later.
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 entrants = [0, 1, 2, 3]
-start = 2;
+sim_start = 2;
 neighbors_start = 108;
 fields = 6;
 
@@ -141,7 +141,7 @@ for y in 1:size(yearins)[1]
 			level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
 			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # this is run again below to catch entrants each iteration
 			# What do I want to track over the whole history? fid, solo state, int state, action chosen, probability of choice, demand.  Aggregate: prob, levels.
-			# Also think forward: demand realized.
+			# Also think forward: demand realized, perturbations to policy(?).
 			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
 			# Includes values for the initial market configuration
 			for n in 1:size(fids)[1]
@@ -160,7 +160,7 @@ for y in 1:size(yearins)[1]
 			state_history[1, (size(fids)[1])*fields+3] = level3 ;
 			state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
 			# Start simulation here:
-			for i = start:T+1
+			for i = sim_start:T+1
 				if i%50 == 0
 						println("Period ",i, " in Market-year ", year, " ", mkt_fips)
 				end
