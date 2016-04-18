@@ -118,6 +118,14 @@ start = 2;
 neighbors_start = 108;
 fields = 6;
 
+#=
+To work on::
+- probability not getting recorded all the way through every time, maybe entry is the Problem
+- some exit actions do not have a 11 recorded as the action - -999 is getting recorded all the way?
+
+
+=#
+
 
 for y in 1:size(yearins)[1]
 	market_start = yearins[y][2]
@@ -483,8 +491,8 @@ for y in 1:size(yearins)[1]
 				# Aggregate Probability of Action:
 				tprob = 1
 				for els in 4:fields:(size(state_history[i,:])[2]-4) # 4 is the relevant column
-					if (state_history[i,els] < 0) | (state_history[i,els]>1)
- 							println("Bad probability at row ", i, " ", els )
+					if (state_history[i,els] <= 0) | (state_history[i,els]>1)
+ 							println("Bad probability at row ", i, " ", els, " ", state_history[i,els-3 ], " prob ", state_history[i,els] )
 					else
 						tprob = tprob*state_history[i,els]
 					end
@@ -535,11 +543,6 @@ for row in 2:size(state_history)[1]
 	change_agg = current_agg - previous_agg # do I care?
 	# Record visits to possible aggregate states
 
-#=
-
-- Use the histogram function.  See this: http://stackoverflow.com/questions/21172027/count-instances-of-each-unique-integer-in-a-vector-in-1-line-of-code
-
-=#
 	previous = state_history[row, 1] # records the current state as "previous for the next round"
 end
 
