@@ -122,9 +122,7 @@ fields = 6;
 
 #=
 To work on::
-- probability not getting recorded all the way through every time, maybe entry is the Problem
-- some exit actions do not have a 11 recorded as the action - -999 is getting recorded all the way?
-
+- Perturbed policy function, based on Simulation.jl
 
 =#
 
@@ -135,15 +133,13 @@ for y in 1:size(yearins)[1]
 #	market_frame = dataf[market_start:market_end, :]
 	mkt_fips = yearins[y][1]
 		for year in yearins[y][4:end]
-			level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
-		  level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
-		  level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
+#			level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
+#		  level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
+#		  level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
 			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
-			state_history = [zeros(1, fields*size(fids)[1]) 1 level1 level2 level3; zeros(T, fields*(size(fids)[1]) + 4)]
-			# Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, start = 2)
-			# Do I really want to return the dataframe?  The changes should happen within the simulation.  I just have
-			# to delete the additions.  I think that I don't.  It's easier not to.
-			state_history = Simulator(dataf, year, mkt_fips, state_history, T = 100, start = 2)
+			state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+			#Arguments: Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, start = 2)
+			state_history = Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 		end
 end
 
