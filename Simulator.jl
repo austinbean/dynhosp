@@ -1,40 +1,36 @@
 using DataFrames
 using DataArrays
+using Distributions
+
 include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+
 T = 100;
 neighbors_start = 108;
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 entrants = [0, 1, 2, 3]
-fields = 7;
-#include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
+fields = 7; # if fields updated, update reshaping of state history
+sim_start = 2;
 
 #=
-using DataArrays
-using Distributions
-
-# Include necessary functions
-include("/Users/austinbean/Desktop/dynhosp/combgen.jl")
-include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
-include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
-include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
-include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
-include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-
+# TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
 
 # Import Data
 dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
+yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
+mkt_fips = yearins[145][1]
+year = 2011
+fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
 
-fields = 7
-fids = [12719, 16122]
-T = 100
-state_history = [zeros(1, fields*size(fids)[1]) 1 2 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
-Simulator(dataf, 2005, 48001, state_history, T= 100, start =  2)
+# There is a trick here in making sure this has the right size!  Need to compute the size of fids first.
+state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+
+Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 =#
 
-function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, start = 2)
+function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, sim_start = 2)
   level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
   level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
@@ -48,7 +44,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
     state_history[1, (n-1)*fields + 4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields + 5] = 10 # No action at the first period?  Or should it be 10?
     #state_history[1, (n-1)*fields + 6] = # whatever demand is
-    #state_history[1, (n-1)*fields + 7] = # record the perturbation 0/1
+    state_history[1, (n-1)*fields + 7] = 0 #record the perturbation 0/1
   end
   # Record aggregte initial values
   state_history[1, (size(fids)[1])*fields+1] = level1 ;
@@ -57,7 +53,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
 
   # Start simulation here:
-  for i = start:T+1
+  for i = sim_start:T+1
     if i%50 == 0
         println(i)
     end
@@ -114,8 +110,8 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             # This is the logical place to recompute the demand.
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el # Change
-            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_int][1]
-            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand
@@ -161,8 +157,8 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_int][1]
-            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand
@@ -207,8 +203,8 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_int][1]
-            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action3
             #state_history[i, (fid-1)*fields + 6] = demand
@@ -216,8 +212,8 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (-999,-999)) # has exited.
             # No new actions to compute, but record.
             state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_int][1]
-            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 2] = dataf[a,:act_solo][1]
+            state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
             state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
             #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited.
@@ -281,6 +277,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
     intens = sum(dataf[update_mkt, :act_int])
     solo = sum(dataf[update_mkt, :act_solo])
     nones = sum(update_mkt) - intens - solo
+  #  println("Computing Market sizes")
         if (nones < 0) | (intens > total) | (solo > total) | (nones + intens + solo != total)
           println("Bad market size computations")
           println("Total ", total, " Level1 ", nones, " Level2 ", solo, " Level 3 ", intens, " Fips: ", mkt_fips, " Year ", year)
@@ -295,8 +292,9 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
     entrantsp = WeightVec(entryprobs)
     newentrant = sample(entrants, entrantsp)
     entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
-    b = (dataf[:fipscode].== mkt_fips)&(dataf[:year].==year) # Market-year observations, whether exited or not.
+    b = ((dataf[:fipscode].== mkt_fips)&(dataf[:year].==year)); # Market-year observations, whether exited or not.
         if newentrant> 0
+          println("Entry occurred")
           # Eventually fix the fact that the neighbors here are not going to be exactly right.
           # I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
           ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
@@ -326,11 +324,13 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
           end
           # Handle appending these entrants to the (neighbor, distance) section
           # need to check all of the other fids in the market-year (in b)
+          println("Distances to new entrants")
           for row in eachrow(dataf[b,:])
             if  (distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16]) < 25)
               count = 0 # only want to make an entry once - this is a dumb way
               for c in neighbors_start:(2):size(dataf)[2]
                 if (isna(row[c]))&(count == 0)
+                  println("doing something")
                   # to make changes I need to search for the row in the original DF matching these characteristics.
                   dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c ]= newrow[:fid]
                   dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c+1]= distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16])
@@ -340,6 +340,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             end
           end
           # Append the neighbors to the new entrant's frame too
+          println("appending neighbors to new entrant's frame row")
           for elem in 1:size(fids)[1]
             neighb = fids[elem]
             neighb_lat = dataf[(dataf[:fid].==neighb)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :v15][1]
@@ -348,6 +349,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             if  td < 25
               newrow[neighbors_start+2*(elem-1)] = neighb # fid
               newrow[neighbors_start+2*(elem-1)+1] = td
+              println("Success")
               if (td > 0) & (td < 5)
                 if (newrow[:act_solo][1], newrow[:act_int][1]) == (0,0)
                   newrow[:lev105] += 1
@@ -383,18 +385,22 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
               end
             end
           end
+          println("appending entry")
           # Add the new record to the dataframe.
           append!(dataf, newrow)
           # append value to fids
           push!(fids, newrow[:fid][1])
-          # Reshape state history: fid, solo state, int state, action chosen, probability of choice, demand. [newrow[:fid], 999, 999, 0, 1, 0]
-          state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 0 1 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
+          # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
+          println("reshaping state history")
+          # The problem is the size computation right here - figure it out.
+          state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
         end
     # Aggregate Probability of Action:
     tprob = 1
     for els in 4:fields:(size(state_history[i,:])[2]-4) # 4 is the relevant column
       if (state_history[i,els] <= 0) | (state_history[i,els]>1)
           println("Bad probability at row ", i, " ", els, " ", state_history[i,els-3 ], " prob ", state_history[i,els] )
+          break
       else
         tprob = tprob*state_history[i,els]
       end
@@ -409,6 +415,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
         tprob = tprob*entryprobs[4]
       end
     end
+  #  println("computing aggregate transition probability")
     state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
 
     # Total number of firms
