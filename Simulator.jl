@@ -5,7 +5,7 @@ T = 100;
 neighbors_start = 108;
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 entrants = [0, 1, 2, 3]
-fields = 6;
+fields = 7;
 #include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
 
 #=
@@ -119,7 +119,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand
-            #state_history[i, (fid-1)*fields + 7] #perturbation
+            state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (1,0)) #level 2, actions:
             # Can't evaluation as nexti here if they are initialized to negative 1
             probs2 = logitest((1,0), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
@@ -166,7 +166,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand
-            #state_history[i, (fid-1)*fields + 7] #perturbation
+            state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif  ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (0,1)) #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
             if probs3 == ValueException
@@ -212,7 +212,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action3
             #state_history[i, (fid-1)*fields + 6] = demand
-            #state_history[i, (fid-1)*fields + 7] #perturbation
+            state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (-999,-999)) # has exited.
             # No new actions to compute, but record.
             state_history[i, (fid-1)*fields + 1] = el
@@ -221,7 +221,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
             state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
             #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited.
-            #state_history[i, (fid-1)*fields + 7] #perturbation
+            state_history[i, (fid-1)*fields + 7] = 0 #perturbation
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
           end
@@ -417,5 +417,5 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
     state_history[i, (size(fids)[1])*fields+3] = level3 ;
 
   end
-  return dataf, state_history
+  return state_history
 end
