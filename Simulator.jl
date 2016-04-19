@@ -31,10 +31,16 @@ Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 =#
 
 function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, sim_start = 2)
+  if year > 2012
+    return "Years through 2012 only"
+  end
   level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
   level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
   fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+  if (size(fids)[1]*fields + 4 != size(state_history)[2])
+    return "Dims of state_history incorrect"
+  end
   for n in 1:size(fids)[1]
     el = fids[n]
     a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
