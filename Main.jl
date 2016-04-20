@@ -14,6 +14,7 @@ include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
 include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
 include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
 include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
+include("/Users/austinbean/Desktop/dynhosp/PerturbSimulation.jl")
 
 
 
@@ -118,7 +119,7 @@ entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - 
 entrants = [0, 1, 2, 3]
 sim_start = 2;
 neighbors_start = 108;
-fields = 6;
+fields = 7;
 
 #=
 To work on::
@@ -128,18 +129,20 @@ To work on::
 
 
 for y in 1:size(yearins)[1]
-	market_start = yearins[y][2]
-	market_end = yearins[y][3]
-#	market_frame = dataf[market_start:market_end, :]
 	mkt_fips = yearins[y][1]
 		for year in yearins[y][4:end]
-#			level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
-#		  level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
-#		  level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
 			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+
+			# Equilibrium Play -
 			state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
-			#Arguments: Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, start = 2)
-			state_history = Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
+				#Arguments: Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, start = 2)
+			states = Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
+
+			# Non-equilibrium Play -
+			pfid = fids[1]
+			p_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+				#Arguments: PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
+			perturbed_history = PerturbSimulator(dataf, year, mkt_fips, p_history, pfid, disturb = 0.01, T = 100, sim_start = 2)
 		end
 end
 
