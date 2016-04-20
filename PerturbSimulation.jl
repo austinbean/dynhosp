@@ -42,7 +42,7 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
   level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
   fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
-  if (size(fids)[1]*fields + 4 != size(state_history)[2])
+  if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
     return "Dims of state_history incorrect"
   end
   if !(in(pfid, fids))

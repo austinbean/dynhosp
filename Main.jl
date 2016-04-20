@@ -123,7 +123,12 @@ fields = 7;
 
 #=
 To work on::
-- Perturbed policy function, based on Simulation.jl
+- The dataframe will be modified and so the number of hospitals might change
+within the loop.  Either copy it or reload it between running the first and second.
+
+- Must turn these vectors into valuations.
+
+- Demand system.
 
 =#
 
@@ -139,6 +144,7 @@ for y in 1:size(yearins)[1]
 			states = Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 
 			# Non-equilibrium Play -
+			# BE CAREFUL - DATAFRAME HAS CHANGED (why is that word purple?)
 			pfid = fids[1]
 			p_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 				#Arguments: PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
