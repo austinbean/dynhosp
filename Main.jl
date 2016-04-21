@@ -59,7 +59,7 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 
 • Choose the action based on those probs
 • Perturb policies as already imagined: change by ϵ the probs of actions.
-
+• NB: 48029 is Bexar County
 
  Problem: hospitals may be closer than 25 miles but in different counties - they
 will show up as being in different markets.
@@ -145,6 +145,9 @@ for y in 1:size(yearins)[1]
 
 			# Non-equilibrium Play -
 			# BE CAREFUL - DATAFRAME HAS CHANGED (why is that word purple?)
+			# Entrants in dataframe now tagged with negative ID's.  Remake:
+			dataf = dataf[dataf[:id].>= 0, :]
+
 			pfid = fids[1]
 			p_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 				#Arguments: PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)

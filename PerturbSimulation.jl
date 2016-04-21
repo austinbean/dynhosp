@@ -43,6 +43,8 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
   fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
   if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
+    println("size of fids: ", size(fids), " size of fields: ", fields, " size of state_history: ", size(state_history))
+    println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
     return "Dims of state_history incorrect"
   end
   if !(in(pfid, fids))
@@ -345,7 +347,7 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
           newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
           newrow[:facility] = convert(UTF8String, "Entrant $mkt_fips $year")
           newrow[:fid] = sample(collect((maximum(dataf[:fid])+1):(maximum(dataf[:fid])+5))) # new facility will always have largest fid
-          newrow[:id] = sample(collect((maximum(dataf[:id])+1):(maximum(dataf[:id])+5)))
+          newrow[:id] = -sample(collect((maximum(dataf[:id])+1):(maximum(dataf[:id])+5)))
           newrow[:fipscode] = mkt_fips
           newrow[:location] = convert(UTF8String, "entrant - see v15 v16")
           newrow[:city] = convert(UTF8String, "Entrant - unspecified")
