@@ -15,7 +15,7 @@ include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
 include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
 include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
 include("/Users/austinbean/Desktop/dynhosp/PerturbSimulation.jl")
-
+include("/Users/austinbean/Desktop/dynhosp/DynamicValue.jl")
 
 
 # Import Data
@@ -123,8 +123,7 @@ fields = 7;
 
 #=
 To work on::
-- The dataframe will be modified and so the number of hospitals might change
-within the loop.  Either copy it or reload it between running the first and second.
+
 
 - Must turn these vectors into valuations.
 
@@ -144,14 +143,23 @@ for y in 1:size(yearins)[1]
 			states = Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 
 			# Non-equilibrium Play -
-			# BE CAREFUL - DATAFRAME HAS CHANGED (why is that word purple?)
-			# Entrants in dataframe now tagged with negative ID's.  Remake:
+			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
 			dataf = dataf[dataf[:id].>= 0, :]
 
 			pfid = fids[1]
 			p_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 				#Arguments: PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
 			perturbed_history = PerturbSimulator(dataf, year, mkt_fips, p_history, pfid, disturb = 0.01, T = 100, sim_start = 2)
+
+			# Here apply DynamicValue to the result of the simulations
+			# DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+			# output is in format: facility changes record, per-period visits record.
+			pfid_f = convert(Float64, pfid)
+			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+
+			# Now I need a container to store all of those outcomes.  Then I need to feed that to a maximizer.
+
 		end
 end
 
