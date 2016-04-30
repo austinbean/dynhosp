@@ -50,6 +50,7 @@ def dfunc (w,x,y,z): #let these be (w,x) = (lat, lon) and (y,z) = (lat, lon)
 
 hospdata = []
 
+print("Creating Hospital Data")
 
 with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Unique Lats Lons.csv', 'r') as f:
     a = csv.reader(f, delimiter=',')
@@ -69,6 +70,8 @@ labels = [ hospdata[0][i] for i in indices]+['distance']
 labels[12] = 'latitude'
 labels[13] = 'longitude'
 
+print("Appending Hospitals Less than 25 miles distant")
+
 for i in range(len(TXzip)):
     temp = set()         # Only want to append when it hasn't already been appended!
     TXzip[i].append(0)  # count the number of appended hospitals
@@ -82,8 +85,34 @@ for i in range(len(TXzip)):
             TXzip[i].append(dist)    # don't forget the distance itself
             temp.add(hospdata[j][0])
 
+# we need a list of pairs: hospitals and zips, with a distance from one to the other for EVERY possible zip/hospital combination
+# Probably need to start over again:
+
+print("Computing all Hospital Distances from Zip Centers")
+
+alldistances = [ [i[0], i[7], i[8]] for i in TXzip]
+
+for i in range(len(alldistances)):
+    temp = set()
+    for j in range(1, len(hospdata)):
+        dist = dfunc(alldistances[i][1], alldistances[i][2], hospdata[j][14], hospdata[j][15])
+        if hospdata[j][0] not in temp:
+            alldistances[i].append(hospdata[j][0])
+            alldistances[i].append(hospdata[j][1])
+            alldistances[i].append(dist)
+            temp.add(hospdata[j][0])
+
+with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip All Hospital Distances.csv', 'w') as fp:
+    print('saving')
+    a = csv.writer(fp, delimiter=',')
+    a.writerows(alldistances)
+
+
+
 # For those without any hospitals within 25 miles, do it again but at 50 miles.
 # For those with too many hospitals, take the 10 closest.
+
+print("Finding Extra Hospitals for zip codes with only 1")
 
 for i in range(len(TXzip)):
     temp = set()
@@ -100,6 +129,7 @@ for i in range(len(TXzip)):
 
 max_hosp = 10 # If there are more than 10 hospitals, take the closest 10.
 
+print("Keeping the closest 10 for those zips with too many")
 
 for i in range(len(TXzip)):
     if TXzip[i][9] > max_hosp:
@@ -117,6 +147,9 @@ for i in range(len(TXzip)):
 
 
 # This section will generate a list of variable labels for the STATA do file.
+
+print("STATA do file variable labels")
+
 init = 10
 for i in range(len(TXzip)):
     if TXzip[i][9] > init:
@@ -145,3 +178,24 @@ Zip code, Hospital FID, NeoIntensive or Intermediate, year, location, distance, 
 
 This requires adding the fid to the records in the Inpatient PUDF.
 '''
+
+# This next loop generates for each zip code the closest hospital to the zip.
+
+print("Finding the closest hospital to each zip code")
+
+for i in range(len(TXzip)):
+    sorteddist = sorted([ TXzip[i][x] for x in range(25, len(TXzip[i]), 15) ]) # all distances to that zip code, sorted ascending
+    try:
+        target = sorteddist[0]
+        ind = TXzip[i].index(target)
+        TXzip[i] = TXzip[i][0:11]+ TXzip[i][ind-14:ind+1]
+    except IndexError:
+        print("*******")
+        print("No Hospitals within 50 miles")
+        print(TXzip[i][0])
+        print(sorteddist)
+
+with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip Closest Hosp.csv', 'w') as fp:
+    print('saving')
+    a = csv.writer(fp, delimiter=',')
+    a.writerows(TXzip)
