@@ -1,7 +1,7 @@
 #Hospital - distance Pair
 
 # Original Version: 2014
-# Current version: 04 25 16
+# Current version: 04 29 16
 
 
 import numpy as np
@@ -98,7 +98,9 @@ for i in range(len(alldistances)):
         dist = dfunc(alldistances[i][1], alldistances[i][2], hospdata[j][14], hospdata[j][15])
         if hospdata[j][0] not in temp:
             alldistances[i].append(hospdata[j][0])
-            alldistances[i].append(hospdata[j][1])
+            alldistances[i].append(hospdata[j][1]) # Note that the indices here do NOT follow those in "indices" the list, but those in hospdata[0]
+            alldistances[i].append(hospdata[j][13]) # solo Intermediate
+            alldistances[i].append(hospdata[j][6]) # neo intensive
             alldistances[i].append(dist)
             temp.add(hospdata[j][0])
 
