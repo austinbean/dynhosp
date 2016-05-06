@@ -139,22 +139,32 @@ print("Computing all Hospital Distances from Zip Centers")
 
 alldistances = [ [i[0], i[7], i[8]] for i in TXzip]
 
+container = []
+
 for i in range(len(alldistances)):
     temp = set()
     for j in range(1, len(hospdata)):
         dist = dfunc(alldistances[i][1], alldistances[i][2], hospdata[j][lat_add], hospdata[j][lon_add])
-        if hospdata[j][0] not in temp:  # this "temp" does not reflect the distance correction above - keep it this way, I think
-            alldistances[i].append(hospdata[j][fid_add])
-            alldistances[i].append(hospdata[j][facility_add]) # Note that the indices here do NOT follow those in "indices" the list, but those in hospdata[0]
-            alldistances[i].append(hospdata[j][soloint_add]) # solo Intermediate
-            alldistances[i].append(hospdata[j][intensive_add]) # neo intensive
-            alldistances[i].append(dist)
+        if hospdata[j][0] not in temp:  # this "temp" does not reflect the distance uniqueness correction above - keep it this way, I think
+            box = []
+            for l in range(len(alldistances[1])):
+                box.append(alldistances[i][l])
+            for k in indices:
+                box.append(hospdata[j][k])
+            box.append(dist)
+            container.append(box)
             temp.add(hospdata[j][0])
+            # alldistances[i].append(hospdata[j][fid_add])
+            # alldistances[i].append(hospdata[j][facility_add]) # Note that the indices here do NOT follow those in "indices" the list, but those in hospdata[0]
+            # alldistances[i].append(hospdata[j][soloint_add]) # solo Intermediate
+            # alldistances[i].append(hospdata[j][intensive_add]) # neo intensive
+            # alldistances[i].append(dist)
+
 
 with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip All Hospital Distances.csv', 'w') as fp:
     print('saving')
     a = csv.writer(fp, delimiter=',')
-    a.writerows(alldistances)
+    a.writerows(container)
 
 
 # Given the above, now we do:
