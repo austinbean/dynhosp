@@ -28,6 +28,10 @@ fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==yea
 state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 
 Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
+
+# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's) 
+dataf = dataf[dataf[:id].>= 0, :]
+
 =#
 
 function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, sim_start = 2)

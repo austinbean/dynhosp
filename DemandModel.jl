@@ -20,18 +20,47 @@ for i = 1:maxfid
 end
 
 
+
 function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame; maxfid = 11)
+    #=
+      This function generates a vector of Booleans which index the rows in the
+      dataframe in which the individual has some hospital with fid in fidvect
+      as an option.
+    =#
     subset = falses(size(choices)[1])
       for k in 1:size(fidvect)[1]
         targ = fidvect[k]
         for j = 1:maxfid
-           subex = parse("choices[:fid$j].==$targ")
+           subex = parse("people[:fid$j].==$targ")
            true_v = eval(subex)
       #     print( size(true_v), "   ") # for testing purposes
            subset = subset | true_v
         end
-      end  
+      end
     return subset
+end
+
+
+function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_state = 4, fields_state = 7, fields_people = 15, endfields_people = 7)
+  #=
+     This function should take a row of the state history (staterow), and a row of
+     the choices (choicerow) and:
+     1.  determines the number of fids in the staterow
+     2.  Determines the number of fids in the choicerow
+     3.  When a fid in the staterow matches a fid in the choicerow, map the values
+         from the staterow to the choicerow
+   Notes - need to do something special for entrants.  Can just check if fid sets are overlapping, I guess.
+   Once I know this, I also need to check whether the new hospital is the closest.
+
+   staterow has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
+   choicerow has the form: [identity, fid, facility, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
+
+  =#
+    mktnumfids = convert(Int, ((size(staterow)[2])-endfields_state)/fields_state) # number of facilities
+    mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
+
+    peoplefids = [x for x in choicerow[1, 2:fields_people:end-endfields_people] ]
+
 end
 
 
