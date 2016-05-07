@@ -1,5 +1,7 @@
 # Use the parameters of the demand model to estimate choices:
 
+# Version: 05 07 16
+
 using DataFrames
 using DataArrays
 using Distributions
@@ -25,7 +27,8 @@ function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame; maxfid = 11)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
-      as an option.
+      as an option.  It starts with all falses and iteratively takes subset | (result)
+      which will be true when the result expression is true
     =#
     subset = falses(size(choices)[1])
       for k in 1:size(fidvect)[1]
@@ -40,27 +43,73 @@ function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame; maxfid = 11)
     return subset
 end
 
+# The next function will find values in the one-row dataframe element given a list of symbols
+
+type  RowSizeError  <: Exception end
+
+function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, :fid4, :fid5, :fid6, :fid7, :fid8, :fid9, :fid10, :fid11] )
+  #=
+    This function takes a single row of a dataframe "targ" and finds the value in "value"
+    by looking in the columns in "vals".  Those items in vals must be a list of symbols, so
+    [ :fid1, :fid2, ..., :fidN ] (commas necessary).  If the DataFrame is too big, it Returns
+    the RowSizeError exception defined above.  To search specific fids, must call function as
+    rowfindfid(targ, value, vals = [:fidx, :fidy])
+  =#
+  if size(targ)[1] > 1
+    return RowSizeError
+  end
+  numb = 0
+  index = :ident
+  for i in vals # what about NAs?  All of the fid columns are zeros.
+      if targ[i][1] == value # the second [1] is needed to access the *value* of the element, rather than the 1 element DataFrame
+          numb = targ.colindex.lookup[i] # returns the *column number* of the element i
+          index =  i
+      end
+  end
+  return numb, index
+end
+
 
 function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_state = 4, fields_state = 7, fields_people = 15, endfields_people = 7)
   #=
      This function should take a row of the state history (staterow), and a row of
      the choices (choicerow) and:
-     1.  determines the number of fids in the staterow
-     2.  Determines the number of fids in the choicerow
+     1.  determines the number of fids in the staterow ✓
+     2.  Determines the number of fids in the choicerow ✓
      3.  When a fid in the staterow matches a fid in the choicerow, map the values
          from the staterow to the choicerow
-   Notes - need to do something special for entrants.  Can just check if fid sets are overlapping, I guess.
+   Notes - need to do something special for entrants.
+   Can check if fid sets are overlapping - change those fids which are
    Once I know this, I also need to check whether the new hospital is the closest.
 
    staterow has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
    choicerow has the form: [identity, fid, facility, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
 
   =#
-    mktnumfids = convert(Int, ((size(staterow)[2])-endfields_state)/fields_state) # number of facilities
+    # Collects the fids which are in the market
+    mktnumfids = convert(Int, unique(((size(staterow)[2])-endfields_state)/fields_state )) # number of facilities
     mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
+    # Collects the fids which are in the choice set
+    peoplefids =  unique([choicerow[x][1] for x in 2:fields_people:size(choicerow)[2]-endfields_people ]) # collects all fids in the person's choice set
+    peoplenumfids = convert(Int, unique(sum(peoplefids.>0)) )# Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
 
-    peoplefids = [x for x in choicerow[1, 2:fields_people:end-endfields_people] ]
+    # Takes the values of market fids which are in the choice row (only these must be changed)
+    change_fids = intersect(peoplefids, mktfids)
+    if sum(size(change_fids))== 0
+      return choicerow
+    else # intersection is nonzero
+      for el in change_fids
+        (loc, symb) = rowfindfid(staterow, el)
+        fid_num = replace(string(symb), r"[fid]", "")
+        # Change NeoIntensive in the choice row to the value in the state row
+        neo = Symbol("NeoIntensive"*fid_num)
+        choicerow[neo] = staterow[findfirst(staterow, el)]+2
+        # Change SoloIntermeidate in the choice row to the value in the state row
+        solo = Symbol("SoloIntermediate"*fid_num)
+        choicerow[solo] = staterow[findfirst(staterow, el)+1]
 
+      end
+    end
 end
 
 
