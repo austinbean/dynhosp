@@ -15,10 +15,24 @@ modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/
 # This is needed to clean out the missing values among fids.  Changes them to 0.
 maxfid = 11;
 for i = 1:maxfid
-  ex1 = parse("dataf[isna(dataf[:fid$i]), :fid$i] = 0")
+  ex1 = parse("people[isna(people[:fid$i]), :fid$i] = 0")
   eval(ex1)
 end
 
+
+function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame; maxfid = 11)
+    subset = falses(size(choices)[1])
+      for k in 1:size(fidvect)[1]
+        targ = fidvect[k]
+        for j = 1:maxfid
+           subex = parse("choices[:fid$j].==$targ")
+           true_v = eval(subex)
+      #     print( size(true_v), "   ") # for testing purposes
+           subset = subset | true_v
+        end
+      end  
+    return subset
+end
 
 
 dist_μ = 0;
