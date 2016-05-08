@@ -6,19 +6,27 @@ using DataFrames
 using DataArrays
 using Distributions
 
-
+# NEED TO ADD BEDS HERE -
 people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
 # Check the NFP status variable in the above
 
 modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+distance_c = modcoeffs[1, 2]
+distsq_c = modcoeffs[2, 2]
+neoint_c = modcoeffs[3, 2]
+soloint_c = modcoeffs[4, 2]
+closest_c = modcoeffs[5, 2]
+distbed_c = modcoeffs[6, 2]
+# ADD BEDS HERE VIA STATA
 
 
 # This is needed to clean out the missing values among fids.  Changes them to 0.
 maxfid = 11;
-for i = 1:maxfid
-  ex1 = parse("people[isna(people[:fid$i]), :fid$i] = 0")
-  eval(ex1)
+for i in names(people)
+  # This won't work for string variables, obviously.  Fix later. 
+  people[isna(people[i]), i] = 0
+  # eval(ex1)
 end
 
 
@@ -28,7 +36,7 @@ function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame; maxfid = 11)
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
       as an option.  It starts with all falses and iteratively takes subset | (result)
-      which will be true when the result expression is true
+      which will be true when the result expression is true.  It operates on a whole DataFrame
     =#
     subset = falses(size(choices)[1])
       for k in 1:size(fidvect)[1]
@@ -87,11 +95,11 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
 
   =#
     # Collects the fids which are in the market
-    mktnumfids = convert(Int, unique(((size(staterow)[2])-endfields_state)/fields_state )) # number of facilities
+    mktnumfids = unique(((size(staterow)[2])-endfields_state)/fields_state ) # number of facilities
     mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
     # Collects the fids which are in the choice set
     peoplefids =  unique([choicerow[x][1] for x in 2:fields_people:size(choicerow)[2]-endfields_people ]) # collects all fids in the person's choice set
-    peoplenumfids = convert(Int, unique(sum(peoplefids.>0)) )# Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
+    peoplenumfids = unique(sum(peoplefids.>0)) # Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
 
     # Takes the values of market fids which are in the choice row (only these must be changed)
     change_fids = intersect(peoplefids, mktfids)
@@ -99,15 +107,19 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
       return choicerow
     else # intersection is nonzero
       for el in change_fids
-        (loc, symb) = rowfindfid(staterow, el)
-        fid_num = replace(string(symb), r"[fid]", "")
-        # Change NeoIntensive in the choice row to the value in the state row
-        neo = Symbol("NeoIntensive"*fid_num)
-        choicerow[neo] = staterow[findfirst(staterow, el)]+2
-        # Change SoloIntermeidate in the choice row to the value in the state row
-        solo = Symbol("SoloIntermediate"*fid_num)
-        choicerow[solo] = staterow[findfirst(staterow, el)+1]
-
+        el = convert(Int64, el)
+        (loc, symb) = rowfindfid(choicerow, el)
+        if loc != 0
+          fid_num = replace(string(symb), r"[fid]", "")
+          # Change NeoIntensive in the choice row to the value in the state row
+          neo = Symbol("NeoIntensive"*fid_num)
+          choicerow[neo] = convert(Int64, staterow[findfirst(staterow, el)+2])
+          # Change SoloIntermeidate in the choice row to the value in the state row
+          solo = Symbol("SoloIntermediate"*fid_num)
+          choicerow[solo] = convert(Int64, staterow[findfirst(staterow, el)+1])
+        else
+          print(el, " not found in row ")
+        end
       end
     end
 end
@@ -124,13 +136,19 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 # We need to do several things:
 #=
  - Remove all NA values from the people frame and replace them with 0's    ✓
- - Write some function (variable argument numbers?) which finds a vector of fids in all people spots
+ - Write some function (variable argument numbers?) which finds a vector of fids in all people spots ✓
 
 =#
 
 
-function DemandModel(individuals::DataFrame, modelparameters::Array{Float64, 2}, hospitalparameters::Array{Float64, 2})
+modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
+function DemandModel(individuals::DataFrame, modelparameters::Array{Float64, 2})
+  #=
+    The goal for this function is to -
+      - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
+      - count the number maximized by fid: this will be the demand.
+  =#
 
 
 
