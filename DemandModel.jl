@@ -29,7 +29,6 @@ for el in people.columns
 end
 
 # This is needed to clean out the missing values among fids.  Changes them to 0.
-maxfid = 11;
 for i in names(people)
   if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
     people[isna(people[i]), i] = 0
@@ -150,13 +149,17 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 
 modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
-function DemandModel(individuals::DataFrame, modelparameters::Array{Float64, 2})
+function DemandModel(individuals::DataFrame, modelparameters::Array{Float64, 2}; maxfid = 11)
   #=
     The goal for this function is to -
       - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
       - count the number maximized by fid: this will be the demand.
   =#
- vals = hcat()
+names = ["fid", "distance", "distsq", "NeoIntensive", "SoloIntermediate",  "closest"] #, "distbed"] # add distbed in future
+  for i in 1:maxfid
+    expr = parse("vals$i =(people[:fid$i] , sum(people[:distance$i]*distance_c, people[:distsq$i]*distsq_c, ) )") # evaluate a tuple
+  end
+
 
 
 end
