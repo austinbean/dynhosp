@@ -21,12 +21,19 @@ distbed_c = modcoeffs[6, 2]
 # ADD BEDS HERE VIA STATA
 
 
+
+# Enumerate all of the types::
+a = Set()
+for el in people.columns
+  push!(a, typeof(el))
+end
+
 # This is needed to clean out the missing values among fids.  Changes them to 0.
 maxfid = 11;
 for i in names(people)
-  # This won't work for string variables, obviously.  Fix later. 
-  people[isna(people[i]), i] = 0
-  # eval(ex1)
+  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
+    people[isna(people[i]), i] = 0
+  end
 end
 
 
@@ -149,7 +156,7 @@ function DemandModel(individuals::DataFrame, modelparameters::Array{Float64, 2})
       - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
       - count the number maximized by fid: this will be the demand.
   =#
-
+ vals = hcat()
 
 
 end
