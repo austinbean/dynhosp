@@ -16,6 +16,7 @@ include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
 include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
 include("/Users/austinbean/Desktop/dynhosp/PerturbSimulation.jl")
 include("/Users/austinbean/Desktop/dynhosp/DynamicValue.jl")
+include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
 
 
 # Import Data
@@ -25,8 +26,41 @@ dataf = dataf[notmissing, :];
 
 regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
-#simdata = readtable("/Users/austinbean/Desktop/dynhosp/Simulated Choice Probs.csv", header = true);
-#sim_f = DataFrame(simdata)
+# Individual level demands -
+# DO NOT CHANGE THE NAME "people" - it will mess up fidfinder in DemandFunction.jl
+people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+
+# Check the NFP status variable in the above
+# Coefficients on the demand model:
+modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+distance_c = modcoeffs[1, 2]
+distsq_c = modcoeffs[2, 2]
+neoint_c = modcoeffs[3, 2]
+soloint_c = modcoeffs[4, 2]
+closest_c = modcoeffs[5, 2]
+distbed_c = modcoeffs[6, 2]
+
+modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+
+
+# For use in the demand model::
+type  RowSizeError  <: Exception end
+
+
+
+# Enumerate all of the types::
+a = Set()
+for el in people.columns
+  push!(a, typeof(el))
+end
+
+# This is needed to clean out the missing values among fids.  Changes them to 0.
+for i in names(people)
+  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
+    people[isna(people[i]), i] = 0
+  end
+end
+
 
 
 
@@ -64,32 +98,6 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
  Problem: hospitals may be closer than 25 miles but in different counties - they
 will show up as being in different markets.
 =#
-
-# Data Types - currently unused.
-
-type Hosp
-	fid::Int
-	name::AbstractString
-	level::Tuple
-	fips::Int
-	lat::Float64
-	long::Float64
-	n05::Array
-	n515::Array
-	n1525::Array
-	choices::Array
-	probs::WeightVec
-end
-
-h1 = Hosp(dataf[1,:fid], dataf[1,:facility], (dataf[1,:act_int], dataf[1,:act_solo]), dataf[1,:fipscode], dataf[1, :v15], dataf[1, :v16],     [dataf[1,:lev105], dataf[1,:lev205], dataf[1,:lev305]], [dataf[1,:lev1515], dataf[1,:lev2515], dataf[1,:lev3515]], [dataf[1,:lev11525], dataf[1,:lev21525], dataf[1,:lev31525]], [1, 2, 3, 4], WeightVec([0.1, 0.1, 0.1, 0.1])     )
-
-type Market
-	fips::Int
-	lev1::Int
-	lev2::Int
-	lev3::Int
-	config::Array{Hosp}
-end
 
 # Action codes:
 #=
@@ -136,11 +144,14 @@ for y in 1:size(yearins)[1]
 	mkt_fips = yearins[y][1]
 		for year in yearins[y][4:end]
 			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+			# Find the subset of people with those fids::
+			# DO NOT CHANGE THIS NAME! DemandModel function will be screwed up!
+			peoplesub = fidfinder(fids, people, "people") # DO NOT CHANGE NAME
 
 			# Equilibrium Play -
 			state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
-				#Arguments: Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, start = 2)
-			states = Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
+				#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
+			states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, state_history, modelparameters, T = 100, sim_start = 2)
 
 			# Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
@@ -204,3 +215,36 @@ end
 
 
 ###
+
+
+
+#=
+
+# Data Types - currently unused.
+
+type Hosp
+	fid::Int
+	name::AbstractString
+	level::Tuple
+	fips::Int
+	lat::Float64
+	long::Float64
+	n05::Array
+	n515::Array
+	n1525::Array
+	choices::Array
+	probs::WeightVec
+end
+
+h1 = Hosp(dataf[1,:fid], dataf[1,:facility], (dataf[1,:act_int], dataf[1,:act_solo]), dataf[1,:fipscode], dataf[1, :v15], dataf[1, :v16],     [dataf[1,:lev105], dataf[1,:lev205], dataf[1,:lev305]], [dataf[1,:lev1515], dataf[1,:lev2515], dataf[1,:lev3515]], [dataf[1,:lev11525], dataf[1,:lev21525], dataf[1,:lev31525]], [1, 2, 3, 4], WeightVec([0.1, 0.1, 0.1, 0.1])     )
+
+type Market
+	fips::Int
+	lev1::Int
+	lev2::Int
+	lev3::Int
+	config::Array{Hosp}
+end
+
+
+=#

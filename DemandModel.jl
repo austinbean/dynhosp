@@ -6,49 +6,21 @@ using DataFrames
 using DataArrays
 using Distributions
 
-# NEED TO ADD BEDS HERE -
-people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+# Now in use in Main.jl
 
-# Check the NFP status variable in the above
-
-modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
-distance_c = modcoeffs[1, 2]
-distsq_c = modcoeffs[2, 2]
-neoint_c = modcoeffs[3, 2]
-soloint_c = modcoeffs[4, 2]
-closest_c = modcoeffs[5, 2]
-distbed_c = modcoeffs[6, 2]
-# ADD BEDS HERE VIA STATA
-
-
-
-# Enumerate all of the types::
-a = Set()
-for el in people.columns
-  push!(a, typeof(el))
-end
-
-# This is needed to clean out the missing values among fids.  Changes them to 0.
-for i in names(people)
-  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
-    people[isna(people[i]), i] = 0
-  end
-end
-
-
-
-function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame; maxfid = 11)
+function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame, frname::ASCIIString; maxfid = 11)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
       as an option.  It starts with all falses and iteratively takes subset | (result)
       which will be true when the result expression is true.  It operates on a whole DataFrame
+      The function takes as one argument the name of the frame "choices" (frname) as a string.
     =#
     subset = falses(size(choices)[1])
       for k in 1:size(fidvect)[1]
         targ = fidvect[k]
         for j = 1:maxfid
-           subex = parse("people[:fid$j].==$targ")
+           subex = parse(frname*"[:fid$j].==$targ")
            true_v = eval(subex)
       #     print( size(true_v), "   ") # for testing purposes
            subset = subset | true_v
@@ -59,7 +31,6 @@ end
 
 # The next function will find values in the one-row dataframe element given a list of symbols
 
-type  RowSizeError  <: Exception end
 
 function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, :fid4, :fid5, :fid6, :fid7, :fid8, :fid9, :fid10, :fid11] )
   #=
@@ -70,7 +41,7 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
     rowfindfid(targ, value, vals = [:fidx, :fidy])
   =#
   if size(targ)[1] > 1
-    return RowSizeError
+    return RowSizeError #defined in Main.jl
   end
   numb = 0
   index = :ident
@@ -139,22 +110,17 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 # I do need the constant:
 γ = eulergamma;
 
-# We need to do several things:
-#=
- - Remove all NA values from the people frame and replace them with 0's    ✓
- - Write some function (variable argument numbers?) which finds a vector of fids in all people spots ✓
-
-=#
 
 
-modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
-function DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}; maxfid = 11)
+
+function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}; maxfid = 11)
   #=
     The goal for this function is to -
       - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
       - count the number maximized by fid: this will be the demand.
       Performance: .518402 seconds (32.05 M allocations: 604.392 MB, 0.76% gc time)
+      The first two arguments are a dataframe (people) and the NAME of that dataframe (frname) as a string.  This is important at the end
   =#
   choicemade = zeros(Int64, size(people)[1], 1)
   distance_c  = modelparameters[1]
@@ -221,10 +187,12 @@ function DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}; maxf
       val11 = -10^10
     end
     chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11]) # returns the *index* of the max element in the collection
-    choicemade[i] = convert(Int64, eval(parse("people[$i, :fid$chosen]")))
+    choicemade[i] = convert(Int64, eval(parse(frname*"[$i, :fid$chosen]")))
   end
   return choicemade
 end
+
+
 
 
 # use countmap(choicemade) to count the results (!)  So easy.

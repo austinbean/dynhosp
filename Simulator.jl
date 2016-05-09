@@ -4,13 +4,14 @@ using Distributions
 
 include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
 include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
 
-T = 100;
+
 neighbors_start = 108;
 entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 entrants = [0, 1, 2, 3]
 fields = 7; # if fields updated, update reshaping of state history
-sim_start = 2;
+T = 100;
 
 #=
 # TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
@@ -29,12 +30,15 @@ state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(f
 
 Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 
-# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's) 
+# Find the right people:
+people[fidfinder(convert(Array, fids)', people),:]
+
+# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 dataf = dataf[dataf[:id].>= 0, :]
 
 =#
 
-function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}; T = 100, sim_start = 2)
+function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -47,6 +51,7 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
     println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
     return "Dims of state_history incorrect"
   end
+  # Need to compute the initial demand here...
   for n in 1:size(fids)[1]
     el = fids[n]
     a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
@@ -234,6 +239,33 @@ function Simulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_histor
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
           end
         end
+        # Here is the place to do demand - map the results above out to the demand model
+        #=
+        - Write the fids out to an array
+        - Statehistory row has been computed now - can use that. Current market state given by statehistory[i,:]
+        - Rows should be changed by rowchange(staterow::Array{Float64,2}, choicerow::DataFrame) for every row in peoplesub
+        - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
+        - Obtain demand and map it into state_history
+        =#
+        for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+          rowchange(state_history[i,:], peoplesub[p,:])
+        end
+        realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
+        for fid_i in 1:fields:size(state_history[i,:])[2]-4
+          fid = state_history[i,fid_i]
+          demand_re =  try
+            realized_d[fid] # might need a try/catch thing if fid is not found (as with entrants)
+          catch y
+            if isa(y, KeyError)
+              demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+            else
+              demand_re = realized_d[fid]
+            end
+          end
+          state_history[i,fid_i+6] = demand_re
+        end
+
+
         # Count facilities by distance and map results to neighboring hospitals
         # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
         for f in fids
