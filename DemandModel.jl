@@ -149,17 +149,87 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 
 modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
-function DemandModel(individuals::DataFrame, modelparameters::Array{Float64, 2}; maxfid = 11)
+function DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}; maxfid = 11)
   #=
     The goal for this function is to -
       - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
       - count the number maximized by fid: this will be the demand.
+      Performance: .518402 seconds (32.05 M allocations: 604.392 MB, 0.76% gc time)
   =#
-names = ["fid", "distance", "distsq", "NeoIntensive", "SoloIntermediate",  "closest"] #, "distbed"] # add distbed in future
-  for i in 1:maxfid
-    expr = parse("vals$i =(people[:fid$i] , sum(people[:distance$i]*distance_c, people[:distsq$i]*distsq_c, ) )") # evaluate a tuple
+  choicemade = zeros(size(people)[1], 1)
+  distance_c  = modelparameters[1]
+  distsq_c  = modelparameters[2]
+  neoint_c  = modelparameters[3]
+  soloint_c  = modelparameters[4]
+  closest_c  = modelparameters[5]
+  distbed_c = modelparameters[6]
+  for i in 1:size(people)[1]
+    shock = rand(d, maxfid)
+    val1 = people[i,:distance1]*distance_c + people[i,:distsq1]*distsq_c + people[i,:SoloIntermediate1]*soloint_c + people[i,:NeoIntensive1]*neoint_c + people[i,:closest1]*closest_c + people[i,:dist_bed1]*distbed_c + shock[1]
+    val2 = people[i,:distance2]*distance_c + people[i,:distsq2]*distsq_c + people[i,:SoloIntermediate2]*soloint_c + people[i,:NeoIntensive2]*neoint_c + people[i,:closest2]*closest_c + people[i,:dist_bed2]*distbed_c + shock[2]
+    val3 = people[i,:distance3]*distance_c + people[i,:distsq3]*distsq_c + people[i,:SoloIntermediate3]*soloint_c + people[i,:NeoIntensive3]*neoint_c + people[i,:closest3]*closest_c + people[i,:dist_bed3]*distbed_c + shock[3]
+    val4 = people[i,:distance4]*distance_c + people[i,:distsq4]*distsq_c + people[i,:SoloIntermediate4]*soloint_c + people[i,:NeoIntensive4]*neoint_c + people[i,:closest4]*closest_c + people[i,:dist_bed4]*distbed_c + shock[4]
+    val5 = people[i,:distance5]*distance_c + people[i,:distsq5]*distsq_c + people[i,:SoloIntermediate5]*soloint_c + people[i,:NeoIntensive5]*neoint_c + people[i,:closest5]*closest_c + people[i,:dist_bed5]*distbed_c + shock[5]
+    val6 = people[i,:distance6]*distance_c + people[i,:distsq6]*distsq_c + people[i,:SoloIntermediate6]*soloint_c + people[i,:NeoIntensive6]*neoint_c + people[i,:closest6]*closest_c + people[i,:dist_bed6]*distbed_c + shock[6]
+    val7 = people[i,:distance7]*distance_c + people[i,:distsq7]*distsq_c + people[i,:SoloIntermediate7]*soloint_c + people[i,:NeoIntensive7]*neoint_c + people[i,:closest7]*closest_c + people[i,:dist_bed7]*distbed_c + shock[7]
+    val8 = people[i,:distance8]*distance_c + people[i,:distsq8]*distsq_c + people[i,:SoloIntermediate8]*soloint_c + people[i,:NeoIntensive8]*neoint_c + people[i,:closest8]*closest_c + people[i,:dist_bed8]*distbed_c + shock[8]
+    val9 = people[i,:distance9]*distance_c + people[i,:distsq9]*distsq_c + people[i,:SoloIntermediate9]*soloint_c + people[i,:NeoIntensive9]*neoint_c + people[i,:closest9]*closest_c + people[i,:dist_bed9]*distbed_c + shock[9]
+    val10 = people[i,:distance10]*distance_c + people[i,:distsq10]*distsq_c + people[i,:SoloIntermediate10]*soloint_c + people[i,:NeoIntensive10]*neoint_c + people[i,:closest10]*closest_c + people[i,:dist_bed10]*distbed_c + shock[10]
+    val11 = people[i,:distance11]*distance_c + people[i,:distsq11]*distsq_c + people[i,:SoloIntermediate11]*soloint_c + people[i,:NeoIntensive11]*neoint_c + people[i,:closest11]*closest_c + people[i,:dist_bed11]*distbed_c + shock[11]
+    # For a future robustness check with more facilities:
+    #    val10 = people[:distance10]*distance_c + people[:distsq10]*distsq_c + people[:SoloIntermediate10]*soloint_c + people[:NeoIntensive10]*neoint_c + people[:closest10]*closest_c + people[:dist_bed10]*distbed_c + shock[]
+    #    val10 = people[:distance10]*distance_c + people[:distsq10]*distsq_c + people[:SoloIntermediate10]*soloint_c + people[:NeoIntensive10]*neoint_c + people[:closest10]*closest_c + people[:dist_bed10]*distbed_c + shock[]
+    chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11]) # returns the *index* of the max element in the collection
+    #=
+    This is just for testing - some values of the output vector are 0, but why?
+    if chosen == 0
+      print("chosen is 0")
+      print(val1)
+      print(val2)
+      print(val3)
+      print(val4)
+      print(val5)
+      print(val6)
+      print(val7)
+      print(val8)
+      print(val9)
+      print(val10)
+      print(val11)
+    end =#
+    choicemade[i] = eval(parse("people[$i, :fid$chosen]"))
   end
-
-
-
+  return choicemade
 end
+
+
+#=
+for i in 1:maxfid
+  # This is vectorized - probably slow.  Why not just go by row and see if it's faster?
+  expr = parse("vals$i = hcat(people[:fid$i] , people[:distance$i].data*distance_c + people[:distsq$i].data*distsq_c + people[:SoloIntermediate$i].data*soloint_c + people[:NeoIntensive$i].data*neoint_c + people[:closest$i].data*closest_c + people[:dist_bed$i].data*distbed_c  )") # evaluate a tuple
+  eval(expr)
+end
+
+Performance: 0.510989 seconds (5.64 M allocations: 213.967 MB, 68.09% gc time)
+=#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#end
