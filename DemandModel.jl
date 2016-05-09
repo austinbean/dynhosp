@@ -1,6 +1,6 @@
 # Use the parameters of the demand model to estimate choices:
 
-# Version: 05 07 16
+# Version: 05 09 16
 
 using DataFrames
 using DataArrays
@@ -156,7 +156,7 @@ function DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}; maxf
       - count the number maximized by fid: this will be the demand.
       Performance: .518402 seconds (32.05 M allocations: 604.392 MB, 0.76% gc time)
   =#
-  choicemade = zeros(size(people)[1], 1)
+  choicemade = zeros(Int64, size(people)[1], 1)
   distance_c  = modelparameters[1]
   distsq_c  = modelparameters[2]
   neoint_c  = modelparameters[3]
@@ -165,41 +165,69 @@ function DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}; maxf
   distbed_c = modelparameters[6]
   for i in 1:size(people)[1]
     shock = rand(d, maxfid)
-    val1 = people[i,:distance1]*distance_c + people[i,:distsq1]*distsq_c + people[i,:SoloIntermediate1]*soloint_c + people[i,:NeoIntensive1]*neoint_c + people[i,:closest1]*closest_c + people[i,:dist_bed1]*distbed_c + shock[1]
-    val2 = people[i,:distance2]*distance_c + people[i,:distsq2]*distsq_c + people[i,:SoloIntermediate2]*soloint_c + people[i,:NeoIntensive2]*neoint_c + people[i,:closest2]*closest_c + people[i,:dist_bed2]*distbed_c + shock[2]
-    val3 = people[i,:distance3]*distance_c + people[i,:distsq3]*distsq_c + people[i,:SoloIntermediate3]*soloint_c + people[i,:NeoIntensive3]*neoint_c + people[i,:closest3]*closest_c + people[i,:dist_bed3]*distbed_c + shock[3]
-    val4 = people[i,:distance4]*distance_c + people[i,:distsq4]*distsq_c + people[i,:SoloIntermediate4]*soloint_c + people[i,:NeoIntensive4]*neoint_c + people[i,:closest4]*closest_c + people[i,:dist_bed4]*distbed_c + shock[4]
-    val5 = people[i,:distance5]*distance_c + people[i,:distsq5]*distsq_c + people[i,:SoloIntermediate5]*soloint_c + people[i,:NeoIntensive5]*neoint_c + people[i,:closest5]*closest_c + people[i,:dist_bed5]*distbed_c + shock[5]
-    val6 = people[i,:distance6]*distance_c + people[i,:distsq6]*distsq_c + people[i,:SoloIntermediate6]*soloint_c + people[i,:NeoIntensive6]*neoint_c + people[i,:closest6]*closest_c + people[i,:dist_bed6]*distbed_c + shock[6]
-    val7 = people[i,:distance7]*distance_c + people[i,:distsq7]*distsq_c + people[i,:SoloIntermediate7]*soloint_c + people[i,:NeoIntensive7]*neoint_c + people[i,:closest7]*closest_c + people[i,:dist_bed7]*distbed_c + shock[7]
-    val8 = people[i,:distance8]*distance_c + people[i,:distsq8]*distsq_c + people[i,:SoloIntermediate8]*soloint_c + people[i,:NeoIntensive8]*neoint_c + people[i,:closest8]*closest_c + people[i,:dist_bed8]*distbed_c + shock[8]
-    val9 = people[i,:distance9]*distance_c + people[i,:distsq9]*distsq_c + people[i,:SoloIntermediate9]*soloint_c + people[i,:NeoIntensive9]*neoint_c + people[i,:closest9]*closest_c + people[i,:dist_bed9]*distbed_c + shock[9]
-    val10 = people[i,:distance10]*distance_c + people[i,:distsq10]*distsq_c + people[i,:SoloIntermediate10]*soloint_c + people[i,:NeoIntensive10]*neoint_c + people[i,:closest10]*closest_c + people[i,:dist_bed10]*distbed_c + shock[10]
-    val11 = people[i,:distance11]*distance_c + people[i,:distsq11]*distsq_c + people[i,:SoloIntermediate11]*soloint_c + people[i,:NeoIntensive11]*neoint_c + people[i,:closest11]*closest_c + people[i,:dist_bed11]*distbed_c + shock[11]
-    # For a future robustness check with more facilities:
-    #    val10 = people[:distance10]*distance_c + people[:distsq10]*distsq_c + people[:SoloIntermediate10]*soloint_c + people[:NeoIntensive10]*neoint_c + people[:closest10]*closest_c + people[:dist_bed10]*distbed_c + shock[]
-    #    val10 = people[:distance10]*distance_c + people[:distsq10]*distsq_c + people[:SoloIntermediate10]*soloint_c + people[:NeoIntensive10]*neoint_c + people[:closest10]*closest_c + people[:dist_bed10]*distbed_c + shock[]
+    if people[i,:fid1] != 0
+      val1 = people[i,:distance1]*distance_c + people[i,:distsq1]*distsq_c + people[i,:SoloIntermediate1]*soloint_c + people[i,:NeoIntensive1]*neoint_c + people[i,:closest1]*closest_c + people[i,:dist_bed1]*distbed_c + shock[1]
+    else
+      val1 = -10^10
+    end
+    if people[i,:fid2] != 0
+      val2 = people[i,:distance2]*distance_c + people[i,:distsq2]*distsq_c + people[i,:SoloIntermediate2]*soloint_c + people[i,:NeoIntensive2]*neoint_c + people[i,:closest2]*closest_c + people[i,:dist_bed2]*distbed_c + shock[2]
+    else
+      val2 = -10^10
+    end
+    if people[i,:fid3] != 0
+      val3 = people[i,:distance3]*distance_c + people[i,:distsq3]*distsq_c + people[i,:SoloIntermediate3]*soloint_c + people[i,:NeoIntensive3]*neoint_c + people[i,:closest3]*closest_c + people[i,:dist_bed3]*distbed_c + shock[3]
+    else
+      val3 = -10^10
+    end
+    if people[i,:fid4] != 0
+      val4 = people[i,:distance4]*distance_c + people[i,:distsq4]*distsq_c + people[i,:SoloIntermediate4]*soloint_c + people[i,:NeoIntensive4]*neoint_c + people[i,:closest4]*closest_c + people[i,:dist_bed4]*distbed_c + shock[4]
+    else
+      val4 = -10^10
+    end
+    if people[i,:fid5] != 0
+      val5 = people[i,:distance5]*distance_c + people[i,:distsq5]*distsq_c + people[i,:SoloIntermediate5]*soloint_c + people[i,:NeoIntensive5]*neoint_c + people[i,:closest5]*closest_c + people[i,:dist_bed5]*distbed_c + shock[5]
+    else
+      val5 = -10^10
+    end
+    if people[i,:fid6] != 0
+      val6 = people[i,:distance6]*distance_c + people[i,:distsq6]*distsq_c + people[i,:SoloIntermediate6]*soloint_c + people[i,:NeoIntensive6]*neoint_c + people[i,:closest6]*closest_c + people[i,:dist_bed6]*distbed_c + shock[6]
+    else
+      val6 = -10^10
+    end
+    if people[i,:fid7] != 0
+      val7 = people[i,:distance7]*distance_c + people[i,:distsq7]*distsq_c + people[i,:SoloIntermediate7]*soloint_c + people[i,:NeoIntensive7]*neoint_c + people[i,:closest7]*closest_c + people[i,:dist_bed7]*distbed_c + shock[7]
+    else
+      val7 = -10^10
+    end
+    if people[i,:fid8] != 0
+      val8 = people[i,:distance8]*distance_c + people[i,:distsq8]*distsq_c + people[i,:SoloIntermediate8]*soloint_c + people[i,:NeoIntensive8]*neoint_c + people[i,:closest8]*closest_c + people[i,:dist_bed8]*distbed_c + shock[8]
+    else
+      val8 = -10^10
+    end
+    if people[i,:fid9] != 0
+      val9 = people[i,:distance9]*distance_c + people[i,:distsq9]*distsq_c + people[i,:SoloIntermediate9]*soloint_c + people[i,:NeoIntensive9]*neoint_c + people[i,:closest9]*closest_c + people[i,:dist_bed9]*distbed_c + shock[9]
+    else
+      val9 = -10^10
+    end
+    if people[i,:fid10] != 0
+      val10 = people[i,:distance10]*distance_c + people[i,:distsq10]*distsq_c + people[i,:SoloIntermediate10]*soloint_c + people[i,:NeoIntensive10]*neoint_c + people[i,:closest10]*closest_c + people[i,:dist_bed10]*distbed_c + shock[10]
+    else
+      val10 = -10^10
+    end
+    if people[i,:fid11] != 0
+      val11 = people[i,:distance11]*distance_c + people[i,:distsq11]*distsq_c + people[i,:SoloIntermediate11]*soloint_c + people[i,:NeoIntensive11]*neoint_c + people[i,:closest11]*closest_c + people[i,:dist_bed11]*distbed_c + shock[11]
+    else
+      val11 = -10^10
+    end
     chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11]) # returns the *index* of the max element in the collection
-    #=
-    This is just for testing - some values of the output vector are 0, but why?
-    if chosen == 0
-      print("chosen is 0")
-      print(val1)
-      print(val2)
-      print(val3)
-      print(val4)
-      print(val5)
-      print(val6)
-      print(val7)
-      print(val8)
-      print(val9)
-      print(val10)
-      print(val11)
-    end =#
-    choicemade[i] = eval(parse("people[$i, :fid$chosen]"))
+    choicemade[i] = convert(Int64, eval(parse("people[$i, :fid$chosen]")))
   end
   return choicemade
 end
+
+
+# use countmap(choicemade) to count the results (!)  So easy.
 
 
 #=
