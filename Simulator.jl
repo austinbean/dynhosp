@@ -21,14 +21,38 @@ dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
 yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
-mkt_fips = yearins[145][1]
+mkt_fips = yearins[10][1]
 year = 2011
 fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
 
-# There is a trick here in making sure this has the right size!  Need to compute the size of fids first.
-state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+# Load the people
+people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
-Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
+# Enumerate all of the types::
+a = Set()
+for el in people.columns
+  push!(a, typeof(el))
+end
+
+# This is needed to clean out the missing values among fids.  Changes them to 0.
+for i in names(people)
+  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
+    people[isna(people[i]), i] = 0
+  end
+end
+
+modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+distance_c = modcoeffs[1, 2]
+distsq_c = modcoeffs[2, 2]
+neoint_c = modcoeffs[3, 2]
+soloint_c = modcoeffs[4, 2]
+closest_c = modcoeffs[5, 2]
+distbed_c = modcoeffs[6, 2]
+
+demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+
+
+Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 
 # Find the right people:
 peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
@@ -86,7 +110,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
         demand_re = realized_d[fid]
       end
     end
-    state_history[1,fid_i+6] = demand_re
+    state_history[1,fid_i+5] = demand_re
   end
   # Start simulation here:
   for i = sim_start:T+1
@@ -108,14 +132,14 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             end
             # all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
             # Reassign action choices -
-            dataf[a, :choicenum0] = 10
+          #=  dataf[a, :choicenum0] = 10
             dataf[a, :pr_ch_0] = probs1[1]
             dataf[a, :choicenum1] = 2
             dataf[a, :pr_ch_1] = probs1[2]
             dataf[a, :choicenum2] = 1
             dataf[a, :pr_ch_2] = probs1[3]
             dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs1[4]
+            dataf[a, :pr_ch_3] = probs1[4] =#
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
@@ -150,7 +174,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action1
-            #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 6] = demand # handled below, not here.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (1,0)) #level 2, actions:
             # Can't evaluation as nexti here if they are initialized to negative 1
@@ -159,14 +183,14 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
-            dataf[a, :choicenum0] = 5
+          #=  dataf[a, :choicenum0] = 5
             dataf[a, :pr_ch_0] = probs2[1]
             dataf[a, :choicenum1] = 10
             dataf[a, :pr_ch_1] = probs2[2]
             dataf[a, :choicenum2] = 6
             dataf[a, :pr_ch_2] = probs2[3]
             dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs2[4]
+            dataf[a, :pr_ch_3] = probs2[4] =#
             # Action:
             action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
             if action2 == 5
@@ -205,14 +229,14 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
-            dataf[a, :choicenum0] = 4
+          #=  dataf[a, :choicenum0] = 4
             dataf[a, :pr_ch_0] = probs3[1]
             dataf[a, :choicenum1] = 3
             dataf[a, :pr_ch_1] = probs3[2]
             dataf[a, :choicenum2] = 10
             dataf[a, :pr_ch_2] = probs3[3]
             dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs3[4]
+            dataf[a, :pr_ch_3] = probs3[4] =#
             # Action:
             action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
             if action3 == 3
@@ -281,7 +305,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               demand_re = realized_d[fid]
             end
           end
-          state_history[i,fid_i+6] = demand_re
+          state_history[i,fid_i+5] = demand_re
         end
 
 

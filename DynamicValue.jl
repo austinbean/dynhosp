@@ -41,7 +41,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
 
 # The last 4 columns of "history" or "state_history" are: level 1, level 2, level 3, probability
 # The seven elements of "history" (per fid in state_history) are:
-# fid, act_solo, act_int, choice prob, action, demand and perturbation indicator
+# fid, act_solo, act_int, choice prob, action, XXXXX, demand and perturbation indicator
 
 # Write out values for first row separately.
 
@@ -64,7 +64,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
   for row in 2:(T+1)
     if (history[row,2], history[row,3]) == (0,0)
       levelcount = convert(Int64, sum(history[row, end-3:end-1]))
-      outp[1, levelcount+1] += (β^row)*history[row, 6]*history[row, 7]*history[row,end]
+      outp[1, levelcount+1] += (β^row)*history[row, 6]*history[row,end] # this is discount^t * demand * probability (aggregate)
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # do nothing
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
@@ -79,7 +79,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
       end
     elseif (history[row,2], history[row,3]) == (1,0)
       levelcount = convert(Int64, history[row, end-2])
-      outp[2, levelcount+1] += (β^row)*history[row, 6]*history[row, 7]*history[row,end]
+      outp[2, levelcount+1] += (β^row)*history[row, 6]*history[row,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # Upgraded 1 to 2
         outp2[1,1] += 1*β^(row-1)
@@ -94,7 +94,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
       end
     elseif (history[row,2], history[row,3]) == (0,1)
       levelcount = convert(Int, history[row, end-1])
-      outp[3, levelcount+1] += (β^row)*history[row, 6]*history[row, 7]*history[row,end]
+      outp[3, levelcount+1] += (β^row)*history[row, 6]*history[row,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # upgraded 1 to 3
         outp2[1,2] += 1*β^(row-1)
