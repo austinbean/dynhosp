@@ -84,21 +84,34 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
       return choicerow
     else # intersection is nonzero
       for el in change_fids
-        el = convert(Int64, el)
-        (loc, symb) = rowfindfid(choicerow, el)
-        if loc != 0
-          fid_num = replace(string(symb), r"[fid]", "")
-          # Change NeoIntensive in the choice row to the value in the state row
-          neo = Symbol("NeoIntensive"*fid_num)
-          choicerow[neo] = convert(Int64, staterow[findfirst(staterow, el)+2])
-          # Change SoloIntermeidate in the choice row to the value in the state row
-          solo = Symbol("SoloIntermediate"*fid_num)
-          choicerow[solo] = convert(Int64, staterow[findfirst(staterow, el)+1])
-        else
-          print(el, " not found in row ")
+        # Here - findfirst(staterow, el)
+        # If that + 1 == -999 and that + 2 = -999
+        # Set that fid to 0 (treats the hospital as missing)
+        # Then need to reload "people" later.
+        if staterow[findfirst(staterow, el)+1] != -999
+          el = convert(Int64, el)
+          (loc, symb) = rowfindfid(choicerow, el) #finds the fid in the row, or returns 0 if absent
+          if loc != 0
+            fid_num = replace(string(symb), r"[fid]", "") # takes the name of the symbol (:fid#), converts to string, "fid#", removes 'fid', obtains "#" as string.
+            # Change NeoIntensive in the choice row to the value in the state row
+            neo = Symbol("NeoIntensive"*fid_num)
+            choicerow[neo] = convert(Int64, staterow[findfirst(staterow, el)+2])
+            # Change SoloIntermeidate in the choice row to the value in the state row
+            solo = Symbol("SoloIntermediate"*fid_num)
+            choicerow[solo] = convert(Int64, staterow[findfirst(staterow, el)+1])
+          else
+            print(el, " not found in row ")
+          end
+        elseif staterow[findfirst(staterow, el)+1] == -999
+          el = convert(Int64, el)
+          (loc, symb) = rowfindfid(choicerow, el) #finds the fid in the row, or returns 0 if absent
+          if loc != 0
+            choicerow[symb] = 0 # reassign the value of fid to be zero so that demand cannot be computed for an exited hospital
+          end
         end
       end
     end
+    return choicerow
 end
 
 

@@ -51,14 +51,14 @@ distbed_c = modcoeffs[6, 2]
 
 demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
-
-Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
-
 # Find the right people:
 peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 dataf = dataf[dataf[:id].>= 0, :]
+
+Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
+
 
 =#
 
@@ -291,7 +291,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
         - Obtain demand and map it into state_history
         =#
         for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
-          rowchange(state_history[i,:], peoplesub[p,:])
+          peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:]) # probably needs to be peoplesub[p,: ] = rowchange() etc
         end
         realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
         for fid_i in 1:fields:size(state_history[i,:])[2]-4
@@ -411,13 +411,13 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
           end
           # Handle appending these entrants to the (neighbor, distance) section
           # need to check all of the other fids in the market-year (in b)
-          println("Distances to new entrants")
+          # println("Distances to new entrants")
           for row in eachrow(dataf[b,:])
             if  (distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16]) < 25)
               count = 0 # only want to make an entry once - this is a dumb way
               for c in neighbors_start:(2):size(dataf)[2]
                 if (isna(row[c]))&(count == 0)
-                  println("doing something")
+                  # println("doing something")
                   # to make changes I need to search for the row in the original DF matching these characteristics.
                   dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c ]= newrow[:fid]
                   dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c+1]= distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16])
@@ -427,7 +427,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             end
           end
           # Append the neighbors to the new entrant's frame too
-          println("appending neighbors to new entrant's frame row")
+          # println("appending neighbors to new entrant's frame row")
           for elem in 1:size(fids)[1]
             neighb = fids[elem]
             neighb_lat = dataf[(dataf[:fid].==neighb)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :v15][1]
@@ -436,7 +436,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             if  td < 25
               newrow[neighbors_start+2*(elem-1)] = neighb # fid
               newrow[neighbors_start+2*(elem-1)+1] = td
-              println("Success")
+            #  println("Success")
               if (td > 0) & (td < 5)
                 if (newrow[:act_solo][1], newrow[:act_int][1]) == (0,0)
                   newrow[:lev105] += 1
@@ -472,7 +472,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               end
             end
           end
-          println("appending entry")
+          # println("appending entry")
           # Add the new record to the dataframe.
           append!(dataf, newrow)
           # append value to fids

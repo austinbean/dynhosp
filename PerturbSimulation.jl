@@ -28,13 +28,44 @@ fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==yea
 pfid = fids[1]
 disturb = 0.05
 
-# There is a trick here in making sure this has the right size!  Need to compute the size of fids first.
-state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+# Load the people
+people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
-state_history = PerturbSimulator(dataf, year, mkt_fips, state_history, pfid, disturb = 0.05, T = 100, sim_start = 2)
+# Enumerate all of the types::
+a = Set()
+for el in people.columns
+  push!(a, typeof(el))
+end
+
+# This is needed to clean out the missing values among fids.  Changes them to 0.
+for i in names(people)
+  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
+    people[isna(people[i]), i] = 0
+  end
+end
+
+modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+distance_c = modcoeffs[1, 2]
+distsq_c = modcoeffs[2, 2]
+neoint_c = modcoeffs[3, 2]
+soloint_c = modcoeffs[4, 2]
+closest_c = modcoeffs[5, 2]
+distbed_c = modcoeffs[6, 2]
+
+demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+
+state_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters, pfid, disturb = 0.05, T = 100, sim_start = 2)
+
+
+# Find the right people:
+peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
+
+# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
+dataf = dataf[dataf[:id].>= 0, :]
+
 =#
 
-function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
+function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -42,6 +73,8 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
   level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
   fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+  state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+
   if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
     println("size of fids: ", size(fids), " size of fields: ", fields, " size of state_history: ", size(state_history))
     println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
@@ -70,7 +103,23 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
   state_history[1, (size(fids)[1])*fields+2] = level2 ;
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
-
+  for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+    rowchange(state_history[1,:], peoplesub[p,:])
+  end
+  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
+  for fid_i in 1:fields:size(state_history[1,:])[2]-4
+    fid = state_history[1,fid_i]
+    demand_re =  try
+      realized_d[fid]
+    catch y
+      if isa(y, KeyError)
+        demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+      else
+        demand_re = realized_d[fid]
+      end
+    end
+    state_history[1,fid_i+5] = demand_re
+  end
   # Start simulation here:
   for i = sim_start:T+1
     if i%50 == 0
@@ -95,14 +144,14 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
 
             # all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
             # Reassign action choices -
-            dataf[a, :choicenum0] = 10
+        #=    dataf[a, :choicenum0] = 10
             dataf[a, :pr_ch_0] = probs1[1]
             dataf[a, :choicenum1] = 2
             dataf[a, :pr_ch_1] = probs1[2]
             dataf[a, :choicenum2] = 1
             dataf[a, :pr_ch_2] = probs1[3]
             dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs1[4]
+            dataf[a, :pr_ch_3] = probs1[4] =#
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
@@ -153,14 +202,14 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
             if el == pfid
               probs2 = perturb(probs2, disturb, false) #perturb(probs::Array, eps::Float64, control::Bool)
             end
-            dataf[a, :choicenum0] = 5
+          #=  dataf[a, :choicenum0] = 5
             dataf[a, :pr_ch_0] = probs2[1]
             dataf[a, :choicenum1] = 10
             dataf[a, :pr_ch_1] = probs2[2]
             dataf[a, :choicenum2] = 6
             dataf[a, :pr_ch_2] = probs2[3]
             dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs2[4]
+            dataf[a, :pr_ch_3] = probs2[4] =#
             # Action:
             action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
             if action2 == 5
@@ -206,14 +255,14 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
             if el == pfid
               probs3 = perturb(probs3, disturb, false) #perturb(probs::Array, eps::Float64, control::Bool)
             end
-            dataf[a, :choicenum0] = 4
+      #=      dataf[a, :choicenum0] = 4
             dataf[a, :pr_ch_0] = probs3[1]
             dataf[a, :choicenum1] = 3
             dataf[a, :pr_ch_1] = probs3[2]
             dataf[a, :choicenum2] = 10
             dataf[a, :pr_ch_2] = probs3[3]
             dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs3[4]
+            dataf[a, :pr_ch_3] = probs3[4] =#
             # Action:
             action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
             if action3 == 3
@@ -266,6 +315,31 @@ function PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
           end
+        end
+        # Here is the place to do demand - map the results above out to the demand model
+        #=
+        - Write the fids out to an array
+        - Statehistory row has been computed now - can use that. Current market state given by statehistory[i,:]
+        - Rows should be changed by rowchange(staterow::Array{Float64,2}, choicerow::DataFrame) for every row in peoplesub
+        - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
+        - Obtain demand and map it into state_history
+        =#
+        for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+          rowchange(state_history[i,:], peoplesub[p,:])
+        end
+        realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
+        for fid_i in 1:fields:size(state_history[i,:])[2]-4
+          fid = state_history[i,fid_i]
+          demand_re =  try
+            realized_d[fid]
+          catch y
+            if isa(y, KeyError)
+              demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+            else
+              demand_re = realized_d[fid]
+            end
+          end
+          state_history[i,fid_i+5] = demand_re
         end
         # Count facilities by distance and map results to neighboring hospitals
         # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
