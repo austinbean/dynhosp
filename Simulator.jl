@@ -31,14 +31,14 @@ state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(f
 Simulator(dataf, year, mkt_fips, state_history, T = 100, sim_start = 2)
 
 # Find the right people:
-people[fidfinder(convert(Array, fids)', people),:]
+peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 dataf = dataf[dataf[:id].>= 0, :]
 
 =#
 
-function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2)
+function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -46,6 +46,8 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
   fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+  state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
+
   if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
     println("size of fids: ", size(fids), " size of fields: ", fields, " size of state_history: ", size(state_history))
     println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
@@ -60,7 +62,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
     state_history[1, (n-1)*fields + 3] = dataf[a,:act_solo][1]
     state_history[1, (n-1)*fields + 4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields + 5] = 10 # No action at the first period?  Or should it be 10?
-    #state_history[1, (n-1)*fields + 6] = # whatever demand is
+    #state_history[1, (n-1)*fields + 6] = # whatever demand is # Not recorded here - recorded below.
     state_history[1, (n-1)*fields + 7] = 0 #record the perturbation 0/1
   end
   # Record aggregte initial values
@@ -68,7 +70,24 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   state_history[1, (size(fids)[1])*fields+2] = level2 ;
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
-
+  # Compute initial demand here:
+  for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+    rowchange(state_history[1,:], peoplesub[p,:])
+  end
+  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
+  for fid_i in 1:fields:size(state_history[1,:])[2]-4
+    fid = state_history[1,fid_i]
+    demand_re =  try
+      realized_d[fid]
+    catch y
+      if isa(y, KeyError)
+        demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+      else
+        demand_re = realized_d[fid]
+      end
+    end
+    state_history[1,fid_i+6] = demand_re
+  end
   # Start simulation here:
   for i = sim_start:T+1
     if i%50 == 0
@@ -178,7 +197,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action2
-            #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 6] = demand # Not recorded here - recorded below.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif  ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (0,1)) #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
@@ -224,7 +243,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action3
-            #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 6] = demand # Not recorded here - recorded below.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (-999,-999)) # has exited.
             # No new actions to compute, but record.
@@ -233,7 +252,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             state_history[i, (fid-1)*fields + 3] = dataf[a,:act_int][1]
             state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
             state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
-            #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited.
+            #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited. Not recorded here - recorded below.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
@@ -254,7 +273,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
         for fid_i in 1:fields:size(state_history[i,:])[2]-4
           fid = state_history[i,fid_i]
           demand_re =  try
-            realized_d[fid] # might need a try/catch thing if fid is not found (as with entrants)
+            realized_d[fid]
           catch y
             if isa(y, KeyError)
               demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
