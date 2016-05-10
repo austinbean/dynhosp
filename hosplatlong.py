@@ -1,11 +1,12 @@
 #hosplatlong.py
 
 '''
-Version 04 04 16 -
-A future version of this should include RequestsThrottler to slow down the requests to
-Google.  This makes do mostly by iterating through the list slowly enough to not exceed
-the requests rate because it does not search over addresses which it already has found.
-Run it five or six times and it will get all of the addresses.
+Version 05 03 16 -
+This now uses time.sleep() to avoid exceeding request rates.
+
+- Takes TX All Addresses.csv as input.
+- That file produced in TX Hospital Sets.do
+- Outputs an updated version of the same, with addresses added.
 
 '''
 
@@ -15,6 +16,7 @@ import requests # This sometimes does not load.
 import urllib
 from lxml import etree
 import numpy as np
+import time
 
 # Keep track of the columns where certain pieces of data are recorded:
 addr_add = 8
@@ -72,6 +74,7 @@ for i in range(0, len(hospdata)):
 				curr_add = hospdata[i][addr_add]
 			else:
 				curr_add = hospdata[i][addr_add]
+			time.sleep(0.55)
 	elif hospdata[i][len(hospdata[i])-1] == 'FOUND':
 		curr_add = hospdata[i][addr_add]
 

@@ -3,7 +3,7 @@
 '''
 
 Created: 04 04 16
-Version: 04 07 16
+Version: 05 03 16
 
 This takes the set of all addresses for TX hospital-year observations, computes distances
 and then tracks facilities nearby by year.
@@ -28,14 +28,36 @@ from lxml import etree
 import numpy as np
 
 # Keep track of the columns where certain pieces of data are recorded:
-addr_add = 8
-city_add = 4
-intensive_add = 6
-soloint_add = 13
-lat_add = 14
-lon_add = 15
 fid_add = 0
-year_add = 7
+facility_add = 1
+county_add = 2
+countynumber_add = 3
+city_add = 4
+mstat_add = 5
+totalbeds_add = 6
+intensive_add = 7
+year_add = 8
+deliveries_add = 9
+nonicutransfersout_add = 10
+nicutransfersin_add = 11
+nicutransfersout_add = 12
+nfp_add = 13
+addr_add = 14
+locozip_add = 15
+ftephys_add = 16
+fteresidents_add = 17
+fteothertrainees_add = 18
+fteregnurses_add = 19
+ftelpn_add = 20
+ftenap_add = 21
+fteother_add = 22
+ftetotal_add = 23
+yearsbirths_add = 24
+firstyear_add = 25
+lastyear_add = 26
+soloint_add = 27
+lat_add = 28
+lon_add = 29
 
 hospdata = []
 
@@ -55,7 +77,7 @@ for row in range(1,len(hospdata)):
 # If necessary - to start over again using different distances, use these lines
 distdata = []
 for row in hospdata:
-    distdata.append(row[0:16])
+    distdata.append(row[0:len(row)])
 
 # If not, use the following:
 # distdata = hospdata
@@ -84,6 +106,20 @@ bin3_c1 = 0 # Level 1 - col 26
 bin3_c2 = 0 # Level 2 - col 27
 bin3_c3 = 0 # Level 3 - col 28
 
+rowlength = len(hospdata[1])
+
+lev1p05 = rowlength + 1
+lev2p05 = rowlength + 2
+lev3p05 = rowlength + 3
+
+lev1p515 = rowlength + 5
+lev2p515 = rowlength + 6
+lev3p515 = rowlength + 7
+
+lev1p1525 = rowlength + 9
+lev2p1525 = rowlength + 10
+lev3p1525 = rowlength + 11
+
 
 for row in range(1,len(distdata)):
     # Track level 1, 2, 3 at distance 0 - 5
@@ -109,39 +145,39 @@ for row in range(1,len(distdata)):
             oth_dist = dfunc(lat, lon, eval(distdata[other][lat_add]), eval(distdata[other][lon_add]) )
             if (oth_dist < 25) & (oth_dist > 0): # will append records of those facilities in less than 25 miles, but greater than 0 (i.e., not self)
                 if (oth_dist <= 5) & (oth_dist > 0):
-                    if not (distdata[other][0] in distdata[row]):
+                    if not (distdata[other][fid_add] in distdata[row]):
                         if (distdata[other][intensive_add] == 1) & (distdata[other][soloint_add] == 0):
-                            distdata[row][19] += 1 #19
+                            distdata[row][lev3p05] += 1 #19
                         elif (distdata[other][intensive_add] == 0) & (distdata[other][soloint_add] == 1):
-                            distdata[row][18] += 1 # 18
+                            distdata[row][lev2p05] += 1 # 18
                         elif (distdata[other][intensive_add] == 0) & (distdata[other][soloint_add] == 0):
-                            distdata[row][17] += 1 #17
+                            distdata[row][lev1p05] += 1 #17
                         else:
                             print("What the hell...")
-                            print(distdata[other][0:28])
+                            print(distdata[other][0:len(distdata[other])])
                 elif (oth_dist > 5) & (oth_dist <= 15):
-                    if not (distdata[other][0] in distdata[row]):
+                    if not (distdata[other][fid_add] in distdata[row]):
                         if (distdata[other][intensive_add] == 1) & (distdata[other][soloint_add] == 0):
-                            distdata[row][23] += 1
+                            distdata[row][lev3p515] += 1
                         elif (distdata[other][intensive_add] == 0) & (distdata[other][soloint_add] == 1):
-                            distdata[row][22] += 1
+                            distdata[row][lev2p515] += 1
                         elif (distdata[other][intensive_add] == 0) & (distdata[other][soloint_add] == 0):
-                            distdata[row][21] += 1
+                            distdata[row][lev1p515] += 1
                         else:
                             print("What the hell...")
-                            print(distdata[other][0:28])
+                            print(distdata[other][0:len(distdata[other])])
                 elif (oth_dist > 15):
-                    if not (hospdata[other][0] in hospdata[row]):
+                    if not (hospdata[other][fid_add] in hospdata[row]):
                         if (distdata[other][intensive_add] == 1) & (distdata[other][soloint_add] == 0):
-                            distdata[row][27] += 1
+                            distdata[row][lev3p1525] += 1
                         elif (distdata[other][intensive_add] == 0) & (distdata[other][soloint_add] == 1):
-                            distdata[row][26] += 1
+                            distdata[row][lev2p1525] += 1
                         elif (distdata[other][intensive_add] == 0) & (distdata[other][soloint_add] == 0):
-                            distdata[row][25] += 1
+                            distdata[row][lev1p1525] += 1
                         else:
                             print("What the hell...")
-                            print(distdata[other][0:28])
-                distdata[row].append(distdata[other][0])
+                            print(distdata[other][0:len(distdata[other])])
+                distdata[row].append(distdata[other][fid_add])
                 distdata[row].append(oth_dist)
 
 
