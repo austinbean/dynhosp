@@ -16,36 +16,31 @@ chosen = 10.91 # average distance to closest
 
 fig = figure("dist_avail", figsize=(10, 10))
 ax = axes(polar = "true")
-title("Distances to Nearest Hospitals in Miles \n Measured from Zip Code Centroid")
+title("Average Distances to Nearest Hospitals in Miles \n Measured from Zip Code Center")
 plot(theta, chosen*ones(size(theta)), "r--", label = "Chosen")
-plot( [pi/3], [10.91], "o")
-
+plot( [theta[10]], [10.91], "ok")
 plot(theta, data[1]*ones(size(theta)), "c-",  label = "Closest")
-plot([pi/4], [data[1]], "o")
-
+plot([theta[20]], [data[1]], "ok")
 plot(theta, data[2]*ones(size(theta)), "b-")
-plot([pi/5], [data[2]], "o")
-
+plot([theta[25]], [data[2]], "ok")
 plot(theta, data[3]*ones(size(theta)), "b-")
-plot([3pi/5], [data[3]], "o")
-
+plot([theta[5]], [data[3]], "ok")
 plot(theta, data[5]*ones(size(theta)), "g-", label = "5th Farthest")
-plot([3pi/4], [data[5]], "o")
-
+plot([theta[29]], [data[5]], "ok")
 plot(theta, data[6]*ones(size(theta)), "m-", label = "6th Farthest")
-plot([2pi], [data[6]], "o")
-
+plot([theta[15]], [data[6]], "ok")
 plot(theta, data[10]*ones(size(theta)), "y-", label = "Farthest")
-plot([pi/2], [data[10]], "o")
-
-
+plot([theta[8]], [data[10]], "ok", label = "Locations")
 ax[:set_thetagrids]([])
-#ax[:grid](false)
-ax[:text](0, 0, "0", style="italic")
-legend(loc = "upper left", bbox_to_anchor=(-0.1,1.1))
+ax[:grid](false)
+ax[:text](0, 0, "0")
+legend(loc = "upper left", bbox_to_anchor=(-0.1,1.2))
 arrow(0, 0,pi/8.5 , 14)
 annotate("Distance in\n Miles", xy=(0, 0), xytext=[3*pi/4, 1])
 fig[:canvas][:draw]()
+
+savefig("/Users/austinbean/Google Drive/Current Projects/Neonatal Intensive Care Project/Progress Reports/TravelDistancePlot.png")
+
 
 #=
 for i in 1:10
