@@ -127,13 +127,16 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 
 
 
-function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}; maxfid = 11)
+function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   #=
     The goal for this function is to -
       - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
       - count the number maximized by fid: this will be the demand.
       Performance: .518402 seconds (32.05 M allocations: 604.392 MB, 0.76% gc time)
       The first two arguments are a dataframe (people) and the NAME of that dataframe (frname) as a string.  This is important at the end
+      - Entrants - measure length, computes number of entrants.
+      - Format of entrants is: [fid act_int act_solo entrantbeds ent_lat ent_lon] x (# entrants)
+      - Remember: distbed is distance * beds/100
   =#
   choicemade = zeros(Int64, size(people)[1], 1)
   distance_c  = modelparameters[1]
@@ -146,61 +149,116 @@ function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Ar
     shock = rand(d, maxfid)
     if people[i,:fid1] != 0
       val1 = people[i,:distance1]*distance_c + people[i,:distsq1]*distsq_c + people[i,:SoloIntermediate1]*soloint_c + people[i,:NeoIntensive1]*neoint_c + people[i,:closest1]*closest_c + people[i,:dist_bed1]*distbed_c + shock[1]
+      dist1 = people[i,:distance1]
     else
       val1 = -10^10
+      dist1 = 999
     end
     if people[i,:fid2] != 0
       val2 = people[i,:distance2]*distance_c + people[i,:distsq2]*distsq_c + people[i,:SoloIntermediate2]*soloint_c + people[i,:NeoIntensive2]*neoint_c + people[i,:closest2]*closest_c + people[i,:dist_bed2]*distbed_c + shock[2]
+      dist2 = people[i,:distance2]
     else
       val2 = -10^10
+      dist2 = 999
     end
     if people[i,:fid3] != 0
       val3 = people[i,:distance3]*distance_c + people[i,:distsq3]*distsq_c + people[i,:SoloIntermediate3]*soloint_c + people[i,:NeoIntensive3]*neoint_c + people[i,:closest3]*closest_c + people[i,:dist_bed3]*distbed_c + shock[3]
+      dist3 = people[i,:distance3]
     else
       val3 = -10^10
+      dist3 = 999
     end
     if people[i,:fid4] != 0
       val4 = people[i,:distance4]*distance_c + people[i,:distsq4]*distsq_c + people[i,:SoloIntermediate4]*soloint_c + people[i,:NeoIntensive4]*neoint_c + people[i,:closest4]*closest_c + people[i,:dist_bed4]*distbed_c + shock[4]
+      dist4 = people[i,:distance4]
     else
       val4 = -10^10
+      dist4 = 999
     end
     if people[i,:fid5] != 0
       val5 = people[i,:distance5]*distance_c + people[i,:distsq5]*distsq_c + people[i,:SoloIntermediate5]*soloint_c + people[i,:NeoIntensive5]*neoint_c + people[i,:closest5]*closest_c + people[i,:dist_bed5]*distbed_c + shock[5]
+      dist5 = people[i,:distance5]
     else
       val5 = -10^10
+      dist5 = 999
     end
     if people[i,:fid6] != 0
       val6 = people[i,:distance6]*distance_c + people[i,:distsq6]*distsq_c + people[i,:SoloIntermediate6]*soloint_c + people[i,:NeoIntensive6]*neoint_c + people[i,:closest6]*closest_c + people[i,:dist_bed6]*distbed_c + shock[6]
+      dist6 = people[i,:distance6]
     else
       val6 = -10^10
+      dist6 = 999
     end
     if people[i,:fid7] != 0
       val7 = people[i,:distance7]*distance_c + people[i,:distsq7]*distsq_c + people[i,:SoloIntermediate7]*soloint_c + people[i,:NeoIntensive7]*neoint_c + people[i,:closest7]*closest_c + people[i,:dist_bed7]*distbed_c + shock[7]
+      dist7 = people[i,:distance7]
     else
       val7 = -10^10
+      dist7 = 999
     end
     if people[i,:fid8] != 0
       val8 = people[i,:distance8]*distance_c + people[i,:distsq8]*distsq_c + people[i,:SoloIntermediate8]*soloint_c + people[i,:NeoIntensive8]*neoint_c + people[i,:closest8]*closest_c + people[i,:dist_bed8]*distbed_c + shock[8]
+      dist8 = people[i,:distance8]
     else
       val8 = -10^10
+      dist8 = 999
     end
     if people[i,:fid9] != 0
       val9 = people[i,:distance9]*distance_c + people[i,:distsq9]*distsq_c + people[i,:SoloIntermediate9]*soloint_c + people[i,:NeoIntensive9]*neoint_c + people[i,:closest9]*closest_c + people[i,:dist_bed9]*distbed_c + shock[9]
+      dist9 = people[i,:distance9]
     else
       val9 = -10^10
+      dist9 = 999
     end
     if people[i,:fid10] != 0
       val10 = people[i,:distance10]*distance_c + people[i,:distsq10]*distsq_c + people[i,:SoloIntermediate10]*soloint_c + people[i,:NeoIntensive10]*neoint_c + people[i,:closest10]*closest_c + people[i,:dist_bed10]*distbed_c + shock[10]
+      dist10 = people[i,:distance10]
     else
       val10 = -10^10
+      dist10 = 999
     end
     if people[i,:fid11] != 0
       val11 = people[i,:distance11]*distance_c + people[i,:distsq11]*distsq_c + people[i,:SoloIntermediate11]*soloint_c + people[i,:NeoIntensive11]*neoint_c + people[i,:closest11]*closest_c + people[i,:dist_bed11]*distbed_c + shock[11]
+      dist11 = people[i,:distance11]
     else
       val11 = -10^10
+      dist11 = 999
     end
-    chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11]) # returns the *index* of the max element in the collection
-    choicemade[i] = convert(Int64, eval(parse(frname*"[$i, :fid$chosen]")))
+    choice = 0;
+    if maximum(size(entrants)) <= 1 # there isn't a two-d array with size 0.
+      chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11]) # returns the *index* of the max element in the collection
+    else # at least one entrant
+      cval = maximum([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11])
+      mindist = minimum([dist1 dist2 dist3 dist4 dist5 dist6 dist7 dist8 dist9 dist10 dist11])
+      chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11])
+      entfids = [entrants[x] for x in 1:ent_length:maximum(size(entrants))]
+      for k = 1:size(entfids)[1]
+        efid = entfids[k]
+        eind = findfirst(entrants, efid)
+        # generate the distance x beds interaction
+        dist = distance(people[i,:ZIP_LAT], people[i, :ZIP_LONG], entrants[eind+4], entrants[eind+5])
+        if dist < 50
+          if dist < mindist
+            cl_ind = 1
+          else
+            cl_ind = 0
+          end
+          val = distance_c*dist + distsq_c*dist^2 + neoint_c*entrants[eind+1] + soloint_c*entrants[eind+2] + closest_c*cl_ind + distbed_c*dist*entrants[eind+3]/100 + rand(d, 1) # need to fix closest later
+          # Strategy - compare to chosen, if larger, take that.  Return chosen = 12 later can do this sequentially.
+          if val[1] > cval[1]
+            chosen = 99
+            choice = k
+            cval = val # reassign
+          end
+        end
+      end
+    end
+    if chosen <= 11
+      choicemade[i] = convert(Int64, eval(parse(frname*"[$i, :fid$chosen]")))
+    else
+      choicemade[i] = convert(Int64, entfids[choice])
+    end
+
   end
   return choicemade
 end

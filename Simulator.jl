@@ -98,7 +98,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
     rowchange(state_history[1,:], peoplesub[p,:])
   end
-  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
+  #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
+  emp_arr = [0.0]'
+  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     demand_re =  try
@@ -114,6 +116,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   end
   # Start simulation here:
   for i = sim_start:T+1
+    total_entrants = [0.0]'
     if i%50 == 0
         println(i)
     end
@@ -282,33 +285,6 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
           end
         end
-        # Here is the place to do demand - map the results above out to the demand model
-        #=
-        - Write the fids out to an array
-        - Statehistory row has been computed now - can use that. Current market state given by statehistory[i,:]
-        - Rows should be changed by rowchange(staterow::Array{Float64,2}, choicerow::DataFrame) for every row in peoplesub
-        - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
-        - Obtain demand and map it into state_history
-        =#
-        for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
-          peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:]) # probably needs to be peoplesub[p,: ] = rowchange() etc
-        end
-        realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
-        for fid_i in 1:fields:size(state_history[i,:])[2]-4
-          fid = state_history[i,fid_i]
-          demand_re =  try
-            realized_d[fid]
-          catch y
-            if isa(y, KeyError)
-              demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
-            else
-              demand_re = realized_d[fid]
-            end
-          end
-          state_history[i,fid_i+5] = demand_re
-        end
-
-
         # Count facilities by distance and map results to neighboring hospitals
         # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
         for f in fids
@@ -396,6 +372,8 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
           newrow[:firstyear] = year
           newrow[:v15] = ent_lat
           newrow[:v16] = ent_lon
+          # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
+          entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[:TotalBeds1].>0 ,:TotalBeds1]), unique(peoplesub[ peoplesub[:TotalBeds2].>0 ,:TotalBeds2])) ))) )
           if newentrant == 1
             level1 += 1
             newrow[:act_int] = 0
@@ -408,6 +386,13 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             level3 += 1
             newrow[:act_int] = 0
             newrow[:act_solo] = 1
+          end
+          # Define the data needed for an entrant to compute the demand model for the individuals.  6 components.
+          entrant_data = [newrow[:fid].data newrow[:act_int].data newrow[:act_solo].data entrantbeds ent_lat ent_lon]
+          if maximum(size(total_entrants))<=1
+            total_entrants = entrant_data
+          else
+            total_entrants = [total_entrants entrant_data]
           end
           # Handle appending these entrants to the (neighbor, distance) section
           # need to check all of the other fids in the market-year (in b)
@@ -502,6 +487,32 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
         tprob = tprob*entryprobs[4]
       end
     end
+    # Here is the place to do demand - map the results above out to the demand model
+    #=
+    - Write the fids out to an array
+    - Statehistory row has been computed now - can use that. Current market state given by statehistory[i,:]
+    - Rows should be changed by rowchange(staterow::Array{Float64,2}, choicerow::DataFrame) for every row in peoplesub
+    - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
+    - Obtain demand and map it into state_history
+    =#
+    for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+      peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
+    end
+    realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
+    for fid_i in 1:fields:size(state_history[i,:])[2]-4
+      fid = state_history[i,fid_i]
+      demand_re =  try
+        realized_d[fid]
+      catch y
+        if isa(y, KeyError)
+          demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+        else
+          demand_re = realized_d[fid]
+        end
+      end
+      state_history[i,fid_i+5] = demand_re
+    end
+
   #  println("computing aggregate transition probability")
     state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
 
