@@ -35,9 +35,9 @@ include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
 
 
 # Import Data
-dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-notmissing = findin(isna(dataf[:fipscode]), false);
-dataf = dataf[notmissing, :];
+data1 = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
+notmissing = findin(isna(data1[:fipscode]), false);
+dataf = data1[notmissing, :];
 
 regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
@@ -161,7 +161,10 @@ for y in 1:size(yearins)[1]
 			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
 			# Find the subset of people with those fids::
 			# DO NOT CHANGE THIS NAME! DemandModel function will be screwed up!
-			peoplesub = fidfinder(fids, people, "people") # DO NOT CHANGE NAME
+			peoples = fidfinder(fids, people, "people") # DO NOT CHANGE NAME
+      # The values are going to get mangled, so need to copy them.
+      peoplesub = copy(peoples)
+      dataf = copy(data1)
 
 			# Equilibrium Play -
 			state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
@@ -176,8 +179,6 @@ for y in 1:size(yearins)[1]
 			p_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 				#Arguments: PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
 
-        # START HERE 05 12 - Does perturbed simulator have all the features of simulator?
-
       perturbed_history = PerturbSimulator(dataf, year, mkt_fips, p_history, pfid, disturb = 0.01, T = 100, sim_start = 2)
 
 			# Here apply DynamicValue to the result of the simulations
@@ -190,16 +191,7 @@ for y in 1:size(yearins)[1]
 			# Now I need a container to store all of those outcomes.  Then I need to feed that to a maximizer.
 
       # At the end of each sim, must reload both dataf and people, since the contents have been changed.
-      people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
-      for i in names(people)
-        if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
-          people[isna(people[i]), i] = 0
-        end
-      end
-      # Reload Dataframe.
-      dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-      notmissing = findin(isna(dataf[:fipscode]), false);
-      dataf = dataf[notmissing, :];
+
 
 
 		end

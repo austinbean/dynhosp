@@ -128,6 +128,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
       return "Bad firm state"
     end
   end
+  outp = [ outp[1,1:end] outp[2,1:end] outp[3,1:end]]
 return outp2, outp
 end
 
