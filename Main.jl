@@ -170,7 +170,8 @@ for y in 1:size(yearins)[1]
       dataf = deepcopy(data1)
 
 				#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
-			states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, T = 100, sim_start = 2)
+        print("Equilibrium Simulation, ", mkt_fips, " ", year, " ")
+      states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, T = 100, sim_start = 2)
 
 			# Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
@@ -179,7 +180,7 @@ for y in 1:size(yearins)[1]
 			for f in 1:size(fids)[1]
         pfid = fids[f]
   			#Arguments: function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
-
+        print("Non - Equilibrium Simulation, ", mkt_fips, " ", year, " ")
         perturbed_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, pfid, disturb = 0.01, T = 100, sim_start = 2)
 
   			# Here apply DynamicValue to the result of the simulations
@@ -190,6 +191,8 @@ for y in 1:size(yearins)[1]
   			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
         i = y*(year-1989)
         container[i,:] = [pfid_f year eq_val eq_change neq_val neq_change]
+        # Abandon Entrants again.
+        dataf = dataf[dataf[:id].>= 0, :]
       end
 		end
 end

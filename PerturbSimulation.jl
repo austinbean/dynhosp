@@ -404,7 +404,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
               count = 0 # only want to make an entry once - this is a dumb way
               for c in neighbors_start:(2):size(dataf)[2]
                 if (isna(row[c]))&(count == 0)
-                  println("doing something")
+      #            println("doing something")
                   # to make changes I need to search for the row in the original DF matching these characteristics.
                   dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c ]= newrow[:fid]
                   dataf[(dataf[:fid].==row[:fid])&(dataf[:id].==row[:id])&(dataf[:fipscode].==row[:fipscode]), c+1]= distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16])
@@ -423,7 +423,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             if  td < 25
               newrow[neighbors_start+2*(elem-1)] = neighb # fid
               newrow[neighbors_start+2*(elem-1)+1] = td
-              println("Success")
+    #          println("Success")
               if (td > 0) & (td < 5)
                 if (newrow[:act_solo][1], newrow[:act_int][1]) == (0,0)
                   newrow[:lev105] += 1
