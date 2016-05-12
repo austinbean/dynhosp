@@ -120,6 +120,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
   end
   # Start simulation here:
   for i = sim_start:T+1
+    total_entrants = [0.0]'
     if i%50 == 0
         println(i)
     end

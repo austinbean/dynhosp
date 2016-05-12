@@ -232,6 +232,12 @@ function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Ar
       mindist = minimum([dist1 dist2 dist3 dist4 dist5 dist6 dist7 dist8 dist9 dist10 dist11])
       chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11])
       entfids = [entrants[x] for x in 1:ent_length:maximum(size(entrants))]
+      #=
+      Future Fix: 
+      Right now not correcting for the fact that the entrant might be the closest.
+      Idea: indmin([distances]) - closest guy.  If [val1 val2 ... val11][indmin] == cval, then
+      closest one is the maximizer.  Then cval = cval - closest_c.  Now do comparison.
+      =#
       for k = 1:size(entfids)[1]
         efid = entfids[k]
         eind = findfirst(entrants, efid)
