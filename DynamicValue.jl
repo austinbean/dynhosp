@@ -25,6 +25,8 @@ Second output type - record facility changes:
   than the 1 to 2 transition, which is surely negative.
 =#
 
+#### FUTURE FIX - not taking into account the fact that some percentage of demand will go to higher levels !  That's the whole point.
+
 function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
   len, width = size(state_history)
   index = findfirst(state_history[1,:], fac_fid) # where is the perturbed facility
@@ -56,7 +58,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
     outp[1, levelcount+1] += (β^0)*history[1, 6]*history[1,end]
   elseif (history[1,2], history[1,3]) == (-999,-999)
     # This is a firm which exits as a first action
-    println( "Firm is exiting in first period - ?")
+    # println( "Firm is exiting in first period - ?") # need to think about what to do about this possibility.
   elseif (history[1,2], history[1,3]) == (999,999)
     # do nothing with this firm - it enters later.
   end

@@ -154,46 +154,43 @@ To work on::
 
 =#
 
+container = zeros(5000, 182)
 
 for y in 1:size(yearins)[1]
 	mkt_fips = yearins[y][1]
+  print("Market FIPS Code ", mkt_fips)
 		for year in yearins[y][4:end]
-			fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+      print("Year ", year)
+			fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))) # returns a dataframe unless converted
 			# Find the subset of people with those fids::
 			# DO NOT CHANGE THIS NAME! DemandModel function will be screwed up!
-			peoples = fidfinder(fids, people, "people") # DO NOT CHANGE NAME
+			peoples = people[fidfinder(fids, people, "people"),:] # DO NOT CHANGE NAME
       # The values are going to get mangled, so need to copy them.
-      peoplesub = copy(peoples)
-      dataf = copy(data1)
+      peoplesub = deepcopy(peoples)
+      dataf = deepcopy(data1)
 
-			# Equilibrium Play -
-			state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 				#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
-			states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, state_history, modelparameters, T = 100, sim_start = 2)
+			states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, T = 100, sim_start = 2)
 
 			# Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
 			dataf = dataf[dataf[:id].>= 0, :]
 
-			pfid = fids[1]
-			p_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
-				#Arguments: PerturbSimulator(dataf::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
+			for f in 1:size(fids)[1]
+        pfid = fids[f]
+  			#Arguments: function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
 
-      perturbed_history = PerturbSimulator(dataf, year, mkt_fips, p_history, pfid, disturb = 0.01, T = 100, sim_start = 2)
+        perturbed_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, pfid, disturb = 0.01, T = 100, sim_start = 2)
 
-			# Here apply DynamicValue to the result of the simulations
-			# DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
-			# output is in format: facility changes record, per-period visits record.
-			pfid_f = convert(Float64, pfid)
-			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
-			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
-
-			# Now I need a container to store all of those outcomes.  Then I need to feed that to a maximizer.
-
-      # At the end of each sim, must reload both dataf and people, since the contents have been changed.
-
-
-
+  			# Here apply DynamicValue to the result of the simulations
+  			# DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+  			# output is in format: facility changes record, per-period visits record.
+  			pfid_f = convert(Float64, pfid)
+  			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+  			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+        i = y*(year-1989)
+        container[i,:] = [pfid_f year eq_val eq_change neq_val neq_change]
+      end
 		end
 end
 
@@ -202,32 +199,6 @@ end
 # Lev 1: (0,0)
 # Lev 2: (1,0)
 # Lev 3: (0,1)
-
-function pairdiff(x::Tuple, y::Tuple)
-	return x[1] - y[1], x[2] - y[2]
-end
-
-
-
-demand = [ 100, 150, 200]
-previous_own = state_history[1,1]
-previous_agg = state_history[1,2:4]
-
-for row in 2:size(state_history)[1]
-	discount = β^row
-	println(state_history[row,:])
-	# Record changes in the aggregate state and the own state
- 	current_own = state_history[row, 1]
-	current_agg = state_history[row, 2:4]
-	change_own = pairdiff(current, previous)
-	change_agg = current_agg - previous_agg # do I care?
-	# Record visits to possible aggregate states
-
-	previous = state_history[row, 1] # records the current state as "previous for the next round"
-end
-
-
-
 
 
 

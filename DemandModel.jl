@@ -29,6 +29,29 @@ function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame, frname::ASCIISt
     return subset
 end
 
+# Duplicates the above but takes fidvect::Array{Int64, 1} if necessary.
+
+function fidfinder(fidvect::Array{Int64, 1}, choices::DataFrame, frname::ASCIIString; maxfid = 11)
+    #=
+      This function generates a vector of Booleans which index the rows in the
+      dataframe in which the individual has some hospital with fid in fidvect
+      as an option.  It starts with all falses and iteratively takes subset | (result)
+      which will be true when the result expression is true.  It operates on a whole DataFrame
+      The function takes as one argument the name of the frame "choices" (frname) as a string.
+    =#
+    subset = falses(size(choices)[1])
+      for k in 1:size(fidvect)[1]
+        targ = fidvect[k]
+        for j = 1:maxfid
+           subex = parse(frname*"[:fid$j].==$targ")
+           true_v = eval(subex)
+      #     print( size(true_v), "   ") # for testing purposes
+           subset = subset | true_v
+        end
+      end
+    return subset
+end
+
 # The next function will find values in the one-row dataframe element given a list of symbols
 
 
@@ -233,7 +256,7 @@ function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Ar
       chosen = indmax([val1 val2 val3 val4 val5 val6 val7 val8 val9 val10 val11])
       entfids = [entrants[x] for x in 1:ent_length:maximum(size(entrants))]
       #=
-      Future Fix: 
+      Future Fix:
       Right now not correcting for the fact that the entrant might be the closest.
       Idea: indmin([distances]) - closest guy.  If [val1 val2 ... val11][indmin] == cval, then
       closest one is the maximizer.  Then cval = cval - closest_c.  Now do comparison.
