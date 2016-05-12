@@ -77,7 +77,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
     println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
     return "Dims of state_history incorrect"
   end
-  # Writes the values to the first row of the state history 
+  # Writes the values to the first row of the state history
   for n in 1:size(fids)[1]
     el = fids[n]
     a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
@@ -96,7 +96,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
   # Compute initial demand here:
   for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
-    rowchange(state_history[1,:], peoplesub[p,:])
+    peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
   end
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   emp_arr = [0.0]'
@@ -133,16 +133,6 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
-            # all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
-            # Reassign action choices -
-          #=  dataf[a, :choicenum0] = 10
-            dataf[a, :pr_ch_0] = probs1[1]
-            dataf[a, :choicenum1] = 2
-            dataf[a, :pr_ch_1] = probs1[2]
-            dataf[a, :choicenum2] = 1
-            dataf[a, :pr_ch_2] = probs1[3]
-            dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs1[4] =#
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
@@ -170,7 +160,6 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
             end
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
-            # This is the logical place to recompute the demand.
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el # Change
             state_history[i, (fid-1)*fields + 2] = dataf[a,:act_solo][1]
@@ -186,14 +175,6 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
-          #=  dataf[a, :choicenum0] = 5
-            dataf[a, :pr_ch_0] = probs2[1]
-            dataf[a, :choicenum1] = 10
-            dataf[a, :pr_ch_1] = probs2[2]
-            dataf[a, :choicenum2] = 6
-            dataf[a, :pr_ch_2] = probs2[3]
-            dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs2[4] =#
             # Action:
             action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
             if action2 == 5
@@ -232,14 +213,6 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
-          #=  dataf[a, :choicenum0] = 4
-            dataf[a, :pr_ch_0] = probs3[1]
-            dataf[a, :choicenum1] = 3
-            dataf[a, :pr_ch_1] = probs3[2]
-            dataf[a, :choicenum2] = 10
-            dataf[a, :pr_ch_2] = probs3[3]
-            dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs3[4] =#
             # Action:
             action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
             if action3 == 3
@@ -463,7 +436,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
           # append value to fids
           push!(fids, newrow[:fid][1])
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
-          println("reshaping state history")
+      #    println("reshaping state history")
           # The problem is the size computation right here - figure it out.
           state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
         end

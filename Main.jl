@@ -1,5 +1,20 @@
 # Main
 
+#=
+Version Information:
+Julia Version 0.4.3
+Commit a2f713d (2016-01-12 21:37 UTC)
+Platform Info:
+  System: Darwin (x86_64-apple-darwin13.4.0)
+  CPU: Intel(R) Core(TM) i7-5557U CPU @ 3.10GHz
+  WORD_SIZE: 64
+  BLAS: libopenblas (USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell)
+  LAPACK: libopenblas64_
+  LIBM: libopenlibm
+  LLVM: libLLVM-3.3
+
+=#
+
 # Packages
 using DataFrames
 using DataArrays

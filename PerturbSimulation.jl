@@ -55,14 +55,11 @@ distbed_c = modcoeffs[6, 2]
 demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
 state_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters, pfid, disturb = 0.05, T = 100, sim_start = 2)
-
-
 # Find the right people:
 peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 dataf = dataf[dataf[:id].>= 0, :]
-
 =#
 
 function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
@@ -104,9 +101,10 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
   for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
-    rowchange(state_history[1,:], peoplesub[p,:])
+    peoplesub[p,:] = rowchange(state_history[1,:], peoplesub[p,:])
   end
-  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
+  emp_arr = [0.0]'
+  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     demand_re =  try
@@ -141,17 +139,6 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             if el == pfid
               probs1 = perturb(probs1, disturb, false) #perturb(probs::Array, eps::Float64, control::Bool)
             end
-
-            # all_hosp_probs[fid] = hcat(el, year_frame[a, :act_int], year_frame[a,:act_solo], 10, probs[1], 2, probs[2], 1, probs[3], 11, probs[4])
-            # Reassign action choices -
-        #=    dataf[a, :choicenum0] = 10
-            dataf[a, :pr_ch_0] = probs1[1]
-            dataf[a, :choicenum1] = 2
-            dataf[a, :pr_ch_1] = probs1[2]
-            dataf[a, :choicenum2] = 1
-            dataf[a, :pr_ch_2] = probs1[3]
-            dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs1[4] =#
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
@@ -179,7 +166,6 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             end
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
-            # This is the logical place to recompute the demand.
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el # Change
             state_history[i, (fid-1)*fields + 2] = dataf[a,:act_solo][1]
@@ -202,14 +188,6 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             if el == pfid
               probs2 = perturb(probs2, disturb, false) #perturb(probs::Array, eps::Float64, control::Bool)
             end
-          #=  dataf[a, :choicenum0] = 5
-            dataf[a, :pr_ch_0] = probs2[1]
-            dataf[a, :choicenum1] = 10
-            dataf[a, :pr_ch_1] = probs2[2]
-            dataf[a, :choicenum2] = 6
-            dataf[a, :pr_ch_2] = probs2[3]
-            dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs2[4] =#
             # Action:
             action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
             if action2 == 5
@@ -255,14 +233,6 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             if el == pfid
               probs3 = perturb(probs3, disturb, false) #perturb(probs::Array, eps::Float64, control::Bool)
             end
-      #=      dataf[a, :choicenum0] = 4
-            dataf[a, :pr_ch_0] = probs3[1]
-            dataf[a, :choicenum1] = 3
-            dataf[a, :pr_ch_1] = probs3[2]
-            dataf[a, :choicenum2] = 10
-            dataf[a, :pr_ch_2] = probs3[3]
-            dataf[a, :choicenum3] = 11
-            dataf[a, :pr_ch_3] = probs3[4] =#
             # Action:
             action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
             if action3 == 3
@@ -315,31 +285,6 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             # Set own distance counts to 0 for all categories
             (dataf[a,:lev105], dataf[a,:lev205], dataf[a,:lev305], dataf[a,:lev1515], dataf[a,:lev2515], dataf[a,:lev3515], dataf[a,:lev11525], dataf[a,:lev21525], dataf[a,:lev31525]) = zeros(1,9)
           end
-        end
-        # Here is the place to do demand - map the results above out to the demand model
-        #=
-        - Write the fids out to an array
-        - Statehistory row has been computed now - can use that. Current market state given by statehistory[i,:]
-        - Rows should be changed by rowchange(staterow::Array{Float64,2}, choicerow::DataFrame) for every row in peoplesub
-        - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
-        - Obtain demand and map it into state_history
-        =#
-        for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
-          rowchange(state_history[i,:], peoplesub[p,:])
-        end
-        realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters)) # maps chosen hospitals to counts.
-        for fid_i in 1:fields:size(state_history[i,:])[2]-4
-          fid = state_history[i,fid_i]
-          demand_re =  try
-            realized_d[fid]
-          catch y
-            if isa(y, KeyError)
-              demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
-            else
-              demand_re = realized_d[fid]
-            end
-          end
-          state_history[i,fid_i+5] = demand_re
         end
         # Count facilities by distance and map results to neighboring hospitals
         # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
@@ -428,6 +373,8 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
           newrow[:firstyear] = year
           newrow[:v15] = ent_lat
           newrow[:v16] = ent_lon
+          # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
+          entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[:TotalBeds1].>0 ,:TotalBeds1]), unique(peoplesub[ peoplesub[:TotalBeds2].>0 ,:TotalBeds2])) ))) )
           if newentrant == 1
             level1 += 1
             newrow[:act_int] = 0
@@ -441,9 +388,16 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             newrow[:act_int] = 0
             newrow[:act_solo] = 1
           end
+          # Define the data needed for an entrant to compute the demand model for the individuals.  6 components.
+          entrant_data = [newrow[:fid].data newrow[:act_int].data newrow[:act_solo].data entrantbeds ent_lat ent_lon]
+          if maximum(size(total_entrants))<=1
+            total_entrants = entrant_data
+          else
+            total_entrants = [total_entrants entrant_data]
+          end
           # Handle appending these entrants to the (neighbor, distance) section
           # need to check all of the other fids in the market-year (in b)
-          println("Distances to new entrants")
+        #  println("Distances to new entrants")
           for row in eachrow(dataf[b,:])
             if  (distance(ent_lat[1], ent_lon[1], row[:v15], row[:v16]) < 25)
               count = 0 # only want to make an entry once - this is a dumb way
@@ -459,7 +413,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
             end
           end
           # Append the neighbors to the new entrant's frame too
-          println("appending neighbors to new entrant's frame row")
+        #  println("appending neighbors to new entrant's frame row")
           for elem in 1:size(fids)[1]
             neighb = fids[elem]
             neighb_lat = dataf[(dataf[:fid].==neighb)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :v15][1]
@@ -504,13 +458,13 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
               end
             end
           end
-          println("appending entry")
+      #    println("appending entry")
           # Add the new record to the dataframe.
           append!(dataf, newrow)
           # append value to fids
           push!(fids, newrow[:fid][1])
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
-          println("reshaping state history")
+    #      println("reshaping state history")
           # The problem is the size computation right here - figure it out.
           state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
         end
@@ -534,6 +488,32 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
         tprob = tprob*entryprobs[4]
       end
     end
+    # Here is the place to do demand - map the results above out to the demand model
+    #=
+    - Write the fids out to an array
+    - Statehistory row has been computed now - can use that. Current market state given by statehistory[i,:]
+    - Rows should be changed by rowchange(staterow::Array{Float64,2}, choicerow::DataFrame) for every row in peoplesub
+    - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
+    - Obtain demand and map it into state_history
+    =#
+    for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+      rowchange(state_history[i,:], peoplesub[p,:])
+    end
+    realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
+    for fid_i in 1:fields:size(state_history[i,:])[2]-4
+      fid = state_history[i,fid_i]
+      demand_re =  try
+        realized_d[fid]
+      catch y
+        if isa(y, KeyError)
+          demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+        else
+          demand_re = realized_d[fid]
+        end
+      end
+      state_history[i,fid_i+5] = demand_re
+    end
+
   #  println("computing aggregate transition probability")
     state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
 
@@ -543,7 +523,19 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
     state_history[i, (size(fids)[1])*fields+3] = level3 ;
 
   end
-  index = findfirst(state_history[1,:], pfid)
+  index = findfirst(state_history[1,:], pfid) # only return the state history of the perturbed guy.
   subset = hcat(state_history[:, index:index+6], state_history[:, end-3:end])
   return subset # state_history # change order of subset and state_history to return the whole perturbed state.
 end
+
+
+
+
+
+
+
+
+
+
+
+###
