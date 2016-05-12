@@ -144,15 +144,7 @@ sim_start = 2;
 neighbors_start = 108;
 fields = 7;
 
-#=
-To work on::
 
-
-- Must turn these vectors into valuations.
-
-- Demand system.
-
-=#
 
 container = zeros(5000, 182)
 
@@ -179,6 +171,7 @@ for y in 1:size(yearins)[1]
 
 			for f in 1:size(fids)[1]
         pfid = fids[f]
+        print("Perturbing Fid: ", pfid)
   			#Arguments: function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
         print("Non - Equilibrium Simulation, ", mkt_fips, " ", year, " ")
         perturbed_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, pfid, disturb = 0.01, T = 100, sim_start = 2)
@@ -189,11 +182,12 @@ for y in 1:size(yearins)[1]
   			pfid_f = convert(Float64, pfid)
   			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
   			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
-        i = y*(year-1989)
+        i = findfirst(container[:,1], 0)
         container[i,:] = [pfid_f year eq_val eq_change neq_val neq_change]
         # Abandon Entrants again.
-        dataf = dataf[dataf[:id].>= 0, :]
+        dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :] #I don't know why some appear with NA fipscodes - figure out.
       end
+      dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
 		end
 end
 
