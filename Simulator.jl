@@ -77,7 +77,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
     println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
     return "Dims of state_history incorrect"
   end
-  # Need to compute the initial demand here...
+  # Writes the values to the first row of the state history 
   for n in 1:size(fids)[1]
     el = fids[n]
     a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))

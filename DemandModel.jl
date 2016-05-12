@@ -55,7 +55,7 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
 end
 
 
-function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_state = 4, fields_state = 7, fields_people = 15, endfields_people = 7)
+function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
   #=
      This function should take a row of the state history (staterow), and a row of
      the choices (choicerow) and:
@@ -75,7 +75,7 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
     mktnumfids = unique(((size(staterow)[2])-endfields_state)/fields_state ) # number of facilities
     mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
     # Collects the fids which are in the choice set
-    peoplefids =  unique([choicerow[x][1] for x in 2:fields_people:size(choicerow)[2]-endfields_people ]) # collects all fids in the person's choice set
+    peoplefids =  unique([choicerow[x][1] for x in 2:fields_people:size(choicerow)[2]-(endfields_people) ]) # collects all fids in the person's choice set
     peoplenumfids = unique(sum(peoplefids.>0)) # Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
 
     # Takes the values of market fids which are in the choice row (only these must be changed)
@@ -102,7 +102,7 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
           else
             print(el, " not found in row ")
           end
-        elseif staterow[findfirst(staterow, el)+1] == -999
+        elseif (staterow[findfirst(staterow, el)+1] == -999) | (staterow[findfirst(staterow, el)+2] == -999)
           el = convert(Int64, el)
           (loc, symb) = rowfindfid(choicerow, el) #finds the fid in the row, or returns 0 if absent
           if loc != 0
@@ -111,7 +111,7 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
         end
       end
     end
-    return choicerow
+  return choicerow
 end
 
 
