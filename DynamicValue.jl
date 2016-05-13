@@ -27,7 +27,7 @@ Second output type - record facility changes:
 
 #### FUTURE FIX - not taking into account the fact that some percentage of demand will go to higher levels !  That's the whole point.
 
-function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
+function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
   len, width = size(state_history)
   index = findfirst(state_history[1,:], fac_fid) # where is the perturbed facility
   fac_section = state_history[:, index:index+6] # take the section from the actual history corresponding
@@ -47,15 +47,19 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
 
 # Write out values for first row separately.
 
-  if (history[1,2], history[1,3]) == (0,0)
-    levelcount = convert(Int64, sum(history[1, end-3:end-1]))
+  if (history[1,2], history[1,3]) == (0,0) # hosp starts at level 1
+    levelcount = convert(Int64, sum(history[1, end-3:end-1])) # counts the number of hospitals total
     outp[1,levelcount+1] += (β^0)*history[1, 6]*history[1,end]
   elseif (history[1,2], history[1,3]) == (1,0)
-    levelcount = convert(Int64, history[1,end-2])
-    outp[1, levelcount+1] += (β^0)*history[1, 6]*history[1,end]
+    levelcount = convert(Int64, sum(history[1, end-3:end-1])) # count of all facilities
+    levelcount2 = convert(Int64, history[1,end-2]) # count of level 2 facilities
+    outp[1, levelcount+1] += (β^0)*history[1, 6]*history[1,end] # regular births
+    outp[2, levelcount2+1] += (α₂)*(β^0)*history[1, 6]*history[1,end] # expected fraction to NICU 2
   elseif (history[1,2], history[1,3]) == (0,1)
-    levelcount = convert(Int64, history[1,end-1])
+    levelcount = convert(Int64, sum(history[1, end-3:end-1]))
+    levelcount3 = convert(Int64, history[1,end-1]) # count of level 3's
     outp[1, levelcount+1] += (β^0)*history[1, 6]*history[1,end]
+    outp[3, levelcount3+1] += (α₃)*(β^0)*history[1, 6]*history[1,end] # expected fraction to NICU 3
   elseif (history[1,2], history[1,3]) == (-999,-999)
     # This is a firm which exits as a first action
     # println( "Firm is exiting in first period - ?") # need to think about what to do about this possibility.
@@ -65,7 +69,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
 
   for row in 2:(T+1)
     if (history[row,2], history[row,3]) == (0,0)
-      levelcount = convert(Int64, sum(history[row, end-3:end-1]))
+      levelcount = convert(Int64, sum(history[row, end-3:end-1])) # revenue depends on total hospitals
       outp[1, levelcount+1] += (β^row)*history[row, 6]*history[row,end] # this is discount^t * demand * probability (aggregate)
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # do nothing
@@ -81,7 +85,9 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
       end
     elseif (history[row,2], history[row,3]) == (1,0)
       levelcount = convert(Int64, history[row, end-2])
+      levelcount2 = convert(Int64, history[row,end-2]) # number of level 2's
       outp[2, levelcount+1] += (β^row)*history[row, 6]*history[row,end]
+      outp[2, levelcount2+1] += (α₂)*(β^row)*history[row, 6]*history[row,end] # expected rev from lev 2 admissions
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # Upgraded 1 to 2
         outp2[1,1] += 1*β^(row-1)
@@ -96,7 +102,9 @@ function DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β 
       end
     elseif (history[row,2], history[row,3]) == (0,1)
       levelcount = convert(Int, history[row, end-1])
+      levelcount3 = convert(Int64, history[row,end-1])
       outp[3, levelcount+1] += (β^row)*history[row, 6]*history[row,end]
+      outp[3, levelcount3+1] += (α₃)*(β^row)*history[row, 6]*history[row,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # upgraded 1 to 3
         outp2[1,2] += 1*β^(row-1)

@@ -103,17 +103,6 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 γ = eulergamma;
 
 
-
-#=
-
-• Choose the action based on those probs
-• Perturb policies as already imagined: change by ϵ the probs of actions.
-• NB: 48029 is Bexar County
-
- Problem: hospitals may be closer than 25 miles but in different counties - they
-will show up as being in different markets.
-=#
-
 # Action codes:
 #=
 1 "To 3 from 1"
@@ -145,9 +134,9 @@ sim_start = 2;
 neighbors_start = 108;
 fields = 7;
 
+# I should have 356 FIDs x 22 years of hospitals.
 
-
-container = zeros(5000, 182)
+container = zeros(356*22, 182)
 
 for y in 1:size(yearins)[1]
 	mkt_fips = yearins[y][1]
@@ -168,7 +157,7 @@ for y in 1:size(yearins)[1]
 
 			# Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
-			dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
+			dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :];
 
 		for f in 1:size(fids)[1]
         #f = 1
