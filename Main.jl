@@ -141,7 +141,7 @@ container = zeros(356*22, 182)
 for y in 1:size(yearins)[1]
 	mkt_fips = yearins[y][1]
   print("Market FIPS Code ", mkt_fips, "\n")
-		for year in yearins[y][4:end]
+		for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
       dataf = deepcopy(data1)
 			fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))) # returns a dataframe unless converted
 			# Find the subset of people with those fids::
@@ -175,14 +175,14 @@ for y in 1:size(yearins)[1]
         i = findfirst(container[:,1], 0)
         container[i,:] = [pfid_f year eq_val eq_change neq_val neq_change]
         # Abandon Entrants again.
-        print("*******************\n")
-        print("NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
-        print("ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
-        print("----------------------------------\n")
-        dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :] #I don't know why some appear with NA fipscodes - figure out.
-        print("UPDATE: NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
-        print("UPDATE: ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
-        print("*******************\n")
+        # print("*******************\n")
+        # print("NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
+        # print("ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
+        # print("----------------------------------\n")
+        dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :] 
+        # print("UPDATE: NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
+        # print("UPDATE: ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
+        # print("*******************\n")
       end
       dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
 		end
