@@ -111,7 +111,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
       realized_d[fid]
     catch y
       if isa(y, KeyError)
-        demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+        demand_re = 0 # write the demand out as -1 to keep track of failure to find val.
       else
         demand_re = realized_d[fid]
       end
@@ -507,7 +507,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
         realized_d[fid]
       catch y
         if isa(y, KeyError)
-          demand_re = -1 # write the demand out as -1 to keep track of failure to find val.
+          demand_re = 0 # write the demand out as -1 to keep track of failure to find val.
         else
           demand_re = realized_d[fid]
         end
