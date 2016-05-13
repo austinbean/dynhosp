@@ -62,7 +62,7 @@ peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
 dataf = dataf[dataf[:id].>= 0, :]
 =#
 
-function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
+function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64, entryprobs::Array{Float64,1}; disturb = 0.05, T = 100, sim_start = 2)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -121,9 +121,9 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
   # Start simulation here:
   for i = sim_start:T+1
     total_entrants = [0.0]'
-    if i%50 == 0
-        println(i)
-    end
+    # if i%50 == 0
+    #     println(i)
+    # end
     fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # needs to be updated each round to catch entrants
         for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # the dataframe is mutable.

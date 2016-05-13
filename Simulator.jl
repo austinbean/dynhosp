@@ -8,7 +8,7 @@ include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
 
 
 neighbors_start = 108;
-entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+#entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 entrants = [0, 1, 2, 3]
 fields = 7; # if fields updated, update reshaping of state history
 T = 100;
@@ -62,7 +62,7 @@ Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 
 =#
 
-function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7)
+function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -117,9 +117,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   # Start simulation here:
   for i = sim_start:T+1
     total_entrants = [0.0]'
-    if i%50 == 0
-        println(i)
-    end
+    # if i%50 == 0
+    #     println(i)
+    # end
     fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # needs to be updated each round to catch entrants
         for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # the dataframe is mutable.

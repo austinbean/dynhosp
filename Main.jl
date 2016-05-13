@@ -37,7 +37,7 @@ include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
 # Import Data
 data1 = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
 notmissing = findin(isna(data1[:fipscode]), false);
-dataf = data1[notmissing, :];
+data1 = data1[notmissing, :];
 
 regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
 
@@ -82,11 +82,11 @@ end
 ### Collect Basic Information ###
 
 # locates starting and ending points of all separate fipscode indices
-allindices = [ (x, findfirst(dataf[:fipscode], x), findlast(dataf[:fipscode], x)) for x in unique(dataf[:fipscode]) ];
+allindices = [ (x, findfirst(data1[:fipscode], x), findlast(data1[:fipscode], x)) for x in unique(data1[:fipscode]) ];
 # Next one also works in case I decide an array of arrays is better than an array of tuples
 #indices = [ [x, findfirst(df[:fipscode], x), findlast(df[:fipscode], x)] for x in unique(df[:fipscode]) ]
 # Next one stores all the years appearing in each fips code
-yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
+yearins = [ [x; findfirst(data1[:fipscode], x); findlast(data1[:fipscode], x ); unique( data1[findfirst(data1[:fipscode], x):findlast(data1[:fipscode], x ) , :year]  ) ] for x in unique(data1[:fipscode])  ]
 
 
 
@@ -138,7 +138,8 @@ choices = 4;
 α₂ = 0.07;  # Fraction of patients admitted to NICU lev 2 on average (PA Data)
 α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
 # Actual entry probabilities will be substituted in later.
-entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+#entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+entryprobs = [1.0, 0.0, 0.0, 0.0] # back-up entry probs with no entry for faster work.
 entrants = [0, 1, 2, 3]
 sim_start = 2;
 neighbors_start = 108;
@@ -150,31 +151,31 @@ container = zeros(5000, 182)
 
 for y in 1:size(yearins)[1]
 	mkt_fips = yearins[y][1]
-  print("Market FIPS Code ", mkt_fips)
+  print("Market FIPS Code ", mkt_fips, "\n")
 		for year in yearins[y][4:end]
-      print("Year ", year)
+      dataf = deepcopy(data1)
 			fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))) # returns a dataframe unless converted
 			# Find the subset of people with those fids::
 			# DO NOT CHANGE THIS NAME! DemandModel function will be screwed up!
 			peoples = people[fidfinder(fids, people, "people"),:] # DO NOT CHANGE NAME
       # The values are going to get mangled, so need to copy them.
       peoplesub = deepcopy(peoples)
-      dataf = deepcopy(data1)
+
 
 				#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
-        print("Equilibrium Simulation, ", mkt_fips, " ", year, " ")
-      states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, T = 100, sim_start = 2)
+        print("Equilibrium Simulation, ", mkt_fips, " ", year, " ", "\n")
+      states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, entryprobs, T = 100, sim_start = 2)
 
 			# Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
-			dataf = dataf[dataf[:id].>= 0, :]
+			dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
 
-			for f in 1:size(fids)[1]
+		for f in 1:size(fids)[1]
+        #f = 1
         pfid = fids[f]
-        print("Perturbing Fid: ", pfid)
+        print("Perturbing Fid: ", pfid, "\n")
   			#Arguments: function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
-        print("Non - Equilibrium Simulation, ", mkt_fips, " ", year, " ")
-        perturbed_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, pfid, disturb = 0.01, T = 100, sim_start = 2)
+        perturbed_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, pfid, entryprobs, disturb = 0.01, T = 100, sim_start = 2)
 
   			# Here apply DynamicValue to the result of the simulations
   			# DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
@@ -185,7 +186,14 @@ for y in 1:size(yearins)[1]
         i = findfirst(container[:,1], 0)
         container[i,:] = [pfid_f year eq_val eq_change neq_val neq_change]
         # Abandon Entrants again.
+        print("*******************\n")
+        print("NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
+        print("ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
+        print("----------------------------------\n")
         dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :] #I don't know why some appear with NA fipscodes - figure out.
+        print("UPDATE: NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
+        print("UPDATE: ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
+        print("*******************\n")
       end
       dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
 		end
