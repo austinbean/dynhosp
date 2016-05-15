@@ -227,8 +227,10 @@ for y in 1:size(duopoly)[1]    #size(yearins)[1]
         fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
         numfids = size(fids)[1]
         peoples = people[fidfinder(fids, people, "people"),:];
+        global peoplesub
         peoplesub = deepcopy(peoples);
         print("exists?: ", size(peoplesub), "\n")
+        # This function won't see "peoplesub" due to scope rules.
         container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, "peoplesub", mkt_fips, year, demandmodelparameters, entryprobs, fids)
     end
 end
