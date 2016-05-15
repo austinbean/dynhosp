@@ -237,12 +237,40 @@ end
 
 fout1 = convert(DataFrame, container);
 
+# Add column names::
+
+colnames = Array{Symbol}(:0)
+push!(colnames, :fipscode)
+push!(colnames, :fid)
+push!(colnames, :year)
+for elem in ["EQ", "NEQ"]
+  for j = 1:3
+    for k = 0:25
+      push!(colnames, parse("$elem"*"Lev$j"*"Comp$k"))
+    end
+  end
+  for x in [1 2 3]
+    for y in [1 2 3 "EX"]
+      if x != y
+        push!(colnames, parse("$elem"*"Trans$x$y"))
+      end
+    end
+  end
+  push!(colnames, parse("$elem"*"Enter1"))
+  push!(colnames, parse("$elem"*"Enter2"))
+  push!(colnames, parse("$elem"*"Enter3"))
+end
+
+names!(fout1, colnames)
 writetable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv", fout1)
 
-# Extract the count of visits to various states in this section
-# Lev 1: (0,0)
-# Lev 2: (1,0)
-# Lev 3: (0,1)
+
+# fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
+
+
+
+
+
 
 
 
