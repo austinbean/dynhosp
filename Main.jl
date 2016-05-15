@@ -55,7 +55,7 @@ soloint_c = modcoeffs[4, 2]
 closest_c = modcoeffs[5, 2]
 distbed_c = modcoeffs[6, 2]
 
-modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
 
 # For use in the demand model::
@@ -70,6 +70,10 @@ for el in people.columns
 end
 
 # This is needed to clean out the missing values among fids.  Changes them to 0.
+
+# Think about one change - if demand model coeff is positive, change value to large negative,
+# if negative, change to large positive.  Then it's basically impossible for that to be the choice.
+
 for i in names(people)
   if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
     people[isna(people[i]), i] = 0
@@ -136,35 +140,33 @@ fields = 7;
 
 # I should have 356 FIDs x 22 years of hospitals.
 
-container = zeros(356*22, 182)
 
-for y in 1:size(yearins)[1]
-	mkt_fips = yearins[y][1]
-  print("Market FIPS Code ", mkt_fips, "\n")
-		for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
-      dataf = deepcopy(data1)
-			fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))) # returns a dataframe unless converted
-			# Find the subset of people with those fids::
-			# DO NOT CHANGE THIS NAME! DemandModel function will be screwed up!
-			peoples = people[fidfinder(fids, people, "people"),:] # DO NOT CHANGE NAME
-      # The values are going to get mangled, so need to copy them.
-      peoplesub = deepcopy(peoples)
+mkt_fips = 48001;
+year = 2003;
+dataf = deepcopy(data1);
+fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
+peoples = people[fidfinder(fids, people, "people"),:];
+peoplesub = deepcopy(peoples);
+# Mainfun(dataf, peoplesub, "peoplesub", 48001, 2003, demandmodelparameters, entryprobs, fids)
 
 
-				#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
-        print("Equilibrium Simulation, ", mkt_fips, " ", year, " ", "\n")
-      states = Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, entryprobs, T = 100, sim_start = 2)
 
-			# Non-equilibrium Play -
+function Mainfun(dataf::DataFrame, people::DataFrame, prname::ASCIIString, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, entryprobs::Array{Float64}, fids::Array{Int64})
+			 # returns a dataframe unless converted
+      numfids = size(fids)[1]
+      outp = zeros(numfids, 183)
+			#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
+      print("Equilibrium Simulation, ", mkt_fips, " ", year, " ", "\n")
+                                      # Careful with this name
+      states = Simulator(dataf, people, prname, year, mkt_fips, modelparameters, entryprobs, T = 100, sim_start = 2)
+      # Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
 			dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :];
-
-		for f in 1:size(fids)[1]
-        #f = 1
+		for f in 1:numfids
         pfid = fids[f]
         print("Perturbing Fid: ", pfid, "\n")
   			#Arguments: function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
-        perturbed_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, modelparameters, pfid, entryprobs, disturb = 0.01, T = 100, sim_start = 2)
+        perturbed_history = PerturbSimulator(dataf, peoplesub, prname, year, mkt_fips, modelparameters, pfid, entryprobs, disturb = 0.01, T = 100, sim_start = 2)
 
   			# Here apply DynamicValue to the result of the simulations
   			# DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
@@ -172,22 +174,68 @@ for y in 1:size(yearins)[1]
   			pfid_f = convert(Float64, pfid)
   			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
   			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
-        i = findfirst(container[:,1], 0)
-        container[i,:] = [pfid_f year eq_val eq_change neq_val neq_change]
+        outp[f,:] = [mkt_fips pfid_f year eq_val eq_change neq_val neq_change]
         # Abandon Entrants again.
-        # print("*******************\n")
-        # print("NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
-        # print("ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
-        # print("----------------------------------\n")
-        dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :] 
-        # print("UPDATE: NA fipscodes in Dataframe: ", sum(isna(dataf[:fipscode])), "\n")
-        # print("UPDATE: ID > 0 & Fipscode == NA: ", sum((dataf[:id].>= 0)&(isna(dataf[:fipscode]))), "\n")
-        # print("*******************\n")
-      end
-      dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
-		end
+        dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :]
+    end
+  return outp
 end
 
+#=
+Future direction - write this to start where it left off.
+# Start with some smaller markets first:
+
+=#
+monopoly = Array{Int64}(0)
+duopoly = Array{Int64}(0)
+triopoly = Array{Int64}(0)
+tetrapoly = Array{Int64}(0)
+nopoly = Array{Int64}(0)
+
+for el in yearins
+  unqfids = [x for x in unique(data1[el[2]:el[3],:fid]).data]
+  if size(unqfids)[1] == 1
+    print("Fipscode Monopoly: ", unique(data1[el[2]:el[3], :fipscode]), "\n")
+    push!(monopoly, data1[el[3], :fipscode])
+  elseif size(unqfids)[1] == 2
+    print("Fipscode Duopoly: ", unique(data1[el[2]:el[3], :fipscode]), "\n")
+    push!(duopoly, data1[el[3], :fipscode])
+  elseif size(unqfids)[1] == 3
+    print("Fipscode Triopoly: ", unique(data1[el[2]:el[3], :fipscode]), "\n")
+    push!(triopoly, data1[el[3], :fipscode])
+  elseif size(unqfids)[1] == 4
+    print("Fipscode Tetrapoly: ", unique(data1[el[2]:el[3], :fipscode]), "\n")
+    push!(tetrapoly, data1[el[3], :fipscode])
+  elseif size(unqfids)[1] > 4
+    print("Fipscode N-opoly: ", unique(data1[el[2]:el[3], :fipscode]), "\n")
+    print("Fipscode Hospitals: ", size(unqfids)[1], "\n")
+    push!(nopoly, data1[el[3], :fipscode])
+  end
+end
+
+
+container = zeros( 75, 183)
+
+entryprobs = [0.99, 0.004, 0.001, 0.005]
+
+
+for y in 1:size(duopoly)[1]    #size(yearins)[1]
+    mkt_fips = duopoly[y] #yearins[y][1]
+    print("Market FIPS Code ", mkt_fips, "\n")
+    	for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
+        dataf = deepcopy(data1);
+        fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
+        numfids = size(fids)[1]
+        peoples = people[fidfinder(fids, people, "people"),:];
+        peoplesub = deepcopy(peoples);
+        print("exists?: ", size(peoplesub), "\n")
+        container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, "peoplesub", mkt_fips, year, demandmodelparameters, entryprobs, fids)
+    end
+end
+
+fout1 = convert(DataFrame, container);
+
+writetable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv", fout1)
 
 # Extract the count of visits to various states in this section
 # Lev 1: (0,0)

@@ -155,7 +155,8 @@ function DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Ar
     The goal for this function is to -
       - take the whole set of people, compute the deterministic components of utility, add the random shock, find the maximizer
       - count the number maximized by fid: this will be the demand.
-      Performance: .518402 seconds (32.05 M allocations: 604.392 MB, 0.76% gc time)
+      Performance: .518402 seconds (32.05 M allocations: 604.392 MB, 0.76% gc time) (before entry written in)
+      Perforamnce: 21.520472 seconds (29.71 M allocations: 636.139 MB, 1.37% gc time) (using whole 2005 Q1 dataset)
       The first two arguments are a dataframe (people) and the NAME of that dataframe (frname) as a string.  This is important at the end
       - Entrants - measure length, computes number of entrants.
       - Format of entrants is: [fid act_int act_solo entrantbeds ent_lat ent_lon] x (# entrants)
@@ -298,15 +299,27 @@ end
 # use countmap(choicemade) to count the results (!)  So easy.
 
 
-#=
-for i in 1:maxfid
-  # This is vectorized - probably slow.  Why not just go by row and see if it's faster?
-  expr = parse("vals$i = hcat(people[:fid$i] , people[:distance$i].data*distance_c + people[:distsq$i].data*distsq_c + people[:SoloIntermediate$i].data*soloint_c + people[:NeoIntensive$i].data*neoint_c + people[:closest$i].data*closest_c + people[:dist_bed$i].data*distbed_c  )") # evaluate a tuple
-  eval(expr)
+
+#allents = zeros(size(people)[1], convert(Int, maxfid + floor((size(entrants)[2])/6)))
+
+function DemandMod(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
+# Performance: 19.633987 seconds (3.01 M allocations: 233.659 MB, 1.04% gc time) (using whole 2005 Q1 dataset)
+  allents = zeros(size(people)[1], maxfid+ convert(Int, floor(size(entrants)[2]/ent_length)))
+  for i in 1:maxfid
+    shock = rand(d, size(people)[1])
+    expr = parse("$frname[:distance$i].data*distance_c + $frname[:distsq$i].data*distsq_c + $frname[:SoloIntermediate$i].data*soloint_c + $frname[:NeoIntensive$i].data*neoint_c + $frname[:closest$i].data*closest_c + $frname[:dist_bed$i].data*distbed_c + shock  ")
+    allents[:,i] =  eval(expr)
+  end
+  votes = zeros(size(people)[1], 1);
+  for row in 1:size(allents)[1]
+    votes[row] = eval(parse("people[$row,:fid"*string(indmax(allents[i,:]))*"]"))
+  end
+  return countmap(votes)
 end
 
-Performance: 0.510989 seconds (5.64 M allocations: 213.967 MB, 68.09% gc time)
-=#
+
+#Performance: 0.510989 seconds (5.64 M allocations: 213.967 MB, 68.09% gc time)
+
 
 
 
