@@ -8,7 +8,31 @@ using Optim
 
 fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
 
-hsims = size(fout1)[1] # number of simulations
+
+
+colnames = Array{Symbol}(:0)
+push!(colnames, :fipscode)
+push!(colnames, :fid)
+push!(colnames, :year)
+for elem in ["EQ", "NEQ"]
+  for j = 1:3
+    for k = 0:25
+      push!(colnames, parse("$elem"*"Lev$j"*"Comp$k"))
+    end
+  end
+  for x in [1 2 3]
+    for y in [1 2 3 "EX"]
+      if x != y
+        push!(colnames, parse("$elem"*"Trans$x$y"))
+      end
+    end
+  end
+  push!(colnames, parse("$elem"*"Enter1"))
+  push!(colnames, parse("$elem"*"Enter2"))
+  push!(colnames, parse("$elem"*"Enter3"))
+end
+
+names!(fout1, colnames)
 
 function dfvec(datafr::DataFrame)
   vecvals = Vector{Float64}(0)
@@ -18,16 +42,39 @@ function dfvec(datafr::DataFrame)
   return vecvals
 end
 
+# Delete columns of zeros - this is just for the testing part.  Eventually hopefully all will be filled in.
+# This only deletes if both the column for the equilibrium AND non-equilibrium are zero.
+
+for el in 1:size(colnames[4:end-90])[1]
+  if (sum(fout1[colnames[el]]) == 0) & (sum(fout1[colnames[el+90]]) == 0)
+    print("Empty Column: ", colnames[el], " ", colnames[el+90], "\n")
+    delete!(fout1, colnames[el])
+    delete!(fout1, colnames[el+90])
+  end
+end
+
+# Check resulting:
+for el in fout1.colindex.names
+  print(el, "\n")
+end
+
+# Number of simulations and num
+hsims = size(fout1)[1] # number of simulations
+ncols = size(fout1)[2] # number of columns with nonzeros (pairs!)
+
+# How many parameters am I trying to estimate?  # of Non-zero column pairs 
+params = convert(Int, (ncols-3)/2) # don't think this conversion is strictly necessary
+
 
 for x in 1:hsims
-  name = parse("function val$x(x::Vector; inp1 = dfvec(fout1[$x, 4:93]), inp2 = dfvec(fout1[$x, 94:183])) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
+  name = parse("function val$x(x::Vector; inp1 = dfvec(fout1[$x, 4:4+params-1]), inp2 = dfvec(fout1[$x, 4+params:end])) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
   eval(name)
 end
 
 #=
 To evaluate the above:
 for x in 1:20
- phrs = parse("val$x(ones(90))")
+ phrs = parse("val$x(ones(params))")
  print(eval(phrs), "\n")
 end
 =#
@@ -41,9 +88,9 @@ function sumval(x::Vector; hsims = 75)
 end
 
 
-result = optimize(sumval, ones(90), method = SimulatedAnnealing(), iterations = 5000)
+result = optimize(sumval, ones(params), method = SimulatedAnnealing(), iterations = 5000)
 
-result = optimize(sumval, ones(90), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+result = optimize(sumval, ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
 
 
 
