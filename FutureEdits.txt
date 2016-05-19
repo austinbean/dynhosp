@@ -4,3 +4,15 @@ Problems to fix:
 values in the third row.  A non-eq transition is recorded in the second period, from
 3 to 2, but it doesn't seem like that's right.  Also - the figure in NEQLev2Comp1 is
 much bigger than the figure for the level 1.  This can't happen (shouldn't).
+
+- 05 18 16: Add the full year worth of data to the quarterly choices.
+
+- 05 18 16: Add the other hospital levels - change the data
+
+- 05 18 16: how can the optimizer converge when there are going to be columns of zeros
+for a lot of the functions?  some states are never visited.  Maybe these don't matter
+for convergence since it's in f(x) not x, but in principle I think it's worth correcting that
+by dropping those columns or something.
+
+- 05 18 16: is there an issue with all the parameters being estimated at once?  Will it always
+converge to 0?

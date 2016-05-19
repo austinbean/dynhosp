@@ -43,11 +43,11 @@ regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospital
 
 # Individual level demands -
 # DO NOT CHANGE THE NAME "people" - it will mess up fidfinder in DemandFunction.jl
-people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Individual Choices.csv", header = true);
 
 # Check the NFP status variable in the above
 # Coefficients on the demand model:
-modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Model.csv", header = true);
 distance_c = modcoeffs[1, 2]
 distsq_c = modcoeffs[2, 2]
 neoint_c = modcoeffs[3, 2]
@@ -75,8 +75,13 @@ end
 # if negative, change to large positive.  Then it's basically impossible for that to be the choice.
 
 for i in names(people)
-  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
+  if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
     people[isna(people[i]), i] = 0
+  elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
+    people[isna(people[i]), i] = 0
+  end
+  if sum(size(people[isna(people[i]), i]))>0
+    print(i, "\n")
   end
 end
 
