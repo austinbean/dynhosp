@@ -219,30 +219,38 @@ for el in yearins
 end
 
 
-container = zeros( 75, 183)
+container = zeros(750, 183)
+
+# Open the existing saved data:
+fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
+donefips  = [x for x in unique(fout1[:fipscode])]
+
 
 entryprobs = [0.99, 0.004, 0.001, 0.005]
 
 
+
+
 for y in 1:size(duopoly)[1]    #size(yearins)[1]
     mkt_fips = duopoly[y] #yearins[y][1]
-    print("Market FIPS Code ", mkt_fips, "\n")
-    	for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
-        dataf = deepcopy(data1);
-        fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
-        numfids = size(fids)[1]
-        peoples = people[fidfinder(fids, people, "people"),:];
-        global peoplesub
-        peoplesub = deepcopy(peoples);
-        print("exists?: ", size(peoplesub), "\n")
-        # This function won't see "peoplesub" due to scope rules.
-        container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, "peoplesub", mkt_fips, year, demandmodelparameters, entryprobs, fids)
+    if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
+      print("Market FIPS Code ", mkt_fips, "\n")
+      	for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
+          dataf = deepcopy(data1);
+          fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
+          numfids = size(fids)[1]
+          peoples = people[fidfinder(fids, people, "people"),:];
+          global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
+          peoplesub = deepcopy(peoples);
+          # print("exists?: ", size(peoplesub), "\n")
+          container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, "peoplesub", mkt_fips, year, demandmodelparameters, entryprobs, fids)
+      end
     end
 end
 
-fout1 = convert(DataFrame, container);
+output1 = convert(DataFrame, container);
 
-# Add column names::
+# Add column names to the new data:
 
 colnames = Array{Symbol}(:0)
 push!(colnames, :fipscode)
@@ -266,11 +274,13 @@ for elem in ["EQ", "NEQ"]
   push!(colnames, parse("$elem"*"Enter3"))
 end
 
-names!(fout1, colnames)
+names!(output1, colnames)
+
+# Append new data to the existing data:
+append!(fout1, output1)
 writetable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv", fout1)
 
 
-# fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
 
 
 
