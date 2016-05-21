@@ -337,11 +337,14 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
           ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)
           newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
           newrow[:facility] = convert(UTF8String, "Entrant $mkt_fips $year")
+          newrow[:facility] = convert(DataArrays.DataArray{ByteString,1}, newrow[:facility])
           newrow[:fid] = sample(collect((maximum(dataf[:fid])+1):(maximum(dataf[:fid])+5))) # new facility will always have largest fid
           newrow[:id] = -sample(collect((maximum(dataf[:id])+1):(maximum(dataf[:id])+5))) #
           newrow[:fipscode] = mkt_fips
           newrow[:location] = convert(UTF8String, "entrant - see v15 v16")
+          newrow[:location] = convert(DataArrays.DataArray{ByteString,1}, newrow[:location])
           newrow[:city] = convert(UTF8String, "Entrant - unspecified")
+          newrow[:city] = convert(DataArrays.DataArray{ByteString,1}, newrow[:city])
           newrow[:firstyear] = year
           newrow[:v15] = ent_lat
           newrow[:v16] = ent_lon
