@@ -248,7 +248,6 @@ for y in 1:size(duopoly)[1]    #size(yearins)[1]
     end
 end
 
-output1 = convert(DataFrame, container);
 
 # Add column names to the new data:
 
@@ -274,7 +273,10 @@ for elem in ["EQ", "NEQ"]
   push!(colnames, parse("$elem"*"Enter3"))
 end
 
+output1 = convert(DataFrame, container);
+
 names!(output1, colnames)
+output1 = output1[ output1[:fipscode].>0 ,:]
 
 # Append new data to the existing data:
 append!(fout1, output1)
