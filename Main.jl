@@ -74,17 +74,24 @@ end
 # Think about one change - if demand model coeff is positive, change value to large negative,
 # if negative, change to large positive.  Then it's basically impossible for that to be the choice.
 
+
 for i in names(people)
   if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
     people[isna(people[i]), i] = 0
   elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
     people[isna(people[i]), i] = 0
+  elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+    # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+    # with opposite signs of the corresponding coefficients from modelparameters.
+    # This does that by looking at missing NAMES, not fids.
+    people[isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
+    people[isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
+    people[isna(people[i]), i] = "NONE"
   end
   if sum(size(people[isna(people[i]), i]))>0
     print(i, "\n")
   end
 end
-
 
 
 
@@ -152,18 +159,18 @@ dataf = deepcopy(data1);
 fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
 peoples = people[fidfinder(fids, people, "people"),:];
 peoplesub = deepcopy(peoples);
-# Mainfun(dataf, peoplesub, "peoplesub", 48001, 2003, demandmodelparameters, entryprobs, fids)
+# Mainfun(dataf, peoplesub, 48001, 2003, demandmodelparameters, entryprobs, fids)
 
 
 
-function Mainfun(dataf::DataFrame, people::DataFrame, prname::ASCIIString, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, entryprobs::Array{Float64}, fids::Array{Int64})
+function Mainfun(dataf::DataFrame, people::DataFrame, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, entryprobs::Array{Float64}, fids::Array{Int64})
 			 # returns a dataframe unless converted
       numfids = size(fids)[1]
       outp = zeros(numfids, 183)
 			#Arguments: Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64,  state_history::Array{Float64,2}, demandmodelparameters::Array{Float64, 2}; T = 100, start = 2)
       print("Equilibrium Simulation, ", mkt_fips, " ", year, " ", "\n")
                                       # Careful with this name
-      states = Simulator(dataf, people, prname, year, mkt_fips, modelparameters, entryprobs, T = 100, sim_start = 2)
+      states = Simulator(dataf, people, year, mkt_fips, modelparameters, entryprobs, T = 100, sim_start = 2)
       # Non-equilibrium Play -
 			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
 			dataf = dataf[(dataf[:id].>= 0)&(!isna(dataf[:fipscode])), :];
@@ -171,7 +178,7 @@ function Mainfun(dataf::DataFrame, people::DataFrame, prname::ASCIIString, mkt_f
         pfid = fids[f]
         print("Perturbing Fid: ", pfid, "\n")
   			#Arguments: function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; disturb = 0.05, T = 100, sim_start = 2)
-        perturbed_history = PerturbSimulator(dataf, peoplesub, prname, year, mkt_fips, modelparameters, pfid, entryprobs, disturb = 0.01, T = 100, sim_start = 2)
+        perturbed_history = PerturbSimulator(dataf, peoplesub, year, mkt_fips, modelparameters, pfid, entryprobs, disturb = 0.01, T = 100, sim_start = 2)
 
   			# Here apply DynamicValue to the result of the simulations
   			# DynamicValue(state_history::Array, fac_fid::Float64; pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
@@ -231,8 +238,8 @@ entryprobs = [0.99, 0.004, 0.001, 0.005]
 
 
 
-for y in 1:size(duopoly)[1]    #size(yearins)[1]
-    mkt_fips = duopoly[y] #yearins[y][1]
+for y in 1:size(yearins,1)    #size(duopoly)[1]
+    mkt_fips = yearins[y][1] #duopoly[y]
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
       	for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
@@ -243,7 +250,7 @@ for y in 1:size(duopoly)[1]    #size(yearins)[1]
           global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
           peoplesub = deepcopy(peoples);
           # print("exists?: ", size(peoplesub), "\n")
-          container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, "peoplesub", mkt_fips, year, demandmodelparameters, entryprobs, fids)
+          container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, mkt_fips, year, demandmodelparameters, entryprobs, fids)
       end
     end
 end
