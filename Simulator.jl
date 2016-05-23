@@ -62,7 +62,7 @@ Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 
 =#
 
-function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
+function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -99,8 +99,8 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
     peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
   end
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
-  emp_arr = [0.0]'
-  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
+  emp_arr = Array{Float64, 2}()
+  realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     demand_re =  try
@@ -474,7 +474,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
     for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
       peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
     end
-    realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
+    realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
     for fid_i in 1:fields:size(state_history[i,:])[2]-4
       fid = state_history[i,fid_i]
       demand_re =  try

@@ -103,8 +103,8 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
   for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
     peoplesub[p,:] = rowchange(state_history[1,:], peoplesub[p,:])
   end
-  emp_arr = [0.0]'
-  realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
+  emp_arr = Array{Float64, 2}()
+  realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     demand_re =  try
@@ -503,7 +503,7 @@ function PerturbSimulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCII
     for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
       rowchange(state_history[i,:], peoplesub[p,:])
     end
-    realized_d = countmap(DemandModel(peoplesub, subname, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
+    realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
     for fid_i in 1:fields:size(state_history[i,:])[2]-4
       fid = state_history[i,fid_i]
       demand_re =  try
