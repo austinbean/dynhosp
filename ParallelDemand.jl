@@ -444,6 +444,10 @@ end
 
 ###
 
+# Now the results of @time imptest33(people, modelparameters)
+# 1.021668 seconds (9.74 M allocations: 617.191 MB, 40.56% gc time)
+# over 10 runs the average is right around 1 second.
+# This version returns a countmap of the fids, i.e., a dictionary of frequencies.
 function imptest33(peo::DataFrame, modelparameters::Array{Float64, 2}; siz = size(peo,1) , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
   outp = zeros(siz)
   allfids = [convert(Vector{Int64}, peo[fidnd[1]]) convert(Vector{Int64}, peo[fidnd[2]]) convert(Vector{Int64}, peo[fidnd[3]]) convert(Vector{Int64}, peo[fidnd[4]]) convert(Vector{Int64}, peo[fidnd[5]]) convert(Vector{Int64}, peo[fidnd[6]]) convert(Vector{Int64}, peo[fidnd[7]]) convert(Vector{Int64}, peo[fidnd[8]]) convert(Vector{Int64}, peo[fidnd[9]]) convert(Vector{Int64}, peo[fidnd[10]]) convert(Vector{Int64}, peo[fidnd[11]])]
@@ -459,7 +463,138 @@ function imptest33(peo::DataFrame, modelparameters::Array{Float64, 2}; siz = siz
   mat10 = [ convert(Vector{Float64}, peo[xnd[1]]) convert(Vector{Float64}, peo[xnd[2]]) convert(Vector{Float64}, peo[xnd[3]]) convert(Vector{Float64}, peo[xnd[4]]) convert(Vector{Float64}, peo[xnd[5]]) convert(Vector{Float64}, peo[xnd[6]])]*modelparameters' + rand(d, siz)
   mat11 = [ convert(Vector{Float64}, peo[xind[1]]) convert(Vector{Float64}, peo[xind[2]]) convert(Vector{Float64}, peo[xind[3]]) convert(Vector{Float64}, peo[xind[4]]) convert(Vector{Float64}, peo[xind[5]]) convert(Vector{Float64}, peo[xind[6]])]*modelparameters' + rand(d, siz)
   for i = 1:size(peo, 1) #change the version above: list all fids for each person, then take i-th (person) row, indmax columns
-    outp[i] = allfids[i, indmax([mat1[i], mat2[i], mat3[i], mat4[i], mat5[i], mat6[i], mat7[i], mat8[i], mat9[i], mat10[i], mat11[i]])]
+    outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]
   end
   return countmap(outp)
 end
+
+# Now we have to allow entrants - this might be tricky.  What is the form the data is recorded in?
+# From Simulator.jl
+# entrant_data = [newrow[:fid].data newrow[:act_int].data newrow[:act_solo].data entrantbeds ent_lat ent_lon]
+# entrants1 = [8888888 1 0 100 31.9297  -105.871]
+# entrants2 = [9999999 0 1 100 31.7297  -105.771 8888888 1 0 100 31.9297  -105.871]
+# entrants4 = [9999999 0 1 100 31.7297  -105.771 8888888 1 0 100 31.9297  -105.871 9999999 0 1 100 31.7297  -105.771 8888888 1 0 100 31.9297  -105.871]
+# Order of arguments: distance distsq SoloIntermediate NeoIntensive closest dist_bed
+
+
+# This auxiliary function does the calculation - it is not ideal to have two.  Speed is ok:
+# 0.702151 seconds (15.16 M allocations: 289.221 MB, 11.13% gc time)
+# I don't like the number of allocations - the difficulty is getting the distance
+# But if that can be done, maybe it's easier to just do the product
+function ValEnts(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+
+# NOT THE BEST
+
+  siz = size(peo,1)
+  entvals = zeros(siz, entnum)
+  plocs = [convert(Vector{Float64}, peo[persloc[1]]) convert(Vector{Float64}, peo[persloc[2]])]
+  for j = 1:entnum
+    for i = 1:siz
+      entvals[i,j] += distance(entrants[6*j-1], entrants[6*j], plocs[j,1], plocs[j,2])*modelparameters[1]
+      entvals[i,j] += ((distance(entrants[6*j-1], entrants[6*j], plocs[j,1], plocs[j,2]))^2)*modelparameters[2]
+      entvals[i,j] += entrants[6*j-3]*modelparameters[3]
+      entvals[i,j] += entrants[6*j-4]*modelparameters[4]
+      entvals[i,j] += 0*modelparameters[5]
+      entvals[i,j] += ((distance(entrants[6*j-1], entrants[6*j], plocs[j,1], plocs[j,2])*entrants[6*j-2]/100))*modelparameters[6]
+      entvals[i,j] += rand(d, 1)[1]
+    end
+  end
+  return entvals
+end
+
+# This version calls distance() only once
+# This function was faster than ValEnts in 6/7 runs:
+# 0.477656 seconds (7.58 M allocations: 173.532 MB, 13.54% gc time)
+# I don't like the number of allocations - the difficulty is getting the distance
+# But if that can be done, maybe it's easier to just do the product
+function ValEnts2(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+
+# NOT THE BEST
+
+  siz = size(peo,1)
+  entvals = zeros(siz, entnum)
+  plocs = [convert(Vector{Float64}, peo[persloc[1]]) convert(Vector{Float64}, peo[persloc[2]])]
+  for j = 1:entnum
+    for i = 1:siz
+      d1 = distance(entrants[6*j-1], entrants[6*j], plocs[j,1], plocs[j,2])
+      entvals[i,j] += d1*modelparameters[1]
+      entvals[i,j] += ((d1)^2)*modelparameters[2]
+      entvals[i,j] += entrants[6*j-3]*modelparameters[3]
+      entvals[i,j] += entrants[6*j-4]*modelparameters[4]
+      entvals[i,j] += 0*modelparameters[5]
+      entvals[i,j] += ((d1)*entrants[6*j-2]/100)*modelparameters[6]
+  #    entvals[i,j] += rand(d, 1)[1]
+    end
+  end
+  return entvals
+end
+
+
+# Another version - try to form the matrix properly, then take the product and add a
+# shock as above in ftest8  or so::
+# Yes - this works much, much better.  Over 8 runs:
+# 0.257010 seconds (3.79 M allocations: 80.982 MB, 29.32% gc time) was typical (two entrants)
+# 0.735469 seconds (7.58 M allocations: 156.180 MB, 48.74% gc time) (four entrants)
+function ValEnts3(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+  siz = size(peo,1)
+  rands = rand(d, siz, entnum)
+  entvals = zeros(siz, entnum)
+  plocs = [convert(Vector{Float64}, peo[persloc[1]]) convert(Vector{Float64}, peo[persloc[2]])] # this format is: LATITUDE, LONGITUDE
+  for j = 1:entnum
+    for i = 1:siz # ENTRANT FORMAT ends with [Latitude, Longitude]
+      d1 = distance(entrants[6*j-1], entrants[6*j], plocs[j,1], plocs[j,2])
+      entvals[i,j] += d1*modelparameters[1]
+      entvals[i,j] += ((d1)^2)*modelparameters[2]
+      entvals[i,j] += entrants[6*j-3]*modelparameters[3]
+      entvals[i,j] += entrants[6*j-4]*modelparameters[4]
+      entvals[i,j] += 0*modelparameters[5] # this is specifying that "closest" is always 0 for entrants.  It can be fixed, but would be really annoying.
+      entvals[i,j] += ((d1)*entrants[6*j-2]/100)*modelparameters[6]
+    end
+  end
+  return maximum(entvals + rands, 2)
+end
+
+# This one works pretty well.  It handles entry.  Over 5 runs, this was typical:
+# 1.230711 seconds (15.16 M allocations: 748.990 MB, 34.56% gc time) (two entrants)
+# 0.963456 seconds (9.74 M allocations: 617.195 MB, 39.69% gc time) (one entrant )
+# Ok - this will generate a problem if the NO ENTRY case is [0.0].  It should instead be Array{Float64, 2}(), which has size 0.  Otherwise entnum below will throw InexactError.
+function imptest34(peo::DataFrame, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
+# constants/outputs/setup
+  outp = zeros(siz)
+  entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
+# Computed utilities + error
+  mat1 = [ convert(Vector{Float64}, peo[ind[1]]) convert(Vector{Float64}, peo[ind[2]]) convert(Vector{Float64}, peo[ind[3]]) convert(Vector{Float64}, peo[ind[4]]) convert(Vector{Float64}, peo[ind[5]]) convert(Vector{Float64}, peo[ind[6]])]*modelparameters' + rand(d, siz)
+  mat2 = [ convert(Vector{Float64}, peo[iind[1]]) convert(Vector{Float64}, peo[iind[2]]) convert(Vector{Float64}, peo[iind[3]]) convert(Vector{Float64}, peo[iind[4]]) convert(Vector{Float64}, peo[iind[5]]) convert(Vector{Float64}, peo[iind[6]])]*modelparameters' + rand(d, siz)
+  mat3 = [ convert(Vector{Float64}, peo[iiind[1]]) convert(Vector{Float64}, peo[iiind[2]]) convert(Vector{Float64}, peo[iiind[3]]) convert(Vector{Float64}, peo[iiind[4]]) convert(Vector{Float64}, peo[iiind[5]]) convert(Vector{Float64}, peo[iiind[6]])]*modelparameters' + rand(d, siz)
+  mat4 = [ convert(Vector{Float64}, peo[ivnd[1]]) convert(Vector{Float64}, peo[ivnd[2]]) convert(Vector{Float64}, peo[ivnd[3]]) convert(Vector{Float64}, peo[ivnd[4]]) convert(Vector{Float64}, peo[ivnd[5]]) convert(Vector{Float64}, peo[ivnd[6]])]*modelparameters' + rand(d, siz)
+  mat5 = [ convert(Vector{Float64}, peo[vnd[1]]) convert(Vector{Float64}, peo[vnd[2]]) convert(Vector{Float64}, peo[vnd[3]]) convert(Vector{Float64}, peo[vnd[4]]) convert(Vector{Float64}, peo[vnd[5]]) convert(Vector{Float64}, peo[vnd[6]])]*modelparameters' + rand(d, siz)
+  mat6 = [ convert(Vector{Float64}, peo[vind[1]]) convert(Vector{Float64}, peo[vind[2]]) convert(Vector{Float64}, peo[vind[3]]) convert(Vector{Float64}, peo[vind[4]]) convert(Vector{Float64}, peo[vind[5]]) convert(Vector{Float64}, peo[vind[6]])]*modelparameters' + rand(d, siz)
+  mat7 = [ convert(Vector{Float64}, peo[viind[1]]) convert(Vector{Float64}, peo[viind[2]]) convert(Vector{Float64}, peo[viind[3]]) convert(Vector{Float64}, peo[viind[4]]) convert(Vector{Float64}, peo[viind[5]]) convert(Vector{Float64}, peo[viind[6]])]*modelparameters' + rand(d, siz)
+  mat8 = [ convert(Vector{Float64}, peo[viiind[1]]) convert(Vector{Float64}, peo[viiind[2]]) convert(Vector{Float64}, peo[viiind[3]]) convert(Vector{Float64}, peo[viiind[4]]) convert(Vector{Float64}, peo[viiind[5]]) convert(Vector{Float64}, peo[viiind[6]])]*modelparameters' + rand(d, siz)
+  mat9 = [ convert(Vector{Float64}, peo[ixnd[1]]) convert(Vector{Float64}, peo[ixnd[2]]) convert(Vector{Float64}, peo[ixnd[3]]) convert(Vector{Float64}, peo[ixnd[4]]) convert(Vector{Float64}, peo[ixnd[5]]) convert(Vector{Float64}, peo[ixnd[6]])]*modelparameters' + rand(d, siz)
+  mat10 = [ convert(Vector{Float64}, peo[xnd[1]]) convert(Vector{Float64}, peo[xnd[2]]) convert(Vector{Float64}, peo[xnd[3]]) convert(Vector{Float64}, peo[xnd[4]]) convert(Vector{Float64}, peo[xnd[5]]) convert(Vector{Float64}, peo[xnd[6]])]*modelparameters' + rand(d, siz)
+  mat11 = [ convert(Vector{Float64}, peo[xind[1]]) convert(Vector{Float64}, peo[xind[2]]) convert(Vector{Float64}, peo[xind[3]]) convert(Vector{Float64}, peo[xind[4]]) convert(Vector{Float64}, peo[xind[5]]) convert(Vector{Float64}, peo[xind[6]])]*modelparameters' + rand(d, siz)
+  if size(entrants, 2) > 1
+    allfids = [convert(Vector{Int64}, peo[fidnd[1]]) convert(Vector{Int64}, peo[fidnd[2]]) convert(Vector{Int64}, peo[fidnd[3]]) convert(Vector{Int64}, peo[fidnd[4]]) convert(Vector{Int64}, peo[fidnd[5]]) convert(Vector{Int64}, peo[fidnd[6]]) convert(Vector{Int64}, peo[fidnd[7]]) convert(Vector{Int64}, peo[fidnd[8]]) convert(Vector{Int64}, peo[fidnd[9]]) convert(Vector{Int64}, peo[fidnd[10]]) convert(Vector{Int64}, peo[fidnd[11]]) repmat(entfids, siz, 1)]
+    entval = ValEnts3(people, entrants, modelparameters)
+    for i = 1:size(peo, 1)
+      outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entval[i]])]
+    end
+  else # there are no entrants, so "entrants" above is [0.0]', which has size(entrants, 2) == 1
+    allfids = [convert(Vector{Int64}, peo[fidnd[1]]) convert(Vector{Int64}, peo[fidnd[2]]) convert(Vector{Int64}, peo[fidnd[3]]) convert(Vector{Int64}, peo[fidnd[4]]) convert(Vector{Int64}, peo[fidnd[5]]) convert(Vector{Int64}, peo[fidnd[6]]) convert(Vector{Int64}, peo[fidnd[7]]) convert(Vector{Int64}, peo[fidnd[8]]) convert(Vector{Int64}, peo[fidnd[9]]) convert(Vector{Int64}, peo[fidnd[10]]) convert(Vector{Int64}, peo[fidnd[11]])]
+    for i = 1:size(peo, 1)
+      outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]
+    end
+  end
+  return countmap(outp)
+end
+
+
+
+
+
+
+
+
+
+####
