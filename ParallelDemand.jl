@@ -8,6 +8,18 @@ using Distributions
 
 include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
 
+
+modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Model.csv", header = true);
+distance_c = modcoeffs[1, 2]
+distsq_c = modcoeffs[2, 2]
+neoint_c = modcoeffs[3, 2]
+soloint_c = modcoeffs[4, 2]
+closest_c = modcoeffs[5, 2]
+distbed_c = modcoeffs[6, 2]
+
+modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+
+
 people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Individual Choices.csv", header = true);
 
 # Ok - what do I want?  Convert this to a matrix, then see if the multiplication and addition of
@@ -24,6 +36,11 @@ for i in names(people)
   elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
     people[isna(people[i]), i] = 0
   elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+    # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+    # with opposite signs of the corresponding coefficients from modelparameters.
+    # This does that by looking at missing NAMES, not fids.
+    people[isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
+    people[isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
     people[isna(people[i]), i] = "NONE"
   end
   if sum(size(people[isna(people[i]), i]))>0
@@ -31,17 +48,7 @@ for i in names(people)
   end
 end
 
-modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Model.csv", header = true);
-distance_c = modcoeffs[1, 2]
-distsq_c = modcoeffs[2, 2]
-neoint_c = modcoeffs[3, 2]
-soloint_c = modcoeffs[4, 2]
-closest_c = modcoeffs[5, 2]
-distbed_c = modcoeffs[6, 2]
-
-modelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
-
-entrants = [0.0]'
+entrants = Array{Float64, 2}()
 
 dist_μ = 0;
 dist_σ = 1;
@@ -59,9 +66,10 @@ Roadmap -
 Benchmark time for current version of DemandModel in DemandModel.jl:
 91.463204 seconds (130.02 M allocations: 2.696 GB, 1.30% gc time)
 
-Current time for imptest32:
-0.629812 seconds (9.09 M allocations: 575.473 MB, 13.98% gc time)
+Current time for imptest34:
+1.651999 seconds (16.67 M allocations: 772.120 MB, 51.28% gc time) (two entrants)
 
+The functions to use are: ValEnts3 and imptest34.  Those do the job.
 
 =#
 
@@ -530,6 +538,12 @@ function ValEnts2(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters::
 end
 
 
+#######
+# THESE ARE THE GOOD ONES:
+
+#######
+
+
 # Another version - try to form the matrix properly, then take the product and add a
 # shock as above in ftest8  or so::
 # Yes - this works much, much better.  Over 8 runs:
@@ -542,22 +556,29 @@ function ValEnts3(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters::
   plocs = [convert(Vector{Float64}, peo[persloc[1]]) convert(Vector{Float64}, peo[persloc[2]])] # this format is: LATITUDE, LONGITUDE
   for j = 1:entnum
     for i = 1:siz # ENTRANT FORMAT ends with [Latitude, Longitude]
-      d1 = distance(entrants[6*j-1], entrants[6*j], plocs[j,1], plocs[j,2])
-      entvals[i,j] += d1*modelparameters[1]
-      entvals[i,j] += ((d1)^2)*modelparameters[2]
-      entvals[i,j] += entrants[6*j-3]*modelparameters[3]
-      entvals[i,j] += entrants[6*j-4]*modelparameters[4]
-      entvals[i,j] += 0*modelparameters[5] # this is specifying that "closest" is always 0 for entrants.  It can be fixed, but would be really annoying.
-      entvals[i,j] += ((d1)*entrants[6*j-2]/100)*modelparameters[6]
+      d1 = distance(entrants[6*j-1], entrants[6*j], plocs[i,1], plocs[i,2])
+      if d1 < 50
+        entvals[i,j] += d1*modelparameters[1]
+        entvals[i,j] += ((d1)^2)*modelparameters[2]
+        entvals[i,j] += entrants[6*j-3]*modelparameters[3]
+        entvals[i,j] += entrants[6*j-4]*modelparameters[4]
+        entvals[i,j] += 0*modelparameters[5] # this is specifying that "closest" is always 0 for entrants.  It can be fixed, but would be really annoying.
+        entvals[i,j] += ((d1)*entrants[6*j-2]/100)*modelparameters[6]
+      else
+        entvals[i,j] = -999 # set value to large negative number when distance is too large: won't be chosen
+      end
     end
   end
-  return maximum(entvals + rands, 2)
+  return maximum(entvals + rands, 2) # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
 
 # This one works pretty well.  It handles entry.  Over 5 runs, this was typical:
 # 1.230711 seconds (15.16 M allocations: 748.990 MB, 34.56% gc time) (two entrants)
 # 0.963456 seconds (9.74 M allocations: 617.195 MB, 39.69% gc time) (one entrant )
-# Ok - this will generate a problem if the NO ENTRY case is [0.0].  It should instead be Array{Float64, 2}(), which has size 0.  Otherwise entnum below will throw InexactError.
+# Implemented the fix of setting large values of opposite sign to keep anyone from
+# choosing missing fid.  Did slow things down noticeably:
+# 1.651999 seconds (16.67 M allocations: 772.120 MB, 51.28% gc time) (two entrants)
+
 function imptest34(peo::DataFrame, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
 # constants/outputs/setup
   outp = zeros(siz)
@@ -588,8 +609,6 @@ function imptest34(peo::DataFrame, modelparameters::Array{Float64, 2}, entrants:
   end
   return countmap(outp)
 end
-
-
 
 
 
