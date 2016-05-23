@@ -208,7 +208,7 @@ end
 
 
 #allents = zeros(size(people)[1], convert(Int, maxfid + floor((size(entrants)[2])/6)))
-
+#=
 function DemandMod(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
 # Performance: 19.633987 seconds (3.01 M allocations: 233.659 MB, 1.04% gc time) (using whole 2005 Q1 dataset)
   allents = zeros(size(people)[1], maxfid+ convert(Int, floor(size(entrants)[2]/ent_length)))
@@ -227,7 +227,7 @@ end
 
 #Performance: 0.510989 seconds (5.64 M allocations: 213.967 MB, 68.09% gc time)
 
-
+=#
 
 
 
