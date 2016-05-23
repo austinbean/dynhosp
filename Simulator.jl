@@ -116,7 +116,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, subname::ASCIIString,
   end
   # Start simulation here:
   for i = sim_start:T+1
-    total_entrants = [0.0]'
+    total_entrants = Array{Float64, 2}()
     # if i%50 == 0
     #     println(i)
     # end
