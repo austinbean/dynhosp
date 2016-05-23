@@ -287,7 +287,7 @@ output1 = output1[ output1[:fipscode].>0 ,:]
 
 # Append new data to the existing data:
 append!(fout1, output1)
-writetable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv", fout1)
+writetable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv", output1)
 
 
 

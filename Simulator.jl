@@ -62,6 +62,12 @@ Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 
 =#
 
+
+# If I can convert the relevant pieces of the dataframe to an array in the first part, then I won't
+# need to hold onto that for the rest of the function - it will probably get much faster.  Something like:
+#   mat1 = [ convert(Vector{Float64}, peo[ind[1]]) convert(Vector{Float64}, peo[ind[2]]) convert(Vector{Float64}, peo[ind[3]]) convert(Vector{Float64}, peo[ind[4]]) convert(Vector{Float64}, peo[ind[5]]) convert(Vector{Float64}, peo[ind[6]])]*modelparameters' + rand(d, siz)
+# If I can logically index into the array easily then everything should be fine.
+
 function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
     return "Years through 2012 only"
@@ -69,7 +75,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
   level1 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level1_hospitals0][1]
   level2 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level2solo_hospitals0][1]
   level3 = dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:level3_hospitals0][1]
-  fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+  fids = convert(Vector{Int64}, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
   state_history = [zeros(1, fields*size(fids)[1]) 1 0 0 0; zeros(T, fields*(size(fids)[1]) + 4)]
 
   if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
@@ -78,7 +84,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
     return "Dims of state_history incorrect"
   end
   # Writes the values to the first row of the state history
-  for n in 1:size(fids)[1]
+  for n in 1:size(fids,1)
     el = fids[n]
     a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
     state_history[1, (n-1)*fields + 1] = el # Change
@@ -95,6 +101,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
   # Compute initial demand here:
+
+# REWRITE THIS---  Rowchange is very slow.  Works on a dataframe, that's probably part of it.
+
   for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
     peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
   end
@@ -117,16 +126,16 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
   # Start simulation here:
   for i = sim_start:T+1
     total_entrants = Array{Float64, 2}()
-    # if i%50 == 0
-    #     println(i)
-    # end
     fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])) # needs to be updated each round to catch entrants
-        for fid in 1:size(fids)[1] # this has to be handled separately for each hospital, due to the geography issue
+        for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # the dataframe is mutable.
           a = ((dataf[:,:fid].==el)&(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year))
           if sum(a) > 1
             println("two entries for ", el, " ", year, " ", mkt_fips)
           end
+
+# can rewrite the indexing part to use the state history - no real reason to look again in the dataframe.
+
           if  ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (0,0)) # level 1, actions:
             probs1 = logitest((0,0), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
             if probs1 == ValueException
@@ -136,7 +145,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
-            # record the probability of the action taken.
+  # This whole thing is not necessary - none of the dataframe changes are.
             if action1 == 10
               chprob = probs1[1]
               # no change to state in the aggregate
@@ -168,6 +177,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
             state_history[i, (fid-1)*fields + 5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand # handled below, not here.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
+
+# change this in line with the state_history indexing above
+
           elseif ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (1,0)) #level 2, actions:
             # Can't evaluation as nexti here if they are initialized to negative 1
             probs2 = logitest((1,0), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
@@ -177,6 +189,8 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
             end
             # Action:
             action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
+
+# stop changing the dataframe elements here - just need chprob
             if action2 == 5
               chprob = probs2[1]
               dataf[a,:act_int] = 0
@@ -207,6 +221,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
             state_history[i, (fid-1)*fields + 5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand # Not recorded here - recorded below.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
+
+# Match the state history indexing above
+
           elseif  ((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (0,1)) #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, convert(Array, [dataf[a,:lev105][1]; dataf[a,:lev205][1]; dataf[a,:lev305][1]; dataf[a,:lev1515][1]; dataf[a,:lev2515][1]; dataf[a,:lev3515][1]; dataf[a,:lev11525][1]; dataf[a,:lev21525][1]; dataf[a,:lev31525][1]]) )
             if probs3 == ValueException
@@ -215,6 +232,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
             end
             # Action:
             action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
+
+# stop changing the dataframe here.
+
             if action3 == 3
               chprob = probs3[2]
               dataf[a, :act_int] = 1
@@ -260,6 +280,11 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
         end
         # Count facilities by distance and map results to neighboring hospitals
         # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
+
+# This is probably very slow - if I can fix the dataframe part, changing to an array, this will speed up a lot.
+# If not, leave it.
+
+
         for f in fids
           own_fac = (dataf[(dataf[:fid].==f)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :act_solo][1], dataf[(dataf[:fid].==f)&(dataf[:year].==year)&(dataf[:fipscode].==mkt_fips), :act_int][1])
           for j = neighbors_start:(2):size(dataf)[2]
@@ -335,6 +360,10 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
           # I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
           ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
           ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)
+
+# If the above can be written into an array, then this should change to leave out the dataframe part.
+
+
           newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
           newrow[:facility] = convert(UTF8String, "Entrant $mkt_fips $year")
           newrow[:facility] = convert(DataArrays.DataArray{ByteString,1}, newrow[:facility])
@@ -471,6 +500,9 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
     - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
     - Obtain demand and map it into state_history
     =#
+
+# Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
+
     for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
       peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
     end
