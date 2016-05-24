@@ -25,6 +25,21 @@ mkt_fips = yearins[10][1]
 year = 2011
 fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
 
+# Handle missing dataframe elements::
+for i in names(dataf)
+    if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
+        dataf[isna(dataf[i]), i] = 0
+    elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
+        dataf[isna(dataf[i]), i] = 0
+    elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
+        dataf[isna(dataf[i]), i] = "NONE"
+  end
+    if sum(size(dataf[isna(dataf[i]), i]))>0
+    print(i, "\n")
+  end
+end
+
+
 # Load the people
 people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
@@ -108,16 +123,17 @@ end
 # cityloc = dataf.colindex.lookup[:city]
 # firstyearloc = dataf.colindex.lookup[:firstyear]
 
-
+#data = convert(Matrix, dataf)
 
 function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
     return "Years through 2012 only"
   end
-  level1 = data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),level1_hospitals0loc][1]
-  level2 = data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),level2solo_hospitals0loc][1]
-  level3 = data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),level3_hospitals0loc][1]
-  fids = convert(Vector{Int64}, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
+  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once.
+  level1 = data[marketyear,level1_hospitals0loc][1]
+  level2 = data[marketyear,level2solo_hospitals0loc][1]
+  level3 = data[marketyear,level3_hospitals0loc][1]
+  fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc])))
   state_history = [zeros(1, fields*size(fids, 1)) 1 0 0 0; zeros(T, fields*(size(fids, 1)) + 4)]
 
   if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
@@ -128,7 +144,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
   # Writes the values to the first row of the state history
   for n in 1:size(fids,1)
     el = fids[n]
-    a = ((data[:,fidloc].==el)&(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year))
+    a = ((data[:,fidloc].==el)&marketyear)
     state_history[1, (n-1)*fields + 1] = el # Change
     state_history[1, (n-1)*fields + 2] = data[a,act_intloc][1]
     state_history[1, (n-1)*fields + 3] = data[a,act_sololoc][1]
@@ -145,7 +161,6 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
   # Compute initial demand here:
 
 # REWRITE THIS---  Rowchange is very slow.  Works on a dataframe, that's probably part of it.
-
   for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
     peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
   end
@@ -168,18 +183,18 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
   # Start simulation here:
   for i = sim_start:T+1
     total_entrants = Array{Float64, 2}()
-    fids = sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])) # needs to be updated each round to catch entrants
+    marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year)&(data[:,act_intloc].!=-999)&(data[:,act_sololoc].!=-999)
+    if sum(marketyear) > 0 # only do this for markets where not everyone has exited.
+    fids = sort!(unique(data[marketyear,fidloc])) # needs to be updated each round to catch entrants
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
-          el = fids[fid] # the dataframe is mutable.
-          a = ((data[:,fidloc].==el)&(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year))
+          el = fids[fid] # takes the fid
+          a = ((data[:,fidloc].==el)&marketyear)
           if sum(a) > 1
             println("two entries for ", el, " ", year, " ", mkt_fips)
           end
-
-# can rewrite the indexing part to use the state history - no real reason to look again in the dataframe.
-
-          if # ((data[a,act_intloc][1], data[a,act_sololoc][1]) == (0,0)) # level 1, actions:
-            probs1 = logitest((0,0), level1, level2, level3, convert(Array, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]]) )
+          prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i, (fid-1)*fields + 3])
+          if prev_state ==  (0,0)                     # ((data[a,act_intloc][1], data[a,act_sololoc][1]) == (0,0)) # level 1, actions:
+            probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
             if probs1 == ValueException
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
@@ -187,23 +202,21 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
-  # This whole thing is not necessary - none of the dataframe changes are at any rate.  The chprob is.
+            nextint = 0; nextsolo = 0; #reflects the current state
             if action1 == 10
               chprob = probs1[1]
-              # no change to state in the aggregate
-              # no change to distance-state of others
             elseif action1 == 2
               chprob = probs1[2]
-#              data[a,act_intloc] = 1
-#              data[a,act_sololoc] = 0
+              nextsolo = 0
+              nextint = 1
             elseif action1 == 1
               chprob = probs1[3]
-#              data[a,act_intloc] = 0
-#              data[a,act_sololoc] = 1
+              nextsolo = 1
+              nextint = 0
             elseif action1 == 11
               chprob = probs1[4]
-#              data[a,act_intloc] = -999
-#              data[a,act_sololoc] = -999
+              nextsolo = -999
+              nextint = -999
             else
               println("Fail")
               println("Bad Action Chosen by", el)
@@ -212,42 +225,39 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
             # write out state values - in blocks:
-            state_history[i, (fid-1)*fields + 1] = el # Change
-            state_history[i, (fid-1)*fields + 2] = data[a,act_sololoc][1]
-            state_history[i, (fid-1)*fields + 3] = data[a,act_intloc][1]
+            state_history[i, (fid-1)*fields + 1] = el # writes fid
+            state_history[i, (fid-1)*fields + 2] = nextsolo
+            state_history[i, (fid-1)*fields + 3] = nextint
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand # handled below, not here.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
-
-# change this in line with the state_history indexing above
-
-          elseif ###((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (1,0)) #level 2, actions:
+          elseif prev_state == (1,0)  #level 2, actions:
             # Can't evaluation as nexti here if they are initialized to negative 1
-            probs2 = logitest((1,0), level1, level2, level3, convert(Array, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]]) )
+            probs2 = logitest((1,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
             if probs2 == ValueException
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
             # Action:
             action2 = sample([5, 10, 6, 11] ,WeightVec([probs2[1], probs2[2], probs2[3], probs2[4]]))
-
-# stop changing the dataframe elements here - just need chprob
+            # Current state:
+            nextint = 0; nextsolo = 1;
             if action2 == 5
               chprob = probs2[1]
-  #            data[a,act_intloc] = 0
-  #            data[a,act_sololoc] = 0
+              nextint = 0
+              nextsolo = 0
             elseif action2 == 10
               chprob = probs2[2]
               # no change to state
             elseif action2 == 6
               chprob = probs2[3]
-#              data[a,act_intloc] = 1
-#              data[a,act_sololoc] = 0
+              nextint = 1
+              nextsolo = 0
             elseif action2 == 11
               chprob = probs2[4]
-#              data[a,act_intloc] = -999
-#              data[a,act_sololoc] = -999
+              nextint = -999
+              nextsolo = -999
             else
               println("Fail")
               println("Bad Action Chosen by", el)
@@ -257,41 +267,36 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = data[a,act_sololoc][1]
-            state_history[i, (fid-1)*fields + 3] = data[a,act_intloc][1]
+            state_history[i, (fid-1)*fields + 2] = nextsolo
+            state_history[i, (fid-1)*fields + 3] = nextint
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand # Not recorded here - recorded below.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
-
-# Match the state history indexing above
-
-          elseif  ###((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (0,1)) #level 3, actions:
-            probs3 = logitest((0,1), level1, level2, level3, convert(Array, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,:lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]]) )
+          elseif prev_state == (0,1)   #level 3, actions:
+            probs3 = logitest((0,1), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,:lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
             if probs3 == ValueException
               println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
             # Action:
             action3 = sample([4, 3, 10, 11] ,WeightVec([probs3[1], probs3[2], probs3[3], probs3[4]]))
-
-# stop changing the dataframe here.
-
-            if action3 == 3
+            nextint = 1; nextsolo = 0; #current state
+            if action3 == 3 # go to 2
               chprob = probs3[2]
-    #          data[a, act_intloc] = 1
-    #          data[a, act_sololoc] = 0
-            elseif action3 == 4
+              nextsolo = 1
+              nextint = 0
+            elseif action3 == 4 #go to 1
               chprob = probs3[1]
-#              data[a, act_intloc] = 0
-#              data[a, act_sololoc] =0
+              nextint = 0
+              nextsolo = 0
             elseif action3 == 10
               chprob = probs3[3]
               # no change to state
             elseif action3 == 11
               chprob = probs3[4]
-              data[a, act_intloc] = -999
-              data[a, act_sololoc] = -999
+              nextint = -999
+              nextsolo = -999
             else
               println("Fail")
               println("Bad Action Chosen by", el)
@@ -301,17 +306,17 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = data[a,act_sololoc][1]
-            state_history[i, (fid-1)*fields + 3] = data[a,act_intloc][1]
+            state_history[i, (fid-1)*fields + 2] = nextsolo
+            state_history[i, (fid-1)*fields + 3] = nextint
             state_history[i, (fid-1)*fields + 4] = chprob
             state_history[i, (fid-1)*fields + 5] = action3
             #state_history[i, (fid-1)*fields + 6] = demand # Not recorded here - recorded below.
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
-          elseif   #((dataf[a,:act_int][1], dataf[a,:act_solo][1]) == (-999,-999)) # has exited.
+          elseif prev_state == (-999,-999)   # has exited.
             # No new actions to compute, but record.
             state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = data[a,act_sololoc][1]
-            state_history[i, (fid-1)*fields + 3] = data[a,act_intloc][1]
+            state_history[i, (fid-1)*fields + 2] = -999
+            state_history[i, (fid-1)*fields + 3] = -999
             state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
             state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
             #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited. Not recorded here - recorded below.
@@ -320,111 +325,91 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
           end
         end
-        # Count facilities by distance and map results to neighboring hospitals
-        # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
-
-# This is probably very slow - if I can fix the dataframe part, changing to an array, this will speed up a lot.
-# If not, leave it.
-
-
+        # Measure distances to neighbors
         for f in fids
-          own_fac = (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips), act_sololoc][1], data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscode].==mkt_fips), act_intloc][1])
-          for j = neighbors_start:(2):size(data)[2]
-            if #(!isna(data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips), j][1])) & (!isna(data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips),j+1][1]))
-              if (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips), j+1][1] >0) & (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscode].==mkt_fips),j+1][1]< 5)
-                if own_fac == (0,0)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev105loc] += 1
-                elseif own_fac == (1,0)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev205loc] += 1
-                elseif own_fac == (0,1)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev305loc] += 1
-                elseif own_fac == (-999,-999)
-                  # do nothing - firm exited.
-                else
-                  println("Bad Own Facility Code", f, j, own_fac)
+          hospmktyear = (data[ :,fidloc].==f)&marketyear
+          own_fac = (data[hospmktyear, act_sololoc][1], data[hospmktyear, act_intloc][1])
+          for j = neighbors_start:(2):size(data, 2) # each row has appended to it a list of the hospital's neighbors.
+            # starting at neighbors_start (col 108), we have (fid, distance) pairs in columns (or missing vals) all the way to the end of the dataframe
+            nbhmktyear = (data[:,fidloc].==data[hospmktyear, j])&marketyear
+            if sum(nbhmktyear)>0 # If the neighbor/market/year set isn't empty
+              if (data[ nbhmktyear, act_intloc][1] != -999)&(data[ nbhmktyear, act_sololoc][1]!=-999) # if the neighbor hasn't exited
+                if (!(data[hospmktyear, j][1] == 0)) & (!(data[hospmktyear,j+1][1] == 0)) # If the neighbor isn't missing, j - neighbor fid, j+1 - neighbor distance: if non-zero, proceed
+                  if (data[hospmktyear, j+1][1] >0) & (data[hospmktyear,j+1][1]< 5) # distance to neighbor
+                    if own_fac == (0,0)
+                      data[ hospmktyear, lev105loc] += 1
+                    elseif own_fac == (1,0)
+                      data[ hospmktyear, lev205loc] += 1
+                    elseif own_fac == (0,1)
+                      data[ hospmktyear, lev305loc] += 1
+                    elseif own_fac == (-999,-999)
+                      # do nothing - firm exited.
+                    else
+                      println("Bad Own Facility Code", f, j, own_fac)
+                    end
+                  elseif (data[hospmktyear, j+1][1] >5) & (data[hospmktyear,j+1][1]< 15)
+                    if own_fac == (0,0)
+                      data[ hospmktyear, lev1515loc] += 1
+                    elseif own_fac == (1,0)
+                      data[ hospmktyear, lev2515loc] += 1
+                    elseif own_fac == (0,1)
+                      data[ hospmktyear, lev3515loc] += 1
+                    elseif own_fac == (-999,-999)
+                      # do nothing - firm exited.
+                    else
+                      println("Bad Own Facility Code", f, j, own_fac)
+                    end
+                  elseif (data[hospmktyear,j+1][1]> 15) & (data[hospmktyear,j+1][1]< 25)
+                    if own_fac == (0,0)
+                      data[ hospmktyear, lev11525loc] += 1
+                    elseif own_fac == (1,0)
+                      data[ hospmktyear, lev21525loc] += 1
+                    elseif own_fac == (0,1)
+                      data[ hospmktyear, lev31525loc] += 1
+                    elseif own_fac == (-999,-999)
+                      # do nothing - firm exited.
+                    else
+                      println("Bad Own Facility Code", f, j, own_fac)
+                    end
+                  else
+                    println("Bad Distance at frame ", f, j)
+                  end
                 end
-              elseif (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips), j+1][1] >5) & (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips),j+1][1]< 15)
-                if own_fac == (0,0)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev1515loc] += 1
-                elseif own_fac == (1,0)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev2515loc] += 1
-                elseif own_fac == (0,1)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev3515loc] += 1
-                elseif own_fac == (-999,-999)
-                  # do nothing - firm exited.
-                else
-                  println("Bad Own Facility Code", f, j, own_fac)
-                end
-              elseif (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips),j+1][1]> 15) & (data[(data[ ,fidloc].==f)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips),j+1][1]< 25)
-                if own_fac == (0,0)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev11525loc] += 1
-                elseif own_fac == (1,0)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev21525loc] += 1
-                elseif own_fac == (0,1)
-                  data[ (data[ ,fidloc].== j)&(data[ ,yearloc].== year), lev31525loc] += 1
-                elseif own_fac == (-999,-999)
-                  # do nothing - firm exited.
-                else
-                  println("Bad Own Facility Code", f, j, own_fac)
-                end
-              else
-                println("Bad Distance at frame ", f, j)
               end
             end
           end
         end
-    # Sum the levels for next period:
-    level1 = 0; level2 = 0; level3 = 0;
-    update_mkt = ((data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips)&(data[ ,act_intloc].!=-999)&(data[ ,act_sololoc].!=-999))
-    total = sum(update_mkt)
-    intens = sum(data[update_mkt, act_intloc])
-    solo = sum(data[update_mkt, act_sololoc])
-    nones = sum(update_mkt) - intens - solo
-  #  println("Computing Market sizes")
-        if (nones < 0) | (intens > total) | (solo > total) | (nones + intens + solo != total)
-          println("Bad market size computations")
-          println("Total ", total, " Level1 ", nones, " Level2 ", solo, " Level 3 ", intens, " Fips: ", mkt_fips, " Year ", year)
-        else
-            level1 = nones
-            level2 = solo
-            level3 = intens
-        end
+
 
         # Entry draw
     entrypairs = hcat(entrants, entryprobs)
     entrantsp = WeightVec(entryprobs)
     newentrant = sample(entrants, entrantsp)
     entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
-    b = ((data[ ,fipscodeloc].== mkt_fips)&(data[ ,yearloc].==year)); # Market-year observations, whether exited or not.
+    b = ((data[ :,fipscodeloc].== mkt_fips)&(data[ :,yearloc].==year)); # Market-year observations, whether exited or not.
         if newentrant> 0
           println("Entry occurred")
           # Eventually fix the fact that the neighbors here are not going to be exactly right.
           # I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
-
-***** FIX THIS
-          ent_lat = mean(dropna(data[b,v15loc])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
-          ent_lon = mean(dropna(data[b,v16loc])) + rand(Normal(0, 0.1), 1)
-
+          ent_lat = mean((data[b,v15loc])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
+          ent_lon = mean((data[b,v16loc])) + rand(Normal(0, 0.1), 1)
 # If the above can be written into an array, then this should change to leave out the dataframe part. :facility :fid :id :location :city :firstyear
-
 
           newrow = data[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
           newrow[facilityloc] = convert(UTF8String, "Entrant $mkt_fips $year")
 #          newrow[facilityloc] = convert(DataArrays.DataArray{ByteString,1}, newrow[:facility])
-          newrow[fidloc] = sample(collect((maximum(data[ ,fid])+1):(maximum(data[ ,fid])+5))) # new facility will always have largest fid
-          newrow[idloc] = -sample(collect((maximum(data[ ,id])+1):(maximum(data[ ,id])+5))) #
+          newrow[fidloc] = sample(collect((maximum(data[:,fidloc])+1):(maximum(data[:,fidloc])+5))) # new facility will always have largest fid
+          newrow[idloc] = -sample(collect((maximum(data[:,idloc])+1):(maximum(data[:,idloc])+5))) #
           newrow[fipscodeloc] = mkt_fips
           newrow[locationloc] = convert(UTF8String, "entrant - see v15 v16")
 #          newrow[locationloc] = convert(DataArrays.DataArray{ByteString,1}, newrow[locationloc])
           newrow[cityloc] = convert(UTF8String, "Entrant - unspecified")
 #          newrow[cityloc] = convert(DataArrays.DataArray{ByteString,1}, newrow[cityloc])
-          newrow[firstyear] = year
+          newrow[firstyearloc] = year
           newrow[v15loc] = ent_lat
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
-
-# This needs to be fixed too.
-8888 FIX this
+          # Just compute the mean over all beds in the state?  This needs to be fixed later.
           entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[:TotalBeds1].>0 ,:TotalBeds1]), unique(peoplesub[ peoplesub[:TotalBeds2].>0 ,:TotalBeds2])) ))) )
 
 # This part IS necessary
@@ -442,7 +427,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             newrow[act_sololoc] = 1
           end
           # Define the data needed for an entrant to compute the demand model for the individuals.  6 components.
-          entrant_data = [newrow[fidloc].data newrow[act_intloc].data newrow[act_sololoc].data entrantbeds ent_lat ent_lon]
+          entrant_data = [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
           if maximum(size(total_entrants))<=1
             total_entrants = entrant_data
           else
@@ -452,12 +437,11 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
           # need to check all of the other fids in the market-year (in b)
           # println("Distances to new entrants")
 
-8888888 "eachrow" probably doesn't work
           for row in eachrow(data[b,:])
             if  (distance(ent_lat[1], ent_lon[1], row[v15loc], row[v16loc]) < 25)
               count = 0 # only want to make an entry once - this is a dumb way
               for c in neighbors_start:(2):size(data)[2]
-  8888          if (isna(row[c]))&(count == 0)
+            if (isna(row[c]))&(count == 0)
                   # println("doing something")
                   # to make changes I need to search for the row in the original DF matching these characteristics.
                   data[(data[ ,fidloc].==row[fidloc])&(data[ ,idloc].==row[idloc])&(data[ ,fipscodeloc].==row[fipscodeloc]), c ]= newrow[fidloc]
@@ -543,6 +527,26 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
         tprob = tprob*entryprobs[4]
       end
     end
+
+    # Sum the levels for next period:
+    level1 = 0; level2 = 0; level3 = 0;
+    update_mkt = ((data[:,yearloc].==year)&(data[:,fipscodeloc].==mkt_fips)&(data[:,act_intloc].!=-999)&(data[:,act_sololoc].!=-999))
+    total = sum(update_mkt)
+    intens = sum(data[update_mkt, act_intloc])
+    solo = sum(data[update_mkt, act_sololoc])
+    nones = sum(update_mkt) - intens - solo
+  #  println("Computing Market sizes")
+        if (nones < 0) | (intens > total) | (solo > total) | (nones + intens + solo != total)
+          println("Bad market size computations")
+          println("Total ", total, " Level1 ", nones, " Level2 ", solo, " Level 3 ", intens, " Fips: ", mkt_fips, " Year ", year)
+        else
+            level1 = nones
+            level2 = solo
+            level3 = intens
+        end
+
+
+
     # Here is the place to do demand - map the results above out to the demand model
     #=
     - Write the fids out to an array
