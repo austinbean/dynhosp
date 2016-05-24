@@ -59,6 +59,20 @@ dataf = dataf[dataf[:id].>= 0, :]
 
 Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 
+To deal with missing values in the hospital dataframe::
+for i in names(dataf)
+    if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
+        dataf[isna(dataf[i]), i] = 0
+    elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
+        dataf[isna(dataf[i]), i] = 0
+    elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
+        dataf[isna(dataf[i]), i] = "NONE"
+  end
+    if sum(size(dataf[isna(dataf[i]), i]))>0
+    print(i, "\n")
+  end
+end
+
 
 =#
 
@@ -67,6 +81,34 @@ Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 # need to hold onto that for the rest of the function - it will probably get much faster.  Something like:
 #   mat1 = [ convert(Vector{Float64}, peo[ind[1]]) convert(Vector{Float64}, peo[ind[2]]) convert(Vector{Float64}, peo[ind[3]]) convert(Vector{Float64}, peo[ind[4]]) convert(Vector{Float64}, peo[ind[5]]) convert(Vector{Float64}, peo[ind[6]])]*modelparameters' + rand(d, siz)
 # If I can logically index into the array easily then everything should be fine.
+
+# What indices do I use and how do I get them?
+# fipscodeloc = dataf.colindex.lookup[:fipscode]
+# yearloc = dataf.colindex.lookup[:year]
+# lev10loc = dataf.colindex.lookup[:level1_hospitals0]
+# lev20loc = dataf.colindex.lookup[:level2solo_hospitals0]
+# lev30loc = dataf.colindex.lookup[:level3_hospitals0]
+# fidloc = dataf.colindex.lookup[:fid]
+# actintloc = dataf.colindex.lookup[:act_int]
+# actsololoc = dataf.colindex.lookup[:act_solo]
+# lev105loc = dataf.colindex.lookup[:lev105]
+# lev205loc = dataf.colindex.lookup[:lev205]
+# lev305loc = dataf.colindex.lookup[:lev305]
+# lev1515loc = dataf.colindex.lookup[:lev1515]
+# lev2515loc = dataf.colindex.lookup[:lev2515]
+# lev3515loc = dataf.colindex.lookup[:lev3515]
+# lev11525loc = dataf.colindex.lookup[:lev11525]
+# lev21525loc = dataf.colindex.lookup[:lev21525]
+# lev31525loc = dataf.colindex.lookup[:lev31525]
+# v15loc = dataf.colindex.lookup[:v15]
+# v16loc = dataf.colindex.lookup[:v16]
+# facilityloc = dataf.colindex.lookup[:facility]
+# idloc = dataf.colindex.lookup[:id]
+# locationloc = dataf.colindex.lookup[:location]
+# cityloc = dataf.colindex.lookup[:city]
+# firstyearloc = dataf.colindex.lookup[:firstyear]
+
+
 
 function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
@@ -145,7 +187,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
             # Draw action:
             action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
             # Change things to reflect the action chosen:
-  # This whole thing is not necessary - none of the dataframe changes are.
+  # This whole thing is not necessary - none of the dataframe changes are at any rate.  The chprob is.
             if action1 == 10
               chprob = probs1[1]
               # no change to state in the aggregate
@@ -361,7 +403,7 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
           ent_lat = mean(dropna(dataf[b,:v15])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
           ent_lon = mean(dropna(dataf[b,:v16])) + rand(Normal(0, 0.1), 1)
 
-# If the above can be written into an array, then this should change to leave out the dataframe part.
+# If the above can be written into an array, then this should change to leave out the dataframe part. :facility :fid :id :location :city :firstyear
 
 
           newrow = dataf[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
@@ -378,7 +420,12 @@ function Simulator(dataf::DataFrame, peoplesub::DataFrame, year::Int64, mkt_fips
           newrow[:v15] = ent_lat
           newrow[:v16] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
+
+# This needs to be fixed too.
+
           entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[:TotalBeds1].>0 ,:TotalBeds1]), unique(peoplesub[ peoplesub[:TotalBeds2].>0 ,:TotalBeds2])) ))) )
+
+# This part IS necessary 
           if newentrant == 1
             level1 += 1
             newrow[:act_int] = 0
