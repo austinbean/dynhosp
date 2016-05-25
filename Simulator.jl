@@ -523,7 +523,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
     intens = sum(data[update_mkt, act_intloc])
     solo = sum(data[update_mkt, act_sololoc])
     nones = sum(update_mkt) - intens - solo
-  #  println("Computing Market sizes")
+    #  println("Computing Market sizes")
         if (nones < 0) | (intens > total) | (solo > total) | (nones + intens + solo != total)
           println("Bad market size computations")
           println("Total ", total, " Level1 ", nones, " Level2 ", solo, " Level 3 ", intens, " Fips: ", mkt_fips, " Year ", year)
@@ -540,7 +540,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
     - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
     - Obtain demand and map it into state_history
     =#
-# Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
+    # Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
     for p in 1:size(peoplesub, 1) # run the operation to map current states to the individual choice data
       peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
     end
@@ -559,7 +559,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
       state_history[i,fid_i+5] = demand_re
     end
 
-  #  println("computing aggregate transition probability")
+    #  println("computing aggregate transition probability")
     state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
 
     # Total number of firms
@@ -570,3 +570,4 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
   end
   return state_history
 end
+end 

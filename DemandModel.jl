@@ -78,8 +78,8 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
 end
 
 
-function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
-  #=
+function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
+  #=  The first argument is the state history, the second the individual record
      This function should take a row of the state history (staterow), and a row of
      the choices (choicerow) and:
      1.  determines the number of fids in the staterow ✓
@@ -95,11 +95,11 @@ function rowchange(staterow::Array{Float64,2}, choicerow::DataFrame; endfields_s
 
   =#
     # Collects the fids which are in the market
-    mktnumfids = unique(((size(staterow)[2])-endfields_state)/fields_state ) # number of facilities
+#    mktnumfids = unique(((size(staterow)[2])-endfields_state)/fields_state ) # number of facilities computed via state history size.
     mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
     # Collects the fids which are in the choice set
     peoplefids =  unique([choicerow[x][1] for x in 2:fields_people:size(choicerow)[2]-(endfields_people) ]) # collects all fids in the person's choice set
-    peoplenumfids = unique(sum(peoplefids.>0)) # Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
+#    peoplenumfids = unique(sum(peoplefids.>0)) # Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
 
     # Takes the values of market fids which are in the choice row (only these must be changed)
     change_fids = intersect(peoplefids, mktfids)
