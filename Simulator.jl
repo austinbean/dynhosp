@@ -443,7 +443,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
           # println("appending neighbors to new entrant's frame row")
           for elem in 1:size(fids,1)
             neighb = fids[elem]
-            neighb_row = (data[ ,fidloc].==neighb)&marketyear
+            neighb_row = (data[ :,fidloc].==neighb)&marketyear
             neighb_lat = data[neighb_row, v15loc][1]
             neighb_lon = data[neighb_row, v16loc][1]
             td = distance(ent_lat[1], ent_lon[1], neighb_lat, neighb_lon)
@@ -494,7 +494,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
       #    println("reshaping state history")
           # The problem is the size computation right here - figure it out.
-          state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[:fid][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids)[1]*fields+4 ))
+          state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids,1)*fields+4 ))
         end
     # Aggregate Probability of Action:
     tprob = 1
