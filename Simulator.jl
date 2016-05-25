@@ -393,26 +393,20 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
           # I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
           ent_lat = mean((data[b,v15loc])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
           ent_lon = mean((data[b,v16loc])) + rand(Normal(0, 0.1), 1)
-# If the above can be written into an array, then this should change to leave out the dataframe part. :facility :fid :id :location :city :firstyear
-
-          newrow = data[b,:][1,:] # create new dataframe row, duplicating existing.  Takes first row of current
+          newrow = data[b,:][1,:] # create new row, duplicating existing.  Takes first row of current
           newrow[facilityloc] = convert(UTF8String, "Entrant $mkt_fips $year")
-#          newrow[facilityloc] = convert(DataArrays.DataArray{ByteString,1}, newrow[:facility])
           newrow[fidloc] = sample(collect((maximum(data[:,fidloc])+1):(maximum(data[:,fidloc])+5))) # new facility will always have largest fid
           newrow[idloc] = -sample(collect((maximum(data[:,idloc])+1):(maximum(data[:,idloc])+5))) #
           newrow[fipscodeloc] = mkt_fips
           newrow[locationloc] = convert(UTF8String, "entrant - see v15 v16")
-#          newrow[locationloc] = convert(DataArrays.DataArray{ByteString,1}, newrow[locationloc])
           newrow[cityloc] = convert(UTF8String, "Entrant - unspecified")
-#          newrow[cityloc] = convert(DataArrays.DataArray{ByteString,1}, newrow[cityloc])
           newrow[firstyearloc] = year
           newrow[v15loc] = ent_lat
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
           # Just compute the mean over all beds in the state?  This needs to be fixed later.
           entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[:TotalBeds1].>0 ,:TotalBeds1]), unique(peoplesub[ peoplesub[:TotalBeds2].>0 ,:TotalBeds2])) ))) )
-
-# This part IS necessary
+          # This part IS necessary
           if newentrant == 1
             level1 += 1
             newrow[act_intloc] = 0
@@ -435,59 +429,54 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
           end
           # Handle appending these entrants to the (neighbor, distance) section
           # need to check all of the other fids in the market-year (in b)
-          # println("Distances to new entrants")
-
-          for row in eachrow(data[b,:])
-            if  (distance(ent_lat[1], ent_lon[1], row[v15loc], row[v16loc]) < 25)
-              count = 0 # only want to make an entry once - this is a dumb way
-              for c in neighbors_start:(2):size(data)[2]
-            if (isna(row[c]))&(count == 0)
-                  # println("doing something")
-                  # to make changes I need to search for the row in the original DF matching these characteristics.
-                  data[(data[ ,fidloc].==row[fidloc])&(data[ ,idloc].==row[idloc])&(data[ ,fipscodeloc].==row[fipscodeloc]), c ]= newrow[fidloc]
-                  data[(data[ ,fidloc].==row[fidloc])&(data[ ,idloc].==row[idloc])&(data[ ,fipscodeloc].==row[fipscodeloc]), c+1]= distance(ent_lat[1], ent_lon[1], row[v15loc], row[v16loc])
-                  count += 1
-                end
+          for row in findfirst(marketyear, 1):findlast(marketyear, 1) # find the first and last row in the market year - this will return the row number in the whole array
+            if  (distance(ent_lat[1], ent_lon[1], data[row,v15loc], data[row,v16loc]) < 25)
+              valfn = findfirst(data[row, neighbors_start-1:2:end], 0) # take the market via data[b,:], go through it via "row", but the number returned needs to be multiplied by 2 and added to neighbors_start!
+              if valfn > 0
+                nbloc = neighbors_start + 2*valfn
+                data[row, nbloc ]= newrow[fidloc]
+                data[row, nbloc+1]= distance(ent_lat[1], ent_lon[1], newrow[v15loc][1], newrow[v16loc][1])
               end
             end
           end
           # Append the neighbors to the new entrant's frame too
           # println("appending neighbors to new entrant's frame row")
-          for elem in 1:size(fids)[1]
+          for elem in 1:size(fids,1)
             neighb = fids[elem]
-            neighb_lat = data[(data[ ,fidloc].==neighb)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips), v15loc][1]
-            neighb_lon = data[(data[ ,fidloc].==neighb)&(data[ ,yearloc].==year)&(data[ ,fipscodeloc].==mkt_fips), v16loc][1]
+            neighb_row = (data[ ,fidloc].==neighb)&marketyear
+            neighb_lat = data[neighb_row, v15loc][1]
+            neighb_lon = data[neighb_row, v16loc][1]
             td = distance(ent_lat[1], ent_lon[1], neighb_lat, neighb_lon)
             if  td < 25
               newrow[neighbors_start+2*(elem-1)] = neighb # fid
               newrow[neighbors_start+2*(elem-1)+1] = td
-            #  println("Success")
+              entrant_state = (newrow[act_sololoc][1], newrow[act_intloc][1])
               if (td > 0) & (td < 5)
-                if (newrow[act_sololoc][1], newrow[act_intloc][1]) == (0,0)
+                if entrant_state == (0,0)
                   newrow[lev105loc] += 1
-                elseif (newrow[act_sololoc][1], newrow[act_intloc][1]) == (1,0)
+                elseif entrant_state == (1,0)
                   newrow[lev205loc] += 1
-                elseif (newrow[act_sololoc][1], newrow[act_intloc][1]) == (0,1)
+                elseif entrant_state == (0,1)
                   newrow[lev305loc] += 1
                 else
                   println("Bad facility in Entrant 1")
                 end
               elseif (td > 5) & (td < 15)
-                if (newrow[act_sololoc][1], newrow[act_intloc][1]) == (0,0)
+                if entrant_state == (0,0)
                   newrow[lev1515loc] += 1
-                elseif (newrow[act_sololoc][1], newrow[act_intloc][1]) == (1,0)
+                elseif entrant_state == (1,0)
                   newrow[lev2515loc] += 1
-                elseif (newrow[act_sololoc][1], newrow[act_intloc][1]) == (0,1)
+                elseif entrant_state == (0,1)
                   newrow[lev3515loc] += 1
                 else
                   println("Bad facility in Entrant 2")
                 end
               elseif (td > 15) & (td < 25)
-                if (newrow[act_sololoc][1], newrow[act_intloc][1]) == (0,0)
+                if entrant_state == (0,0)
                   newrow[lev11525loc] += 1
-                elseif (newrow[act_sololoc][1], newrow[act_intloc][1]) == (1,0)
+                elseif entrant_state == (1,0)
                   newrow[lev21525loc] += 1
-                elseif (newrow[act_sololoc][1], newrow[act_intloc][1]) == (0,1)
+                elseif entrant_state == (0,1)
                   newrow[lev31525loc] += 1
                 else
                   println("Bad facility in Entrant 3")
@@ -499,7 +488,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
           end
           # println("appending entry")
           # Add the new record to the dataframe.
-888 does this function work?          append!(data, newrow)
+          data = [data; newrow]
           # append value to fids
           push!(fids, newrow[fidloc][1])
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
@@ -509,7 +498,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
         end
     # Aggregate Probability of Action:
     tprob = 1
-    for els in 4:fields:(size(state_history[i,:])[2]-4) # 4 is the relevant column
+    for els in 4:fields:(size(state_history[i,:], 2)-4) # 4 is the relevant column
       if (state_history[i,els] <= 0) | (state_history[i,els]>1)
           println("Bad probability at row ", i, " ", els, " ", state_history[i,els-3 ], " prob ", state_history[i,els] )
           break
@@ -527,10 +516,9 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
         tprob = tprob*entryprobs[4]
       end
     end
-
     # Sum the levels for next period:
     level1 = 0; level2 = 0; level3 = 0;
-    update_mkt = ((data[:,yearloc].==year)&(data[:,fipscodeloc].==mkt_fips)&(data[:,act_intloc].!=-999)&(data[:,act_sololoc].!=-999))
+    update_mkt = ((data[:,yearloc].==year)&(data[:,fipscodeloc].==mkt_fips)&(data[:,act_intloc].!=-999)&(data[:,act_sololoc].!=-999)) #compute again for entrants/exiters
     total = sum(update_mkt)
     intens = sum(data[update_mkt, act_intloc])
     solo = sum(data[update_mkt, act_sololoc])
@@ -544,9 +532,6 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
             level2 = solo
             level3 = intens
         end
-
-
-
     # Here is the place to do demand - map the results above out to the demand model
     #=
     - Write the fids out to an array
@@ -555,14 +540,12 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
     - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
     - Obtain demand and map it into state_history
     =#
-
 # Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
-8888 CHANGE ROWCHANGE
-    for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
+    for p in 1:size(peoplesub, 1) # run the operation to map current states to the individual choice data
       peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
     end
     realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
-    for fid_i in 1:fields:size(state_history[i,:])[2]-4
+    for fid_i in 1:fields:size(state_history[i,:], 2)-4
       fid = state_history[i,fid_i]
       demand_re =  try
         realized_d[fid]
