@@ -30,6 +30,8 @@ function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame, frname::ASCIISt
 end
 
 # Duplicates the above but takes fidvect::Array{Int64, 1} if necessary.
+# Timing: @time fidfinder(convert(Array, fids)', people, "people")
+#  0.010568 seconds (837 allocations: 4.533 MB)
 
 function fidfinder(fidvect::Array{Int64, 1}, choices::DataFrame, frname::ASCIIString; maxfid = 11)
     #=
@@ -78,7 +80,7 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
 end
 
 
-function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
+function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
   #=  The first argument is the state history, the second the individual record
      This function should take a row of the state history (staterow), and a row of
      the choices (choicerow) and:
@@ -95,41 +97,29 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; endfields_stat
 
   =#
     # Collects the fids which are in the market
-#    mktnumfids = unique(((size(staterow)[2])-endfields_state)/fields_state ) # number of facilities computed via state history size.
     mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
     # Collects the fids which are in the choice set
-    peoplefids =  unique([choicerow[x][1] for x in 2:fields_people:size(choicerow)[2]-(endfields_people) ]) # collects all fids in the person's choice set
-#    peoplenumfids = unique(sum(peoplefids.>0)) # Counts the number of unique facilities (fid > 0) in the choice set (missing facilities have fid = 0, rather than NA)
-
-    # Takes the values of market fids which are in the choice row (only these must be changed)
-    change_fids = intersect(peoplefids, mktfids)
-    if sum(size(change_fids))== 0
-      return choicerow
-    else # intersection is nonzero
-      for el in change_fids
-        # Here - findfirst(staterow, el)
-        # If that + 1 == -999 and that + 2 = -999
-        # Set that fid to 0 (treats the hospital as missing)
-        # Then need to reload "people" later.
-        if staterow[findfirst(staterow, el)+1] != -999
-          el = convert(Int64, el)
-          (loc, symb) = rowfindfid(choicerow, el) #finds the fid in the row, or returns 0 if absent
-          if loc != 0
-            fid_num = replace(string(symb), r"[fid]", "") # takes the name of the symbol (:fid#), converts to string, "fid#", removes 'fid', obtains "#" as string.
-            # Change NeoIntensive in the choice row to the value in the state row
-            neo = Symbol("NeoIntensive"*fid_num)
-            choicerow[neo] = convert(Int64, staterow[findfirst(staterow, el)+2])
-            # Change SoloIntermeidate in the choice row to the value in the state row
-            solo = Symbol("SoloIntermediate"*fid_num)
-            choicerow[solo] = convert(Int64, staterow[findfirst(staterow, el)+1])
-          else
-            print(el, " not found in row ")
-          end
-        elseif (staterow[findfirst(staterow, el)+1] == -999) | (staterow[findfirst(staterow, el)+2] == -999)
-          el = convert(Int64, el)
-          (loc, symb) = rowfindfid(choicerow, el) #finds the fid in the row, or returns 0 if absent
-          if loc != 0
-            choicerow[symb] = 0 # reassign the value of fid to be zero so that demand cannot be computed for an exited hospital
+    for i in 1:size(choicerow, 1)
+      peoplefids =  convert(Array{Int64}, unique([choicerow[i,x][1] for x in 2:fields_people:size(choicerow, 2)-(endfields_people) ])) # collects all fids in the person's choice set
+      # Takes the values of market fids which are in the choice row (only these must be changed)
+      change_fids = intersect(peoplefids, mktfids)
+      if sum(size(change_fids))== 0
+        # do nothing
+      else # intersection is nonzero
+        for el in change_fids
+          # Here - findfirst(staterow, el)
+          # If that + 1 == -999 and that + 2 = -999
+          # Set that fid to 0 (treats the hospital as missing)
+          # Then need to reload "people" later.
+          fidloc = findfirst(choicerow[i,:], el) # finds the fid in the row of the person's choices
+          statefidloc = findfirst(staterow, el) # finds the fid in the state history row
+          if (staterow[statefidloc+1] != -999) | (staterow[statefidloc+2] != -999) #check whether firm exited
+            choicerow[i,fidloc+choicesololoc] = staterow[statefidloc+1]
+            choicerow[i,fidloc+choiceintloc] = staterow[statefidloc+2]
+          elseif (staterow[fidloc+1] == -999) | (staterow[fidloc+2] == -999)
+            choicerow[i,fidloc] = 0
+            choicerow[i,fidloc+choicesololoc] = -999
+            choicerow[i,fidloc+choiceintloc] = -999
           end
         end
       end

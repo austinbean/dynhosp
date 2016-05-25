@@ -51,8 +51,10 @@ end
 
 # This is needed to clean out the missing values among fids.  Changes them to 0.
 for i in names(people)
-  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
+  if typeof(people[i]) != DataArrays.DataArray{ByteString,1}
     people[isna(people[i]), i] = 0
+  elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+    people[isna(people[i]), i] = "NONE"
   end
 end
 
@@ -100,9 +102,9 @@ end
 # What indices do I use and how do I get them?
 # fipscodeloc = dataf.colindex.lookup[:fipscode]
 # yearloc = dataf.colindex.lookup[:year]
-# lev1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
-# lev2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
-# lev3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
+# level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
+# level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
+# level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
 # fidloc = dataf.colindex.lookup[:fid]
 # act_intloc = dataf.colindex.lookup[:act_int]
 # act_sololoc = dataf.colindex.lookup[:act_solo]
@@ -125,7 +127,7 @@ end
 
 #data = convert(Matrix, dataf)
 
-function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
+function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
     return "Years through 2012 only"
   end
@@ -159,11 +161,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
   # Compute initial demand here:
-
-# REWRITE THIS---  Rowchange is very slow.  Works on a dataframe, that's probably part of it.
-  for p in 1:size(peoplesub)[1] # run the operation to map current states to the individual choice data
-    peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
-  end
+  peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   emp_arr = Array{Float64, 2}()
   realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
@@ -541,9 +539,7 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
     - Obtain demand and map it into state_history
     =#
     # Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
-    for p in 1:size(peoplesub, 1) # run the operation to map current states to the individual choice data
-      peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
-    end
+    peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
     realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
     for fid_i in 1:fields:size(state_history[i,:], 2)-4
       fid = state_history[i,fid_i]
@@ -570,4 +566,4 @@ function Simulator(data::Matrix, peoplesub::DataFrame, year::Int64, mkt_fips::In
   end
   return state_history
 end
-end 
+end
