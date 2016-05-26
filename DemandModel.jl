@@ -79,7 +79,8 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
   return numb, index
 end
 
-
+# Large number of allocations: 0.699547 seconds (4.58 M allocations: 167.552 MB)
+# This for a matrix with 89000 rows. 
 function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
   #=  The first argument is the state history, the second the individual record
      This function should take a row of the state history (staterow), and a row of
@@ -103,9 +104,7 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc =
       peoplefids =  convert(Array{Int64}, unique([choicerow[i,x][1] for x in 2:fields_people:size(choicerow, 2)-(endfields_people) ])) # collects all fids in the person's choice set
       # Takes the values of market fids which are in the choice row (only these must be changed)
       change_fids = intersect(peoplefids, mktfids)
-      if sum(size(change_fids))== 0
-        # do nothing
-      else # intersection is nonzero
+      if sum(size(change_fids))!= 0
         for el in change_fids
           # Here - findfirst(staterow, el)
           # If that + 1 == -999 and that + 2 = -999
