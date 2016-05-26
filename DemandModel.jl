@@ -80,7 +80,7 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
 end
 
 # Large number of allocations: 0.699547 seconds (4.58 M allocations: 167.552 MB)
-# This for a matrix with 89000 rows. 
+# This for a matrix with 89000 rows.
 function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
   #=  The first argument is the state history, the second the individual record
      This function should take a row of the state history (staterow), and a row of
@@ -92,24 +92,17 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc =
    Notes - need to do something special for entrants.
    Can check if fid sets are overlapping - change those fids which are
    Once I know this, I also need to check whether the new hospital is the closest.
-
    staterow has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
    choicerow has the form: [identity, fid, facility, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
-
   =#
     # Collects the fids which are in the market
     mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
     # Collects the fids which are in the choice set
     for i in 1:size(choicerow, 1)
       peoplefids =  convert(Array{Int64}, unique([choicerow[i,x][1] for x in 2:fields_people:size(choicerow, 2)-(endfields_people) ])) # collects all fids in the person's choice set
-      # Takes the values of market fids which are in the choice row (only these must be changed)
-      change_fids = intersect(peoplefids, mktfids)
+      change_fids = intersect(peoplefids, mktfids) # Takes the values of market fids which are in the choice row (only these must be changed)
       if sum(size(change_fids))!= 0
         for el in change_fids
-          # Here - findfirst(staterow, el)
-          # If that + 1 == -999 and that + 2 = -999
-          # Set that fid to 0 (treats the hospital as missing)
-          # Then need to reload "people" later.
           fidloc = findfirst(choicerow[i,:], el) # finds the fid in the row of the person's choices
           statefidloc = findfirst(staterow, el) # finds the fid in the state history row
           if (staterow[statefidloc+1] != -999) | (staterow[statefidloc+2] != -999) #check whether firm exited
@@ -160,7 +153,7 @@ end
 
 
 
-function DemandModel(peo::DataFrame, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
+function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
 # constants/outputs/setup
   outp = zeros(siz)
   entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'

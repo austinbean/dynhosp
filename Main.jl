@@ -161,7 +161,7 @@ peoples = people[fidfinder(fids, people, "people"),:];
 peoplesub = deepcopy(peoples);
 # Mainfun(dataf, peoplesub, 48001, 2003, demandmodelparameters, entryprobs, fids)
 
-
+# This needs to be changed to: dataf and people will now be matrices.
 
 function Mainfun(dataf::DataFrame, people::DataFrame, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, entryprobs::Array{Float64}, fids::Array{Int64})
 			 # returns a dataframe unless converted

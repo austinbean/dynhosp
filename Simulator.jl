@@ -39,6 +39,8 @@ for i in names(dataf)
   end
 end
 
+data = convert(Matrix, dataf)
+
 
 # Load the people
 people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
@@ -70,6 +72,8 @@ demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbe
 
 # Find the right people:
 peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
+
+peoples = convert(Matrix, peoplesub)
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 dataf = dataf[dataf[:id].>= 0, :]
@@ -125,7 +129,9 @@ end
 # cityloc = dataf.colindex.lookup[:city]
 # firstyearloc = dataf.colindex.lookup[:firstyear]
 
-#data = convert(Matrix, dataf)
+# TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
+# TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
+
 
 function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, entryprobs::Array{Float64,1}; T = 100, sim_start = 2, fields = 7)
   if year > 2012
@@ -161,7 +167,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
   # Compute initial demand here:
-  peoplesub[p,:] =rowchange(state_history[1,:], peoplesub[p,:])
+  peoplesub =rowchange(state_history[1,:], peoplesub)
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   emp_arr = Array{Float64, 2}()
   realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
@@ -403,7 +409,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
           # Just compute the mean over all beds in the state?  This needs to be fixed later.
-          entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[:TotalBeds1].>0 ,:TotalBeds1]), unique(peoplesub[ peoplesub[:TotalBeds2].>0 ,:TotalBeds2])) ))) )
+          entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[TotalBeds1loc].>0 ,TotalBeds1loc]), unique(peoplesub[ peoplesub[TotalBeds2loc].>0 ,TotalBeds2loc])) ))) )
           # This part IS necessary
           if newentrant == 1
             level1 += 1
@@ -495,6 +501,9 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           state_history = vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids,1)*fields+4 ))
         end
     # Aggregate Probability of Action:
+
+88888 There is an error here...
+
     tprob = 1
     for els in 4:fields:(size(state_history[i,:], 2)-4) # 4 is the relevant column
       if (state_history[i,els] <= 0) | (state_history[i,els]>1)
@@ -539,7 +548,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
     - Obtain demand and map it into state_history
     =#
     # Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
-    peoplesub[p,:] = rowchange(state_history[i,:], peoplesub[p,:])
+    peoplesub = rowchange(state_history[i-1,:], peoplesub)
     realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
     for fid_i in 1:fields:size(state_history[i,:], 2)-4
       fid = state_history[i,fid_i]
