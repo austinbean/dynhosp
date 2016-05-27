@@ -108,7 +108,7 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc =
           if (staterow[statefidloc+1] != -999) | (staterow[statefidloc+2] != -999) #check whether firm exited
             choicerow[i,fidloc+choicesololoc] = staterow[statefidloc+1]
             choicerow[i,fidloc+choiceintloc] = staterow[statefidloc+2]
-          elseif (staterow[fidloc+1] == -999) | (staterow[fidloc+2] == -999)
+          elseif (staterow[statefidloc+1] == -999) | (staterow[statefidloc+2] == -999)
             choicerow[i,fidloc] = 0
             choicerow[i,fidloc+choicesololoc] = -999
             choicerow[i,fidloc+choiceintloc] = -999
@@ -128,11 +128,14 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 # I do need the constant:
 γ = eulergamma;
 
-function EntrantsU(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+# sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
+# sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]
+
+function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
   siz = size(peo,1)
   rands = rand(d, siz, entnum)
   entvals = zeros(siz, entnum)
-  plocs = [convert(Vector{Float64}, peo[persloc[1]]) convert(Vector{Float64}, peo[persloc[2]])] # this format is: LATITUDE, LONGITUDE
+  plocs = [convert(Vector{Float64}, peo[:,persloc[1]]) convert(Vector{Float64}, peo[:,persloc[2]])] # this format is: LATITUDE, LONGITUDE
   for j = 1:entnum
     for i = 1:siz # ENTRANT FORMAT ends with [Latitude, Longitude]
       d1 = distance(entrants[6*j-1], entrants[6*j], plocs[i,1], plocs[i,2])
@@ -148,35 +151,44 @@ function EntrantsU(peo::DataFrame, entrants::Array{Float64, 2}, modelparameters:
       end
     end
   end
-  return maximum(entvals + rands, 2) # note that due to the randomization, this will generally not return -999, but -999 + rand
+  utils, inds = findmax(entvals + rands, 2)
+  return [utils ind2sub(size(entvals), vec(inds))[2]]  #maximum(entvals + rands, 2) # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
 
 
-
+# 1.599738 seconds (9.47 M allocations: 355.385 MB, 56.89% gc time)
+# That's more costly than I would like
+# Experiment with eliminating the conversions, just form the matrices.
 function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
 # constants/outputs/setup
   outp = zeros(siz)
   entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
 # Computed utilities + error
-  mat1 = [ convert(Vector{Float64}, peo[ind[1]]) convert(Vector{Float64}, peo[ind[2]]) convert(Vector{Float64}, peo[ind[3]]) convert(Vector{Float64}, peo[ind[4]]) convert(Vector{Float64}, peo[ind[5]]) convert(Vector{Float64}, peo[ind[6]])]*modelparameters' + rand(d, siz)
-  mat2 = [ convert(Vector{Float64}, peo[iind[1]]) convert(Vector{Float64}, peo[iind[2]]) convert(Vector{Float64}, peo[iind[3]]) convert(Vector{Float64}, peo[iind[4]]) convert(Vector{Float64}, peo[iind[5]]) convert(Vector{Float64}, peo[iind[6]])]*modelparameters' + rand(d, siz)
-  mat3 = [ convert(Vector{Float64}, peo[iiind[1]]) convert(Vector{Float64}, peo[iiind[2]]) convert(Vector{Float64}, peo[iiind[3]]) convert(Vector{Float64}, peo[iiind[4]]) convert(Vector{Float64}, peo[iiind[5]]) convert(Vector{Float64}, peo[iiind[6]])]*modelparameters' + rand(d, siz)
-  mat4 = [ convert(Vector{Float64}, peo[ivnd[1]]) convert(Vector{Float64}, peo[ivnd[2]]) convert(Vector{Float64}, peo[ivnd[3]]) convert(Vector{Float64}, peo[ivnd[4]]) convert(Vector{Float64}, peo[ivnd[5]]) convert(Vector{Float64}, peo[ivnd[6]])]*modelparameters' + rand(d, siz)
-  mat5 = [ convert(Vector{Float64}, peo[vnd[1]]) convert(Vector{Float64}, peo[vnd[2]]) convert(Vector{Float64}, peo[vnd[3]]) convert(Vector{Float64}, peo[vnd[4]]) convert(Vector{Float64}, peo[vnd[5]]) convert(Vector{Float64}, peo[vnd[6]])]*modelparameters' + rand(d, siz)
-  mat6 = [ convert(Vector{Float64}, peo[vind[1]]) convert(Vector{Float64}, peo[vind[2]]) convert(Vector{Float64}, peo[vind[3]]) convert(Vector{Float64}, peo[vind[4]]) convert(Vector{Float64}, peo[vind[5]]) convert(Vector{Float64}, peo[vind[6]])]*modelparameters' + rand(d, siz)
-  mat7 = [ convert(Vector{Float64}, peo[viind[1]]) convert(Vector{Float64}, peo[viind[2]]) convert(Vector{Float64}, peo[viind[3]]) convert(Vector{Float64}, peo[viind[4]]) convert(Vector{Float64}, peo[viind[5]]) convert(Vector{Float64}, peo[viind[6]])]*modelparameters' + rand(d, siz)
-  mat8 = [ convert(Vector{Float64}, peo[viiind[1]]) convert(Vector{Float64}, peo[viiind[2]]) convert(Vector{Float64}, peo[viiind[3]]) convert(Vector{Float64}, peo[viiind[4]]) convert(Vector{Float64}, peo[viiind[5]]) convert(Vector{Float64}, peo[viiind[6]])]*modelparameters' + rand(d, siz)
-  mat9 = [ convert(Vector{Float64}, peo[ixnd[1]]) convert(Vector{Float64}, peo[ixnd[2]]) convert(Vector{Float64}, peo[ixnd[3]]) convert(Vector{Float64}, peo[ixnd[4]]) convert(Vector{Float64}, peo[ixnd[5]]) convert(Vector{Float64}, peo[ixnd[6]])]*modelparameters' + rand(d, siz)
-  mat10 = [ convert(Vector{Float64}, peo[xnd[1]]) convert(Vector{Float64}, peo[xnd[2]]) convert(Vector{Float64}, peo[xnd[3]]) convert(Vector{Float64}, peo[xnd[4]]) convert(Vector{Float64}, peo[xnd[5]]) convert(Vector{Float64}, peo[xnd[6]])]*modelparameters' + rand(d, siz)
-  mat11 = [ convert(Vector{Float64}, peo[xind[1]]) convert(Vector{Float64}, peo[xind[2]]) convert(Vector{Float64}, peo[xind[3]]) convert(Vector{Float64}, peo[xind[4]]) convert(Vector{Float64}, peo[xind[5]]) convert(Vector{Float64}, peo[xind[6]])]*modelparameters' + rand(d, siz)
+  mat1 = [ convert(Vector{Float64}, peo[:,ind[1]]) convert(Vector{Float64}, peo[:,ind[2]]) convert(Vector{Float64}, peo[:,ind[3]]) convert(Vector{Float64}, peo[:,ind[4]]) convert(Vector{Float64}, peo[:,ind[5]]) convert(Vector{Float64}, peo[:,ind[6]])]*modelparameters' + rand(d, siz)
+  mat2 = [ convert(Vector{Float64}, peo[:,iind[1]]) convert(Vector{Float64}, peo[:,iind[2]]) convert(Vector{Float64}, peo[:,iind[3]]) convert(Vector{Float64}, peo[:,iind[4]]) convert(Vector{Float64}, peo[:,iind[5]]) convert(Vector{Float64}, peo[:,iind[6]])]*modelparameters' + rand(d, siz)
+  mat3 = [ convert(Vector{Float64}, peo[:,iiind[1]]) convert(Vector{Float64}, peo[:,iiind[2]]) convert(Vector{Float64}, peo[:,iiind[3]]) convert(Vector{Float64}, peo[:,iiind[4]]) convert(Vector{Float64}, peo[:,iiind[5]]) convert(Vector{Float64}, peo[:,iiind[6]])]*modelparameters' + rand(d, siz)
+  mat4 = [ convert(Vector{Float64}, peo[:,ivnd[1]]) convert(Vector{Float64}, peo[:,ivnd[2]]) convert(Vector{Float64}, peo[:,ivnd[3]]) convert(Vector{Float64}, peo[:,ivnd[4]]) convert(Vector{Float64}, peo[:,ivnd[5]]) convert(Vector{Float64}, peo[:,ivnd[6]])]*modelparameters' + rand(d, siz)
+  mat5 = [ convert(Vector{Float64}, peo[:,vnd[1]]) convert(Vector{Float64}, peo[:,vnd[2]]) convert(Vector{Float64}, peo[:,vnd[3]]) convert(Vector{Float64}, peo[:,vnd[4]]) convert(Vector{Float64}, peo[:,vnd[5]]) convert(Vector{Float64}, peo[:,vnd[6]])]*modelparameters' + rand(d, siz)
+  mat6 = [ convert(Vector{Float64}, peo[:,vind[1]]) convert(Vector{Float64}, peo[:,vind[2]]) convert(Vector{Float64}, peo[:,vind[3]]) convert(Vector{Float64}, peo[:,vind[4]]) convert(Vector{Float64}, peo[:,vind[5]]) convert(Vector{Float64}, peo[:,vind[6]])]*modelparameters' + rand(d, siz)
+  mat7 = [ convert(Vector{Float64}, peo[:,viind[1]]) convert(Vector{Float64}, peo[:,viind[2]]) convert(Vector{Float64}, peo[:,viind[3]]) convert(Vector{Float64}, peo[:,viind[4]]) convert(Vector{Float64}, peo[:,viind[5]]) convert(Vector{Float64}, peo[:,viind[6]])]*modelparameters' + rand(d, siz)
+  mat8 = [ convert(Vector{Float64}, peo[:,viiind[1]]) convert(Vector{Float64}, peo[:,viiind[2]]) convert(Vector{Float64}, peo[:,viiind[3]]) convert(Vector{Float64}, peo[:,viiind[4]]) convert(Vector{Float64}, peo[:,viiind[5]]) convert(Vector{Float64}, peo[:,viiind[6]])]*modelparameters' + rand(d, siz)
+  mat9 = [ convert(Vector{Float64}, peo[:,ixnd[1]]) convert(Vector{Float64}, peo[:,ixnd[2]]) convert(Vector{Float64}, peo[:,ixnd[3]]) convert(Vector{Float64}, peo[:,ixnd[4]]) convert(Vector{Float64}, peo[:,ixnd[5]]) convert(Vector{Float64}, peo[:,ixnd[6]])]*modelparameters' + rand(d, siz)
+  mat10 = [ convert(Vector{Float64}, peo[:,xnd[1]]) convert(Vector{Float64}, peo[:,xnd[2]]) convert(Vector{Float64}, peo[:,xnd[3]]) convert(Vector{Float64}, peo[:,xnd[4]]) convert(Vector{Float64}, peo[:,xnd[5]]) convert(Vector{Float64}, peo[:,xnd[6]])]*modelparameters' + rand(d, siz)
+  mat11 = [ convert(Vector{Float64}, peo[:,xind[1]]) convert(Vector{Float64}, peo[:,xind[2]]) convert(Vector{Float64}, peo[:,xind[3]]) convert(Vector{Float64}, peo[:,xind[4]]) convert(Vector{Float64}, peo[:,xind[5]]) convert(Vector{Float64}, peo[:,xind[6]])]*modelparameters' + rand(d, siz)
   if size(entrants, 2) > 1
-    allfids = [convert(Vector{Int64}, peo[fidnd[1]]) convert(Vector{Int64}, peo[fidnd[2]]) convert(Vector{Int64}, peo[fidnd[3]]) convert(Vector{Int64}, peo[fidnd[4]]) convert(Vector{Int64}, peo[fidnd[5]]) convert(Vector{Int64}, peo[fidnd[6]]) convert(Vector{Int64}, peo[fidnd[7]]) convert(Vector{Int64}, peo[fidnd[8]]) convert(Vector{Int64}, peo[fidnd[9]]) convert(Vector{Int64}, peo[fidnd[10]]) convert(Vector{Int64}, peo[fidnd[11]]) repmat(entfids, siz, 1)]
-    entval = EntrantsU(people, entrants, modelparameters)
+    allfids = [convert(Vector{Int64}, peo[:,fidnd[1]]) convert(Vector{Int64}, peo[:,fidnd[2]]) convert(Vector{Int64}, peo[:,fidnd[3]]) convert(Vector{Int64}, peo[:,fidnd[4]]) convert(Vector{Int64}, peo[:,fidnd[5]]) convert(Vector{Int64}, peo[:,fidnd[6]]) convert(Vector{Int64}, peo[:,fidnd[7]]) convert(Vector{Int64}, peo[:,fidnd[8]]) convert(Vector{Int64}, peo[:,fidnd[9]]) convert(Vector{Int64}, peo[:,fidnd[10]]) convert(Vector{Int64}, peo[:,fidnd[11]]) repmat(entfids, siz, 1)]
+    entutil = EntrantsU(peo, entrants, modelparameters)
     for i = 1:size(peo, 1)
-      outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entval[i]])]
+    #  outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entutil[i]])]
+       best = indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entutil[i,1]])
+       if best <= 11
+         outp[i] = allfids[i, best]
+       else
+         outp[i] = allfids[i,11 + convert(Int,entutil[i,2])]
+       end
     end
   else # there are no entrants, so "entrants" above is [0.0]', which has size(entrants, 2) == 1
-    allfids = [convert(Vector{Int64}, peo[fidnd[1]]) convert(Vector{Int64}, peo[fidnd[2]]) convert(Vector{Int64}, peo[fidnd[3]]) convert(Vector{Int64}, peo[fidnd[4]]) convert(Vector{Int64}, peo[fidnd[5]]) convert(Vector{Int64}, peo[fidnd[6]]) convert(Vector{Int64}, peo[fidnd[7]]) convert(Vector{Int64}, peo[fidnd[8]]) convert(Vector{Int64}, peo[fidnd[9]]) convert(Vector{Int64}, peo[fidnd[10]]) convert(Vector{Int64}, peo[fidnd[11]])]
+    allfids = [convert(Vector{Int64}, peo[:,fidnd[1]]) convert(Vector{Int64}, peo[:,fidnd[2]]) convert(Vector{Int64}, peo[:,fidnd[3]]) convert(Vector{Int64}, peo[:,fidnd[4]]) convert(Vector{Int64}, peo[:,fidnd[5]]) convert(Vector{Int64}, peo[:,fidnd[6]]) convert(Vector{Int64}, peo[:,fidnd[7]]) convert(Vector{Int64}, peo[:,fidnd[8]]) convert(Vector{Int64}, peo[:,fidnd[9]]) convert(Vector{Int64}, peo[:,fidnd[10]]) convert(Vector{Int64}, peo[:,fidnd[11]])]
     for i = 1:size(peo, 1)
       outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]
     end
