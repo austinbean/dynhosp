@@ -266,8 +266,8 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
               nextint = -999
               nextsolo = -999
             else
-              println("Fail")
-              println("Bad Action Chosen by", el)
+              # println("Fail")
+              # println("Bad Action Chosen by", el)
               break
             end
             # Set own distance counts to 0 for all categories

@@ -444,7 +444,48 @@ function imptest32(peo::DataFrame, modelparameters::Array{Float64, 2}; siz = siz
   for i = 1:size(peo, 1)
     outp[i] = indmax([mat1[i], mat2[i], mat3[i], mat4[i], mat5[i], mat6[i], mat7[i], mat8[i], mat9[i], mat10[i], mat11[i]])
   end
-  return countmap(outp)
+  return outp
+end
+
+
+# Another test to add more type stability, perhaps:
+#=
+change people -
+for i in names(people)
+  if typeof(people[i]) != DataArrays.DataArray{ByteString,1}
+    people[isna(people[i]), i] = 0
+  elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+    people[i] = "0"
+  end
+end
+
+for i in names(people)
+  if (typeof(people[i]) == DataArrays.DataArray{ByteString,1}) | (typeof(people[i]) == DataArrays.DataArray{ASCIIString,1})
+    people[i] = map(x->parse(Float64, x), people[i])
+    convert(DataArrays.DataArray{Float64,1}, people[i])
+  end
+end
+
+=#
+
+
+function imptest321(peo::Matrix{Float64}, modelparameters::Array{Float64, 2}; siz = size(peo,1) , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176] )
+  outp = zeros(siz)
+  mat1 = [ convert(Vector{Float64}, peo[ind[1]]) convert(Vector{Float64}, peo[ind[2]]) convert(Vector{Float64}, peo[ind[3]]) convert(Vector{Float64}, peo[ind[4]]) convert(Vector{Float64}, peo[ind[5]]) convert(Vector{Float64}, peo[ind[6]])]*modelparameters' + rand(d, siz)
+  mat2 = [ convert(Vector{Float64}, peo[iind[1]]) convert(Vector{Float64}, peo[iind[2]]) convert(Vector{Float64}, peo[iind[3]]) convert(Vector{Float64}, peo[iind[4]]) convert(Vector{Float64}, peo[iind[5]]) convert(Vector{Float64}, peo[iind[6]])]*modelparameters' + rand(d, siz)
+  mat3 = [ convert(Vector{Float64}, peo[iiind[1]]) convert(Vector{Float64}, peo[iiind[2]]) convert(Vector{Float64}, peo[iiind[3]]) convert(Vector{Float64}, peo[iiind[4]]) convert(Vector{Float64}, peo[iiind[5]]) convert(Vector{Float64}, peo[iiind[6]])]*modelparameters' + rand(d, siz)
+  mat4 = [ convert(Vector{Float64}, peo[ivnd[1]]) convert(Vector{Float64}, peo[ivnd[2]]) convert(Vector{Float64}, peo[ivnd[3]]) convert(Vector{Float64}, peo[ivnd[4]]) convert(Vector{Float64}, peo[ivnd[5]]) convert(Vector{Float64}, peo[ivnd[6]])]*modelparameters' + rand(d, siz)
+  mat5 = [ convert(Vector{Float64}, peo[vnd[1]]) convert(Vector{Float64}, peo[vnd[2]]) convert(Vector{Float64}, peo[vnd[3]]) convert(Vector{Float64}, peo[vnd[4]]) convert(Vector{Float64}, peo[vnd[5]]) convert(Vector{Float64}, peo[vnd[6]])]*modelparameters' + rand(d, siz)
+  mat6 = [ convert(Vector{Float64}, peo[vind[1]]) convert(Vector{Float64}, peo[vind[2]]) convert(Vector{Float64}, peo[vind[3]]) convert(Vector{Float64}, peo[vind[4]]) convert(Vector{Float64}, peo[vind[5]]) convert(Vector{Float64}, peo[vind[6]])]*modelparameters' + rand(d, siz)
+  mat7 = [ convert(Vector{Float64}, peo[viind[1]]) convert(Vector{Float64}, peo[viind[2]]) convert(Vector{Float64}, peo[viind[3]]) convert(Vector{Float64}, peo[viind[4]]) convert(Vector{Float64}, peo[viind[5]]) convert(Vector{Float64}, peo[viind[6]])]*modelparameters' + rand(d, siz)
+  mat8 = [ convert(Vector{Float64}, peo[viiind[1]]) convert(Vector{Float64}, peo[viiind[2]]) convert(Vector{Float64}, peo[viiind[3]]) convert(Vector{Float64}, peo[viiind[4]]) convert(Vector{Float64}, peo[viiind[5]]) convert(Vector{Float64}, peo[viiind[6]])]*modelparameters' + rand(d, siz)
+  mat9 = [ convert(Vector{Float64}, peo[ixnd[1]]) convert(Vector{Float64}, peo[ixnd[2]]) convert(Vector{Float64}, peo[ixnd[3]]) convert(Vector{Float64}, peo[ixnd[4]]) convert(Vector{Float64}, peo[ixnd[5]]) convert(Vector{Float64}, peo[ixnd[6]])]*modelparameters' + rand(d, siz)
+  mat10 = [ convert(Vector{Float64}, peo[xnd[1]]) convert(Vector{Float64}, peo[xnd[2]]) convert(Vector{Float64}, peo[xnd[3]]) convert(Vector{Float64}, peo[xnd[4]]) convert(Vector{Float64}, peo[xnd[5]]) convert(Vector{Float64}, peo[xnd[6]])]*modelparameters' + rand(d, siz)
+  mat11 = [ convert(Vector{Float64}, peo[xind[1]]) convert(Vector{Float64}, peo[xind[2]]) convert(Vector{Float64}, peo[xind[3]]) convert(Vector{Float64}, peo[xind[4]]) convert(Vector{Float64}, peo[xind[5]]) convert(Vector{Float64}, peo[xind[6]])]*modelparameters' + rand(d, siz)
+  for i = 1:size(peo, 1)
+    outp[i] = indmax([mat1[i], mat2[i], mat3[i], mat4[i], mat5[i], mat6[i], mat7[i], mat8[i], mat9[i], mat10[i], mat11[i]])
+  end
+  return outp
 end
 
 
