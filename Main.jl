@@ -21,11 +21,11 @@ using DataArrays
 using Distributions
 
 # Include necessary functions
-include("/Users/austinbean/Desktop/dynhosp/combgen.jl")
-include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
-include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
-include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
-include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
+# include("/Users/austinbean/Desktop/dynhosp/combgen.jl")
+# include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
+# include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
+# include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
+# include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
 include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
 include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
 include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
@@ -144,7 +144,7 @@ choices = 4;
 α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
 # Actual entry probabilities will be substituted in later.
 #entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
-entryprobs = [1.0, 0.0, 0.0, 0.0] # back-up entry probs with no entry for faster work.
+#entryprobs = [1.0, 0.0, 0.0, 0.0] # back-up entry probs with no entry for faster work.
 entrants = [0, 1, 2, 3]
 sim_start = 2;
 neighbors_start = 108;
@@ -152,13 +152,13 @@ fields = 7;
 
 # I should have 356 FIDs x 22 years of hospitals.
 
-
-mkt_fips = 48001;
-year = 2003;
-dataf = deepcopy(data1);
-fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
-peoples = people[fidfinder(fids, people, "people"),:];
-peoplesub = deepcopy(peoples);
+#
+# mkt_fips = 48001;
+# year = 2003;
+# dataf = deepcopy(data1);
+# fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
+# peoples = people[fidfinder(fids, people, "people"),:];
+# peoplesub = deepcopy(peoples);
 # Mainfun(dataf, peoplesub, 48001, 2003, demandmodelparameters, entryprobs, fids)
 
 # This needs to be changed to: dataf and people will now be matrices.
