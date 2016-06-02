@@ -1,5 +1,5 @@
 # PerturbAction
-using Distributions
+#using Distributions
 type VarianceException <: Exception end
 
 function perturb(probs::Array, eps::Float64, control::Bool)

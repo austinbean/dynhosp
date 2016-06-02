@@ -1,18 +1,18 @@
-using DataFrames
-using DataArrays
-using Distributions
+# using DataFrames
+# using DataArrays
+# using Distributions
+#
+# include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+# include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+# include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
 
-include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
 
-
-T = 100;
-neighbors_start = 108;
-entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
-entrants = [0, 1, 2, 3]
-fields = 7; # if fields updated, update reshaping of state history
-sim_start = 2;
+#T = 100;
+#neighbors_start = 108;
+#entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+#entrants = [0, 1, 2, 3]
+#fields = 7; # if fields updated, update reshaping of state history
+#sim_start = 2;
 
 #=
 # TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.

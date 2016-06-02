@@ -1,10 +1,10 @@
 # Use the parameters of the demand model to estimate choices:
 
 # Version: 05 09 16
-
-using DataFrames
-using DataArrays
-using Distributions
+#
+# using DataFrames
+# using DataArrays
+# using Distributions
 
 # Now in use in Main.jl
 
@@ -120,13 +120,13 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc =
 end
 
 
-dist_μ = 0;
-dist_σ = 1;
-dist_ξ = 0;
-srand(123)
-d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
-# I do need the constant:
-γ = eulergamma;
+# dist_μ = 0;
+# dist_σ = 1;
+# dist_ξ = 0;
+# srand(123)
+# d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+# # I do need the constant:
+# γ = eulergamma;
 
 # sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
 # sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]

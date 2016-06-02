@@ -14,12 +14,19 @@ converge to 0?
     • For each market, we need N+1 cores, 1 for the main simulator, which does all
     hospitals under their equilibrium, then N to do Perturb for each of them separately.
 
-- 06 01 16: Shell script for rapid setup of Amazon instance - see "shell_script.sh"
+- 06 01 16: DONE - Shell script for rapid setup of Amazon instance - see "shell_script.sh" ✓
 
 - 06 01 16: Module to import and add all needed elements: data and programs - general improvement to
-non-interactive use of commands.  Note that parallelizing presents special requirements
+non-interactive use of commands.  Note that parallelizing presents special requirements.  It seems like
+some difference is made by addprocs() after the REPL is run vs. julia -p 3.  Why I do not know.
 
 - 06 01 16: Change main function in at least two ways:
   • Need to incorporate a number for the monte carlo sims
-  • Need to change the storage container method 
+  • Need to change the storage container method
   •
+
+- FIRST THING 06 02:
+  Fix the module.
+  Make sure all of the functions work.
+  Remember what was commented: reimporting the DataFrames thing - not needed.
+  Add the data importing to the module.
