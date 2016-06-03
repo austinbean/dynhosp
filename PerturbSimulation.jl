@@ -9,7 +9,7 @@
 
 #T = 100;
 #neighbors_start = 108;
-#entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+#entryprobs = [0.9895, 0.008, 0.0005, 0.002] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 #entrants = [0, 1, 2, 3]
 #fields = 7; # if fields updated, update reshaping of state history
 #sim_start = 2;
@@ -94,7 +94,7 @@ dataf = dataf[dataf[:id].>= 0, :]
 
 
 
-function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64, entryprobs::Array{Float64,1}; disturb = 0.05,  T = 100, sim_start = 2, fields = 7)
+function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108)
   # if year > 2012
   #   return "Years through 2012 only"
   # end

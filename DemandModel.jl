@@ -119,19 +119,20 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc =
   return choicerow
 end
 
-
-dist_μ = 0;
-dist_σ = 1;
-dist_ξ = 0;
-srand(123)
-d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
-# I do need the constant:
+#
+# dist_μ = 0;
+# dist_σ = 1;
+# dist_ξ = 0;
+# srand(123)
+# d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+# # I do need the constant:
 γ = eulergamma;
 
 # sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
 # sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]
 
-function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
   siz = size(peo,1)
   rands = rand(d, siz, entnum)
   entvals = zeros(siz, entnum)
@@ -158,6 +159,7 @@ end
 
 # 1.599738 seconds (9.47 M allocations: 355.385 MB, 56.89% gc time)
 # 0.533586 seconds (7.71 M allocations: 310.720 MB)
+# entrants = Array{Float64, 2}() # for a fast test with no entrants
 # That's more costly than I would like
 # Experiment with eliminating the conversions, just form the matrices.
 function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )

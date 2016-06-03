@@ -32,7 +32,10 @@ end # of module
 
 #=
 neighbors_start = 108;
-entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+entryprobs = [0.9895, 0.008, 0.0005, 0.002] # From TX Entry Exit Per Market Count.do
+sendto(lis, entryprobs=entryprobs)
+
+
 entrants = [0, 1, 2, 3]
 fields = 7; # if fields updated, update reshaping of state history
 T = 100;
@@ -44,38 +47,14 @@ fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==yea
 
 
 
-dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-notmissing = findin(DataFrames.isna(dataf[:fipscode]), false);
-dataf = dataf[notmissing, :];
-
-  # Handle missing dataframe elements::
-  for i in names(dataf)
-      if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
-          dataf[DataFrames.isna(dataf[i]), i] = 0
-      elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
-          dataf[DataFrames.isna(dataf[i]), i] = 0
-      elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
-          dataf[DataFrames.isna(dataf[i]), i] = "NONE"
-    end
-      if sum(size(dataf[DataFrames.isna(dataf[i]), i]))>0
-      print(i, "\n")
-    end
-  end
-
-  data = convert(Matrix, dataf);
-
-
 
 # TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
 
 # Import Data
+
 dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
-yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
-mkt_fips = yearins[10][1]
-year = 2011
-fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
 
 # Handle missing dataframe elements::
 for i in names(dataf)
@@ -91,7 +70,13 @@ for i in names(dataf)
   end
 end
 
-data = convert(Matrix, dataf)
+data = convert(Matrix, dataf);
+
+yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
+mkt_fips = yearins[10][1]
+year = 2011
+fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+
 
 # Now send to all workers:
 sendto(lis; data=data)
@@ -100,11 +85,6 @@ sendto(lis; data=data)
 # Load the people
 people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
-# Enumerate all of the types::
-a = Set()
-for el in people.columns
-  push!(a, typeof(el))
-end
 
 # This is needed to clean out the missing values among fids.  Changes them to 0.
 for i in names(people)

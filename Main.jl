@@ -143,7 +143,7 @@ choices = 4;
 α₂ = 0.07;  # Fraction of patients admitted to NICU lev 2 on average (PA Data)
 α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
 # Actual entry probabilities will be substituted in later.
-#entryprobs = [0.99, 0.004, 0.001, 0.005] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+#entryprobs = [0.9895, 0.008, 0.0005, 0.002] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
 #entryprobs = [1.0, 0.0, 0.0, 0.0] # back-up entry probs with no entry for faster work.
 entrants = [0, 1, 2, 3]
 sim_start = 2;
@@ -202,8 +202,7 @@ fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
 donefips  = [x for x in unique(fout1[:fipscode])]
 
 
-entryprobs = [0.99, 0.004, 0.001, 0.005]
-
+entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 
 
 
