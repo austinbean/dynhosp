@@ -8,7 +8,21 @@
 
 # Now in use in Main.jl
 
-function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame, frname::ASCIIString; maxfid = 11)
+# Indices:
+people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+fid1loc = people.colindex.lookup[:fid1]
+fid2loc = people.colindex.lookup[:fid2]
+fid3loc = people.colindex.lookup[:fid3]
+fid4loc = people.colindex.lookup[:fid4]
+fid5loc = people.colindex.lookup[:fid5]
+fid6loc = people.colindex.lookup[:fid6]
+fid7loc = people.colindex.lookup[:fid7]
+fid8loc = people.colindex.lookup[:fid8]
+fid9loc = people.colindex.lookup[:fid9]
+fid10loc = people.colindex.lookup[:fid10]
+fid11loc = people.colindex.lookup[:fid11]
+
+function fidfinder(fidvect::Array{Int64, 2}, choices::Matrix; maxfid = 11)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
@@ -17,13 +31,13 @@ function fidfinder(fidvect::Array{Int64, 2}, choices::DataFrame, frname::ASCIISt
       The function takes as one argument the name of the frame "choices" (frname) as a string.
     =#
     subset = falses(size(choices)[1])
-      for k in 1:size(fidvect)[1]
+      for k in 1:maximum(size(fidvect))
         targ = fidvect[k]
-        for j = 1:maxfid
-           subex = parse(frname*"[:fid$j].==$targ")
-           true_v = eval(subex)
+        for j in [fid1loc fid2loc fid3loc fid4loc fid5loc fid6loc fid7loc fid8loc fid9loc fid10loc fid11loc]
+           subex = (choices[:,j].==targ)
+      #     true_v = eval(subex)
       #     print( size(true_v), "   ") # for testing purposes
-           subset = subset | true_v
+           subset = subset | subex
         end
       end
     return subset
@@ -41,18 +55,17 @@ function fidfinder(fidvect::Array{Int64, 1}, choices::DataFrame, frname::ASCIISt
       which will be true when the result expression is true.  It operates on a whole DataFrame
       The function takes as one argument the name of the frame "choices" (frname) as a string.
     =#
-    subset = falses(size(choices)[1])
-      for k in 1:size(fidvect)[1]
+      subset = falses(size(choices)[1])
+      for k in 1:maximum(size(fidvect))
         targ = fidvect[k]
-        for j = 1:maxfid
-           subex = parse(frname*"[:fid$j].==$targ")
-           true_v = eval(subex)
-      #     print( size(true_v), "   ") # for testing purposes
-           subset = subset | true_v
+        for j in [fid1loc fid2loc fid3loc fid4loc fid5loc fid6loc fid7loc fid8loc fid9loc fid10loc fid11loc]
+           subex = (choices[:,j].==targ)
+           subset = subset | subex
         end
       end
     return subset
 end
+
 
 # The next function will find values in the one-row dataframe element given a list of symbols
 
