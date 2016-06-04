@@ -2,7 +2,7 @@
 
 
 
-function Mainfun(dataf::DataFrame, people::DataFrame, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, entryprobs::Array{Float64}, fids::Array{Int64})
+function Mainfun(dataf::DataFrame, people::DataFrame, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, entryprobs::Array{Float64}, fids::Array{Int64}; nsims = 10)
 			 # returns a dataframe unless converted
       numfids = size(fids)[1]
       outp = zeros(numfids, 183)

@@ -106,33 +106,36 @@ end
 # If I can logically index into the array easily then everything should be fine.
 
 # What indices do I use and how do I get them?
-# fipscodeloc = dataf.colindex.lookup[:fipscode]
-# yearloc = dataf.colindex.lookup[:year]
-# level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
-# level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
-# level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
-# fidloc = dataf.colindex.lookup[:fid]
-# act_intloc = dataf.colindex.lookup[:act_int]
-# act_sololoc = dataf.colindex.lookup[:act_solo]
-# lev105loc = dataf.colindex.lookup[:lev105]
-# lev205loc = dataf.colindex.lookup[:lev205]
-# lev305loc = dataf.colindex.lookup[:lev305]
-# lev1515loc = dataf.colindex.lookup[:lev1515]
-# lev2515loc = dataf.colindex.lookup[:lev2515]
-# lev3515loc = dataf.colindex.lookup[:lev3515]
-# lev11525loc = dataf.colindex.lookup[:lev11525]
-# lev21525loc = dataf.colindex.lookup[:lev21525]
-# lev31525loc = dataf.colindex.lookup[:lev31525]
-# v15loc = dataf.colindex.lookup[:v15]
-# v16loc = dataf.colindex.lookup[:v16]
-# facilityloc = dataf.colindex.lookup[:facility]
-# idloc = dataf.colindex.lookup[:id]
-# locationloc = dataf.colindex.lookup[:location]
-# cityloc = dataf.colindex.lookup[:city]
-# firstyearloc = dataf.colindex.lookup[:firstyear]
-#
-# TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
-# TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
+dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
+people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+
+fipscodeloc = dataf.colindex.lookup[:fipscode]
+yearloc = dataf.colindex.lookup[:year]
+level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
+level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
+level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
+fidloc = dataf.colindex.lookup[:fid]
+act_intloc = dataf.colindex.lookup[:act_int]
+act_sololoc = dataf.colindex.lookup[:act_solo]
+lev105loc = dataf.colindex.lookup[:lev105]
+lev205loc = dataf.colindex.lookup[:lev205]
+lev305loc = dataf.colindex.lookup[:lev305]
+lev1515loc = dataf.colindex.lookup[:lev1515]
+lev2515loc = dataf.colindex.lookup[:lev2515]
+lev3515loc = dataf.colindex.lookup[:lev3515]
+lev11525loc = dataf.colindex.lookup[:lev11525]
+lev21525loc = dataf.colindex.lookup[:lev21525]
+lev31525loc = dataf.colindex.lookup[:lev31525]
+v15loc = dataf.colindex.lookup[:v15]
+v16loc = dataf.colindex.lookup[:v16]
+facilityloc = dataf.colindex.lookup[:facility]
+idloc = dataf.colindex.lookup[:id]
+locationloc = dataf.colindex.lookup[:location]
+cityloc = dataf.colindex.lookup[:city]
+firstyearloc = dataf.colindex.lookup[:firstyear]
+
+TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
+TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
 
 
 function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])

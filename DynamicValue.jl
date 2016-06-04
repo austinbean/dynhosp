@@ -27,8 +27,8 @@ Second output type - record facility changes:
 
 #### FUTURE FIX - not taking into account the fact that some percentage of demand will go to higher levels !  That's the whole point.
 
-function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, T = 100, max_hosp = 25)
-  len, width = size(state_history)
+function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, max_hosp = 25)
+  T, width = size(state_history)
   index = findfirst(state_history[1,:], fac_fid) # where is the perturbed facility
   fac_section = state_history[:, index:index+6] # take the section from the actual history corresponding
   agg_section = state_history[:, width-3:end]
@@ -67,7 +67,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
     # do nothing with this firm - it enters later.
   end
 
-  for row in 2:(T+1)
+  for row in 2:T
     if (history[row,2], history[row,3]) == (0,0)
       levelcount = convert(Int64, sum(history[row, end-3:end-1])) # revenue depends on total hospitals
       outp[1, levelcount+1] += (β^row)*history[row, 6]*history[row,end] # this is discount^t * demand * probability (aggregate)
