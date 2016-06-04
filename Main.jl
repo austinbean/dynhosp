@@ -16,47 +16,47 @@ Platform Info:
 =#
 
 # Packages
-using DataFrames
-using DataArrays
-using Distributions
-
-# Include necessary functions
-# include("/Users/austinbean/Desktop/dynhosp/combgen.jl")
-# include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
-# include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
-# include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
-# include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
-include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
-include("/Users/austinbean/Desktop/dynhosp/PerturbSimulation.jl")
-include("/Users/austinbean/Desktop/dynhosp/DynamicValue.jl")
-include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
-
-
-# Import Data
-data1 = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-notmissing = findin(isna(data1[:fipscode]), false);
-data1 = data1[notmissing, :];
-
-regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
-
-# Individual level demands -
-# DO NOT CHANGE THE NAME "people" - it will mess up fidfinder in DemandFunction.jl
-people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Individual Choices.csv", header = true);
-
-# Check the NFP status variable in the above
-# Coefficients on the demand model:
-modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Model.csv", header = true);
-distance_c = modcoeffs[1, 2]
-distsq_c = modcoeffs[2, 2]
-neoint_c = modcoeffs[3, 2]
-soloint_c = modcoeffs[4, 2]
-closest_c = modcoeffs[5, 2]
-distbed_c = modcoeffs[6, 2]
-
-demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
-
+# using DataFrames
+# using DataArrays
+# using Distributions
+#
+# # Include necessary functions
+# # include("/Users/austinbean/Desktop/dynhosp/combgen.jl")
+# # include("/Users/austinbean/Desktop/dynhosp/nckr.jl")
+# # include("/Users/austinbean/Desktop/dynhosp/probfinder.jl")
+# # include("/Users/austinbean/Desktop/dynhosp/probfind2.jl")
+# # include("/Users/austinbean/Desktop/dynhosp/tuplefinder.jl")
+# include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+# include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+# include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
+# include("/Users/austinbean/Desktop/dynhosp/PerturbSimulation.jl")
+# include("/Users/austinbean/Desktop/dynhosp/DynamicValue.jl")
+# include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
+#
+#
+# # Import Data
+# data1 = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
+# notmissing = findin(isna(data1[:fipscode]), false);
+# data1 = data1[notmissing, :];
+#
+# regcoeffs = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
+#
+# # Individual level demands -
+# # DO NOT CHANGE THE NAME "people" - it will mess up fidfinder in DemandFunction.jl
+# people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Individual Choices.csv", header = true);
+#
+# # Check the NFP status variable in the above
+# # Coefficients on the demand model:
+# modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Model.csv", header = true);
+# distance_c = modcoeffs[1, 2]
+# distsq_c = modcoeffs[2, 2]
+# neoint_c = modcoeffs[3, 2]
+# soloint_c = modcoeffs[4, 2]
+# closest_c = modcoeffs[5, 2]
+# distbed_c = modcoeffs[6, 2]
+#
+# demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+#
 
 # For use in the demand model::
 type  RowSizeError  <: Exception end
@@ -64,34 +64,34 @@ type  RowSizeError  <: Exception end
 
 
 # Enumerate all of the types::
-a = Set()
-for el in people.columns
-  push!(a, typeof(el))
-end
-
-# This is needed to clean out the missing values among fids.  Changes them to 0.
-
-# Think about one change - if demand model coeff is positive, change value to large negative,
-# if negative, change to large positive.  Then it's basically impossible for that to be the choice.
-
-
-for i in names(people)
-  if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
-    people[isna(people[i]), i] = 0
-  elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
-    people[isna(people[i]), i] = 0
-  elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
-    # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
-    # with opposite signs of the corresponding coefficients from modelparameters.
-    # This does that by looking at missing NAMES, not fids.
-    people[isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
-    people[isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
-    people[isna(people[i]), i] = "NONE"
-  end
-  if sum(size(people[isna(people[i]), i]))>0
-    print(i, "\n")
-  end
-end
+# a = Set()
+# for el in people.columns
+#   push!(a, typeof(el))
+# end
+#
+# # This is needed to clean out the missing values among fids.  Changes them to 0.
+#
+# # Think about one change - if demand model coeff is positive, change value to large negative,
+# # if negative, change to large positive.  Then it's basically impossible for that to be the choice.
+#
+#
+# for i in names(people)
+#   if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
+#     people[isna(people[i]), i] = 0
+#   elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
+#     people[isna(people[i]), i] = 0
+#   elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+#     # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+#     # with opposite signs of the corresponding coefficients from modelparameters.
+#     # This does that by looking at missing NAMES, not fids.
+#     people[isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
+#     people[isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
+#     people[isna(people[i]), i] = "NONE"
+#   end
+#   if sum(size(people[isna(people[i]), i]))>0
+#     print(i, "\n")
+#   end
+# end
 
 
 
@@ -110,13 +110,13 @@ yearins = [ [x; findfirst(data1[:fipscode], x); findlast(data1[:fipscode], x ); 
 # Parameters of the shock distribution
 # This is wrong - I don't draw shocks from this, I draw conditional means,
 # conditional on being the maximum.
-dist_μ = 0;
-dist_σ = 1;
-dist_ξ = 0;
-srand(123)
-d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
-# I do need the constant:
-γ = eulergamma;
+# dist_μ = 0;
+# dist_σ = 1;
+# dist_ξ = 0;
+# srand(123)
+# d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+# # I do need the constant:
+# γ = eulergamma;
 
 
 # Action codes:
@@ -137,18 +137,18 @@ d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
 
 ######  Simulation Section Starts Here #######
 
-β = 0.95;
-T = 100;
-choices = 4;
-α₂ = 0.07;  # Fraction of patients admitted to NICU lev 2 on average (PA Data)
-α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
-# Actual entry probabilities will be substituted in later.
-#entryprobs = [0.9895, 0.008, 0.0005, 0.002] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
-#entryprobs = [1.0, 0.0, 0.0, 0.0] # back-up entry probs with no entry for faster work.
-entrants = [0, 1, 2, 3]
-sim_start = 2;
-neighbors_start = 108;
-fields = 7;
+# β = 0.95;
+# T = 100;
+# choices = 4;
+# α₂ = 0.07;  # Fraction of patients admitted to NICU lev 2 on average (PA Data)
+# α₃ = 0.13; # Fraction of patients admitted to NICU Lev 3 on average (PA Data)
+# # Actual entry probabilities will be substituted in later.
+# #entryprobs = [0.9895, 0.008, 0.0005, 0.002] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
+# #entryprobs = [1.0, 0.0, 0.0, 0.0] # back-up entry probs with no entry for faster work.
+# entrants = [0, 1, 2, 3]
+# sim_start = 2;
+# neighbors_start = 108;
+# fields = 7;
 
 # I should have 356 FIDs x 22 years of hospitals.
 

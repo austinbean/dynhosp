@@ -23,7 +23,7 @@ dataf = dataf[notmissing, :];
 yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
 mkt_fips = yearins[10][1]
 year = 2011
-fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+fids = convert(Vector, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
 
 # Handle missing dataframe elements::
 for i in names(dataf)

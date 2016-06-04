@@ -1,5 +1,5 @@
 # reboot:
-
+# include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
 
 
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
@@ -54,6 +54,7 @@ using Distributions
 
   demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
+  global const idloc = dataf.colindex.lookup[:id]
 
 
 end # of "begin" block
@@ -95,7 +96,7 @@ p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array
 # global const v15loc = dataf.colindex.lookup[:v15]
 # global const v16loc = dataf.colindex.lookup[:v16]
 # global const facilityloc = dataf.colindex.lookup[:facility]
-# global const idloc = dataf.colindex.lookup[:id]
+
 # global const locationloc = dataf.colindex.lookup[:location]
 # global const cityloc = dataf.colindex.lookup[:city]
 # global const firstyearloc = dataf.colindex.lookup[:firstyear]

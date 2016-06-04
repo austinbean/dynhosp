@@ -405,7 +405,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             newrow[act_sololoc] = 1
           end
           # Define the data needed for an entrant to compute the demand model for the individuals.  6 components.
-          print("part 3.25 \n")
+  #        print("part 3.25 \n")
           entrant_data = [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
           if maximum(size(total_entrants))<=1
             total_entrants = entrant_data
