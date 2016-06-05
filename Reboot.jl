@@ -30,31 +30,51 @@ using Distributions
 
     data = convert(Matrix, dataf);
 
+
+      # Import the model coefficients
+      modcoeffs = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+
+      global const distance_c = modcoeffs[1, 2]
+      global const distsq_c = modcoeffs[2, 2]
+      global const neoint_c = modcoeffs[3, 2]
+      global const soloint_c = modcoeffs[4, 2]
+      global const closest_c = modcoeffs[5, 2]
+      global const distbed_c = modcoeffs[6, 2]
+
+      demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+
+
+
   # Import the people and convert that data to a matrix
     people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
     for i in names(people)
-      if typeof(people[i]) != DataArrays.DataArray{ByteString,1}
+      if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
+        people[DataFrames.isna(people[i]), i] = 0
+      elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
         people[DataFrames.isna(people[i]), i] = 0
       elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+        # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+        # with opposite signs of the corresponding coefficients from modelparameters.
+        # This does that by looking at missing NAMES, not fids.
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
         people[DataFrames.isna(people[i]), i] = "NONE"
       end
+      if sum(size(people[DataFrames.isna(people[i]), i]))>0
+        print(i, "\n")
+      end
     end
+
+
+
     peoples = convert(Matrix, people);
 
-  # Import the model coefficients
-  modcoeffs = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
 
-  global const distance_c = modcoeffs[1, 2]
-  global const distsq_c = modcoeffs[2, 2]
-  global const neoint_c = modcoeffs[3, 2]
-  global const soloint_c = modcoeffs[4, 2]
-  global const closest_c = modcoeffs[5, 2]
-  global const distbed_c = modcoeffs[6, 2]
-
-  demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
-
-  global const idloc = dataf.colindex.lookup[:id]
+    global const idloc = dataf.colindex.lookup[:id]
+    global const fidloc = dataf.colindex.lookup[:fid]
+    global const fipscodeloc = dataf.colindex.lookup[:fipscode]
+    global const yearloc = dataf.colindex.lookup[:year]
 
 
 end # of "begin" block
@@ -62,14 +82,19 @@ end # of "begin" block
 
 
 # Test functions:
-a1 = Simulator(data, peoples, 2003, 48027, demandmodelparameters; T = 5) #tests logitest, DemandModel, distance
-b1 = PerturbSimulator(data, peoples, 2003, 48027, demandmodelparameters, 273410; T = 5)
+print("Testing Simulator \n")
+a1 = Simulator(data, peoples, 2003, 48027, demandmodelparameters; T = 1) #tests logitest, DemandModel, distance
+print("Testing PerturbSimulator \n")
+b1 = PerturbSimulator(data, peoples, 2003, 48027, demandmodelparameters, 273410; T = 1)
+print("Testing logitest \n")
 logitest( (1, 0), 2, 3, 1, zeros(9))
+print("Testing DemandModel \n")
 DemandModel(peoples, demandmodelparameters, [99999 1 0 120 32.96  -96.8385]) #implicitly tests EntrantsU as well
+print("Testing DynamicValue \n")
 DynamicValue(b1, b1[1,1])
 
 # Test parallel
-
+print("Testing Remote Call \n")
 p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
 
@@ -77,7 +102,7 @@ p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array
 # This is necessary for Simulator and PerturbSimulator - column numbers of data elements in "data" and "dataf"
 #
 # global const fipscodeloc = dataf.colindex.lookup[:fipscode]
-# global const yearloc = dataf.colindex.lookup[:year]
+#
 # global const level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
 # global const level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
 # global const level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]

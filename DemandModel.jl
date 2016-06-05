@@ -47,7 +47,7 @@ end
 # Timing: @time fidfinder(convert(Array, fids)', people, "people")
 #  0.010568 seconds (837 allocations: 4.533 MB)
 
-function fidfinder(fidvect::Array{Int64, 1}, choices::DataFrame; maxfid = 11)
+function fidfinder(fidvect::Array{Int64, 1}, choices::Matrix; maxfid = 11)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
@@ -68,6 +68,9 @@ end
 
 
 # The next function will find values in the one-row dataframe element given a list of symbols
+# For use in the demand model::
+type  RowSizeError  <: Exception end
+
 
 
 function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, :fid4, :fid5, :fid6, :fid7, :fid8, :fid9, :fid10, :fid11] )
