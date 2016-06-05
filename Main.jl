@@ -16,7 +16,7 @@ Platform Info:
 =#
 
 
-dirs = pwd()
+
 
 ### Collect Basic Information ###
 
@@ -82,7 +82,7 @@ end
 container = zeros(1, 183)
 
 # Open the existing saved data:
-fout1 = DataFrames.readtable(dirs*"/simulationresults.csv")
+fout1 = DataFrames.readtable(pathprograms*"/simulationresults.csv")
 donefips  = [x for x in unique(fout1[:fipscode])]
 
 
@@ -139,7 +139,7 @@ output1 = output1[ output1[:fipscode].>0 ,:]
 
 # Append new data to the existing data:
 append!(fout1, output1)
-writetable(dirs*"/simulationresults.csv", output1)
+writetable(pathprograms*"/simulationresults.csv", output1)
 
 
 

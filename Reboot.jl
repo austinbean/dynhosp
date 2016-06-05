@@ -3,17 +3,36 @@
 
 
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
+push!(LOAD_PATH, "/dynhosp/dynhosp")
 
 lis = addprocs()
+
+
 
 using ProjectModule
 using DataFrames
 using Distributions
 
+# The last thing to figure out (hopefully) is how to get the paths right - these files below won't load.
+# Similar problems in Simulator, PerturbSimulation, LogitEst, Main (current solution with "dirs" won't work),
+# and in DemandModel
+
 
 @everywhere begin
+  # Figure out which machine I'm on
+  dir = pwd()
+  global pathdata = "";global pathpeople = "";global  pathprograms = "";
+  if dir == "/Users/austinbean/Desktop/dynhosp"
+    global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
+    global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
+    global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
+  elseif dir == "/dynhosp/dynhosp"
+    global pathdata = dir*"/"
+    global pathpeople = dir*"/"
+    global pathprograms = dir*"/"
+  end
   # Import the hospital data and convert to a matrix -
-    dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
+    dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
     for i in names(dataf)
         if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
             dataf[DataFrames.isna(dataf[i]), i] = 0
@@ -32,7 +51,7 @@ using Distributions
 
 
       # Import the model coefficients
-      modcoeffs = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
+      modcoeffs = DataFrames.readtable(pathpeople*"TX 2005 1 Model.csv", header = true);
 
       global const distance_c = modcoeffs[1, 2]
       global const distsq_c = modcoeffs[2, 2]
@@ -46,7 +65,8 @@ using Distributions
 
 
   # Import the people and convert that data to a matrix
-    people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+    people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true);
+
 
     for i in names(people)
       if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
@@ -98,7 +118,8 @@ DynamicValue(b1, b1[1,1])
 print("Testing Remote Call \n")
 p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
-include("/Users/austinbean/Desktop/dynhosp/Main.jl")
+include(pathprograms*"Main.jl")
+
 
 # This is necessary for Simulator and PerturbSimulator - column numbers of data elements in "data" and "dataf"
 #

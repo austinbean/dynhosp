@@ -106,8 +106,12 @@ end
 # If I can logically index into the array easily then everything should be fine.
 
 # What indices do I use and how do I get them?
-dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+# dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
+# people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
+
+dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
+people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true);
+
 
 fipscodeloc = dataf.colindex.lookup[:fipscode]
 yearloc = dataf.colindex.lookup[:year]
