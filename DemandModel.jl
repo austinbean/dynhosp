@@ -10,7 +10,7 @@
 
 # Indices:
 #people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
-people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true);
+people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
 
 fid1loc = people.colindex.lookup[:fid1]
 fid2loc = people.colindex.lookup[:fid2]

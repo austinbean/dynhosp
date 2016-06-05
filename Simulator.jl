@@ -110,7 +110,7 @@ end
 # people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
 dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
-people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true);
+people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
 
 
 fipscodeloc = dataf.colindex.lookup[:fipscode]

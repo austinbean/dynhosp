@@ -51,7 +51,7 @@ using Distributions
 
 
       # Import the model coefficients
-      modcoeffs = DataFrames.readtable(pathpeople*"TX 2005 1 Model.csv", header = true);
+      modcoeffs = DataFrames.readtable(pathpeople*"TX 2005 Model.csv", header = true);
 
       global const distance_c = modcoeffs[1, 2]
       global const distsq_c = modcoeffs[2, 2]
@@ -65,7 +65,7 @@ using Distributions
 
 
   # Import the people and convert that data to a matrix
-    people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true);
+    people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
 
 
     for i in names(people)
