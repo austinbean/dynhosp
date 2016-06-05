@@ -47,7 +47,7 @@ end
 # Timing: @time fidfinder(convert(Array, fids)', people, "people")
 #  0.010568 seconds (837 allocations: 4.533 MB)
 
-function fidfinder(fidvect::Array{Int64, 1}, choices::DataFrame, frname::ASCIIString; maxfid = 11)
+function fidfinder(fidvect::Array{Int64, 1}, choices::DataFrame; maxfid = 11)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect

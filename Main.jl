@@ -75,34 +75,34 @@ type  RowSizeError  <: Exception end
 # # if negative, change to large positive.  Then it's basically impossible for that to be the choice.
 #
 #
-# for i in names(people)
-#   if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
-#     people[isna(people[i]), i] = 0
-#   elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
-#     people[isna(people[i]), i] = 0
-#   elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
-#     # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
-#     # with opposite signs of the corresponding coefficients from modelparameters.
-#     # This does that by looking at missing NAMES, not fids.
-#     people[isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
-#     people[isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
-#     people[isna(people[i]), i] = "NONE"
-#   end
-#   if sum(size(people[isna(people[i]), i]))>0
-#     print(i, "\n")
-#   end
-# end
+for i in names(people)
+  if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
+    people[DataFrames.isna(people[i]), i] = 0
+  elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
+    people[DataFrames.isna(people[i]), i] = 0
+  elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
+    # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+    # with opposite signs of the corresponding coefficients from modelparameters.
+    # This does that by looking at missing NAMES, not fids.
+    people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
+    people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
+    people[DataFrames.isna(people[i]), i] = "NONE"
+  end
+  if sum(size(people[DataFrames.isna(people[i]), i]))>0
+    print(i, "\n")
+  end
+end
 
 
 
 ### Collect Basic Information ###
 
 # locates starting and ending points of all separate fipscode indices
-allindices = [ (x, findfirst(data1[:fipscode], x), findlast(data1[:fipscode], x)) for x in unique(data1[:fipscode]) ];
+allindices = [ (x, findfirst(data[:,fipscodeloc], x), findlast(data[:,fipscodeloc], x)) for x in unique(data[:,fipscodeloc]) ];
 # Next one also works in case I decide an array of arrays is better than an array of tuples
 #indices = [ [x, findfirst(df[:fipscode], x), findlast(df[:fipscode], x)] for x in unique(df[:fipscode]) ]
 # Next one stores all the years appearing in each fips code
-yearins = [ [x; findfirst(data1[:fipscode], x); findlast(data1[:fipscode], x ); unique( data1[findfirst(data1[:fipscode], x):findlast(data1[:fipscode], x ) , :year]  ) ] for x in unique(data1[:fipscode])  ]
+yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
 
 
 
@@ -174,7 +174,7 @@ tetrapoly = Array{Int64}(0)
 nopoly = Array{Int64}(0)
 
 for el in yearins
-  unqfids = [x for x in unique(data1[el[2]:el[3],:fid]).data]
+  unqfids = [x for x in unique(data1[el[2]:el[3],fidloc]).data]
   if size(unqfids)[1] == 1
     print("Fipscode Monopoly: ", unique(data1[el[2]:el[3], :fipscode]), "\n")
     push!(monopoly, data1[el[3], :fipscode])
@@ -195,7 +195,7 @@ for el in yearins
 end
 
 
-container = zeros(750, 183)
+container = zeros(1, 183)
 
 # Open the existing saved data:
 fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
@@ -211,14 +211,14 @@ for y in 1:size(yearins,1)    #size(duopoly)[1]
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
       	for year in [ 2003 2004 2005 2006]   #yearins[y][4:end] # can do all years or several.
-          dataf = deepcopy(data1);
-          fids = convert(Array, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
+          dataf = deepcopy(data);
+          fids = convert(Array, sort!(unique(dataf[(dataf[:,fipscodeloc].==mkt_fips)&(dataf[:, yearloc].==year),fidloc])))
           numfids = size(fids)[1]
-          peoples = people[fidfinder(fids, people, "people"),:];
+          peoples = people[fidfinder(fids, people),:];
           global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
           peoplesub = deepcopy(peoples);
           # print("exists?: ", size(peoplesub), "\n")
-          container[findfirst(container[:,1],0):findfirst(container[:,1],0)+numfids-1, :] = Mainfun(dataf, peoplesub, mkt_fips, year, demandmodelparameters, entryprobs, fids)
+          container = [container; Mainfun(dataf, peoplesub, mkt_fips, year, demandmodelparameters, entryprobs, fids)]
       end
     end
 end
