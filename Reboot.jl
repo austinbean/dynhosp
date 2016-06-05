@@ -4,6 +4,7 @@
 
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
+push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 
 lis = addprocs()
 
@@ -27,6 +28,10 @@ using Distributions
     global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
     global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
   elseif dir == "/dynhosp/dynhosp"
+    global pathdata = dir*"/"
+    global pathpeople = dir*"/"
+    global pathprograms = dir*"/"
+  elseif dir == "/home/ubuntu/dynhosp/"
     global pathdata = dir*"/"
     global pathpeople = dir*"/"
     global pathprograms = dir*"/"
