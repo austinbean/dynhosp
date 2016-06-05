@@ -22,10 +22,10 @@ module ProjectModule
     global pathdata = dir*"/"
     global pathpeople = dir*"/"
     global pathprograms = dir*"/"
-  elseif dir == "/home/ubuntu/dynhosp/"
-    global pathdata = dir*"/"
-    global pathpeople = dir*"/"
-    global pathprograms = dir*"/"
+  elseif dir == "/home/ubuntu/Notebooks/"
+    global pathdata = "/home/ubuntu/dynhosp/"
+    global pathpeople = "/home/ubuntu/dynhosp/"
+    global pathprograms = "/home/ubuntu/dynhosp/"
   end
 
 

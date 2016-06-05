@@ -31,7 +31,7 @@ using Distributions
     global pathdata = dir*"/"
     global pathpeople = dir*"/"
     global pathprograms = dir*"/"
-  elseif dir == "/home/ubuntu/dynhosp/"
+  elseif dir == "/home/ubuntu/Notebooks/"
     global pathdata = dir*"/"
     global pathpeople = dir*"/"
     global pathprograms = dir*"/"
