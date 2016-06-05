@@ -75,6 +75,7 @@ using Distributions
     global const fidloc = dataf.colindex.lookup[:fid]
     global const fipscodeloc = dataf.colindex.lookup[:fipscode]
     global const yearloc = dataf.colindex.lookup[:year]
+    global const dirs = pwd() # present working directory path
 
 
 end # of "begin" block
@@ -97,7 +98,7 @@ DynamicValue(b1, b1[1,1])
 print("Testing Remote Call \n")
 p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
-
+include("/Users/austinbean/Desktop/dynhosp/Main.jl")
 
 # This is necessary for Simulator and PerturbSimulator - column numbers of data elements in "data" and "dataf"
 #
