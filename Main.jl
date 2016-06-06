@@ -143,8 +143,8 @@ for y in 1:size(duopoly,1)
       end
     end
     tout = convert(DataFrame, container);
-    tout = tout[ tout[:fipscode].>0, :]
     names!(tout, colnames)
+    tout = tout[ tout[:fipscode].>0, :]
     DataFrames.writetable(pathprograms*"/temp_results_$mkt_fips.csv")
 end
 
