@@ -42,6 +42,8 @@ using Distributions
             dataf[DataFrames.isna(dataf[i]), i] = 0
         elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
             dataf[DataFrames.isna(dataf[i]), i] = "NONE"
+        elseif typeof(dataf[i]) == DataArrays.DataArray{UTF8String,1}
+              dataf[DataFrames.isna(dataf[i]), i] = "NONE"
       end
         if sum(size(dataf[DataFrames.isna(dataf[i]), i]))>0
         print(i, "\n")
@@ -79,6 +81,10 @@ using Distributions
         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
         # with opposite signs of the corresponding coefficients from modelparameters.
         # This does that by looking at missing NAMES, not fids.
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
+        people[DataFrames.isna(people[i]), i] = "NONE"
+      elseif typeof(people[i]) == DataArrays.DataArray{UTF8String,1}
         people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
         people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
         people[DataFrames.isna(people[i]), i] = "NONE"
