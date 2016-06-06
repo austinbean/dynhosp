@@ -103,27 +103,6 @@ donefips  = [x for x in unique(fout1[DataFrames.isna(fout1[:fipscode]),:fipscode
 entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 
 
-
-for y in 1:5 #size(duopoly,1)
-    mkt_fips = duopoly[y][1]
-    if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
-      print("Market FIPS Code ", mkt_fips, "\n")
-      	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
-          dat = deepcopy(data);
-          fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
-          numfids = size(fids,1)
-          peopl = peoples[fidfinder(fids, peoples),:];
-          #global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
-          global peoplesub = deepcopy(peopl);
-          # print("exists?: ", size(peoplesub), "\n")
-          container = [container; Mainfun(dat, peoplesub, mkt_fips, year, demandmodelparameters, fids)]
-      end
-    end
-end
-
-
-# Add column names to the new data:
-
 colnames = Array{Symbol}(:0)
 push!(colnames, :fipscode)
 push!(colnames, :fid)
@@ -145,6 +124,32 @@ for elem in ["EQ", "NEQ"]
   push!(colnames, parse("$elem"*"Enter2"))
   push!(colnames, parse("$elem"*"Enter3"))
 end
+
+
+
+for y in 1:size(duopoly,1)
+    mkt_fips = duopoly[y][1]
+    if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
+      print("Market FIPS Code ", mkt_fips, "\n")
+      	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
+          dat = deepcopy(data);
+          fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
+          numfids = size(fids,1)
+          peopl = peoples[fidfinder(fids, peoples),:];
+          #global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
+          global peoplesub = deepcopy(peopl);
+          # print("exists?: ", size(peoplesub), "\n")
+          container = [container; Mainfun(dat, peoplesub, mkt_fips, year, demandmodelparameters, fids)]
+      end
+    end
+    tout = convert(DataFrame, container);
+    tout = tout[ tout[:fipscode].>0, :]
+    names!(tout, colnames)
+    DataFrames.writetable(pathprograms*"/temp_results_$mkt_fips.csv")
+end
+
+
+# Add column names to the new data:
 
 output1 = convert(DataFrame, container);
 
