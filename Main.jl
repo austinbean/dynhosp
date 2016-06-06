@@ -15,21 +15,21 @@ Platform Info:
 
 =#
 
-dir = pwd()
-global pathdata = "";global pathpeople = "";global  pathprograms = "";
-if dir == "/Users/austinbean/Desktop/dynhosp"
-  global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
-  global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
-  global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
-elseif dir == "/dynhosp/dynhosp"
-  global pathdata = dir*"/"
-  global pathpeople = dir*"/"
-  global pathprograms = dir*"/"
-elseif (dir == "/home/ubuntu/Notebooks") | (dir == "/home/ubuntu/dynhosp")
-  global pathdata = "/home/ubuntu/dynhosp/"
-  global pathpeople = "/home/ubuntu/dynhosp/"
-  global pathprograms = "/home/ubuntu/dynhosp/"
-end
+# dir = pwd()
+# global pathdata = "";global pathpeople = "";global  pathprograms = "";
+# if dir == "/Users/austinbean/Desktop/dynhosp"
+#   global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
+#   global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
+#   global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
+# elseif dir == "/dynhosp/dynhosp"
+#   global pathdata = dir*"/"
+#   global pathpeople = dir*"/"
+#   global pathprograms = dir*"/"
+# elseif (dir == "/home/ubuntu/Notebooks") | (dir == "/home/ubuntu/dynhosp")
+#   global pathdata = "/home/ubuntu/dynhosp/"
+#   global pathpeople = "/home/ubuntu/dynhosp/"
+#   global pathprograms = "/home/ubuntu/dynhosp/"
+# end
 
 
 ### Collect Basic Information ###
@@ -127,7 +127,7 @@ end
 
 
 
-for y in 1:size(duopoly,1)
+for y in 1:3 #size(duopoly,1)
     mkt_fips = duopoly[y][1]
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
@@ -145,7 +145,7 @@ for y in 1:size(duopoly,1)
     tout = convert(DataFrame, container);
     names!(tout, colnames)
     tout = tout[ tout[:fipscode].>0, :]
-    DataFrames.writetable(pathprograms*"/temp_results_$mkt_fips.csv")
+    DataFrames.writetable(pathprograms*"/temp_results_$mkt_fips.csv", tout)
 end
 
 
@@ -156,7 +156,16 @@ output1 = convert(DataFrame, container);
 names!(output1, colnames)
 output1 = output1[ output1[:fipscode].>0 ,:]
 
-# Append new data to the existing data:
+# Append new data to the existing data - there is a stupid problem here that the types don't match exactly.  Make everything Float64:
+for el in names(fout1)
+  typ1 = typeof(fout1[el])
+#  print(el, "\n")
+#  print(typ1, "\n")
+  fout1[el] = convert( Array{Float64,1}, fout1[el])
+  output1[el] = convert( Array{Float64,1}, output1[el])
+#  print(typeof(output1[el]), "\n")
+end
+
 append!(fout1, output1)
 writetable(pathprograms*"/simulationresults.csv", output1)
 
