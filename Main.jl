@@ -15,7 +15,21 @@ Platform Info:
 
 =#
 
-
+dir = pwd()
+global pathdata = "";global pathpeople = "";global  pathprograms = "";
+if dir == "/Users/austinbean/Desktop/dynhosp"
+  global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
+  global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
+  global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
+elseif dir == "/dynhosp/dynhosp"
+  global pathdata = dir*"/"
+  global pathpeople = dir*"/"
+  global pathprograms = dir*"/"
+elseif (dir == "/home/ubuntu/Notebooks") | (dir == "/home/ubuntu/dynhosp/")
+  global pathdata = "/home/ubuntu/dynhosp/"
+  global pathpeople = "/home/ubuntu/dynhosp/"
+  global pathprograms = "/home/ubuntu/dynhosp/"
+end
 
 
 ### Collect Basic Information ###
