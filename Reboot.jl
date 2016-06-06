@@ -6,7 +6,7 @@ push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
 push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 
-lis = addprocs()
+#lis = addprocs()
 
 
 
@@ -28,10 +28,10 @@ using Distributions
     global pathdata = dir*"/"
     global pathpeople = dir*"/"
     global pathprograms = dir*"/"
-  elseif dir == "/home/ubuntu/Notebooks"
-    global pathdata = dir*"/"
-    global pathpeople = dir*"/"
-    global pathprograms = dir*"/"
+  elseif (dir == "/home/ubuntu/Notebooks") | (dir == "/home/ubuntu/dynhosp/")
+    global pathdata = "/home/ubuntu/dynhosp/"
+    global pathpeople = "/home/ubuntu/dynhosp/"
+    global pathprograms = "/home/ubuntu/dynhosp/"
   end
   # Import the hospital data and convert to a matrix -
     dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
@@ -123,8 +123,8 @@ print("Testing DynamicValue \n")
 DynamicValue(b1, b1[1,1])
 
 # Test parallel
-print("Testing Remote Call \n")
-p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
+#print("Testing Remote Call \n")
+#p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
 include(pathprograms*"Main.jl")
 
