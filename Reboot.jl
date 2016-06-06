@@ -14,9 +14,6 @@ using ProjectModule
 using DataFrames
 using Distributions
 
-# The last thing to figure out (hopefully) is how to get the paths right - these files below won't load.
-# Similar problems in Simulator, PerturbSimulation, LogitEst, Main (current solution with "dirs" won't work),
-# and in DemandModel
 
 
 @everywhere begin
@@ -100,7 +97,7 @@ using Distributions
     global const fidloc = dataf.colindex.lookup[:fid]
     global const fipscodeloc = dataf.colindex.lookup[:fipscode]
     global const yearloc = dataf.colindex.lookup[:year]
-    global const dirs = pwd() # present working directory path
+  #  global const dirs = pwd() # present working directory path
 
 
 end # of "begin" block

@@ -83,14 +83,14 @@ container = zeros(1, 183)
 
 # Open the existing saved data:
 fout1 = DataFrames.readtable(pathprograms*"/simulationresults.csv")
-donefips  = [x for x in unique(fout1[:fipscode])]
+donefips  = [x for x in unique(fout1[DataFrames.isna(fout1[:fipscode]),:fipscode])]
 
 
 entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 
 
 
-for y in 1:size(duopoly,1)
+for y in 1:5 #size(duopoly,1)
     mkt_fips = duopoly[y][1]
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
