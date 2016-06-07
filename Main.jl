@@ -30,6 +30,11 @@ Platform Info:
 #   global pathpeople = "/home/ubuntu/dynhosp/"
 #   global pathprograms = "/home/ubuntu/dynhosp/"
 # end
+# fipscodeloc = dataf.colindex.lookup[:fipscode]
+# yearloc = dataf.colindex.lookup[:year]
+# fidloc = dataf.colindex.lookup[:fid]
+
+
 
 
 ### Collect Basic Information ###
@@ -96,9 +101,9 @@ end
 container = zeros(1, 183)
 
 # Open the existing saved data:
-fout1 = DataFrames.readtable(pathprograms*"/simulationresults.csv")
-donefips  = [x for x in unique(fout1[DataFrames.isna(fout1[:fipscode]),:fipscode])]
-
+fout1 = DataFrames.readtable(pathprograms*"simulationresults.csv")
+donefips  = [x for x in unique(fout1[!(DataFrames.isna(fout1[:fipscode])),:fipscode])] # take codes NOT done before
+#donefips = [] # set this to be empty until the simulation gets working.
 
 entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 
@@ -131,27 +136,38 @@ timestamps = Array{Any}(0)
 for y in 1:size(nopoly,1)
     mkt_fips = nopoly[y][1]
     crtime = now()
-    push!(timestamps, (mkt_fips, "begin", crtime))
+    timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
+    push!(timestamps, (mkt_fips, "begin", timestr))
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
       	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
           dat = deepcopy(data);
+          #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
+          #print("number of fids", size(numfids), "\n")
           peopl = peoples[fidfinder(fids, peoples),:];
+          #print("size of people", size(peopl), "\n")
           #global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
-          global peoplesub = deepcopy(peopl);
+          global peoplesub = deepcopy(peopl); # this is different from "dat" since peopl defined within this scope.
           # print("exists?: ", size(peoplesub), "\n")
-          container = [container; Mainfun(dat, peoplesub, mkt_fips, year, demandmodelparameters, fids)]
+          container = [container; Mainfun(dat, peoplesub, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
+          global peoplesub = 0 # trying to trigger garbage collection on this object?
       end
     end
+    # Record what time certain ends happened.
+    outf = open(pathprograms*"timer.txt", "w")
     crtime = now()
-    push!(timestamps, (mkt_fips, "end", crtime))
-    print(timestamps, "\n")
+    timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
+    push!(timestamps, (mkt_fips, "end", timestr))
+    #print(timestamps, "\n")
+    writedlm(outf, timestamps)
+    close(outf)
+    # Write out temporary files in case the process fails later.
     tout = convert(DataFrame, container);
     names!(tout, colnames)
     tout = tout[ tout[:fipscode].>0, :]
-    DataFrames.writetable(pathprograms*"/temp_results_$mkt_fips.csv", tout)
+    DataFrames.writetable(pathprograms*"temp_results_$mkt_fips.csv", tout) # no slash.
 end
 
 
@@ -173,7 +189,7 @@ for el in names(fout1)
 end
 
 append!(fout1, output1)
-writetable(pathprograms*"/simulationresults.csv", output1)
+writetable(pathprograms*"simulationresults.csv", output1)
 
 
 
