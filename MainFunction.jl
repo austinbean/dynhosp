@@ -2,10 +2,15 @@
 
 
 
-function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, fids::Array{Int64}; nsims = 500)
+function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, fids::Array{Int64}; nsims = 2)
 			 # returns a dataframe unless converted
-      numfids = size(fids)[1]
+      numfids = maximum(size(fids))
       outp = zeros(numfids, 183)
+      for i = 1:numfids
+        outp[i,1] = mkt_fips
+        outp[i,2] = fids[i]
+        outp[i,3] = year
+      end
       for j in 1:nsims
   			#Arguments: Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2};  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
     #    print("Equilibrium Simulation, ", mkt_fips, " ", year, " ", "\n")
@@ -17,7 +22,6 @@ function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, mo
             pfid = fids[f]
         #    print("Perturbing Fid: ", pfid, "\n")
       			#Arguments: function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108)
-# Here is a place to parallelize across the different fids
             perturbed_history = PerturbSimulator(dataf, people, year, mkt_fips, modelparameters, pfid; disturb = 0.01, T = 2)
 
       			# Here apply DynamicValue to the result of the simulations
@@ -26,11 +30,7 @@ function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, mo
       			pfid_f = convert(Float64, pfid)
       			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, max_hosp = 25)
       			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, max_hosp = 25)
-            if j == 1
-              outp[f,:] = [mkt_fips pfid_f year eq_val eq_change neq_val neq_change]
-            else
-              outp[f,4:end] = outp[f,4:end] + [eq_val eq_change neq_val neq_change]
-            end
+            outp[f,4:end] += [eq_val eq_change neq_val neq_change]
             # Abandon Entrants again.
             dataf = dataf[(dataf[:,idloc].>= 0), :];
         end
