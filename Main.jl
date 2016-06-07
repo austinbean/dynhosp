@@ -127,8 +127,8 @@ end
 
 
 
-for y in 1:2 #size(duopoly,1)
-    mkt_fips = duopoly[y][1]
+for y in 1:size(nopoly,1)
+    mkt_fips = nopoly[y][1]
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
       	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
