@@ -25,7 +25,6 @@ Second output type - record facility changes:
   than the 1 to 2 transition, which is surely negative.
 =#
 
-#### FUTURE FIX - not taking into account the fact that some percentage of demand will go to higher levels !  That's the whole point.
 
 function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, max_hosp = 25)
   T, width = size(state_history)
@@ -138,7 +137,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       return "Bad firm state"
     end
   end
-  outp = [ outp[1,1:end] outp[2,1:end] outp[3,1:end]]
+  outp = [ outp[1,1:end] outp[2,1:end] outp[3,1:end]] #rearranges the matrix.
 return outp2, outp
 end
 
@@ -148,12 +147,12 @@ end
 # Testing:
 
 # This should work and generate 10*probability
-state_history = [111 1 0 1/2 10 10 0 1 1 1 1/2 ; 111 0 1 1/3 10 10 0 1 1 1 1/3 ; 111 0 0 1/4 10 10 0 1 1 1 1/4 ]
-invest, hist = DynamicValue(state_history, 111.0, β= 1, T = 2)'
+state_history2 = [111 1 0 1/2 10 10 0 1 1 1 1/2 ; 111 0 1 1/3 10 10 0 1 1 1 1/3 ; 111 0 0 1/4 10 10 0 1 1 1 1/4 ]
+invest, hist = DynamicValue(state_history2, 111.0, β= 1)'
 
 # This should give us 10*probability in different columns
-state_history = [111 1 0 1/2 10 10 0 1 1 8 1/2 ; 111 0 1 1/3 10 10 0 1 9 1 1/3 ; 111 -999 -999 1/4 10 10 0 10 1 1 1/4 ]
-invest, hist = DynamicValue(state_history, 111.0, β= 1, T = 2)'
+state_history3 = [111 1 0 1/2 10 10 0 1 1 8 1/2 ; 111 0 1 1/3 10 10 0 1 9 1 1/3 ; 111 -999 -999 1/4 10 10 0 10 1 1 1/4 ]
+invest3, hist3 = DynamicValue(state_history3, 111.0, β= 1)'
 
 # This should give an error::
 state_history = [111 1 0 1/2 10 10 0 1 1 25 1/2 ; 111 0 1 1/3 10 10 0 1 9 1 1/3 ; 111 0 0 1/4 10 10 0 10 1 1 1/4 ]

@@ -69,8 +69,8 @@ using Distributions
 
 
   # Import the people and convert that data to a matrix
-    people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
-    #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
+    #people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
+    people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
 
 
     for i in names(people)

@@ -127,7 +127,7 @@ end
 
 
 
-for y in 1:3 #size(duopoly,1)
+for y in 1:2 #size(duopoly,1)
     mkt_fips = duopoly[y][1]
     if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
       print("Market FIPS Code ", mkt_fips, "\n")
