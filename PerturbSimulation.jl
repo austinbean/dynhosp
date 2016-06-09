@@ -63,38 +63,9 @@ dataf = dataf[dataf[:id].>= 0, :]
 =#
 
 
-# What indices do I use and how do I get them?
-# fipscodeloc = dataf.colindex.lookup[:fipscode]
-# yearloc = dataf.colindex.lookup[:year]
-# level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
-# level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
-# level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
-# fidloc = dataf.colindex.lookup[:fid]
-# act_intloc = dataf.colindex.lookup[:act_int]
-# act_sololoc = dataf.colindex.lookup[:act_solo]
-# lev105loc = dataf.colindex.lookup[:lev105]
-# lev205loc = dataf.colindex.lookup[:lev205]
-# lev305loc = dataf.colindex.lookup[:lev305]
-# lev1515loc = dataf.colindex.lookup[:lev1515]
-# lev2515loc = dataf.colindex.lookup[:lev2515]
-# lev3515loc = dataf.colindex.lookup[:lev3515]
-# lev11525loc = dataf.colindex.lookup[:lev11525]
-# lev21525loc = dataf.colindex.lookup[:lev21525]
-# lev31525loc = dataf.colindex.lookup[:lev31525]
-# v15loc = dataf.colindex.lookup[:v15]
-# v16loc = dataf.colindex.lookup[:v16]
-# facilityloc = dataf.colindex.lookup[:facility]
-# idloc = dataf.colindex.lookup[:id]
-# locationloc = dataf.colindex.lookup[:location]
-# cityloc = dataf.colindex.lookup[:city]
-# firstyearloc = dataf.colindex.lookup[:firstyear]
-#
-# TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
-# TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
 
 
-
-function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108)
+function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
   # if year > 2012
   #   return "Years through 2012 only"
   # end

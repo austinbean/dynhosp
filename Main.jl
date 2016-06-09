@@ -145,14 +145,7 @@ for y in 1:size(nopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
-          #print("number of fids", size(numfids), "\n")
-          peopl = peoples[fidfinder(fids, peoples),:];
-          #print("size of people", size(peopl), "\n")
-          #global peoplesub # the function below doesn't see "peoplesub" due to scope rules, unless it is declared as a global.
-          global peoplesub = deepcopy(peopl); # this is different from "dat" since peopl defined within this scope.
-          # print("exists?: ", size(peoplesub), "\n")
-          container = [container; Mainfun(dat, peoplesub, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
-          global peoplesub = 0 # trying to trigger garbage collection on this object?
+          container = [container; Mainfun(dat, people, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
       end
     end
     # Record what time certain ends happened.

@@ -21,8 +21,8 @@ dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
 yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
-mkt_fips = yearins[10][1]
-year = 2011
+mkt_fips = yearins[11][1]
+year = 2005
 fids = convert(Vector, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
 
 # Handle missing dataframe elements::
@@ -97,52 +97,69 @@ for i in names(dataf)
 end
 
 
-=#
-
-
-# If I can convert the relevant pieces of the dataframe to an array in the first part, then I won't
-# need to hold onto that for the rest of the function - it will probably get much faster.  Something like:
-#   mat1 = [ convert(Vector{Float64}, peo[ind[1]]) convert(Vector{Float64}, peo[ind[2]]) convert(Vector{Float64}, peo[ind[3]]) convert(Vector{Float64}, peo[ind[4]]) convert(Vector{Float64}, peo[ind[5]]) convert(Vector{Float64}, peo[ind[6]])]*modelparameters' + rand(d, siz)
-# If I can logically index into the array easily then everything should be fine.
-
-# What indices do I use and how do I get them?
-# dataf = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-# people = DataFrames.readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
-
-dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
-people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
-
-
 fipscodeloc = dataf.colindex.lookup[:fipscode]
+fipscodeloc = 78;
+
 yearloc = dataf.colindex.lookup[:year]
+yearloc = 75;
+
 level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
+level1_hospitals0loc = 11;
 level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
+level2solo_hospitals0loc = 10
 level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
+level3_hospitals0loc = 9
 fidloc = dataf.colindex.lookup[:fid]
+fidloc = 74
 act_intloc = dataf.colindex.lookup[:act_int]
+act_intloc = 79
 act_sololoc = dataf.colindex.lookup[:act_solo]
+act_sololoc = 80
 lev105loc = dataf.colindex.lookup[:lev105]
+lev105loc = 97
 lev205loc = dataf.colindex.lookup[:lev205]
+lev205loc = 98
 lev305loc = dataf.colindex.lookup[:lev305]
+lev305loc = 99
 lev1515loc = dataf.colindex.lookup[:lev1515]
+lev1515loc = 101
 lev2515loc = dataf.colindex.lookup[:lev2515]
+lev2515loc = 102
 lev3515loc = dataf.colindex.lookup[:lev3515]
+lev3515loc = 103
 lev11525loc = dataf.colindex.lookup[:lev11525]
+lev11525loc = 105
 lev21525loc = dataf.colindex.lookup[:lev21525]
+lev21525loc = 106
 lev31525loc = dataf.colindex.lookup[:lev31525]
+lev31525loc = 107
 v15loc = dataf.colindex.lookup[:v15]
+v15loc = 94
 v16loc = dataf.colindex.lookup[:v16]
+v16loc = 95
 facilityloc = dataf.colindex.lookup[:facility]
+facilityloc = 82
 idloc = dataf.colindex.lookup[:id]
+idloc = 1
 locationloc = dataf.colindex.lookup[:location]
+locationloc = 88
 cityloc = dataf.colindex.lookup[:city]
+cityloc = 85
 firstyearloc = dataf.colindex.lookup[:firstyear]
-
+firstyearloc = 91
 TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
+TotalBeds1loc = 4
 TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
+TotalBeds2loc = 20
+#fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
+fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, TotalBeds2loc = 20, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4,
+=#
+# These items not needed, set to 0 and GC
+# dataf = 0;
+# people = 0;
 
 
-function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
+function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002], fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
 #  if year > 2012
 #    return "Years through 2012 only"
 #  end

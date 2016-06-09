@@ -2,7 +2,7 @@
 
 
 
-function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, fids::Array{Int64}; nsims = 2)
+function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, fids::Array{Int64}; nsims = 500)
 			 # returns a dataframe unless converted
       numfids = maximum(size(fids))
       outp = zeros(numfids, 183)

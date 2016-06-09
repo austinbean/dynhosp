@@ -52,6 +52,7 @@ using Distributions
 
 
     data = convert(Matrix, dataf);
+    dataf = 0; #set to zero to clear out. 
 
 
       # Import the model coefficients
@@ -82,12 +83,12 @@ using Distributions
         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
         # with opposite signs of the corresponding coefficients from modelparameters.
         # This does that by looking at missing NAMES, not fids.
-        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
-        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*99
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*99
         people[DataFrames.isna(people[i]), i] = "NONE"
       elseif typeof(people[i]) == DataArrays.DataArray{UTF8String,1}
-        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*999
-        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*999
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*99
+        people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*99
         people[DataFrames.isna(people[i]), i] = "NONE"
       end
       if sum(size(people[DataFrames.isna(people[i]), i]))>0
@@ -95,9 +96,19 @@ using Distributions
       end
     end
 
-
-
     peoples = convert(Matrix, people);
+    people = 0; # DataFrame not used - set to 0 and clear out.
+
+    for i =1:size(peoples, 2)
+      if !(typeof(peoples[2,i])<:Number)
+        peoples[:,i] = "0"
+        peoples[:,i] = map(x->parse(Float64, x), peoples[:,i])
+        peoples[:,i] = convert(Array{Float64, 1}, peoples[:,i])
+      else
+        peoples[:,i] = convert(Array{Float64, 1}, peoples[:,i])
+      end
+    end
+    peoples = convert(Array{Float64, 2}, peoples)
 
 
     global const idloc = dataf.colindex.lookup[:id]
