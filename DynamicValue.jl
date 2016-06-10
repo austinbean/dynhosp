@@ -26,6 +26,9 @@ Second output type - record facility changes:
 =#
 
 
+### THere is still an important fix to be made!  Multiply everything by the last prob.
+
+
 function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, max_hosp = 25)
   T, width = size(state_history)
   index = findfirst(state_history[1,:], fac_fid) # where is the perturbed facility
@@ -36,7 +39,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
     println("Maximum hospitals observed exceeds max_hosp")
     return "Size Warning"
   end
-
+print("THere is still an important fix to be made!  Multiply everything by the last prob. \n")
   outp = zeros(3*pat_types, max_hosp + 1) # visits to max hospital or 0 at each of 3 levels
   outp2 = zeros(1, 12) # records
 

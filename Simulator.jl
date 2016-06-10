@@ -20,10 +20,10 @@
 dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
 notmissing = findin(isna(dataf[:fipscode]), false);
 dataf = dataf[notmissing, :];
-yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
+yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
 mkt_fips = yearins[11][1]
 year = 2005
-fids = convert(Vector, sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid])))
+fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
 
 # Handle missing dataframe elements::
 for i in names(dataf)
@@ -151,7 +151,7 @@ TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
 TotalBeds1loc = 4
 TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
 TotalBeds2loc = 20
-#fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
+fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
 fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, TotalBeds2loc = 20, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4,
 =#
 # These items not needed, set to 0 and GC
@@ -170,11 +170,6 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc])))
   state_history = [zeros(1, fields*size(fids, 1)) 1 0 0 0; zeros(T, fields*(size(fids, 1)) + 4)]
 
-  if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
-#    println("size of fids: ", size(fids), " size of fields: ", fields, " size of state_history: ", size(state_history))
-#    println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
-    return "Dims of state_history incorrect"
-  end
   # Writes the values to the first row of the state history
   for n in 1:size(fids,1)
     el = fids[n]
@@ -193,7 +188,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   state_history[1, (size(fids)[1])*fields+3] = level3 ;
   state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
   # Compute initial demand here:
-  peoplesub =rowchange(state_history[1,:], peoplesub)
+  peoplesub =rowchange(state_history[1,:], fids, peoplesub)
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   emp_arr = Array{Float64, 2}()
   realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.

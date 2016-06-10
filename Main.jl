@@ -146,7 +146,7 @@ for y in 1:size(nopoly,1)
           fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
           container = [container; Mainfun(dat, people, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
-      end
+      end #Note - rewrite first line of state history back to peoples.
     end
     # Record what time certain ends happened.
     outf = open(pathprograms*"timer.txt", "w")

@@ -37,7 +37,7 @@
 # fid11loc = 162
 # fid1loc = 2; fid2loc = 18; fid3loc = 34; fid4loc = 50; fid5loc = 66; fid6loc = 82; fid7loc = 98; fid8loc = 114; fid9loc = 130; fid10loc = 146; fid11loc = 162
 
-fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162
+#fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162
 
 function fidfinder(fidvect::Array{Int64, 2}, choices::Matrix; maxfid = 11, fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162)
     #=
@@ -113,35 +113,26 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
 end
 
 # Large number of allocations: 0.699547 seconds (4.58 M allocations: 167.552 MB)
-# This for a matrix with 89000 rows.
-function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7)
-  #=  The first argument is the state history, the second the individual record
-     This function should take a row of the state history (staterow), and a row of
-     the choices (choicerow) and:
-     1.  determines the number of fids in the staterow ✓
-     2.  Determines the number of fids in the choicerow ✓
-     3.  When a fid in the staterow matches a fid in the choicerow, map the values
-         from the staterow to the choicerow
-   Notes - need to do something special for entrants.
-   Can check if fid sets are overlapping - change those fids which are
-   Once I know this, I also need to check whether the new hospital is the closest.
+# This for a matrix with 89000 rows.  Too big.  Must be cut down.
+# fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162
+# fidnd = [2, 18, 34, 50, 66, 82, 98, 114, 130, 146, 162]
+function rowchange(staterow::Array{Float64,2}, fids::Array{Int64}, choicerow::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7, fidnd = [2, 18, 34, 50, 66, 82, 98, 114, 130, 146, 162])
+  #=
    staterow has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
    choicerow has the form: [identity, fid, facility, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
   =#
-    # Collects the fids which are in the market
-    mktfids = [ el for el in staterow[1,1:fields_state:end-endfields_state]] # Collects the fids in the market
-    # Collects the fids which are in the choice set
     for i in 1:size(choicerow, 1)
-      peoplefids =  convert(Array{Int64}, unique([choicerow[i,x][1] for x in 2:fields_people:size(choicerow, 2)-(endfields_people) ])) # collects all fids in the person's choice set
-      change_fids = intersect(peoplefids, mktfids) # Takes the values of market fids which are in the choice row (only these must be changed)
+      change_fids = intersect(choicerow[i,fidnd], fids) # Takes the values of market fids which are in the choice row (only these must be changed)
       if sum(size(change_fids))!= 0
         for el in change_fids
-          fidloc = findfirst(choicerow[i,:], el) # finds the fid in the row of the person's choices
-          statefidloc = findfirst(staterow, el) # finds the fid in the state history row
+          fidloc = fidnd[(peoplesub[i,fidnd].==el),:]
+          # this one doesn't work.
+          statefidloc = staterow[ staterow.==el] # finds the fid in the state history row
           if (staterow[statefidloc+1] != -999) | (staterow[statefidloc+2] != -999) #check whether firm exited
             choicerow[i,fidloc+choicesololoc] = staterow[statefidloc+1]
             choicerow[i,fidloc+choiceintloc] = staterow[statefidloc+2]
           elseif (staterow[statefidloc+1] == -999) | (staterow[statefidloc+2] == -999)
+            # think about this - setting to 0 not a great idea if running many times.
             choicerow[i,fidloc] = 0
             choicerow[i,fidloc+choicesololoc] = -999
             choicerow[i,fidloc+choiceintloc] = -999
@@ -150,6 +141,25 @@ function rowchange(staterow::Array{Float64,2}, choicerow::Matrix; choiceintloc =
       end
     end
   return choicerow
+end
+
+function change2(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162], hisfd = collect(1:7:lenrow) )
+  for i in size(people, 1)
+    pfids = people[i,fidnd] #all fids in person's row
+    change_fids = intersect(pfids, mfids) #fids in person's row in market
+    if !(isempty(change_fids))
+      for j in change_fids
+        print("11")
+# START HERE - this is not writing anything out.  It is not even getting in here.
+
+        frm  = hisfd[mfids.==j,:] # found the address of the fid in the state history
+        to = fidnd[pfids.==j,:] # found the address of the fid in the person row
+        people[i, to[1] + choicesololoc] = hisrow[frm[1] + 1]
+        people[i, to[1] + choiceintloc] =  hisrow[frm[1] + 2]
+      end
+    end
+  end
+  return people
 end
 
 #
