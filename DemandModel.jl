@@ -143,22 +143,22 @@ function rowchange(staterow::Array{Float64,2}, fids::Array{Int64}, choicerow::Ma
   return choicerow
 end
 
+# hisrow1 = [1131021 -1 -1 0 1 1 1 9 9 9 9.0]
+# choiceintloc = 3; choicesololoc = 8; endfields_state = 4; fields_state = 7; fields_people = 16; endfields_people = 7; lenrow = (maximum(size(hisrow1))-4); fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162]; hisfd = collect(1:7:lenrow)
+
 function change2(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162], hisfd = collect(1:7:lenrow) )
-  for i in size(people, 1)
+  for i in 1:size(people, 1)
     pfids = people[i,fidnd] #all fids in person's row
     change_fids = intersect(pfids, mfids) #fids in person's row in market
     if !(isempty(change_fids))
       for j in change_fids
-        print("11")
-# START HERE - this is not writing anything out.  It is not even getting in here.
-
         frm  = hisfd[mfids.==j,:] # found the address of the fid in the state history
         to = fidnd[pfids.==j,:] # found the address of the fid in the person row
         people[i, to[1] + choicesololoc] = hisrow[frm[1] + 1]
         people[i, to[1] + choiceintloc] =  hisrow[frm[1] + 2]
       end
     end
-  end
+  end # when someone exits, can you not search for that fid?
   return people
 end
 
