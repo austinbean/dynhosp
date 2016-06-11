@@ -112,55 +112,30 @@ function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, 
   return numb, index
 end
 
-# Large number of allocations: 0.699547 seconds (4.58 M allocations: 167.552 MB)
-# This for a matrix with 89000 rows.  Too big.  Must be cut down.
 # fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162
 # fidnd = [2, 18, 34, 50, 66, 82, 98, 114, 130, 146, 162]
-function rowchange(staterow::Array{Float64,2}, fids::Array{Int64}, choicerow::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7, fidnd = [2, 18, 34, 50, 66, 82, 98, 114, 130, 146, 162])
-  #=
-   staterow has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
-   choicerow has the form: [identity, fid, facility, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
-  =#
-    for i in 1:size(choicerow, 1)
-      change_fids = intersect(choicerow[i,fidnd], fids) # Takes the values of market fids which are in the choice row (only these must be changed)
-      if sum(size(change_fids))!= 0
-        for el in change_fids
-          fidloc = fidnd[(peoplesub[i,fidnd].==el),:]
-          # this one doesn't work.
-          statefidloc = staterow[ staterow.==el] # finds the fid in the state history row
-          if (staterow[statefidloc+1] != -999) | (staterow[statefidloc+2] != -999) #check whether firm exited
-            choicerow[i,fidloc+choicesololoc] = staterow[statefidloc+1]
-            choicerow[i,fidloc+choiceintloc] = staterow[statefidloc+2]
-          elseif (staterow[statefidloc+1] == -999) | (staterow[statefidloc+2] == -999)
-            # think about this - setting to 0 not a great idea if running many times.
-            choicerow[i,fidloc] = 0
-            choicerow[i,fidloc+choicesololoc] = -999
-            choicerow[i,fidloc+choiceintloc] = -999
-          end
-        end
-      end
-    end
-  return choicerow
-end
 
 # hisrow1 = [1131021 -1 -1 0 1 1 1 9 9 9 9.0]
-# choiceintloc = 3; choicesololoc = 8; endfields_state = 4; fields_state = 7; fields_people = 16; endfields_people = 7; lenrow = (maximum(size(hisrow1))-4); fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162]; hisfd = collect(1:7:lenrow)
-
-function change2(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 3, choicesololoc = 8, endfields_state = 4, fields_state = 7, fields_people = 16, endfields_people = 7, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162], hisfd = collect(1:7:lenrow) )
+# mfids = [1131021]
+# state history/hisrow  has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
+# choicerow/people  has the form: [identity, fid, facility, Total Beds, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Transfers Out Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
+# @time: 0.070399 seconds (1.60 M allocations: 66.686 MB, 15.01% gc time)
+function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 3, choicesololoc = 9, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162], hisfd = collect(1:7:lenrow) )
   for i in 1:size(people, 1)
-    pfids = people[i,fidnd] #all fids in person's row
-    change_fids = intersect(pfids, mfids) #fids in person's row in market
-    if !(isempty(change_fids))
-      for j in change_fids
-        frm  = hisfd[mfids.==j,:] # found the address of the fid in the state history
-        to = fidnd[pfids.==j,:] # found the address of the fid in the person row
-        people[i, to[1] + choicesololoc] = hisrow[frm[1] + 1]
-        people[i, to[1] + choiceintloc] =  hisrow[frm[1] + 2]
-      end
+    change_fids = intersect(slice(people, i, fidnd), mfids) # 14 allocations: 464 bytes
+    for j in change_fids
+      frm  =  findfirst(hisrow ,j)  # 5 allocations / 208 bytes
+      to =  findfirst(slice(people, i, :),j)  # 12 allocations / 352 bytes
+      people[i, to + choicesololoc] = hisrow[frm + 1] # 5 allocations / 176 bytes
+      people[i, to + choiceintloc] =  hisrow[frm + 2] # 5 allocations / 176 bytes
     end
   end # when someone exits, can you not search for that fid?
   return people
 end
+
+
+
+
 
 #
 # dist_μ = 0;
