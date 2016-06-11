@@ -2,99 +2,30 @@
 # using DataArrays
 # using Distributions
 #
-# include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-# include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-# include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
+#
 
-
-#;
-#entryprobs = [0.9895, 0.008, 0.0005, 0.002] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
-#entrants = [0, 1, 2, 3]
-#fields = 7; # if fields updated, update reshaping of state history
-#T = 100;
 
 #=
 # TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
 
+include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
+
+
 # Import Data
-dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-notmissing = findin(isna(dataf[:fipscode]), false);
-dataf = dataf[notmissing, :];
+
 yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
 mkt_fips = yearins[11][1]
 year = 2005
 fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
 
-# Handle missing dataframe elements::
-for i in names(dataf)
-    if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
-        dataf[isna(dataf[i]), i] = 0
-    elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
-        dataf[isna(dataf[i]), i] = 0
-    elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
-        dataf[isna(dataf[i]), i] = "NONE"
-  end
-    if sum(size(dataf[isna(dataf[i]), i]))>0
-    print(i, "\n")
-  end
-end
-
-data = convert(Matrix, dataf)
-
-
-# Load the people
-people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
-
-# Enumerate all of the types::
-a = Set()
-for el in people.columns
-  push!(a, typeof(el))
-end
-
-# This is needed to clean out the missing values among fids.  Changes them to 0.
-for i in names(people)
-  if typeof(people[i]) != DataArrays.DataArray{ByteString,1}
-    people[isna(people[i]), i] = 0
-  elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
-    people[isna(people[i]), i] = "NONE"
-  end
-end
-
-peoples = convert(Matrix, peoplesub)
-
-
-modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
-distance_c = modcoeffs[1, 2]
-distsq_c = modcoeffs[2, 2]
-neoint_c = modcoeffs[3, 2]
-soloint_c = modcoeffs[4, 2]
-closest_c = modcoeffs[5, 2]
-distbed_c = modcoeffs[6, 2]
-
-demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
-
-# Find the right people:
-peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
 
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 dataf = dataf[dataf[:id].>= 0, :]
 
 Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
-
-To deal with missing values in the hospital dataframe::
-for i in names(dataf)
-    if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
-        dataf[isna(dataf[i]), i] = 0
-    elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
-        dataf[isna(dataf[i]), i] = 0
-    elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
-        dataf[isna(dataf[i]), i] = "NONE"
-  end
-    if sum(size(dataf[isna(dataf[i]), i]))>0
-    print(i, "\n")
-  end
-end
 
 
 fipscodeloc = dataf.colindex.lookup[:fipscode]
@@ -151,47 +82,47 @@ TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
 TotalBeds1loc = 4
 TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
 TotalBeds2loc = 20
+
+T = 100; sim_start = 2; fields = 7; neighbors_start = 108; entrants = [0, 1, 2, 3]; entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
 fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, TotalBeds2loc = 20, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4,
 =#
-# These items not needed, set to 0 and GC
-# dataf = 0;
-# people = 0;
+
 
 
 function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002], fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
-#  if year > 2012
-#    return "Years through 2012 only"
-#  end
-  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once.
-  level1 = data[marketyear,level1_hospitals0loc][1]
-  level2 = data[marketyear,level2solo_hospitals0loc][1]
-  level3 = data[marketyear,level3_hospitals0loc][1]
-  fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc])))
-  state_history = [zeros(1, fields*size(fids, 1)) 1 0 0 0; zeros(T, fields*(size(fids, 1)) + 4)]
+# think about changing the "data" matrix to be type Array{Float64, 2} - can drop strings in the Reboot.jl - see if speeds up.
+  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB)
+  level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
+  level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
+  level3 = data[marketyear,level3_hospitals0loc][1] # 8 allocations: 512 bytes
+  fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # 0.006925 seconds 4.06 k allocations: 208.760 KB - slow.
+  state_history = zeros(T+1, fields*size(fids,1) + 4) #  0.000060 seconds (9 allocations: 58.688 KB)
+  state_history[1, end-3] = 1 # set probability of initial outcome at 1
+
 
   # Writes the values to the first row of the state history
   for n in 1:size(fids,1)
     el = fids[n]
-    a = ((data[:,fidloc].==el)&marketyear)
+    a = ((data[:,fidloc].==el)&marketyear) # 0.000446 seconds (6.93 k allocations: 168.484 KB)
     state_history[1, (n-1)*fields + 1] = el # Change
-    state_history[1, (n-1)*fields + 2] = data[a,act_intloc][1]
-    state_history[1, (n-1)*fields + 3] = data[a,act_sololoc][1]
+    state_history[1, (n-1)*fields + 2] = data[a,act_intloc][1] # 0.000020 seconds (7 allocations: 336 bytes)
+    state_history[1, (n-1)*fields + 3] = data[a,act_sololoc][1] # 0.000024 seconds (7 allocations: 336 bytes)
     state_history[1, (n-1)*fields + 4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields + 5] = 10 # No action at the first period?  Or should it be 10?
-    #state_history[1, (n-1)*fields + 6] = # whatever demand is # Not recorded here - recorded below.
-    state_history[1, (n-1)*fields + 7] = 0 #record the perturbation 0/1
+    #state_history[1, (n-1)*fields + 6] = #  demand is not recorded here - recorded below.
+    # state_history[1, (n-1)*fields + 7] = 0 #record the perturbation 0/1 - always 0 in equilibrium simulation.
   end
   # Record aggregte initial values
-  state_history[1, (size(fids)[1])*fields+1] = level1 ;
-  state_history[1, (size(fids)[1])*fields+2] = level2 ;
-  state_history[1, (size(fids)[1])*fields+3] = level3 ;
-  state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
+  state_history[1, size(fids,1)*fields+1] = level1 ; # 0.000006 seconds (4 allocations: 160 bytes)
+  state_history[1, size(fids,1)*fields+2] = level2 ;
+  state_history[1, size(fids,1)*fields+3] = level3 ;
+  state_history[1, size(fids,1)*fields+4] = 1; # initial probability.
   # Compute initial demand here:
-  peoplesub =rowchange(state_history[1,:], fids, peoplesub)
+  peoplesub =rowchange(state_history[1,:], fids, peoplesub) # fast - see DemandModel.jl. 10 fids: 0.148658 seconds (2.17 M allocations: 88.855 MB).  Probably improvable.
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   emp_arr = Array{Float64, 2}()
-  realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
+  realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     demand_re =  try
@@ -204,29 +135,24 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
       end
     end
     state_history[1,fid_i+5] = demand_re
-  end
+  end # Whole block: 0.003834 seconds (3.86 k allocations: 148.006 KB)
   # Start simulation here:
   total_entrants = Array{Float64, 2}() # define outside the loop, only for the first round.
   for i = sim_start:T+1
-    marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year)
+    marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # 0.000962 seconds (13.85 k allocations: 335.766 KB)
       fids = sort!(unique(data[marketyear,fidloc])) # needs to be updated each round to catch entrants
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # takes the fid
           a = ((data[:,fidloc].==el)&marketyear)
-  #        if sum(a) > 1
-  #          println("two entries for ", el, " ", year, " ", mkt_fips)
-  #        end
-          prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i-1, (fid-1)*fields + 3])
-  #        print("Part 1 \n")
-  #        print("Previous state: ", prev_state, "\n")
+          prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i-1, (fid-1)*fields + 3]) #0.000012 seconds (8 allocations: 272 bytes)
           if prev_state ==  (0,0)                     # ((data[a,act_intloc][1], data[a,act_sololoc][1]) == (0,0)) # level 1, actions:
-            probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
+            probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] ) # 0.000200 seconds (419 allocations: 25.500 KB)
             if probs1 == ValueException
     #          println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
             # Draw action:
-            action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]]))
+            action1 = sample([10, 2, 1, 11] ,WeightVec([probs1[1], probs1[2], probs1[3], probs1[4]])) # @time 0.000020 seconds (11 allocations: 448 bytes)
             # Change things to reflect the action chosen:
             nextint = 0; nextsolo = 0; #reflects the current state
             if action1 == 10
@@ -247,9 +173,9 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   #            println("Fail")
   #            println("Bad Action Chosen by", el)
               break
-            end
+            end # 0.000004 seconds (5 allocations: 176 bytes)
             # Set own distance counts to 0 for all categories
-            (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
+            (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9) #0.000076 seconds (53 allocations: 1.781 KB)
             # write out state values - in blocks:
             state_history[i, (fid-1)*fields + 1] = el # writes fid
             state_history[i, (fid-1)*fields + 2] = nextsolo
@@ -353,8 +279,9 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           end
         end
         # Measure distances to neighbors
-        for f in fids
-          hospmktyear = (data[ :,fidloc].==f)&marketyear
+#### Speed up opportunity.
+        for f in fids # 0.159000 seconds (82.68 k allocations: 23.804 MB) - for 10 fids.  This can be sped up.
+          hospmktyear = (data[ :,fidloc].==f)&marketyear # 0.000447 seconds (6.93 k allocations: 168.531 KB)
           own_fac = (data[hospmktyear, act_sololoc][1], data[hospmktyear, act_intloc][1])
           for j = neighbors_start:(2):size(data, 2) # each row has appended to it a list of the hospital's neighbors.
             # starting at neighbors_start (col 108), we have (fid, distance) pairs in columns (or missing vals) all the way to the end of the dataframe

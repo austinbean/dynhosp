@@ -52,7 +52,7 @@ using Distributions
 
 
     data = convert(Matrix, dataf);
-    dataf = 0; #set to zero to clear out. 
+    dataf = 0; #set to zero to clear out.
 
 
       # Import the model coefficients
@@ -110,11 +110,10 @@ using Distributions
     end
     peoples = convert(Array{Float64, 2}, peoples)
 
+    global const fipscodeloc = 78;
+    global const yearloc = 75;
+    global const fidloc = 74; 
 
-    global const idloc = dataf.colindex.lookup[:id]
-    global const fidloc = dataf.colindex.lookup[:fid]
-    global const fipscodeloc = dataf.colindex.lookup[:fipscode]
-    global const yearloc = dataf.colindex.lookup[:year]
   #  global const dirs = pwd() # present working directory path
 
 
