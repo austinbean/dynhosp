@@ -400,6 +400,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
             neighb_lon = data[neighb_row, v16loc][1]
             td = distance(ent_lat[1], ent_lon[1], neighb_lat[1], neighb_lon[1])
             if  td < 25
+              # A strange problem could arise here if in some simulation there are more than 43 or so entrants - there won't be enough room in the row.  Not a huge worry.
               newrow[neighbors_start+2*(elem-1)] = neighb # fid
               newrow[neighbors_start+2*(elem-1)+1] = td
               entrant_state = (newrow[act_sololoc][1], newrow[act_intloc][1])
@@ -522,5 +523,6 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
       state_history[i, (size(fids)[1])*fields+3] = level3 ;
 
     end
+  peoplesub =rowchange(state_history[1,:], fids, peoplesub) # reset the people to the original state
   return state_history
 end

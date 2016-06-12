@@ -7,54 +7,20 @@
 # include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
 
 
-#T = 100;
-#neighbors_start = 108;
-#entryprobs = [0.9895, 0.008, 0.0005, 0.002] # [No entry, level1, level2, level3] - not taken from anything, just imposed.
-#entrants = [0, 1, 2, 3]
-#fields = 7; # if fields updated, update reshaping of state history
-#sim_start = 2;
-
 #=
 # TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
 
 # Import Data
-dataf = readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv", header = true);
-notmissing = findin(isna(dataf[:fipscode]), false);
-dataf = dataf[notmissing, :];
-yearins = [ [x; findfirst(dataf[:fipscode], x); findlast(dataf[:fipscode], x ); unique( dataf[findfirst(dataf[:fipscode], x):findlast(dataf[:fipscode], x ) , :year]  ) ] for x in unique(dataf[:fipscode])  ]
+
+yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:, fipscodeloc])  ]
 mkt_fips = yearins[125][1]
 year = 2011
-fids = sort!(unique(dataf[(dataf[:,:fipscode].==mkt_fips)&(dataf[:, :year].==year),:fid]))
+fids = sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc]))
 pfid = fids[1]
 disturb = 0.05
 
-# Load the people
-people = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Individual Choices.csv", header = true);
 
-# Enumerate all of the types::
-a = Set()
-for el in people.columns
-  push!(a, typeof(el))
-end
-
-# This is needed to clean out the missing values among fids.  Changes them to 0.
-for i in names(people)
-  if typeof(people[i]) != DataArrays.DataArray{UTF8String,1}
-    people[isna(people[i]), i] = 0
-  end
-end
-
-modcoeffs = readtable("/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 1 Model.csv", header = true);
-distance_c = modcoeffs[1, 2]
-distsq_c = modcoeffs[2, 2]
-neoint_c = modcoeffs[3, 2]
-soloint_c = modcoeffs[4, 2]
-closest_c = modcoeffs[5, 2]
-distbed_c = modcoeffs[6, 2]
-
-demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
-
-state_history = PerturbSimulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters, pfid, disturb = 0.05, T = 100, sim_start = 2)
+state_history = PerturbSimulator(data, peoples, year, mkt_fips, demandmodelparameters, pfid, disturb = 0.05, T = 10, sim_start = 2)
 # Find the right people:
 peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
 
@@ -74,19 +40,12 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
   level2 = data[marketyear,level2solo_hospitals0loc][1]
   level3 = data[marketyear,level3_hospitals0loc][1]
   fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc])))
-  state_history = [zeros(1, fields*size(fids, 1)) 1 0 0 0; zeros(T, fields*(size(fids, 1)) + 4)]
+  state_history = zeros(T+1, fields*size(fids,1) + 4) #  0.000060 seconds (9 allocations: 58.688 KB)
+  state_history[1, end-3] = 1 # set probability of initial outcome at 1
 
-  if !( (size(fids)[1])*fields + 4 == size(state_history)[2])
-    # println("size of fids: ", size(fids), " size of fields: ", fields, " size of state_history: ", size(state_history))
-    # println("first condition: ", (size(fids)[1])*fields + 4, " second condition: ",size(state_history) )
-    return "Dims of state_history incorrect"
-  end
-  if !(in(pfid, fids))
-    return "Fid for perturbation not in market"
-  end
   for n in 1:size(fids,1)
     el = fids[n]
-    a = (dataf[:,:fid].==el)&marketyear
+    a = (data[:,fidloc].==el)&marketyear
     state_history[1, (n-1)*fields + 1] = el # Change
     state_history[1, (n-1)*fields + 2] = data[a,act_intloc][1]
     state_history[1, (n-1)*fields + 3] = data[a,act_sololoc][1]
@@ -100,11 +59,11 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     end
   end
   # Record aggregte initial values
-  state_history[1, (size(fids)[1])*fields+1] = level1 ;
-  state_history[1, (size(fids)[1])*fields+2] = level2 ;
-  state_history[1, (size(fids)[1])*fields+3] = level3 ;
-  state_history[1, (size(fids)[1])*fields+4] = 1; # initial probability.
-  peoplesub =rowchange(state_history[1,:], peoplesub)
+  state_history[1, size(fids,1)*fields+1] = level1 ;
+  state_history[1, size(fids,1)*fields+2] = level2 ;
+  state_history[1, size(fids,1)*fields+3] = level3 ;
+  state_history[1, size(fids,1)*fields+4] = 1; # initial probability.
+  peoplesub =rowchange(state_history[1,:], fids, peoplesub)
   emp_arr = Array{Float64, 2}()
   realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
@@ -123,16 +82,11 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
   # Start simulation here:
   total_entrants = Array{Float64, 2}() #must be defined outside the loop
   for i = sim_start:T+1
-#    print(i, "\n")
     marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year)
-    fids = sort!(unique(data[marketyear,fidloc])) # needs to be updated each round to catch entrants
-#    print("part 1", "\n")
+    fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # needs to be updated each round to catch entrants
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # the dataframe is mutable.
           a = ((data[:,fidloc].==el)&marketyear)
-          # if sum(a) > 1
-          #   println("two entries for ", el, " ", year, " ", mkt_fips)
-          # end
           prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i-1, (fid-1)*fields + 3])
           if  prev_state ==  (0,0) # level 1, actions:
             probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
@@ -340,20 +294,17 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     #    print("part 3", "\n")
             # Entry draw
     entrypairs = hcat(entrants, entryprobs)
-    entrantsp = WeightVec(entryprobs)
-    newentrant = sample(entrants, entrantsp)
+    newentrant = sample(entrants, WeightVec(entryprobs))
     entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
     b = ((data[ :,fipscodeloc].== mkt_fips)&(data[ :,yearloc].==year)); # Market-year observations, whether exited or not.
         if newentrant> 0
-  #         println("Entry occurred")
-          # Eventually fix the fact that the neighbors here are not going to be exactly right.
           # I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
           ent_lat = mean((data[b,v15loc])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
           ent_lon = mean((data[b,v16loc])) + rand(Normal(0, 0.1), 1)
           newrow = data[b,:][1,:] # create new row, duplicating existing.  Takes first row of current
           newrow[facilityloc] = convert(UTF8String, "Entrant $mkt_fips $year")
-          newrow[fidloc] = sample(collect((maximum(data[:,fidloc])+1):(maximum(data[:,fidloc])+5))) # new facility will always have largest fid
-          newrow[idloc] = -sample(collect((maximum(data[:,idloc])+1):(maximum(data[:,idloc])+5))) #
+          newrow[fidloc] = maximum(data[:,fidloc])+5 # new facility will always have largest fid
+          newrow[idloc] = -(maximum(data[:,idloc])+5) #
           newrow[fipscodeloc] = mkt_fips
           newrow[locationloc] = convert(UTF8String, "entrant - see v15 v16")
           newrow[cityloc] = convert(UTF8String, "Entrant - unspecified")
@@ -361,7 +312,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
           newrow[v15loc] = ent_lat
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
-          entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[TotalBeds1loc].>0 ,TotalBeds1loc]), unique(peoplesub[ peoplesub[TotalBeds2loc].>0 ,TotalBeds2loc])) ))) )
+          entrantbeds = convert(Int, floor(mean( unique(unique(peoplesub[ peoplesub[TotalBeds1loc].>0 ,TotalBeds1loc])) ))) # 0.000021 seconds (28 allocations: 1.406 KB)
           if newentrant == 1
             level1 += 1
             newrow[act_intloc] = 0
@@ -460,25 +411,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     tprob = 1
     #  print("Part 4", "\n")
       for els in 4:fields:(size(state_history[i,:], 2)-4) # 4 is the relevant column
-        # if (state_history[i,els-2] == -999) | (state_history[i,els-1] == -999)
-        #   print("should be the fid ", state_history[i,els-3], "\n")
-        #   print("And the row: ", i, "\n")
-        #   print("And the elem: ", els, "\n")
-        #   print("The previous state row: ", i-1,"  ", showall(state_history[i-1,:]'), "\n")
-        #   print("******", "\n")
-        #   print("The current state row: ", i, "   ", showall(state_history[i,:]'), "\n")
-        #   print("\n")
-        # end
         if (state_history[i,els] <= 0) | (state_history[i,els]>1)
-            # print("elements < 0? ", state_history[i,els] <= 0, "\n")
-            # print("the element: ", state_history[i,els], " and the i ", i, "\n")
-            # print("nearby elements: ", state_history[i, els-3:els+3], "\n")
-            # print("elements > 1? ", state_history[i,els]>1, "\n")
-    #        print("Bad probability at row ", i, " ", els, " ", state_history[i,els-3 ], " prob ", state_history[i,els], "\n" )
-            # print(showall(state_history[i-1,:]'), "\n")
-            # print("******", "\n")
-            # print(showall(state_history[i,:]'), "\n")
-            # return state_history
             break
         else
           tprob = tprob*state_history[i,els]
@@ -519,7 +452,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
     - Obtain demand and map it into state_history
     =#
-    peoplesub = rowchange(state_history[i-1,:], peoplesub)
+    peoplesub = rowchange(state_history[i-1,:], fids, peoplesub)
     realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
     for fid_i in 1:fields:size(state_history[i,:])[2]-4
       fid = state_history[i,fid_i]
@@ -544,7 +477,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     state_history[i, (size(fids)[1])*fields+3] = level3 ;
 
   end
-#  print("finishing up \n")
+  peoplesub =rowchange(state_history[1,:], fids, peoplesub) # reset the people to the original state
   index = findfirst(state_history[1,:], pfid) # only return the state history of the perturbed guy.
   subset = hcat(state_history[:, index:index+6], state_history[:, end-3:end])
   return subset # state_history # change order of subset and state_history to return the whole perturbed state.
