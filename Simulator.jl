@@ -23,7 +23,7 @@ fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[
 
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
-dataf = dataf[dataf[:id].>= 0, :]
+data = data[data[:,idloc].>= 0, :]
 
 Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
 
@@ -140,7 +140,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   total_entrants = Array{Float64, 2}() # define outside the loop, only for the first round.
   for i = sim_start:T+1
     marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # 0.000962 seconds (13.85 k allocations: 335.766 KB)
-      fids = sort!(unique(data[marketyear,fidloc])) # needs to be updated each round to catch entrants
+      fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # needs to be updated each round to catch entrants
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # takes the fid
           a = ((data[:,fidloc].==el)&marketyear)
@@ -277,7 +277,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
           end
-        end
+        end # The whole block above took (for 10 facilities) 0.084701 seconds (125.78 k allocations: 4.188 MB)
         # Measure distances to neighbors
 #### Speed up opportunity.
         for f in fids # 0.159000 seconds (82.68 k allocations: 23.804 MB) - for 10 fids.  This can be sped up.
@@ -338,20 +338,17 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
         # Entry draw
 #        print("part 3 \n")
       entrypairs = hcat(entrants, entryprobs)
-      entrantsp = WeightVec(entryprobs)
-      newentrant = sample(entrants, entrantsp)
-      entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]'
+      newentrant = sample(entrants, WeightVec(entryprobs))
+      entrantout = [newentrant, entrypairs[findfirst(entrypairs[:,1], newentrant), 2]]' # 0.000018 seconds (13 allocations: 560 bytes)
       b = ((data[ :,fipscodeloc].== mkt_fips)&(data[ :,yearloc].==year)); # Market-year observations, whether exited or not.
         if newentrant> 0
-    #      println("Entry occurred")
-          # Eventually fix the fact that the neighbors here are not going to be exactly right.
           # I need to add the fact that the entrants are not being recorded in the "neighbors" section so no one is counting distances to them.
-          ent_lat = mean((data[b,v15loc])) + rand(Normal(0, 0.1), 1) # 0.1 degrees latitude should be about 6-7 miles.
+          ent_lat = mean((data[b,v15loc])) + rand(Normal(0, 0.1), 1) # 0.000033 seconds (22 allocations: 848 bytes) 0.1 degrees latitude should be about 6-7 miles.
           ent_lon = mean((data[b,v16loc])) + rand(Normal(0, 0.1), 1)
           newrow = data[b,:][1,:] # create new row, duplicating existing.  Takes first row of current
           newrow[facilityloc] = convert(UTF8String, "Entrant $mkt_fips $year")
-          newrow[fidloc] = sample(collect((maximum(data[:,fidloc])+1):(maximum(data[:,fidloc])+5))) # new facility will always have largest fid
-          newrow[idloc] = -sample(collect((maximum(data[:,idloc])+1):(maximum(data[:,idloc])+5))) #
+          newrow[fidloc] = maximum(data[:,fidloc])+5 # new facility will always have largest fid
+          newrow[idloc] = -(maximum(data[:,idloc])+5) #
           newrow[fipscodeloc] = mkt_fips
           newrow[locationloc] = convert(UTF8String, "entrant - see v15 v16")
           newrow[cityloc] = convert(UTF8String, "Entrant - unspecified")
@@ -360,7 +357,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
           # Just compute the mean over all beds in the state?  This needs to be fixed later.
-          entrantbeds = convert(Int, floor(mean( unique(vcat(unique(peoplesub[ peoplesub[TotalBeds1loc].>0 ,TotalBeds1loc]), unique(peoplesub[ peoplesub[TotalBeds2loc].>0 ,TotalBeds2loc])) ))) )
+          entrantbeds = convert(Int, floor(mean( unique(unique(peoplesub[ peoplesub[TotalBeds1loc].>0 ,TotalBeds1loc])) ))) # 0.000021 seconds (28 allocations: 1.406 KB)
           # This part IS necessary
           if newentrant == 1
             level1 += 1
@@ -376,7 +373,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
             newrow[act_sololoc] = 1
           end
           # Define the data needed for an entrant to compute the demand model for the individuals.  6 components.
-          entrant_data = [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
+          entrant_data = [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]  # 0.000080 seconds (105 allocations: 4.531 KB)
           if maximum(size(total_entrants))<=1
             total_entrants = entrant_data
           else
@@ -443,7 +440,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           end
           # println("appending entry")
           # Add the new record to the dataframe.
-          data = [data; newrow]
+          data = [data; newrow] # quick but costly: 0.007540 seconds (17 allocations: 9.541 MB)
           # append value to fids
           push!(fids, newrow[fidloc][1])
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
@@ -451,31 +448,15 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           # The problem is the size computation right here - figure it out.  I'm not resizing this right.  The entry condition is not correct now.
           # OLD:  vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids,1)*fields+4 ))
           # Want: vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), (size(fids,1)+1)*fields+4) ))
-          state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) )
+          state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) ) # 0.000126 seconds (80 allocations: 132.234 KB) ??
+# The above is super inefficient. Can we allocate a new matrix and set certain elements equal to the old ones?
+
         end
         # Aggregate Probability of Action:
       tprob = 1
 #      print("Part 4", "\n")
       for els in 4:fields:(size(state_history[i,:], 2)-4) # 4 is the relevant column
-        # if (state_history[i,els-2] == -999) | (state_history[i,els-1] == -999)
-        #   print("should be the fid ", state_history[i,els-3], "\n")
-        #   print("And the row: ", i, "\n")
-        #   print("And the elem: ", els, "\n")
-        #   print("The previous state row: ", i-1,"  ", showall(state_history[i-1,:]'), "\n")
-        #   print("******", "\n")
-        #   print("The current state row: ", i, "   ", showall(state_history[i,:]'), "\n")
-        #   print("\n")
-        # end
         if (state_history[i,els] <= 0) | (state_history[i,els]>1)
-            # print("elements < 0? ", state_history[i,els] <= 0, "\n")
-            # print("the element: ", state_history[i,els], " and the i ", i, "\n")
-            # print("nearby elements: ", state_history[i, els-3:els+3], "\n")
-            # print("elements > 1? ", state_history[i,els]>1, "\n")
-    #        print("Bad probability at row ", i, " ", els, " ", state_history[i,els-3 ], " prob ", state_history[i,els], "\n" )
-            # print(showall(state_history[i-1,:]'), "\n")
-            # print("******", "\n")
-            # print(showall(state_history[i,:]'), "\n")
-            # return state_history
             break
         else
           tprob = tprob*state_history[i,els]
@@ -516,8 +497,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
       - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
       - Obtain demand and map it into state_history
       =#
-      # Since people sub is running twice, it's probably taking 10 - 12 seconds per iteration.  Must be sped up.
-      peoplesub = rowchange(state_history[i-1,:], peoplesub)
+      peoplesub = rowchange(state_history[i-1,:], fids, peoplesub)
       realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
       for fid_i in 1:fields:size(state_history[i,:], 2)-4
         fid = state_history[i,fid_i]
