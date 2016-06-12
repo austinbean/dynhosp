@@ -15,24 +15,6 @@ Platform Info:
 
 =#
 
-# dir = pwd()
-# global pathdata = "";global pathpeople = "";global  pathprograms = "";
-# if dir == "/Users/austinbean/Desktop/dynhosp"
-#   global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
-#   global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
-#   global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
-# elseif dir == "/dynhosp/dynhosp"
-#   global pathdata = dir*"/"
-#   global pathpeople = dir*"/"
-#   global pathprograms = dir*"/"
-# elseif (dir == "/home/ubuntu/Notebooks") | (dir == "/home/ubuntu/dynhosp")
-#   global pathdata = "/home/ubuntu/dynhosp/"
-#   global pathpeople = "/home/ubuntu/dynhosp/"
-#   global pathprograms = "/home/ubuntu/dynhosp/"
-# end
-# fipscodeloc = dataf.colindex.lookup[:fipscode]
-# yearloc = dataf.colindex.lookup[:year]
-# fidloc = dataf.colindex.lookup[:fid]
 
 
 
@@ -78,23 +60,23 @@ tetrapoly = Array{Int64}(0)
 nopoly = Array{Int64}(0)
 
 for el in yearins
-  unqfids = [x for x in unique(dataf[el[2]:el[3],fidloc]).data]
+  unqfids = [x for x in unique(data[el[2]:el[3],fidloc])]
   if size(unqfids)[1] == 1
   #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(monopoly, dataf[el[3], fipscodeloc])
+    push!(monopoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] == 2
   #  print("Fipscode Duopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(duopoly, dataf[el[3], fipscodeloc])
+    push!(duopoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] == 3
   #  print("Fipscode Triopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(triopoly, dataf[el[3], fipscodeloc])
+    push!(triopoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] == 4
   #  print("Fipscode Tetrapoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(tetrapoly, dataf[el[3], fipscodeloc])
+    push!(tetrapoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] > 4
   #  print("Fipscode N-opoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
   #  print("Fipscode Hospitals: ", size(unqfids)[1], "\n")
-    push!(nopoly, dataf[el[3], fipscodeloc])
+    push!(nopoly, data[el[3], fipscodeloc])
   end
 end
 
@@ -134,8 +116,8 @@ end
 timestamps = Array{Any}(0)
 
 
-for y in 1:size(nopoly,1)
-    mkt_fips = nopoly[y][1]
+for y in 1:size(duopoly,1)
+    mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
     push!(timestamps, (mkt_fips, "begin", timestr))
@@ -146,7 +128,7 @@ for y in 1:size(nopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
-          container = [container; Mainfun(dat, people, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
+          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
       end #Note - rewrite first line of state history back to peoples.
     end
     # Record what time certain ends happened.

@@ -36,7 +36,6 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
     println("Maximum hospitals observed exceeds max_hosp")
     return "Size Warning"
   end
-print("THere is still an important fix to be made!  Multiply everything by the last prob. \n")
   outp = zeros(3*pat_types, max_hosp + 1) # visits to max hospital or 0 at each of 3 levels
   outp2 = zeros(1, 12) # records
 
