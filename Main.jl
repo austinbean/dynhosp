@@ -116,7 +116,7 @@ end
 timestamps = Array{Any}(0)
 
 
-for y in 1:size(duopoly,1)
+for y in 1:2 #size(duopoly,1)
     mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
@@ -128,8 +128,9 @@ for y in 1:size(duopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
-          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10)]
+          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10, npers = 3)]
       end #Note - rewrite first line of state history back to peoples.
+      dat = 0
     end
     # Record what time certain ends happened.
     outf = open(pathprograms*"timer.txt", "w")
@@ -156,15 +157,25 @@ output1 = output1[ output1[:fipscode].>0 ,:]
 
 # Append new data to the existing data - there is a stupid problem here that the types don't match exactly.  Make everything Float64:
 for el in names(fout1)
-  typ1 = typeof(fout1[el])
+  if (typeof(fout1[el]) == DataArrays.DataArray{Int64,1})
+#    print("int type ", el, "\n")
+    fout1[DataFrames.isna(fout1[el]),:] = -666
+  elseif (typeof(fout1[el]) == DataArrays.DataArray{Float64,1})
+#    print("float type ", el, "\n")
+    fout1[DataFrames.isna(fout1[el]),:] = -666.0
+  else
+#    print("other type ", typeof(el), "\n")
+  end
+end
+
+for el in names(fout1)
 #  print(el, "\n")
-#  print(typ1, "\n")
   fout1[el] = convert( Array{Float64,1}, fout1[el])
-  output1[el] = convert( Array{Float64,1}, output1[el])
-#  print(typeof(output1[el]), "\n")
+#  output1[el] = convert( Array{Float64,1}, output1[el])
 end
 
 append!(fout1, output1)
+fout1 = fout1[fout1[:fipscode].!=-666,:]
 writetable(pathprograms*"simulationresults.csv", output1)
 
 
