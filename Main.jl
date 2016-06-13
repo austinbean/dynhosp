@@ -116,7 +116,7 @@ end
 timestamps = Array{Any}(0)
 
 
-for y in 1:2 #size(duopoly,1)
+for y in 1:size(duopoly,1)
     mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
@@ -128,7 +128,7 @@ for y in 1:2 #size(duopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(dat[(dat[:,fipscodeloc].==mkt_fips)&(dat[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
-          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10, npers = 3)]
+          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 500, npers = 50)]
       end #Note - rewrite first line of state history back to peoples.
       dat = 0
     end
