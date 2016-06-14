@@ -122,8 +122,13 @@ end
 
 timestamps = Array{Any}(0)
 
+<<<<<<< HEAD
 #=
 for y in 1#:size(duopoly,1)
+=======
+
+for y in 1:2 #size(duopoly,1)
+>>>>>>> parent of 27b64f0... Simulation period number changed in Main
     mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
@@ -135,6 +140,7 @@ for y in 1#:size(duopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
+<<<<<<< HEAD
           container = [container; Mainfun(data, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 52, npers = 2)]
       end #Note - rewrite first line of state history back to peoples.
     #  dat = 0
@@ -202,6 +208,9 @@ for y in 1#:size(duopoly,1)
             end
         end
         container = [container; outp]
+=======
+          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10, npers = 3)]
+>>>>>>> parent of 27b64f0... Simulation period number changed in Main
       end #Note - rewrite first line of state history back to peoples.
     #  dat = 0
     end
