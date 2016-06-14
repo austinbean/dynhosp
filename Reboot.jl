@@ -100,7 +100,6 @@ using Distributions
     people = 0; # DataFrame not used - set to 0 and clear out.
 
 
-# GETS KILLED HERE -
     for i =1:size(peoples, 2)
       if (typeof(peoples[2,i])==UTF8String) | (typeof(peoples[2,i])==ASCIIString)
         print(i, "\n")

@@ -128,7 +128,7 @@ for y in 1:2 #size(duopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
-          container = [container; Mainfun(data, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 52, npers = 2)]
+          container = [container; Mainfun(data, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 52, npers = 10)]
       end #Note - rewrite first line of state history back to peoples.
     #  dat = 0
     end
