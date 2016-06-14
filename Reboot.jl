@@ -138,7 +138,7 @@ DynamicValue(b1, b1[1,1])
 #print("Testing Remote Call \n")
 #p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
-#include(pathprograms*"Main.jl")
+include(pathprograms*"Main.jl")
 
 
 # This is necessary for Simulator and PerturbSimulator - column numbers of data elements in "data" and "dataf"
