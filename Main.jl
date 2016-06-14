@@ -174,13 +174,13 @@ for y in 1#:size(duopoly,1)
             outp[i,2] = fids[i]
             outp[i,3] = year
           end
-          for j in 1:51  # NUMBER OF SIMULATIONS
+          for j in 1:500  # NUMBER OF SIMULATIONS
           #  print("Sim Round, " , j, "\n")
       			#Arguments: Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2};  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
             if j%50 == 0
               print("Simulation Round, ", j, "  mkt: ", mkt_fips, " ", year, " ", "\n")
             end
-            states = Simulator(data, peoples, year, mkt_fips, demandmodelparameters; T = 2) # T is PERIODS SIMULATED
+            states = Simulator(data, peoples, year, mkt_fips, demandmodelparameters; T = 50) # T is PERIODS SIMULATED
             # Non-equilibrium Play -
       			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
       			data = data[(data[:,idloc].>= 0), :];
@@ -188,7 +188,7 @@ for y in 1#:size(duopoly,1)
                 pfid = fids[f]
             #    print("Perturbing Fid: ", pfid, "\n")
           			#Arguments: function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108)
-                perturbed_history = PerturbSimulator(data, peoples, year, mkt_fips, demandmodelparameters, pfid; disturb = 0.01, T = 2)  # T is PERIODS SIMULATED
+                perturbed_history = PerturbSimulator(data, peoples, year, mkt_fips, demandmodelparameters, pfid; disturb = 0.01, T = 50)  # T is PERIODS SIMULATED
 
           			# Here apply DynamicValue to the result of the simulations
           			# DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, max_hosp = 25)
@@ -222,7 +222,7 @@ end
 
 
 # Add column names to the new data:
-#=
+
 output1 = convert(DataFrame, container);
 
 names!(output1, colnames)
@@ -252,7 +252,7 @@ fout1 = fout1[fout1[:fipscode].!=-666,:]
 writetable(pathprograms*"simulationresults.csv", output1)
 
 
-=#
+
 
 
 
