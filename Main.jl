@@ -15,14 +15,6 @@ Platform Info:
 include("/Users/austinbean/Desktop/dynhosp/Main.jl")
 =#
 
-# Hypothetical:
-
-
-push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
-push!(LOAD_PATH, "/dynhosp/dynhosp")
-push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
-
-using Reboot.jl
 
 
 
@@ -122,16 +114,9 @@ end
 
 timestamps = Array{Any}(0)
 
-<<<<<<< HEAD
-#=
-for y in 1#:size(duopoly,1)
-=======
+
 
 for y in 1:2 #size(duopoly,1)
-<<<<<<< HEAD
->>>>>>> parent of 27b64f0... Simulation period number changed in Main
-=======
->>>>>>> parent of 27b64f0... Simulation period number changed in Main
     mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
@@ -143,81 +128,7 @@ for y in 1:2 #size(duopoly,1)
           #print("size of dat", size(dat), "\n")
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           numfids = size(fids,1)
-<<<<<<< HEAD
-<<<<<<< HEAD
           container = [container; Mainfun(data, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 52, npers = 2)]
-      end #Note - rewrite first line of state history back to peoples.
-    #  dat = 0
-    end
-    # Record what time certain ends happened.
-    outf = open(pathprograms*"timer.txt", "w")
-    crtime = now()
-    timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
-    push!(timestamps, (mkt_fips, "end", timestr))
-    #print(timestamps, "\n")
-    writedlm(outf, timestamps)
-    close(outf)
-    # Write out temporary files in case the process fails later.
-    tout = convert(DataFrame, container);
-    names!(tout, colnames)
-    tout = tout[ tout[:fipscode].>0, :]
-    DataFrames.writetable(pathprograms*"temp_results_$mkt_fips.csv", tout) # no slash.
-end
-
-=#
-
-for y in 1#:size(duopoly,1)
-    mkt_fips = duopoly[y][1]
-    crtime = now()
-    timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
-    push!(timestamps, (mkt_fips, "begin", timestr))
-    if !(in(mkt_fips, donefips)) # this is going to do new fipscodes only
-      print("Market FIPS Code ", mkt_fips, "\n")
-      	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
-          #dat = deepcopy(data);
-          #print("size of dat", size(dat), "\n")
-          fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
-          numfids = maximum(size(fids))
-          outp = zeros(numfids, 183)
-          for i = 1:numfids
-            outp[i,1] = mkt_fips
-            outp[i,2] = fids[i]
-            outp[i,3] = year
-          end
-          for j in 1:500  # NUMBER OF SIMULATIONS
-          #  print("Sim Round, " , j, "\n")
-      			#Arguments: Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2};  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
-            if j%50 == 0
-              print("Simulation Round, ", j, "  mkt: ", mkt_fips, " ", year, " ", "\n")
-            end
-            states = Simulator(data, peoples, year, mkt_fips, demandmodelparameters; T = 50) # T is PERIODS SIMULATED
-            # Non-equilibrium Play -
-      			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
-      			data = data[(data[:,idloc].>= 0), :];
-        		for f in 1:numfids
-                pfid = fids[f]
-            #    print("Perturbing Fid: ", pfid, "\n")
-          			#Arguments: function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108)
-                perturbed_history = PerturbSimulator(data, peoples, year, mkt_fips, demandmodelparameters, pfid; disturb = 0.01, T = 50)  # T is PERIODS SIMULATED
-
-          			# Here apply DynamicValue to the result of the simulations
-          			# DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, max_hosp = 25)
-          			# output is in format: facility changes record, per-period visits record.
-          			pfid_f = convert(Float64, pfid)
-          			eq_change, eq_val  = DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, max_hosp = 25)
-          			neq_change, neq_val = DynamicValue(perturbed_history, pfid_f; pat_types = 1, β = 0.95, max_hosp = 25)
-                outp[f,4:end] += [eq_val eq_change neq_val neq_change]
-                # Abandon Entrants again.
-                data = data[(data[:,idloc].>= 0), :];
-            end
-        end
-        container = [container; outp]
-=======
-          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10, npers = 3)]
->>>>>>> parent of 27b64f0... Simulation period number changed in Main
-=======
-          container = [container; Mainfun(dat, peoples, mkt_fips, year, demandmodelparameters, fids; nsims = 10, npers = 3)]
->>>>>>> parent of 27b64f0... Simulation period number changed in Main
       end #Note - rewrite first line of state history back to peoples.
     #  dat = 0
     end
