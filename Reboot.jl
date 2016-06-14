@@ -99,13 +99,13 @@ using Distributions
     peoples = convert(Matrix, people);
     people = 0; # DataFrame not used - set to 0 and clear out.
 
+
+# GETS KILLED HERE -
     for i =1:size(peoples, 2)
-      if !(typeof(peoples[2,i])<:Number)
+      if (typeof(peoples[2,i])==UTF8String) | (typeof(peoples[2,i])==ASCIIString)
+        print(i, "\n")
         peoples[:,i] = "0"
         peoples[:,i] = map(x->parse(Float64, x), peoples[:,i])
-        peoples[:,i] = convert(Array{Float64, 1}, peoples[:,i])
-      else
-        peoples[:,i] = convert(Array{Float64, 1}, peoples[:,i])
       end
     end
     peoples = convert(Array{Float64, 2}, peoples)
