@@ -13,7 +13,9 @@ function Mainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, mo
       end
       for j in 1:nsims
   			#Arguments: Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2};  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
-    #    print("Equilibrium Simulation, ", mkt_fips, " ", year, " ", "\n")
+        if j%50 == 0
+          print("Simulation Round, ", j, "  mkt: ", mkt_fips, " ", year, " ", "\n")
+        end
         states = Simulator(dataf, people, year, mkt_fips, modelparameters; T = npers)
         # Non-equilibrium Play -
   			# Entrants in dataframe now tagged with negative ID's.  Remake to remove them:
