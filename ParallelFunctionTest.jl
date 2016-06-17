@@ -117,7 +117,7 @@ push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
       #  global const dirs = pwd() # present working directory path
 
 
-    end # of "begin" block
+  end # of "begin" block
 
     @everywhere begin
     yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
@@ -171,7 +171,7 @@ end
 
 # For comparison:
 # nsims = 3, npers = 10 - 24.139081 seconds (65.39 M allocations: 8.865 GB, 17.99% gc time)
-a2 = Mainfun(data, peoples, mkt_fips, year, demandmodelparameters, [fids[1]]; nsims = 3, npers = 10)
+a2 = Mainfun(data, peoples, mkt_fips, year, demandmodelparameters, [fids[1]]; nsims = 4, npers = 10)
 
 
 @parallel (+) for i=1:4

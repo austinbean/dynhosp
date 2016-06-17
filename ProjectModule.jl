@@ -1,11 +1,4 @@
-# Module for Main Work:
-# push this change to the LOAD_PATH: push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
-#
-# using DataFrames
-# @everywhere using DataFrames
-#
-# using Distributions
-# @everywhere using Distributions
+
 
 
 module ProjectModule
@@ -38,33 +31,16 @@ module ProjectModule
   include(pathprograms*"MainFunction.jl")
   include(pathprograms*"PerturbAction.jl")
   include(pathprograms*"ParallelFunctions.jl")
-  #
-  # include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/Simulator.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/PerturbSimulation.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/DynamicValue.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/MainFunction.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
-  # include("/Users/austinbean/Desktop/dynhosp/ParallelFunctions.jl")
+  include(pathprograms*"ParMainFun.jl")
 
-  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue
+
+
+  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue, ParMainfun
   println("Loaded Module")
 end #end of module
 
 
-#=
-
-
-# Now send to all workers:
-sendto(lis; data=data)
 
 
 
-# Send to all workers:
-sendto(lis; people=people)
-
-sendto(lis, demandmodelparameters = demandmodelparameters)
-
-=#
+####

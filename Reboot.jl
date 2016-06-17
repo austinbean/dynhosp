@@ -6,7 +6,7 @@ push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
 push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 
-#lis = addprocs()
+lis = addprocs()
 
 
 
@@ -113,6 +113,7 @@ using Distributions
     global const yearloc = 75;
     global const fidloc = 74;
     global const idloc = 1;
+    global const nsims = 1;
 
   #  global const dirs = pwd() # present working directory path
 
@@ -140,32 +141,7 @@ DynamicValue(b1, b1[1,1])
 include(pathprograms*"Main.jl")
 
 
-# This is necessary for Simulator and PerturbSimulator - column numbers of data elements in "data" and "dataf"
-#
-# global const fipscodeloc = dataf.colindex.lookup[:fipscode]
-#
-# global const level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
-# global const level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
-# global const level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
-# global const fidloc = dataf.colindex.lookup[:fid]
-# global const act_intloc = dataf.colindex.lookup[:act_int]
-# global const act_sololoc = dataf.colindex.lookup[:act_solo]
-# global const lev105loc = dataf.colindex.lookup[:lev105]
-# global const lev205loc = dataf.colindex.lookup[:lev205]
-# global const lev305loc = dataf.colindex.lookup[:lev305]
-# global const lev1515loc = dataf.colindex.lookup[:lev1515]
-# global const lev2515loc = dataf.colindex.lookup[:lev2515]
-# global const lev3515loc = dataf.colindex.lookup[:lev3515]
-# global const lev11525loc = dataf.colindex.lookup[:lev11525]
-# global const lev21525loc = dataf.colindex.lookup[:lev21525]
-# global const lev31525loc = dataf.colindex.lookup[:lev31525]
-# global const v15loc = dataf.colindex.lookup[:v15]
-# global const v16loc = dataf.colindex.lookup[:v16]
-# global const facilityloc = dataf.colindex.lookup[:facility]
 
-# global const locationloc = dataf.colindex.lookup[:location]
-# global const cityloc = dataf.colindex.lookup[:city]
-# global const firstyearloc = dataf.colindex.lookup[:firstyear]
-#
-# global const TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
-# global const TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
+
+
+###
