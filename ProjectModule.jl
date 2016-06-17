@@ -50,7 +50,7 @@ module ProjectModule
   # include("/Users/austinbean/Desktop/dynhosp/ParallelFunctions.jl")
 
   export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue
-
+  println("Loaded Module")
 end #end of module
 
 

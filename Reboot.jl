@@ -102,7 +102,7 @@ using Distributions
 
     for i =1:size(peoples, 2)
       if (typeof(peoples[2,i])==UTF8String) | (typeof(peoples[2,i])==ASCIIString)
-        print(i, "\n")
+  #      print(i, "\n")
         peoples[:,i] = "0"
         peoples[:,i] = map(x->parse(Float64, x), peoples[:,i])
       end

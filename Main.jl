@@ -1,9 +1,8 @@
 # Main
 
 #=
-Version Information:
-Julia Version 0.4.3
-Commit a2f713d (2016-01-12 21:37 UTC)
+Julia Version 0.4.5
+Commit 2ac304d (2016-03-18 00:58 UTC)
 Platform Info:
   System: Darwin (x86_64-apple-darwin13.4.0)
   CPU: Intel(R) Core(TM) i7-5557U CPU @ 3.10GHz

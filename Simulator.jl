@@ -279,7 +279,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           end
         end # The whole block above took (for 10 facilities) 0.084701 seconds (125.78 k allocations: 4.188 MB)
         # Measure distances to neighbors
-#### Speed up opportunity.
+        #### Speed up opportunity.
         for f in fids # 0.159000 seconds (82.68 k allocations: 23.804 MB) - for 10 fids.  This can be sped up.
           hospmktyear = (data[ :,fidloc].==f)&marketyear # 0.000447 seconds (6.93 k allocations: 168.531 KB)
           own_fac = (data[hospmktyear, act_sololoc][1], data[hospmktyear, act_intloc][1])
