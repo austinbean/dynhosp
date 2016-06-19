@@ -1,5 +1,6 @@
 # reboot:
 # include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
+# include("/home/ubuntu/dynhosp/Reboot.jl")
 
 
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
@@ -9,11 +10,9 @@ push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 lis = addprocs()
 
 
-
 using ProjectModule
 using DataFrames
 using Distributions
-
 
 
 @everywhere begin
@@ -98,8 +97,6 @@ using Distributions
 
     peoples = convert(Matrix, people);
     people = 0; # DataFrame not used - set to 0 and clear out.
-
-
     for i =1:size(peoples, 2)
       if (typeof(peoples[2,i])==UTF8String) | (typeof(peoples[2,i])==ASCIIString)
   #      print(i, "\n")
