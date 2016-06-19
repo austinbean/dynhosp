@@ -123,11 +123,11 @@ for y in 1:size(duopoly,1)
       	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           # This will parallelize the computation across Monte Carlo sims.
-          mcres = @parallel (+) for i = 1:nsims
+          mcres = @parallel (+) for i = 1:500
                     ParMainfun(data, peoples, mkt_fips, year, demandmodelparameters, fids)
                   end
           # the addition map adds together years, fipscodes and fids.  Divide by nsims to recover.
-          mcres[:, 1:3] = mcres[:,1:3]/nsims
+          mcres[:, 1:3] = mcres[:,1:3]/500
           container = [container; mcres]
       end #Note - rewrite first line of state history back to peoples.
     #  dat = 0

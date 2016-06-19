@@ -34,6 +34,7 @@ begin
     global pathprograms = "/home/ubuntu/dynhosp/"
   end
   # Import the hospital data and convert to a matrix -
+  println("Importing Hosp Data")
     dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
     for i in names(dataf)
         if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
@@ -61,6 +62,7 @@ begin
       global const distbed_c = modcoeffs[6, 2]
       demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
   # Import the people and convert that data to a matrix
+  println("Importing People")
     people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
     #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
     for i in names(people)
@@ -98,7 +100,7 @@ begin
     global const yearloc = 75;
     global const fidloc = 74;
     global const idloc = 1;
-    global const nsims = 1;
+  #  global const nsims = 500;
   #  global const dirs = pwd() # present working directory path
 end # of "begin" block
 
@@ -117,8 +119,8 @@ print("Testing DynamicValue \n")
 DynamicValue(b1, b1[1,1])
 
 # Test parallel
-#print("Testing Remote Call \n")
-#p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
+print("Testing Remote Call \n")
+p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
 include(pathprograms*"Main.jl")
 
