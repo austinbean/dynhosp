@@ -48,31 +48,20 @@ using Distributions
         print(i, "\n")
       end
     end
-
-
     data = convert(Matrix, dataf);
     dataf = 0; #set to zero to clear out.
-
-
       # Import the model coefficients
       modcoeffs = DataFrames.readtable(pathpeople*"TX 2005 Model.csv", header = true);
-
       global const distance_c = modcoeffs[1, 2]
       global const distsq_c = modcoeffs[2, 2]
       global const neoint_c = modcoeffs[3, 2]
       global const soloint_c = modcoeffs[4, 2]
       global const closest_c = modcoeffs[5, 2]
       global const distbed_c = modcoeffs[6, 2]
-
       demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
-
-
-
   # Import the people and convert that data to a matrix
     people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
     #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
-
-
     for i in names(people)
       if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
         people[DataFrames.isna(people[i]), i] = 0
@@ -94,7 +83,6 @@ using Distributions
         print(i, "\n")
       end
     end
-
     peoples = convert(Matrix, people);
     people = 0; # DataFrame not used - set to 0 and clear out.
     for i =1:size(peoples, 2)
@@ -105,16 +93,12 @@ using Distributions
       end
     end
     peoples = convert(Array{Float64, 2}, peoples)
-
     global const fipscodeloc = 78;
     global const yearloc = 75;
     global const fidloc = 74;
     global const idloc = 1;
     global const nsims = 1;
-
   #  global const dirs = pwd() # present working directory path
-
-
 end # of "begin" block
 
 

@@ -7,7 +7,7 @@
 
 =#
 
-function ParMainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, fids::Array{Int64};  idloc = 1, npers = 10)
+function ParMainfun(dataf::Matrix, people::Matrix, mkt_fips::Int64, year::Int64, modelparameters::Array{Float64, 2}, fids::Array{Int64};  idloc = 1, npers = 50)
 			 # returns a dataframe unless converted
       numfids = maximum(size(fids))
       outp = zeros(numfids, 183)
