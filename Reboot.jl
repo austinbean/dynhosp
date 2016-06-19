@@ -15,7 +15,8 @@ using DataFrames
 using Distributions
 
 
-@everywhere begin
+#@everywhere # it seems that the data objects do *not* need to be defined everywhere.  That's weird.
+begin
   # Figure out which machine I'm on
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
