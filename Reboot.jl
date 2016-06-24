@@ -7,7 +7,8 @@ push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
 push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 
-lis = addprocs()
+#lis = addprocs()
+lis = addprocs(4) # for the 8 core Amazon machine. 
 
 
 using ProjectModule
@@ -122,7 +123,7 @@ DynamicValue(b1, b1[1,1])
 print("Testing Remote Call \n")
 p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
-include(pathprograms*"Main.jl")
+#include(pathprograms*"Main.jl")
 
 
 
