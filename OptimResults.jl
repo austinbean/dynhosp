@@ -134,12 +134,34 @@ result = optimize(sumval, 500*ones(params), method = SimulatedAnnealing(), itera
 
 # Now this will print the parameter name:
 for el in 1:convert(Int, (size(fout1.colindex.names)[1]-3)/2)
-  print(fout1.colindex.names[el+3], "  ", Optim.minimizer(result)[el], " param: ", paramsymbs[el], "\n")
+  print(fout1.colindex.names[el+3], "  ", Optim.minimizer(result)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
 end
 
 # These are not very informative yet.
-plot(x = [1 2 3 4], y=Optim.minimizer(result)[1:4]) # paramsymbs[1:4])
-plot(x = [1 3 4 4], y=Optim.minimizer(result)[5:8])#, paramsymbs[5:8])
+
+# Test labeling:
+x1 = paramsymbs[1:6]
+p1 = plot(x=x1, y=Optim.minimizer(result)[1:6], Guide.xticks(ticks=collect(1:6)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices 
+draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
+
+x2 = paramsymbs[7:10]
+p2 = plot(x=x2, y=Optim.minimizer(result)[7:10], Guide.xticks(ticks=collect(1:4)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev2rev.png", 12cm, 6cm), p2)
+
+x3 = paramsymbs[11:13]
+p3 = plot(x=x3, y=Optim.minimizer(result)[11:13], Guide.xticks(ticks=collect(1:3)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev3rev.png", 12cm, 6cm), p3)
+
+x4 = collect(1:6)
+p4 = plot(
+layer(x=x4, y=Optim.minimizer(result)[1:6], Geom.point, Geom.line, Theme(default_color=color("green")) ),
+layer(x=collect(1:4), y=Optim.minimizer(result)[7:10], Geom.point, Geom.line, Theme(default_color=color("purple"))),
+layer(x=collect(1:3), y=Optim.minimizer(result)[11:13], Geom.point, Geom.line, Theme(default_color=color("red"))),
+Guide.xlabel("Number of Competitors"),
+Guide.ylabel("Dollars"),
+Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
+Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
+draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
 
 
 ##
