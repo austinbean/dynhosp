@@ -5,3 +5,5 @@ TX Census Data files
 simulationresults.csv
 Deprecated.jl
 parallelnotes.txt
+computetimeestimate.jl
+timer.txt

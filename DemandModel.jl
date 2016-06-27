@@ -120,7 +120,7 @@ end
 # state history/hisrow  has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
 # choicerow/people  has the form: [identity, fid, facility, Total Beds, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Transfers Out Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
 # @time: 0.070399 seconds (1.60 M allocations: 66.686 MB, 15.01% gc time) - this for one value in mfids.
-# @time: 0.148658 seconds (2.17 M allocations: 88.855 MB) - for 10 values in mfids 
+# @time: 0.148658 seconds (2.17 M allocations: 88.855 MB) - for 10 values in mfids
 function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 3, choicesololoc = 9, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162], hisfd = collect(1:7:lenrow) )
   for i in 1:size(people, 1)
     change_fids = intersect(slice(people, i, fidnd), mfids) # 14 allocations: 464 bytes
@@ -247,7 +247,7 @@ function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::
   mat11 = peo[:,xind[1:6]]*modelparameters' + rand!(d, rand_el)
   if size(entrants, 2) > 1
     entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
-    allfids = [peo[:,fidnd[1:11]] repmat(entfids, siz, 1)]
+    allfids = [peo[:,fidnd[1:11]] repmat(entfids, siz, 1)] #maybe fill(entfids, siz) would work faster?  Maybe speed is the same but allocations lower.
     entutil = EntrantsU(peo, entrants, modelparameters)
     vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]] , 2)
     outp = map( (i,x)->allfids[i,x], collect(1:size(mat1,1)), ind2sub((size(mat1,1),12), vec(inds) )[2] )
@@ -260,7 +260,33 @@ return outp
 end
 
 
+# entrants = Array{Float64,2}(); dist_μ = 0; dist_σ = 1; dist_ξ = 0; d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ); entsize = 6; entnum = convert(Int, size(entrants, 2)/entsize); siz = size(peo,1); persloc = [183 184]; ind = [12 17 11 5 13 16]; iind = [28 33 27 21 29 32]; iiind = [44 49 43 37 45 48]; ivnd = [60 65 59 53 61 64]; vnd = [76 81 75 69 77 80]; vind = [92 97 91 85 93 96]; viind = [108 113 107 101 109 112]; viiind = [124 129 123 117 125 128]; ixnd = [140 145 139 133 141 144]; xnd = [156 161 155 149 157 160]; xind = [172 177 171 165 173 176]; fidnd = [2 18 34 50 66 82 98 114 130 146 162]
+#=
+function DM2(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
+# Computed utilities + error
+# change_fids = intersect(slice(people, i, fidnd), mfids)
+  rand_el = Array(Float64, siz)
+  vals = fill(typemin(Float64), siz)
+  inds = fill(0, siz)
+  for indices in [ind, iind, iiind, ivnd, vnd, vind, viind, viiind, ixnd, xnd, xind]
+    mat = peo[:, indices[1:6]]*modelparameters'+rand!(d, rand_el)
 
+  end
+  if size(entrants, 2) > 1
+    entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
+    allfids = [peo[:,fidnd[1:11]] repmat(entfids, siz, 1)]
+    entutil = EntrantsU(peo, entrants, modelparameters)
+    vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]] , 2)
+    outp = map( (i,x)->allfids[i,x], collect(1:size(mat1,1)), ind2sub(( size(mat1,1),12 ), vec(inds) )[2] )
+    outp = [ allfids[i,x] for i = 1:siz, x = ind2sub((siz,12), vec(inds))[2] ]
+  else #  no entrants
+      allfids = peo[:, fidnd[1:11]]
+      vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11] , 2)
+      outp = map((i,x)->allfids[i,x], 1:size(mat1,1), ind2sub((size(mat1,1),11), vec(inds) )[2] )
+  end
+return outp
+end
+=#
 
 
 ##### Tester:
