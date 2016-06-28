@@ -97,6 +97,7 @@ begin
       end
     end
     peoples = convert(Array{Float64, 2}, peoples)
+    println("Size of peoples, ", size(peoples))
     global const fipscodeloc = 78; # this is for hospital data, here as "data"
     global const yearloc = 75; # this also for hospital data, here imported as "data"
     global const fidloc = 74; # Also for hospital data, here as "data"
@@ -121,9 +122,9 @@ DynamicValue(b1, b1[1,1])
 
 # Test parallel
 print("Testing Remote Call \n")
-p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
+#p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
 
-#include(pathprograms*"Main.jl")
+include(pathprograms*"Main.jl")
 
 
 
