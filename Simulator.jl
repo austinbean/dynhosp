@@ -1,94 +1,3 @@
-# using DataFrames
-# using DataArrays
-# using Distributions
-#
-#
-
-
-#=
-# TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
-
-include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
-
-
-# Import Data
-
-yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
-mkt_fips = yearins[11][1]
-year = 2005
-fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
-
-
-
-# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
-data = data[data[:,idloc].>= 0, :]
-
-Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
-
-
-fipscodeloc = dataf.colindex.lookup[:fipscode]
-fipscodeloc = 78;
-
-yearloc = dataf.colindex.lookup[:year]
-yearloc = 75;
-
-level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
-level1_hospitals0loc = 11;
-level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
-level2solo_hospitals0loc = 10
-level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
-level3_hospitals0loc = 9
-fidloc = dataf.colindex.lookup[:fid]
-fidloc = 74
-act_intloc = dataf.colindex.lookup[:act_int]
-act_intloc = 79
-act_sololoc = dataf.colindex.lookup[:act_solo]
-act_sololoc = 80
-lev105loc = dataf.colindex.lookup[:lev105]
-lev105loc = 97
-lev205loc = dataf.colindex.lookup[:lev205]
-lev205loc = 98
-lev305loc = dataf.colindex.lookup[:lev305]
-lev305loc = 99
-lev1515loc = dataf.colindex.lookup[:lev1515]
-lev1515loc = 101
-lev2515loc = dataf.colindex.lookup[:lev2515]
-lev2515loc = 102
-lev3515loc = dataf.colindex.lookup[:lev3515]
-lev3515loc = 103
-lev11525loc = dataf.colindex.lookup[:lev11525]
-lev11525loc = 105
-lev21525loc = dataf.colindex.lookup[:lev21525]
-lev21525loc = 106
-lev31525loc = dataf.colindex.lookup[:lev31525]
-lev31525loc = 107
-v15loc = dataf.colindex.lookup[:v15]
-v15loc = 94
-v16loc = dataf.colindex.lookup[:v16]
-v16loc = 95
-facilityloc = dataf.colindex.lookup[:facility]
-facilityloc = 82
-idloc = dataf.colindex.lookup[:id]
-idloc = 1
-locationloc = dataf.colindex.lookup[:location]
-locationloc = 88
-cityloc = dataf.colindex.lookup[:city]
-cityloc = 85
-firstyearloc = dataf.colindex.lookup[:firstyear]
-firstyearloc = 91
-TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
-TotalBeds1loc = 4
-TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
-TotalBeds2loc = 20
-
-T = 100; sim_start = 2; fields = 7; neighbors_start = 108; entrants = [0, 1, 2, 3]; entryprobs = [0.9895, 0.008, 0.0005, 0.002]
-fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
-fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, TotalBeds2loc = 20, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4,
-=#
-
-
 
 function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002], fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
 # think about changing the "data" matrix to be type Array{Float64, 2} - can drop strings in the Reboot.jl - see if speeds up.
@@ -526,3 +435,93 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   peoplesub =rowchange(state_history[1,:], fids, peoplesub) # reset the people to the original state
   return state_history
 end
+
+# using DataFrames
+# using DataArrays
+# using Distributions
+#
+#
+
+
+#=
+# TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
+
+include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
+
+
+# Import Data
+
+yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
+mkt_fips = yearins[11][1]
+year = 2005
+fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
+
+
+
+# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
+data = data[data[:,idloc].>= 0, :]
+
+Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
+
+
+fipscodeloc = dataf.colindex.lookup[:fipscode]
+fipscodeloc = 78;
+
+yearloc = dataf.colindex.lookup[:year]
+yearloc = 75;
+
+level1_hospitals0loc = dataf.colindex.lookup[:level1_hospitals0]
+level1_hospitals0loc = 11;
+level2solo_hospitals0loc = dataf.colindex.lookup[:level2solo_hospitals0]
+level2solo_hospitals0loc = 10
+level3_hospitals0loc = dataf.colindex.lookup[:level3_hospitals0]
+level3_hospitals0loc = 9
+fidloc = dataf.colindex.lookup[:fid]
+fidloc = 74
+act_intloc = dataf.colindex.lookup[:act_int]
+act_intloc = 79
+act_sololoc = dataf.colindex.lookup[:act_solo]
+act_sololoc = 80
+lev105loc = dataf.colindex.lookup[:lev105]
+lev105loc = 97
+lev205loc = dataf.colindex.lookup[:lev205]
+lev205loc = 98
+lev305loc = dataf.colindex.lookup[:lev305]
+lev305loc = 99
+lev1515loc = dataf.colindex.lookup[:lev1515]
+lev1515loc = 101
+lev2515loc = dataf.colindex.lookup[:lev2515]
+lev2515loc = 102
+lev3515loc = dataf.colindex.lookup[:lev3515]
+lev3515loc = 103
+lev11525loc = dataf.colindex.lookup[:lev11525]
+lev11525loc = 105
+lev21525loc = dataf.colindex.lookup[:lev21525]
+lev21525loc = 106
+lev31525loc = dataf.colindex.lookup[:lev31525]
+lev31525loc = 107
+v15loc = dataf.colindex.lookup[:v15]
+v15loc = 94
+v16loc = dataf.colindex.lookup[:v16]
+v16loc = 95
+facilityloc = dataf.colindex.lookup[:facility]
+facilityloc = 82
+idloc = dataf.colindex.lookup[:id]
+idloc = 1
+locationloc = dataf.colindex.lookup[:location]
+locationloc = 88
+cityloc = dataf.colindex.lookup[:city]
+cityloc = 85
+firstyearloc = dataf.colindex.lookup[:firstyear]
+firstyearloc = 91
+TotalBeds1loc = people.colindex.lookup[:TotalBeds1]
+TotalBeds1loc = 4
+TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
+TotalBeds2loc = 20
+
+T = 100; sim_start = 2; fields = 7; neighbors_start = 108; entrants = [0, 1, 2, 3]; entryprobs = [0.9895, 0.008, 0.0005, 0.002]
+fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
+fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, TotalBeds2loc = 20, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4,
+=#
