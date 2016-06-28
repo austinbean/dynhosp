@@ -8,7 +8,7 @@ push!(LOAD_PATH, "/dynhosp/dynhosp")
 push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 
 #lis = addprocs()
-lis = addprocs(4) # for the 8 core Amazon machine. 
+lis = addprocs(4) # for the 8 core Amazon machine.
 
 
 using ProjectModule
@@ -97,10 +97,10 @@ begin
       end
     end
     peoples = convert(Array{Float64, 2}, peoples)
-    global const fipscodeloc = 78;
-    global const yearloc = 75;
-    global const fidloc = 74;
-    global const idloc = 1;
+    global const fipscodeloc = 78; # this is for hospital data, here as "data"
+    global const yearloc = 75; # this also for hospital data, here imported as "data"
+    global const fidloc = 74; # Also for hospital data, here as "data"
+    global const idloc = 1; # Also for Hospital data, here as "data"
   #  global const nsims = 500;
   #  global const dirs = pwd() # present working directory path
 end # of "begin" block
