@@ -111,7 +111,7 @@ end
 # new: [fid, NeoIntensive, Solo Intermediate, distance, Is Closest?, Selected?, distance × bed, distance², amount charged]
 # @time: 0.070399 seconds (1.60 M allocations: 66.686 MB, 15.01% gc time) - this for one value in mfids.
 # @time: 0.148658 seconds (2.17 M allocations: 88.855 MB) - for 10 values in mfids.  choiceintloc was 3, choicesololoc was 9
-function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 1, choicesololoc = 2, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92], hisfd = collect(1:7:lenrow) )
+function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 1, choicesololoc = 2, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92]) # , hisfd = collect(1:7:lenrow) 
   for i in 1:size(people, 1)
     change_fids = intersect(slice(people, i, fidnd), mfids) # 14 allocations: 464 bytes
     for j in change_fids
