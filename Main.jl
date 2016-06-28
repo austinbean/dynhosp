@@ -21,36 +21,11 @@ include("/Users/austinbean/Desktop/dynhosp/Main.jl")
 
 # locates starting and ending points of all separate fipscode indices
 
-allindices = [ (x, findfirst(data[:,fipscodeloc], x), findlast(data[:,fipscodeloc], x)) for x in unique(data[:,fipscodeloc]) ];
 
 
 # Next one stores all the years appearing in each fips code
 yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ];
 
-
-
-# Action codes:
-#=
-1 "To 3 from 1"
-2 "To 2 from 1"
-3 "To 2 from 3"
-4 "To 1 from 3"
-5 "To 1 from 2"
-6 "To 3 from 2"
-7 "Enter at 1"
-8 "Enter at 2"
-9 "Enter at 3"
-10 "Do Nothing"
-11 "Exit"
-=#
-
-
-
-#=
-Future direction - write this to start where it left off.
-# Start with some smaller markets first:
-
-=#
 monopoly = Array{Int64}(0)
 duopoly = Array{Int64}(0)
 triopoly = Array{Int64}(0)
@@ -63,7 +38,6 @@ for el in yearins
   if size(unqfids)[1] == 1
   #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
     push!(monopoly, data[el[3], fipscodeloc])
-
   elseif size(unqfids)[1] == 2
   #  print("Fipscode Duopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
     push!(duopoly, data[el[3], fipscodeloc])
@@ -152,19 +126,15 @@ end
 
 
 # Add column names to the new data:
-
 output1 = convert(DataFrame, container);
-
 names!(output1, colnames)
 output1 = output1[ output1[:fipscode].>0 ,:]
 
 # Append new data to the existing data - there is a stupid problem here that the types don't match exactly.  Make everything Float64:
 for el in names(fout1)
   if (typeof(fout1[el]) == DataArrays.DataArray{Int64,1})
-#    print("int type ", el, "\n")
     fout1[DataFrames.isna(fout1[el]),:] = -666
   elseif (typeof(fout1[el]) == DataArrays.DataArray{Float64,1})
-#    print("float type ", el, "\n")
     fout1[DataFrames.isna(fout1[el]),:] = -666.0
   else
 #    print("other type ", typeof(el), "\n")
@@ -172,9 +142,7 @@ for el in names(fout1)
 end
 
 for el in names(fout1)
-#  print(el, "\n")
   fout1[el] = convert( Array{Float64,1}, fout1[el])
-#  output1[el] = convert( Array{Float64,1}, output1[el])
 end
 
 append!(fout1, output1)
@@ -201,6 +169,9 @@ writetable(pathprograms*"simulationresults.csv", output1)
 
 
 #=
+
+allindices = [ (x, findfirst(data[:,fipscodeloc], x), findlast(data[:,fipscodeloc], x)) for x in unique(data[:,fipscodeloc]) ];
+
 
 # Data Types - currently unused.
 
@@ -229,4 +200,19 @@ type Market
 end
 
 
+
+# Action codes:
+#=
+1 "To 3 from 1"
+2 "To 2 from 1"
+3 "To 2 from 3"
+4 "To 1 from 3"
+5 "To 1 from 2"
+6 "To 3 from 2"
+7 "Enter at 1"
+8 "Enter at 2"
+9 "Enter at 3"
+10 "Do Nothing"
+11 "Exit"
+=#
 =#
