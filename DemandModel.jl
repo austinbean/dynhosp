@@ -108,9 +108,10 @@ end
 # mfids = [1131021]
 # state history/hisrow  has the form: [ fid, act_solo, act_int, choice prob, action taken, demand realized, perturbed] × (# facilities)  ⋃ [ level1's total, level2's total, level3's total, aggregate prob]
 # choicerow/people  has the form: [identity, fid, facility, Total Beds, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Transfers Out Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
+# new: [fid, NeoIntensive, Solo Intermediate, distance, Is Closest?, Selected?, distance × bed, distance², amount charged]
 # @time: 0.070399 seconds (1.60 M allocations: 66.686 MB, 15.01% gc time) - this for one value in mfids.
-# @time: 0.148658 seconds (2.17 M allocations: 88.855 MB) - for 10 values in mfids
-function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = , choicesololoc = , lenrow = (maximum(size(hisrow))-4), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92], hisfd = collect(1:7:lenrow) )
+# @time: 0.148658 seconds (2.17 M allocations: 88.855 MB) - for 10 values in mfids.  choiceintloc was 3, choicesololoc was 9
+function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 1, choicesololoc = 2, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92], hisfd = collect(1:7:lenrow) )
   for i in 1:size(people, 1)
     change_fids = intersect(slice(people, i, fidnd), mfids) # 14 allocations: 464 bytes
     for j in change_fids
@@ -123,23 +124,10 @@ function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matri
   return people
 end
 
-
-
-
-
-#
-# dist_μ = 0;
-# dist_σ = 1;
-# dist_ξ = 0;
-# srand(123)
-# d = GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
-# # I do need the constant:
-γ = eulergamma;
-
 # sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
 # sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]
 
-function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc = [183 184], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc = [ 104 105], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
   siz = size(peo,1)
   rands = rand(d, siz, entnum)
   entvals = zeros(siz, entnum)
@@ -162,65 +150,20 @@ function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Ar
   utils, inds = findmax(entvals + rands, 2) # findmax returns value and index over given dimension
   return [utils ind2sub(size(entvals), vec(inds))[2]]  # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
-#=
-
-# 1.599738 seconds (9.47 M allocations: 355.385 MB, 56.89% gc time)
-# 0.533586 seconds (7.71 M allocations: 310.720 MB)
-# w/ 400,000 rows:  0.518312 seconds (4.55 M allocations: 601.591 MB) (removing the creation of allfids at the bottom when there are no entrants)
-# entrants = Array{Float64, 2}() # for a fast test with no entrants
-# That's more costly than I would like
-# Experiment with eliminating the conversions, just form the matrices.
-function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
-#  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
-# constants/outputs/setup
-  outp = zeros(siz)
-  entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
-# Computed utilities + error
-  mat1 = [ peo[:,ind[1]] peo[:,ind[2]] peo[:,ind[3]]  peo[:,ind[4]] peo[:,ind[5]] peo[:,ind[6]]]*modelparameters' + rand(d, siz)
-  mat2 = [ peo[:,iind[1]] peo[:,iind[2]] peo[:,iind[3]]  peo[:,iind[4]] peo[:,iind[5]] peo[:,iind[6]]]*modelparameters' + rand(d, siz)
-  mat3 = [ peo[:,iiind[1]] peo[:,iiind[2]] peo[:,iiind[3]]  peo[:,iiind[4]] peo[:,iiind[5]] peo[:,iiind[6]]]*modelparameters' + rand(d, siz)
-  mat4 = [ peo[:,ivnd[1]] peo[:,ivnd[2]] peo[:,ivnd[3]]  peo[:,ivnd[4]] peo[:,ivnd[5]] peo[:,ivnd[6]]]*modelparameters' + rand(d, siz)
-  mat5 = [ peo[:,vnd[1]] peo[:,vnd[2]] peo[:,vnd[3]]  peo[:,vnd[4]] peo[:,vnd[5]] peo[:,vnd[6]]]*modelparameters' + rand(d, siz)
-  mat6 = [ peo[:,vind[1]] peo[:,vind[2]] peo[:,vind[3]]  peo[:,vind[4]] peo[:,vind[5]] peo[:,vind[6]]]*modelparameters' + rand(d, siz)
-  mat7 = [ peo[:,viind[1]] peo[:,viind[2]] peo[:,viind[3]]  peo[:,viind[4]] peo[:,viind[5]] peo[:,viind[6]]]*modelparameters' + rand(d, siz)
-  mat8 = [ peo[:,viiind[1]] peo[:,viiind[2]] peo[:,viiind[3]]  peo[:,viiind[4]] peo[:,viiind[5]] peo[:,viiind[6]]]*modelparameters' + rand(d, siz)
-  mat9 = [ peo[:,ixnd[1]] peo[:,ixnd[2]] peo[:,ixnd[3]]  peo[:,ixnd[4]] peo[:,ixnd[5]] peo[:,ixnd[6]]]*modelparameters' + rand(d, siz)
-  mat10 = [ peo[:,xnd[1]] peo[:,xnd[2]] peo[:,xnd[3]]  peo[:,xnd[4]] peo[:,xnd[5]] peo[:,xnd[6]]]*modelparameters' + rand(d, siz)
-  mat11 = [ peo[:,xind[1]] peo[:,xind[2]] peo[:,xind[3]]  peo[:,xind[4]] peo[:,xind[5]] peo[:,xind[6]]]*modelparameters' + rand(d, siz)
-  if size(entrants, 2) > 1
-    allfids = [peo[:,fidnd[1]] peo[:,fidnd[2]] peo[:,fidnd[3]] peo[:,fidnd[4]] peo[:,fidnd[5]] peo[:,fidnd[6]] peo[:,fidnd[7]] peo[:,fidnd[8]] peo[:,fidnd[9]] peo[:,fidnd[10]] peo[:,fidnd[11]] repmat(entfids, siz, 1)]
-    entutil = EntrantsU(peo, entrants, modelparameters)
-    for i = 1:size(peo, 1)
-    #  outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entutil[i]])]
-       best = indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entutil[i,1]])
-       # mat = [mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]]
-       # vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]] , 2)
-       # ind2sub(size(mat), vec(inds) )[2]
-       # map( (i,x)->allfids[i,x], collect(1:size(mat,1)), ind2sub(size(mat), vec(inds) )[2] )
-       if best <= 11
-         outp[i] = allfids[i, best]
-       else
-         outp[i] = allfids[i,11 + convert(Int,entutil[i,2])]
-       end
-    end
-  else # there are no entrants, so "entrants" above is [0.0]', which has size(entrants, 2) == 1
-  #  allfids = [ peo[:,fidnd[1]] peo[:,fidnd[2]] peo[:,fidnd[3]] peo[:,fidnd[4]] peo[:,fidnd[5]] peo[:,fidnd[6]] peo[:,fidnd[7]] peo[:,fidnd[8]] peo[:,fidnd[9]] peo[:,fidnd[10]] peo[:,fidnd[11]]]
-    for i = 1:size(peo, 1)
-      # outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]
-      outp[i] = peo[i, fidnd[indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]]
-    end
-  end
-  return outp
-end
-=#
 
 # Another version with fewer allocations:
 # entrants0 = Array{Float64, 2}()
 # entrants1 = [99999 1 0 120 32.96  -96.8385]
 # Much improved now.
 # Most of the slowness comes when entrants are present.
+# choicerow/people  has the form: [identity] ∪ [fid, NeoIntensive, Solo Intermediate, distance, Is Closest?, Selected?, distance × bed, distance², amount charged] × (# facilities) ⋃ [Patient Zip, medicaid, Private insurance, Zip Lat, Zip Long]
+# Order of Demand Model Coefficients: [distance_c  distsq_c  neoint_c  soloint_c  closest_c  distbed_c ]
+# demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+# Original locations, pre breaking change: ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162]
 
-function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
+#ind = [5 9 3 4 6 8 ]; iind = [14 18 12 13 15 17 ]; iiind = [23 27 21 22 24 26 ]; ivnd = [32 36 30 31 33 35 ]; vnd = [41 45 39 40 42 44 ]; vind = [50 54 48 49 51 53 ]; viind = [59 63 57 58 60 62 ]; viiind = [68 72 66 67 69 71 ]; ixnd = [77 81 75 76 78 80 ]; xnd = [86 90 84 85 87 89 ]; xind = [95 99 93 94 96 98 ]
+
+function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
 # Computed utilities + error
   rand_el = Array(Float64, siz)
   mat1 = peo[:,ind[1:6]]*modelparameters' + rand!(d, rand_el)
@@ -239,6 +182,7 @@ function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::
     allfids = [peo[:,fidnd[1:11]] repmat(entfids, siz, 1)] #maybe fill(entfids, siz) would work faster?  Maybe speed is the same but allocations lower.
     entutil = EntrantsU(peo, entrants, modelparameters)
     vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]] , 2)
+    # Fuck-up is right here.
     outp = map( (i,x)->allfids[i,x], collect(1:size(mat1,1)), ind2sub((size(mat1,1),12), vec(inds) )[2] )
   else #  no entrants
       allfids = peo[:, fidnd[1:11]]
@@ -248,6 +192,19 @@ function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::
 return outp
 end
 
+
+#=
+# This next loop will list the column index of the relevant parameters in order.
+for i = 1:11
+  println("Group ", i)
+  print("[")
+  for name = ["distance"  "distsq" "NeoIntensive" "SoloIntermediate" "closest" "dist_bed" "amountcharged"] # can add "amountcharged"
+    print(people.colindex.lookup[convert(Symbol, name*string(i))], " " )
+  end
+  print("]")
+  println("    ")
+end
+=#
 
 # entrants = Array{Float64,2}(); dist_μ = 0; dist_σ = 1; dist_ξ = 0; d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ); entsize = 6; entnum = convert(Int, size(entrants, 2)/entsize); siz = size(peo,1); persloc = [183 184]; ind = [12 17 11 5 13 16]; iind = [28 33 27 21 29 32]; iiind = [44 49 43 37 45 48]; ivnd = [60 65 59 53 61 64]; vnd = [76 81 75 69 77 80]; vind = [92 97 91 85 93 96]; viind = [108 113 107 101 109 112]; viiind = [124 129 123 117 125 128]; ixnd = [140 145 139 133 141 144]; xnd = [156 161 155 149 157 160]; xind = [172 177 171 165 173 176]; fidnd = [2 18 34 50 66 82 98 114 130 146 162]
 #=
@@ -373,6 +330,57 @@ end
 
 
 
+#=
+
+# 1.599738 seconds (9.47 M allocations: 355.385 MB, 56.89% gc time)
+# 0.533586 seconds (7.71 M allocations: 310.720 MB)
+# w/ 400,000 rows:  0.518312 seconds (4.55 M allocations: 601.591 MB) (removing the creation of allfids at the bottom when there are no entrants)
+# entrants = Array{Float64, 2}() # for a fast test with no entrants
+# That's more costly than I would like
+# Experiment with eliminating the conversions, just form the matrices.
+function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), persloc = [183 184] , ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162] )
+#  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+# constants/outputs/setup
+  outp = zeros(siz)
+  entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
+# Computed utilities + error
+  mat1 = [ peo[:,ind[1]] peo[:,ind[2]] peo[:,ind[3]]  peo[:,ind[4]] peo[:,ind[5]] peo[:,ind[6]]]*modelparameters' + rand(d, siz)
+  mat2 = [ peo[:,iind[1]] peo[:,iind[2]] peo[:,iind[3]]  peo[:,iind[4]] peo[:,iind[5]] peo[:,iind[6]]]*modelparameters' + rand(d, siz)
+  mat3 = [ peo[:,iiind[1]] peo[:,iiind[2]] peo[:,iiind[3]]  peo[:,iiind[4]] peo[:,iiind[5]] peo[:,iiind[6]]]*modelparameters' + rand(d, siz)
+  mat4 = [ peo[:,ivnd[1]] peo[:,ivnd[2]] peo[:,ivnd[3]]  peo[:,ivnd[4]] peo[:,ivnd[5]] peo[:,ivnd[6]]]*modelparameters' + rand(d, siz)
+  mat5 = [ peo[:,vnd[1]] peo[:,vnd[2]] peo[:,vnd[3]]  peo[:,vnd[4]] peo[:,vnd[5]] peo[:,vnd[6]]]*modelparameters' + rand(d, siz)
+  mat6 = [ peo[:,vind[1]] peo[:,vind[2]] peo[:,vind[3]]  peo[:,vind[4]] peo[:,vind[5]] peo[:,vind[6]]]*modelparameters' + rand(d, siz)
+  mat7 = [ peo[:,viind[1]] peo[:,viind[2]] peo[:,viind[3]]  peo[:,viind[4]] peo[:,viind[5]] peo[:,viind[6]]]*modelparameters' + rand(d, siz)
+  mat8 = [ peo[:,viiind[1]] peo[:,viiind[2]] peo[:,viiind[3]]  peo[:,viiind[4]] peo[:,viiind[5]] peo[:,viiind[6]]]*modelparameters' + rand(d, siz)
+  mat9 = [ peo[:,ixnd[1]] peo[:,ixnd[2]] peo[:,ixnd[3]]  peo[:,ixnd[4]] peo[:,ixnd[5]] peo[:,ixnd[6]]]*modelparameters' + rand(d, siz)
+  mat10 = [ peo[:,xnd[1]] peo[:,xnd[2]] peo[:,xnd[3]]  peo[:,xnd[4]] peo[:,xnd[5]] peo[:,xnd[6]]]*modelparameters' + rand(d, siz)
+  mat11 = [ peo[:,xind[1]] peo[:,xind[2]] peo[:,xind[3]]  peo[:,xind[4]] peo[:,xind[5]] peo[:,xind[6]]]*modelparameters' + rand(d, siz)
+  if size(entrants, 2) > 1
+    allfids = [peo[:,fidnd[1]] peo[:,fidnd[2]] peo[:,fidnd[3]] peo[:,fidnd[4]] peo[:,fidnd[5]] peo[:,fidnd[6]] peo[:,fidnd[7]] peo[:,fidnd[8]] peo[:,fidnd[9]] peo[:,fidnd[10]] peo[:,fidnd[11]] repmat(entfids, siz, 1)]
+    entutil = EntrantsU(peo, entrants, modelparameters)
+    for i = 1:size(peo, 1)
+    #  outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entutil[i]])]
+       best = indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i] entutil[i,1]])
+       # mat = [mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]]
+       # vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11 entutil[:,1]] , 2)
+       # ind2sub(size(mat), vec(inds) )[2]
+       # map( (i,x)->allfids[i,x], collect(1:size(mat,1)), ind2sub(size(mat), vec(inds) )[2] )
+       if best <= 11
+         outp[i] = allfids[i, best]
+       else
+         outp[i] = allfids[i,11 + convert(Int,entutil[i,2])]
+       end
+    end
+  else # there are no entrants, so "entrants" above is [0.0]', which has size(entrants, 2) == 1
+  #  allfids = [ peo[:,fidnd[1]] peo[:,fidnd[2]] peo[:,fidnd[3]] peo[:,fidnd[4]] peo[:,fidnd[5]] peo[:,fidnd[6]] peo[:,fidnd[7]] peo[:,fidnd[8]] peo[:,fidnd[9]] peo[:,fidnd[10]] peo[:,fidnd[11]]]
+    for i = 1:size(peo, 1)
+      # outp[i] = allfids[i, indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]
+      outp[i] = peo[i, fidnd[indmax([mat1[i] mat2[i] mat3[i] mat4[i] mat5[i] mat6[i] mat7[i] mat8[i] mat9[i] mat10[i] mat11[i]])]]
+    end
+  end
+  return outp
+end
+=#
 
 
 
