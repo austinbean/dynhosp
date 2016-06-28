@@ -14,32 +14,21 @@
 # people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
 #
 # fid1loc = people.colindex.lookup[:fid1]
-# fid1loc = 2
 # fid2loc = people.colindex.lookup[:fid2]
-# fid2loc = 18
 # fid3loc = people.colindex.lookup[:fid3]
-# fid3loc = 34
 # fid4loc = people.colindex.lookup[:fid4]
-# fid4loc = 50
 # fid5loc = people.colindex.lookup[:fid5]
-# fid5loc = 66
 # fid6loc = people.colindex.lookup[:fid6]
-# fid6loc = 82
 # fid7loc = people.colindex.lookup[:fid7]
-# fid7loc = 98
 # fid8loc = people.colindex.lookup[:fid8]
-# fid8loc = 114
 # fid9loc = people.colindex.lookup[:fid9]
-# fid9loc = 130
 # fid10loc = people.colindex.lookup[:fid10]
-# fid10loc = 146
 # fid11loc = people.colindex.lookup[:fid11]
-# fid11loc = 162
-# fid1loc = 2; fid2loc = 18; fid3loc = 34; fid4loc = 50; fid5loc = 66; fid6loc = 82; fid7loc = 98; fid8loc = 114; fid9loc = 130; fid10loc = 146; fid11loc = 162
+# fid1loc = 2; fid2loc = 11; fid3loc = 20; fid4loc = 29; fid5loc = 38; fid6loc = 47; fid7loc = 56; fid8loc = 65; fid9loc = 74; fid10loc = 83; fid11loc = 92
+# fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92]
+#fid1loc = 2, fid2loc = 11, fid3loc = 20, fid4loc = 29, fid5loc = 38, fid6loc = 47, fid7loc = 56, fid8loc = 65, fid9loc = 74, fid10loc = 83, fid11loc = 92
 
-#fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162
-
-function fidfinder(fidvect::Array{Int64, 2}, choices::Matrix; maxfid = 11, fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162)
+function fidfinder(fidvect::Array{Int64, 2}, choices::Matrix; maxfid = 11, fid1loc = 2, fid2loc = 11, fid3loc = 20, fid4loc = 29, fid5loc = 38, fid6loc = 47, fid7loc = 56, fid8loc = 65, fid9loc = 74, fid10loc = 83, fid11loc = 92)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
@@ -64,7 +53,7 @@ end
 # Timing: @time fidfinder(convert(Array, fids)', people, "people")
 #  0.010568 seconds (837 allocations: 4.533 MB)
 
-function fidfinder(fidvect::Array{Int64, 1}, choices::Matrix; maxfid = 11)
+function fidfinder(fidvect::Array{Int64, 1}, choices::Matrix; maxfid = 11, fid1loc = 2, fid2loc = 11, fid3loc = 20, fid4loc = 29, fid5loc = 38, fid6loc = 47, fid7loc = 56, fid8loc = 65, fid9loc = 74, fid10loc = 83, fid11loc = 92)
     #=
       This function generates a vector of Booleans which index the rows in the
       dataframe in which the individual has some hospital with fid in fidvect
@@ -121,7 +110,7 @@ end
 # choicerow/people  has the form: [identity, fid, facility, Total Beds, NeoIntensive, TotalDeliveries, Transfers Out No NICU, Transfers In Has NICU, Transfers Out Has NICU, Not For Profit Status (#), Solo Intermediate, distance, Is Closest?, Selected?, NFP ?, distance × bed, distance²] × (# facilities) ⋃ [Patient Zip, CMS MDC, APR MDC, CMS DRG, APR DRG, Zip Lat, Zip Long]
 # @time: 0.070399 seconds (1.60 M allocations: 66.686 MB, 15.01% gc time) - this for one value in mfids.
 # @time: 0.148658 seconds (2.17 M allocations: 88.855 MB) - for 10 values in mfids
-function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = 3, choicesololoc = 9, lenrow = (maximum(size(hisrow))-4), fidnd = [2; 18; 34; 50; 66; 82; 98; 114; 130; 146; 162], hisfd = collect(1:7:lenrow) )
+function rowchange(hisrow::Array{Float64, 2}, mfids::Array{Int64}, people::Matrix; choiceintloc = , choicesololoc = , lenrow = (maximum(size(hisrow))-4), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92], hisfd = collect(1:7:lenrow) )
   for i in 1:size(people, 1)
     change_fids = intersect(slice(people, i, fidnd), mfids) # 14 allocations: 464 bytes
     for j in change_fids
