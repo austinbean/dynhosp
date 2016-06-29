@@ -48,8 +48,8 @@ for el in yearins
   #  print("Fipscode Tetrapoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
     push!(tetrapoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] > 4
-  # print("Fipscode N-opoly: ", unique(data[el[2]:el[3], fipscodeloc]), "\n")
-  #  print("Fipscode Hospitals: ", size(unqfids, 1), "\n")
+   print("Fipscode N-opoly: ", data[el[2], fipscodeloc], "\n")
+    print("Fipscode Hospitals: ", size(unqfids, 1), "\n")
     push!(nopoly, data[el[3], fipscodeloc])
   end
   push!(all, size(unqfids,1)  )
