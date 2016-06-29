@@ -6,6 +6,7 @@
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
 push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
+push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
 
 #lis = addprocs()
 lis = addprocs(4) # for the 8 core Amazon machine.
@@ -33,6 +34,10 @@ begin
     global pathdata = "/home/ubuntu/dynhosp/"
     global pathpeople = "/home/ubuntu/dynhosp/"
     global pathprograms = "/home/ubuntu/dynhosp/"
+  elseif (dir == "/home1/04179/abean/dynhosp")
+    global pathdata = "/home1/04179/abean/dynhosp"
+    global pathpeople = "/home1/04179/abean/dynhosp"
+    global pathprograms = "/home1/04179/abean/dynhosp"
   end
   # Import the hospital data and convert to a matrix -
   println("Importing Hosp Data")
