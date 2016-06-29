@@ -96,7 +96,8 @@ begin
         peoples[:,i] = map(x->parse(Float64, x), peoples[:,i])
       end
     end
-    peoples = convert(Array{Float64, 2}, peoples)
+    # Note this change - I don't think there's anything that requires 64 bits.
+    peoples = convert(Array{Float32, 2}, peoples) #doing this as Float32 makes it much, much smaller.
     println("Size of peoples, ", size(peoples))
     global const fipscodeloc = 78; # this is for hospital data, here as "data"
     global const yearloc = 75; # this also for hospital data, here imported as "data"
