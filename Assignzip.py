@@ -43,7 +43,7 @@ for i in TXzip:
 
 
 # This is a list from the census bureau of zip codes in Texas
-f = open( 'DEC_10_SF1_P1_with_ann.csv', 'rU')
+f = open( '/Users/austinbean/Google Drive/Current Projects/Second year Paper/TXHospitalData/DEC_10_SF1_P1_with_ann.csv', 'rU')
 data2 = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
 set2 = set()
 
@@ -80,6 +80,11 @@ f.close()
 for i in range(len(TXzip)):
 	for k in range(len(TXzip[i])):
 		TXzip[i][k] = eval(TXzip[i][k])
+
+# Only TX zip list
+justzips = []
+for el in TXzip:
+	justzips.append(el[0])
 
 # Open hospital data array:
 
@@ -118,3 +123,7 @@ with open('hosp_distances_from_zipcenters.csv', 'wb') as fp:
 	print 'saving'
 	a = csv.writer(fp, delimiter=',')
 	a.writerows(dist)
+
+with open('/Users/austinbean/Desktop/dynhosp/TXzipsonly.csv', 'w') as fw:
+	a = csv.writer(fw, delimiter=',')
+	a.writerows(justzips)

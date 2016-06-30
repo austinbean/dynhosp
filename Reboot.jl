@@ -9,7 +9,7 @@ push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
 
 #lis = addprocs()
-lis = addprocs(4) # for the 8 core Amazon machine.
+lis = addprocs() # for the 8 core Amazon machine.
 
 
 using ProjectModule
