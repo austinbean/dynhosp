@@ -1,36 +1,3 @@
-# using DataFrames
-# using DataArrays
-# using Distributions
-#
-# include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-# include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-# include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
-
-
-#=
-# TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
-
-# Import Data
-
-yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:, fipscodeloc])  ]
-mkt_fips = yearins[125][1]
-year = 2011
-fids = sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc]))
-pfid = fids[1]
-disturb = 0.05
-
-
-state_history = PerturbSimulator(data, peoples, year, mkt_fips, demandmodelparameters, pfid, disturb = 0.05, T = 10, sim_start = 2)
-# Find the right people:
-peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
-
-# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
-dataf = dataf[dataf[:id].>= 0, :]
-=#
-
-#entryprobs = [0.9895, 0.008, 0.0005, 0.002]; entrants = [0, 1, 2, 3]; disturb = 0.05; T = 100; sim_start = 2; fields = 7; neighbors_start = 108; fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85; TotalBeds2loc = 20; TotalBeds1loc = 4
-
-
 function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
   # if year > 2012
   #   return "Years through 2012 only"
@@ -341,9 +308,15 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
               valfn = findfirst(data[row, neighbors_start-1:2:end], 0) # take the market via data[b,:], go through it via "row", but the number returned needs to be multiplied by 2 and added to neighbors_start!
               if valfn > 0
                 nbloc = neighbors_start + 2*valfn
-                data[row, nbloc ]= newrow[fidloc]
-                data[row, nbloc+1]= distance(ent_lat[1], ent_lon[1], newrow[v15loc][1], newrow[v16loc][1])
-              end
+                if nbloc < size(data,2)
+                  data[row, nbloc]= newrow[fidloc] # potentially an unknown error occurs here sometimes.
+                  data[row, nbloc+1]= distance(ent_lat[1], ent_lon[1], newrow[v15loc][1], newrow[v16loc][1])
+                else
+                  println("There's an error in the size of nbloc, line 300", nbloc)
+                  println("size data ", size(data))
+                  println("period? ", i)
+                end
+               end
             end
           end
           # Append the neighbors to the new entrant's frame too
@@ -486,6 +459,38 @@ end
 
 
 
+
+# using DataFrames
+# using DataArrays
+# using Distributions
+#
+# include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
+# include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
+# include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
+
+
+#=
+# TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
+
+# Import Data
+
+yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:, fipscodeloc])  ]
+mkt_fips = yearins[125][1]
+year = 2011
+fids = sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc]))
+pfid = fids[1]
+disturb = 0.05
+
+
+state_history = PerturbSimulator(data, peoples, year, mkt_fips, demandmodelparameters, pfid, disturb = 0.05, T = 10, sim_start = 2)
+# Find the right people:
+peoplesub = people[fidfinder(convert(Array, fids)', people, "people"),:]
+
+# To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
+dataf = dataf[dataf[:id].>= 0, :]
+=#
+
+#entryprobs = [0.9895, 0.008, 0.0005, 0.002]; entrants = [0, 1, 2, 3]; disturb = 0.05; T = 100; sim_start = 2; fields = 7; neighbors_start = 108; fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85; TotalBeds2loc = 20; TotalBeds1loc = 4
 
 
 

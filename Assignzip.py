@@ -124,6 +124,18 @@ with open('hosp_distances_from_zipcenters.csv', 'wb') as fp:
 	a = csv.writer(fp, delimiter=',')
 	a.writerows(dist)
 
-with open('/Users/austinbean/Desktop/dynhosp/TXzipsonly.csv', 'w') as fw:
-	a = csv.writer(fw, delimiter=',')
-	a.writerows(justzips)
+with open('/Users/austinbean/Desktop/dynhosp/TXzipsonly.csv', 'w', newline='') as fw:
+	aout = csv.writer(fw, delimiter=',')
+	aout.writerow(justzips)
+
+
+
+
+
+
+
+
+
+
+
+
