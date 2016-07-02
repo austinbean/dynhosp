@@ -306,13 +306,13 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
           for row in findfirst(marketyear, 1):findlast(marketyear, 1) # find the first and last row in the market year - this will return the row number in the whole array
             if  (distance(ent_lat[1], ent_lon[1], data[row,v15loc][1], data[row,v16loc][1]) < 25)
               valfn = findfirst(data[row, neighbors_start-1:2:end], 0) # take the market via data[b,:], go through it via "row", but the number returned needs to be multiplied by 2 and added to neighbors_start!
-              if valfn > 0
+              if (valfn > 0)&(valfn < 36)
                 nbloc = neighbors_start + 2*valfn
                 if nbloc < size(data,2)
                   data[row, nbloc]= newrow[fidloc] # potentially an unknown error occurs here sometimes.
                   data[row, nbloc+1]= distance(ent_lat[1], ent_lon[1], newrow[v15loc][1], newrow[v16loc][1])
                 else
-                  println("There's an error in the size of nbloc, line 300", nbloc)
+                  println("There's an error in the size of nbloc, line 300 ", nbloc)
                   println("size data ", size(data))
                   println("period? ", i)
                 end

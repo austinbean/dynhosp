@@ -55,8 +55,8 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i-1, (fid-1)*fields + 3]) #0.000012 seconds (8 allocations: 272 bytes)
           if prev_state ==  (0,0)                     # ((data[a,act_intloc][1], data[a,act_sololoc][1]) == (0,0)) # level 1, actions:
             probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] ) # 0.000200 seconds (419 allocations: 25.500 KB)
-            if probs1 == ValueException
-    #          println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
+            if probs1 == ProjectModule.ValueException
+      #        println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
             # Draw action:
@@ -95,8 +95,8 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           elseif prev_state == (1,0)  #level 2, actions:
             # Can't evaluation as nexti here if they are initialized to negative 1
             probs2 = logitest((1,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
-            if probs2 == ValueException
-              println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
+            if probs2 == ProjectModule.ValueException
+  #            println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
             # Action:
@@ -135,7 +135,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
             state_history[i, (fid-1)*fields + 7] = 0 #perturbation
           elseif prev_state == (0,1)   #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
-            if probs3 == ValueException
+            if probs3 == ProjectModule.ValueException
     #          println("Value Exception at ", level1, " ", level2, " ", level3, " ", mkt_fips, " year", year)
               break
             end
@@ -292,13 +292,13 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
           for row in findfirst(marketyear, 1):findlast(marketyear, 1) # find the first and last row in the market year - this will return the row number in the whole array
             if  (distance(ent_lat[1], ent_lon[1], data[row,v15loc][1], data[row,v16loc][1]) < 25)
               valfn = findfirst(data[row, neighbors_start-1:2:end], 0) # take the market via data[b,:], go through it via "row", but the number returned needs to be multiplied by 2 and added to neighbors_start!
-              if valfn > 0
+              if (valfn > 0)&(valfn < 36)
                 nbloc = neighbors_start + 2*valfn
                 if nbloc < size(data,2)
                   data[row, nbloc]= newrow[fidloc] # potentially an unknown error occurs here sometimes.
                   data[row, nbloc+1]= distance(ent_lat[1], ent_lon[1], newrow[v15loc][1], newrow[v16loc][1])
                 else
-                  println("There's an error in the size of nbloc, line 300", nbloc)
+                  println("There's an error in the size of nbloc, line 300 ", nbloc)
                   println("size data ", size(data))
                   println("period? ", i)
                 end
@@ -441,19 +441,10 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   return state_history
 end
 
-# using DataFrames
-# using DataArrays
-# using Distributions
-#
-#
 
 
 #=
 # TESTING --- To run a test, replace the value in the first bracket in mkt_fips = yearins[ ][1], and choose a year.
-
-include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-include("/Users/austinbean/Desktop/dynhosp/DemandModel.jl")
 
 
 # Import Data
