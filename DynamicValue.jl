@@ -23,6 +23,8 @@ Second output type - record facility changes:
 - Thinking ahead: there may be differences depending on whether NFP or FP
 - Thinking ahead: the 3 to 2 transition can also be a different sign (maybe hospital earns money selling off capital)
   than the 1 to 2 transition, which is surely negative.
+
+  α₂ = 0.07; α₃ = 0.13; pat_types = 1; β = 0.95; max_hosp = 25
 =#
 
 
@@ -83,7 +85,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       end
     elseif (history[row,2], history[row,3]) == (1,0)
       # Here is an error - end-2 on the next line.
-      levelcount = convert(Int64, history[row, end-3:end-1])
+      levelcount = convert(Int64, sum(history[row, end-3:end-1]))
       levelcount2 = convert(Int64, history[row,end-2]) # number of level 2's
       outp[2, levelcount+1] += (β^row)*history[row, 6]*history[end,end]
       outp[2, levelcount2+1] += (α₂)*(β^row)*history[row, 6]*history[end,end] # expected rev from lev 2 admissions
@@ -100,7 +102,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
         outp2[1,end-1] += 1
       end
     elseif (history[row,2], history[row,3]) == (0,1)
-      levelcount = convert(Int, history[row, end-3:end-1])
+      levelcount = convert(Int64, sum(history[row, end-3:end-1]))
       levelcount3 = convert(Int64, history[row,end-1])
       outp[3, levelcount+1] += (β^row)*history[row, 6]*history[end,end]
       outp[3, levelcount3+1] += (α₃)*(β^row)*history[row, 6]*history[end,end]
