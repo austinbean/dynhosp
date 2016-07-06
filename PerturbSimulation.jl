@@ -7,22 +7,22 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
   level2 = data[marketyear,level2solo_hospitals0loc][1]
   level3 = data[marketyear,level3_hospitals0loc][1]
   fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc])))
-  state_history = zeros(T+1, fields*size(fids,1) + 4) #  0.000060 seconds (9 allocations: 58.688 KB)
+  state_history = zeros(T+1, fields*size(fids,1)+4) #  0.000060 seconds (9 allocations: 58.688 KB)
   state_history[1, end-3] = 1 # set probability of initial outcome at 1
 
   for n in 1:size(fids,1)
     el = fids[n]
     a = (data[:,fidloc].==el)&marketyear
-    state_history[1, (n-1)*fields + 1] = el # Change
-    state_history[1, (n-1)*fields + 2] = data[a,act_intloc][1]
-    state_history[1, (n-1)*fields + 3] = data[a,act_sololoc][1]
-    state_history[1, (n-1)*fields + 4] = 1 #probability is 1 for the first action
-    state_history[1, (n-1)*fields + 5] = 10 # No action at the first period?  Or should it be 10?
+    state_history[1, (n-1)*fields+1] = el # Change
+    state_history[1, (n-1)*fields+2] = data[a,act_intloc][1]
+    state_history[1, (n-1)*fields+3] = data[a,act_sololoc][1]
+    state_history[1, (n-1)*fields+4] = 1 #probability is 1 for the first action
+    state_history[1, (n-1)*fields+5] = 10 # No action at the first period?  Or should it be 10?
     #state_history[1, (n-1)*fields + 6] = # whatever demand is
     if el == pfid
-      state_history[1, (n-1)*fields + 7] = 1 #record the perturbation 0/1
+      state_history[1, (n-1)*fields+7] = 1 #record the perturbation 0/1
     else
-      state_history[1, (n-1)*fields + 7] = 0 # not perturbed
+      state_history[1, (n-1)*fields+7] = 0 # not perturbed
     end
   end
   # Record aggregte initial values
@@ -54,7 +54,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # the dataframe is mutable.
           a = ((data[:,fidloc].==el)&marketyear)
-          prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i-1, (fid-1)*fields + 3])
+          prev_state = (state_history[i-1, (fid-1)*fields+2], state_history[i-1, (fid-1)*fields+3])
           if  prev_state ==  (0,0) # level 1, actions:
             probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
             if el == pfid
@@ -89,16 +89,16 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
             # write out state values - in blocks:
-            state_history[i, (fid-1)*fields + 1] = el # Change
-            state_history[i, (fid-1)*fields + 2] = nextsolo
-            state_history[i, (fid-1)*fields + 3] = nextint
-            state_history[i, (fid-1)*fields + 4] = chprob
-            state_history[i, (fid-1)*fields + 5] = action1
+            state_history[i, (fid-1)*fields+1] = el # Change
+            state_history[i, (fid-1)*fields+2] = nextsolo
+            state_history[i, (fid-1)*fields+3] = nextint
+            state_history[i, (fid-1)*fields+4] = chprob
+            state_history[i, (fid-1)*fields+5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields + 7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields + 7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
             end
           elseif prev_state == (1,0) #level 2, actions:
             probs2 = logitest((1,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
@@ -132,16 +132,16 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
             # write out state values - in blocks:
-            state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = nextsolo
-            state_history[i, (fid-1)*fields + 3] = nextint
-            state_history[i, (fid-1)*fields + 4] = chprob
-            state_history[i, (fid-1)*fields + 5] = action2
+            state_history[i, (fid-1)*fields+1] = el
+            state_history[i, (fid-1)*fields+2] = nextsolo
+            state_history[i, (fid-1)*fields+3] = nextint
+            state_history[i, (fid-1)*fields+4] = chprob
+            state_history[i, (fid-1)*fields+5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields + 7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields + 7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
             end
           elseif  prev_state == (0,1) #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
@@ -174,29 +174,29 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
             # write out state values - in blocks:
-            state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = nextsolo
-            state_history[i, (fid-1)*fields + 3] = nextint
-            state_history[i, (fid-1)*fields + 4] = chprob
-            state_history[i, (fid-1)*fields + 5] = action3
+            state_history[i, (fid-1)*fields+1] = el
+            state_history[i, (fid-1)*fields+2] = nextsolo
+            state_history[i, (fid-1)*fields+3] = nextint
+            state_history[i, (fid-1)*fields+4] = chprob
+            state_history[i, (fid-1)*fields+5] = action3
             #state_history[i, (fid-1)*fields + 6] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields + 7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields + 7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
             end
           elseif prev_state == (-999,-999) # has exited.
             # No new actions to compute, but record.
-            state_history[i, (fid-1)*fields + 1] = el
-            state_history[i, (fid-1)*fields + 2] = -999
-            state_history[i, (fid-1)*fields + 3] = -999
-            state_history[i, (fid-1)*fields + 4] = 1 # exit is absorbing, so the choice prob is always 1
-            state_history[i, (fid-1)*fields + 5] = 0 # no action is taken.
+            state_history[i, (fid-1)*fields+1] = el
+            state_history[i, (fid-1)*fields+2] = -999
+            state_history[i, (fid-1)*fields+3] = -999
+            state_history[i, (fid-1)*fields+4] = 1 # exit is absorbing, so the choice prob is always 1
+            state_history[i, (fid-1)*fields+5] = 0 # no action is taken.
             #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited.
             if el == pfid
-              state_history[1, (fid-1)*fields + 7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields + 7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
             end
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
@@ -204,7 +204,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
         end
         # Count facilities by distance and map results to neighboring hospitals
         # here the issue is that, for hospitals in neighboring counties, we haven't set the levX_YZ values to 0
-#        print("part 2", "\n")
+        #        print("part 2", "\n")
         for f in fids
           hospmktyear = (data[ :,fidloc].==f)&marketyear
           own_fac = (data[hospmktyear, act_sololoc][1], data[hospmktyear, act_intloc][1])
@@ -224,7 +224,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
                     elseif own_fac == (-999,-999)
                       # do nothing - firm exited.
                     else
-      #                println("Bad Own Facility Code", f, j, own_fac)
+                     #println("Bad Own Facility Code", f, j, own_fac)
                     end
                   elseif (data[hospmktyear, j+1][1] >5) & (data[hospmktyear,j+1][1]< 15)
                     if own_fac == (0,0)
@@ -236,7 +236,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
                     elseif own_fac == (-999,-999)
                       # do nothing - firm exited.
                     else
-  #                    println("Bad Own Facility Code", f, j, own_fac)
+                      # println("Bad Own Facility Code", f, j, own_fac)
                     end
                   elseif (data[hospmktyear,j+1][1]> 15) & (data[hospmktyear,j+1][1]< 25)
                     if own_fac == (0,0)
@@ -248,10 +248,10 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
                     elseif own_fac == (-999,-999)
                       # do nothing - firm exited.
                     else
-    #                  println("Bad Own Facility Code", f, j, own_fac)
+                      # println("Bad Own Facility Code", f, j, own_fac)
                     end
                   else
-    #                println("Bad Distance at frame ", f, j)
+                    #  println("Bad Distance at frame ", f, j)
                   end
                 end
               end
@@ -294,7 +294,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             newrow[act_sololoc] = 1
           end
           # Define the data needed for an entrant to compute the demand model for the individuals.  6 components.
-  #        print("part 3.25 \n")
+          #        print("part 3.25 \n")
           entrant_data = [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
           if maximum(size(total_entrants))<=1
             total_entrants = entrant_data
@@ -320,62 +320,62 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             end
           end
           # Append the neighbors to the new entrant's frame too
-        #  println("appending neighbors to new entrant's frame row")
-        for elem in 1:size(fids,1)
-          neighb = fids[elem]
-          neighb_row = (data[ :,fidloc].==neighb)&marketyear
-          neighb_lat = data[neighb_row, v15loc][1]
-          neighb_lon = data[neighb_row, v16loc][1]
-          td = distance(ent_lat[1], ent_lon[1], neighb_lat[1], neighb_lon[1])
-      #    print("computed distance: ", td, "\n")
-          if  td < 25
-            # A strange problem could arise here if in some simulation there are more than 43 or so entrants - there won't be enough room in the row.  Not a huge worry.
-            newrow[neighbors_start+2*(elem-1)] = neighb # fid
-            newrow[neighbors_start+2*(elem-1)+1] = td
-            entrant_state = (newrow[act_sololoc][1], newrow[act_intloc][1])
-            if (td > 0) & (td < 5)
-              if entrant_state == (0,0)
-                newrow[lev105loc] += 1
-              elseif entrant_state == (1,0)
-                newrow[lev205loc] += 1
-              elseif entrant_state == (0,1)
-                newrow[lev305loc] += 1
+          #  println("appending neighbors to new entrant's frame row")
+          for elem in 1:size(fids,1)
+            neighb = fids[elem]
+            neighb_row = (data[ :,fidloc].==neighb)&marketyear
+            neighb_lat = data[neighb_row, v15loc][1]
+            neighb_lon = data[neighb_row, v16loc][1]
+            td = distance(ent_lat[1], ent_lon[1], neighb_lat[1], neighb_lon[1])
+            #    print("computed distance: ", td, "\n")
+            if  td < 25
+              # A strange problem could arise here if in some simulation there are more than 43 or so entrants - there won't be enough room in the row.  Not a huge worry.
+              newrow[neighbors_start+2*(elem-1)] = neighb # fid
+              newrow[neighbors_start+2*(elem-1)+1] = td
+              entrant_state = (newrow[act_sololoc][1], newrow[act_intloc][1])
+              if (td > 0) & (td < 5)
+                if entrant_state == (0,0)
+                  newrow[lev105loc] += 1
+                elseif entrant_state == (1,0)
+                  newrow[lev205loc] += 1
+                elseif entrant_state == (0,1)
+                  newrow[lev305loc] += 1
+                else
+                  #              println("Bad facility in Entrant 1")
+                end
+              elseif (td > 5) & (td < 15)
+                if entrant_state == (0,0)
+                  newrow[lev1515loc] += 1
+                elseif entrant_state == (1,0)
+                  newrow[lev2515loc] += 1
+                elseif entrant_state == (0,1)
+                  newrow[lev3515loc] += 1
+                else
+                  #            println("Bad facility in Entrant 2")
+                end
+              elseif (td > 15) & (td < 25)
+                if entrant_state == (0,0)
+                  newrow[lev11525loc] += 1
+                elseif entrant_state == (1,0)
+                  newrow[lev21525loc] += 1
+                elseif entrant_state == (0,1)
+                  newrow[lev31525loc] += 1
+                else
+                  #            println("Bad facility in Entrant 3")
+                end
               else
-  #              println("Bad facility in Entrant 1")
+                #          println("Bad distance measured from entrant")
               end
-            elseif (td > 5) & (td < 15)
-              if entrant_state == (0,0)
-                newrow[lev1515loc] += 1
-              elseif entrant_state == (1,0)
-                newrow[lev2515loc] += 1
-              elseif entrant_state == (0,1)
-                newrow[lev3515loc] += 1
-              else
-    #            println("Bad facility in Entrant 2")
-              end
-            elseif (td > 15) & (td < 25)
-              if entrant_state == (0,0)
-                newrow[lev11525loc] += 1
-              elseif entrant_state == (1,0)
-                newrow[lev21525loc] += 1
-              elseif entrant_state == (0,1)
-                newrow[lev31525loc] += 1
-              else
-    #            println("Bad facility in Entrant 3")
-              end
-            else
-    #          println("Bad distance measured from entrant")
             end
           end
-        end
-      #    println("appending entry")
+          #    println("appending entry")
           # Add the new record to the dataframe.
-    #      print("part 3.5 \n")
+          #      print("part 3.5 \n")
           data = [data; newrow]
           # append value to fids
           push!(fids, newrow[fidloc][1])
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
-    #      println("reshaping state history")
+          #      println("reshaping state history")
           # The problem is the size computation right here - figure it out.
           state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) )
         end
@@ -391,7 +391,7 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
         end
       end
     # Accounting for entry in aggregate prob of action -
-    if newentrant == 0
+        if newentrant == 0
           tprob = tprob*entryprobs[1]
         elseif newentrant == 1
           tprob = tprob*entryprobs[2]
@@ -403,20 +403,14 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
         # Sum the levels for next period:
       #  print("part 5", "\n")
       level1 = 0; level2 = 0; level3 = 0;
-      update_mkt = ((data[:,yearloc].==year)&(data[:,fipscodeloc].==mkt_fips)&(data[:,act_intloc].!=-999)&(data[:,act_sololoc].!=-999)) #compute again for entrants/exiters
-      total = sum(update_mkt)
-      intens = sum(data[update_mkt, act_intloc])
-      solo = sum(data[update_mkt, act_sololoc])
-      nones = sum(update_mkt) - intens - solo
-      #  println("Computing Market sizes")
-        if (nones < 0) | (intens > total) | (solo > total) | (nones + intens + solo != total)
-  #        println("Bad market size computations")
-  #        println("Total ", total, " Level1 ", nones, " Level2 ", solo, " Level 3 ", intens, " Fips: ", mkt_fips, " Year ", year)
-        else
-            level1 = nones
-            level2 = solo
-            level3 = intens
-        end
+      update_mkt = state_history[i, 1:fields:end-4]
+      total = maximum(size(update_mkt))
+      solo = sum(state_history[i, 2:fields:end-4].==1) # counts solo facilities from records in state history
+      intens = sum(state_history[i, 3:fields:end-4].==1) # counts intensives from state history directly
+      nones = sum((state_history[i, 2:fields:end-4].==0)&(state_history[i, 3:fields:end-4].==0))
+      level1 = nones
+      level2 = solo
+      level3 = intens
     # Here is the place to do demand - map the results above out to the demand model
     #=
     - Write the fids out to an array
@@ -441,14 +435,12 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
       state_history[i,fid_i+5] = demand_re
     end
 
-  #  println("computing aggregate transition probability")
+    #  println("computing aggregate transition probability")
     state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
-
     # Total number of firms
     state_history[i, (size(fids)[1])*fields+1] = level1 ;
     state_history[i, (size(fids)[1])*fields+2] = level2 ;
     state_history[i, (size(fids)[1])*fields+3] = level3 ;
-
   end
   peoplesub =rowchange(state_history[1,:], fids, peoplesub) # reset the people to the original state
   index = findfirst(state_history[1,:], pfid) # only return the state history of the perturbed guy.

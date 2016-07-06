@@ -1,5 +1,4 @@
 function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}; T = 100, sim_start = 2, fields = 7, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002], fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
-# think about changing the "data" matrix to be type Array{Float64, 2} - can drop strings in the Reboot.jl - see if speeds up.
   marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB)
   level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
   level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
@@ -7,8 +6,6 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
   fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # 0.006925 seconds 4.06 k allocations: 208.760 KB - slow.
   state_history = zeros(T+1, fields*size(fids,1)+4) #  0.000060 seconds (9 allocations: 58.688 KB)
   state_history[1,end-3] = 1 # set probability of initial outcome at 1
-
-
   # Writes the values to the first row of the state history
   for n in 1:size(fids,1)
     el = fids[n]
@@ -52,7 +49,7 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # takes the fid
           a = ((data[:,fidloc].==el)&marketyear)
-          prev_state = (state_history[i-1, (fid-1)*fields + 2], state_history[i-1, (fid-1)*fields + 3]) #0.000012 seconds (8 allocations: 272 bytes)
+          prev_state = (state_history[i-1, (fid-1)*fields+2], state_history[i-1, (fid-1)*fields+3]) #0.000012 seconds (8 allocations: 272 bytes)
           if prev_state ==  (0,0)                     # ((data[a,act_intloc][1], data[a,act_sololoc][1]) == (0,0)) # level 1, actions:
             probs1 = logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] ) # 0.000200 seconds (419 allocations: 25.500 KB)
             if probs1 == ProjectModule.ValueException
@@ -389,20 +386,14 @@ function Simulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64
         end
       # Sum the levels for next period:
       level1 = 0; level2 = 0; level3 = 0;
-      update_mkt = ((data[:,yearloc].==year)&(data[:,fipscodeloc].==mkt_fips)&(data[:,act_intloc].!=-999)&(data[:,act_sololoc].!=-999)) #compute again for entrants/exiters
-      total = sum(update_mkt)
-      intens = sum(data[update_mkt, act_intloc])
-      solo = sum(data[update_mkt, act_sololoc])
-      nones = sum(update_mkt) - intens - solo
-      #  println("Computing Market sizes")
-        if (nones < 0) | (intens > total) | (solo > total) | (nones + intens + solo != total)
-  #        println("Bad market size computations")
-  #        println("Total ", total, " Level1 ", nones, " Level2 ", solo, " Level 3 ", intens, " Fips: ", mkt_fips, " Year ", year)
-        else
-            level1 = nones
-            level2 = solo
-            level3 = intens
-        end
+      update_mkt = state_history[i, 1:fields:end-4]
+      total = maximum(size(update_mkt))
+      solo = sum(state_history[i, 2:fields:end-4].==1) # counts solo facilities from records in state history
+      intens = sum(state_history[i, 3:fields:end-4].==1) # counts intensives from state history directly
+      nones = sum((state_history[i, 2:fields:end-4].==0)&(state_history[i, 3:fields:end-4].==0))
+      level1 = nones
+      level2 = solo
+      level3 = intens
     #    print("Part 4.5 \n")
       # Here is the place to do demand - map the results above out to the demand model
       #=

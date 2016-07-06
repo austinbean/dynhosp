@@ -65,11 +65,10 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
   elseif (history[1,2], history[1,3]) == (999,999)
     # do nothing with this firm - it enters later.
   end
-
   for row in 2:T
     if (history[row,2], history[row,3]) == (0,0)
       levelcount = convert(Int64, sum(history[row, end-3:end-1])) # revenue depends on total hospitals
-      outp[1, levelcount+1] += (β^row)*history[row, 6]*history[end,end] # this is discount^t * demand * probability (aggregate)
+      outp[1, levelcount+1] += (β^(row-1))*history[row, 6]*history[end,end] # this is discount^t * demand * probability (aggregate)
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # do nothing
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
@@ -83,7 +82,8 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
         outp2[1, 10] += 1
       end
     elseif (history[row,2], history[row,3]) == (1,0)
-      levelcount = convert(Int64, history[row, end-2])
+      # Here is an error - end-2 on the next line.
+      levelcount = convert(Int64, history[row, end-3:end-1])
       levelcount2 = convert(Int64, history[row,end-2]) # number of level 2's
       outp[2, levelcount+1] += (β^row)*history[row, 6]*history[end,end]
       outp[2, levelcount2+1] += (α₂)*(β^row)*history[row, 6]*history[end,end] # expected rev from lev 2 admissions
@@ -100,7 +100,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
         outp2[1,end-1] += 1
       end
     elseif (history[row,2], history[row,3]) == (0,1)
-      levelcount = convert(Int, history[row, end-1])
+      levelcount = convert(Int, history[row, end-3:end-1])
       levelcount3 = convert(Int64, history[row,end-1])
       outp[3, levelcount+1] += (β^row)*history[row, 6]*history[end,end]
       outp[3, levelcount3+1] += (α₃)*(β^row)*history[row, 6]*history[end,end]
