@@ -37,6 +37,7 @@ for el in yearins
   unqfids = [x for x in unique(data[el[2]:el[3],fidloc])]
   if size(unqfids)[1] == 1
   #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
+    println("Fipscode Monopoly: ", data[el[2], fipscodeloc])
     push!(monopoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] == 2
   #  print("Fipscode Duopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
@@ -48,7 +49,7 @@ for el in yearins
   #  print("Fipscode Tetrapoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
     push!(tetrapoly, data[el[3], fipscodeloc])
   elseif size(unqfids)[1] > 4
-   print("Fipscode N-opoly: ", data[el[2], fipscodeloc], "\n")
+    print("Fipscode N-opoly: ", data[el[2], fipscodeloc], "\n")
     print("Fipscode Hospitals: ", size(unqfids, 1), "\n")
     push!(nopoly, data[el[3], fipscodeloc])
   end

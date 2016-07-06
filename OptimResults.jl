@@ -6,9 +6,9 @@ using Optim
 using Gadfly
 
 # fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
+#fout1 = readtable("/Users/austinbean/Desktop/temp_results_48209.csv")
 
-fout1 = readtable("/Users/austinbean/Desktop/temp_results_48209.csv")
-
+fout1 = readtable("/Users/austinbean/Google Drive/Simulation Results/simulationresults.csv");
 
 
 colnames = Array{Symbol}(:0)
@@ -131,6 +131,8 @@ result2 = optimize(sumval, ones(params), method = SimulatedAnnealing(), iteratio
 
 result = optimize(sumval, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
 
+result3 = optimize(sumval, 700*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+
 
 # Now this will print the parameter name:
 for el in 1:convert(Int, (size(fout1.colindex.names)[1]-3)/2)
@@ -140,8 +142,8 @@ end
 # These are not very informative yet.
 
 # Test labeling:
-x1 = paramsymbs[1:6]
-p1 = plot(x=x1, y=Optim.minimizer(result)[1:6], Guide.xticks(ticks=collect(1:6)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices 
+x1 = paramsymbs[1:20]
+p1 = plot(x=x1, y=Optim.minimizer(result3)[1:20], Guide.xticks(ticks=collect(1:20)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
 
 x2 = paramsymbs[7:10]

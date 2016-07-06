@@ -3,13 +3,15 @@
 # include("/home/ubuntu/dynhosp/Reboot.jl")
 
 
+#lis = addprocs()
+lis = addprocs() # for the 8 core Amazon machine.
+
+
+
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
 push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
 push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
-
-#lis = addprocs()
-lis = addprocs() # for the 8 core Amazon machine.
 
 
 using ProjectModule
