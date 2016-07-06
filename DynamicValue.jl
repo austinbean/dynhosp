@@ -29,9 +29,10 @@ Second output type - record facility changes:
 function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α₃ = 0.13, pat_types = 1, β = 0.95, max_hosp = 25)
   T, width = size(state_history)
   index = findfirst(state_history[1,:], fac_fid) # where is the perturbed facility
-  fac_section = state_history[:, index:index+6] # take the section from the actual history corresponding
-  agg_section = state_history[:, width-3:end]
-  history = hcat(fac_section, agg_section)
+  #fac_section = state_history[:, index:index+6] # take the section from the actual history corresponding
+  #agg_section = state_history[:, width-3:end]
+  #history = hcat(fac_section, agg_section)
+  history = hcat(state_history[:, index:index+6], state_history[:, width-3:end])
   if maximum(sum(state_history[:, end-3:end-1],2)) > 25
     println("Maximum hospitals observed exceeds max_hosp")
     return "Size Warning"
