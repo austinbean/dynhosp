@@ -1,7 +1,4 @@
-function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips::Int64, demandmodelparameters::Array{Float64, 2}, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 7, neighbors_start = 108, fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
-  # if year > 2012
-  #   return "Years through 2012 only"
-  # end
+function PerturbSimulator(data::Matrix, privatepeoplesub::Matrix, privatedemandmodelparameters::Array{Float64, 2}, medicaidpeoplesub::Matrix, medicaiddemandmodelparameters::Array{Float64, 2}, year::Int64, mkt_fips::Int64, pfid::Int64; entryprobs = [0.9895, 0.008, 0.0005, 0.002], entrants = [0, 1, 2, 3], disturb = 0.05,  T = 100, sim_start = 2, fields = 8, neighbors_start = 108, fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
   marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once.
   level1 = data[marketyear,level1_hospitals0loc][1]
   level2 = data[marketyear,level2solo_hospitals0loc][1]
@@ -18,11 +15,12 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     state_history[1, (n-1)*fields+3] = data[a,act_sololoc][1]
     state_history[1, (n-1)*fields+4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields+5] = 10 # No action at the first period?  Or should it be 10?
-    #state_history[1, (n-1)*fields + 6] = # whatever demand is
+    #state_history[1, (n-1)*fields + 6] = private # whatever demand is
+    #state_history[1, (n-1)*fields + 7] = private # whatever demand is
     if el == pfid
-      state_history[1, (n-1)*fields+7] = 1 #record the perturbation 0/1
+      state_history[1, (n-1)*fields+8] = 1 #record the perturbation 0/1
     else
-      state_history[1, (n-1)*fields+7] = 0 # not perturbed
+      state_history[1, (n-1)*fields+8] = 0 # not perturbed
     end
   end
   # Record aggregte initial values
@@ -30,22 +28,34 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
   state_history[1, size(fids,1)*fields+2] = level2 ;
   state_history[1, size(fids,1)*fields+3] = level3 ;
   state_history[1, size(fids,1)*fields+4] = 1; # initial probability.
-  peoplesub =rowchange(state_history[1,:], fids, peoplesub)
+  privatepeoplesub =rowchange(state_history[1,:], fids, privatepeoplesub) # fast - see DemandModel.jl. 10 fids: 0.148658 seconds (2.17 M allocations: 88.855 MB).  Probably improvable.
+  medicaidpeoplesub =rowchange(state_history[1,:], fids, medicaidpeoplesub)
   emp_arr = Array{Float64, 2}()
-  realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, emp_arr)) # maps chosen hospitals to counts.
+  privaterealized_d = countmap(DemandModel(privatepeoplesub, privatedemandmodelparameters, emp_arr)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
+  medicaidrealized_d = countmap(DemandModel(medicaidpeoplesub, medicaiddemandmodelparameters, emp_arr))
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
-    demand_re =  try
-      realized_d[fid]
+    privatedemand_re =  try
+      privaterealized_d[fid]
     catch y
       if isa(y, KeyError)
-        demand_re = 0 # write the demand out as -1 to keep track of failure to find val.
+        privatedemand_re = 0 # write the demand out as -1 to keep track of failure to find val.
       else
-        demand_re = realized_d[fid]
+        privatedemand_re = privaterealized_d[fid]
       end
     end
-    state_history[1,fid_i+5] = demand_re
-  end
+    state_history[1,fid_i+5] = privatedemand_re  #CHECK INDEX
+    medicaiddemand_re =  try
+      medicaidrealized_d[fid]
+    catch y
+      if isa(y, KeyError)
+        medicaiddemand_re = 0 # write the demand out as -1 to keep track of failure to find val.
+      else
+        medicaiddemand_re = medicaidrealized_d[fid]
+      end
+    end
+    state_history[1,fid_i+6] = medicaiddemand_re #CHECK INDEX
+  end # Whole block: 0.003834 seconds (3.86 k allocations: 148.006 KB)
   # Start simulation here:
   total_entrants = Array{Float64, 2}() #must be defined outside the loop
   for i = sim_start:T+1
@@ -95,10 +105,11 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             state_history[i, (fid-1)*fields+4] = chprob
             state_history[i, (fid-1)*fields+5] = action1
             #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 7] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+8] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+8] = 0 # not perturbed
             end
           elseif prev_state == (1,0) #level 2, actions:
             probs2 = logitest((1,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
@@ -138,10 +149,11 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             state_history[i, (fid-1)*fields+4] = chprob
             state_history[i, (fid-1)*fields+5] = action2
             #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 7] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+8] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+8] = 0 # not perturbed
             end
           elseif  prev_state == (0,1) #level 3, actions:
             probs3 = logitest((0,1), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
@@ -180,10 +192,11 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             state_history[i, (fid-1)*fields+4] = chprob
             state_history[i, (fid-1)*fields+5] = action3
             #state_history[i, (fid-1)*fields + 6] = demand
+            #state_history[i, (fid-1)*fields + 7] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+8] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+8] = 0 # not perturbed
             end
           elseif prev_state == (-999,-999) # has exited.
             # No new actions to compute, but record.
@@ -193,10 +206,11 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
             state_history[i, (fid-1)*fields+4] = 1 # exit is absorbing, so the choice prob is always 1
             state_history[i, (fid-1)*fields+5] = 0 # no action is taken.
             #state_history[i, (fid-1)*fields + 6] = demand # no demand realized - exited.
+            #state_history[i, (fid-1)*fields + 7] = demand
             if el == pfid
-              state_history[1, (fid-1)*fields+7] = 1 #record the perturbation 0/1
+              state_history[1, (fid-1)*fields+8] = 1 #record the perturbation 0/1
             else
-              state_history[1, (fid-1)*fields+7] = 0 # not perturbed
+              state_history[1, (fid-1)*fields+8] = 0 # not perturbed
             end
             # Set own distance counts to 0 for all categories
             (data[a,lev105loc], data[a,lev205loc], data[a,lev305loc], data[a,lev1515loc], data[a,lev2515loc], data[a,lev3515loc], data[a,lev11525loc], data[a,lev21525loc], data[a,lev31525loc]) = zeros(1,9)
@@ -279,7 +293,8 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
           newrow[v15loc] = ent_lat
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
-          entrantbeds = convert(Int, floor(mean( unique(unique(peoplesub[ peoplesub[TotalBeds1loc].>0 ,TotalBeds1loc])) ))) # 0.000021 seconds (28 allocations: 1.406 KB)
+# THIS IS WRONG
+          entrantbeds = convert(Int, floor(mean( unique(unique(privatepeoplesub[ privatepeoplesub[:,TotalBeds1loc].>0 ,TotalBeds1loc])) ))) # 0.000021 seconds (28 allocations: 1.406 KB)
           if newentrant == 1
             level1 += 1
             newrow[act_intloc] = 0
@@ -419,22 +434,33 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
     - Obtain demand and map it into state_history
     =#
-    peoplesub = rowchange(state_history[i-1,:], fids, peoplesub)
-    realized_d = countmap(DemandModel(peoplesub, demandmodelparameters, total_entrants)) # maps chosen hospitals to counts.
+    privatepeoplesub =rowchange(state_history[i-1,:], fids, privatepeoplesub) # fast - see DemandModel.jl. 10 fids: 0.148658 seconds (2.17 M allocations: 88.855 MB).  Probably improvable.
+    medicaidpeoplesub =rowchange(state_history[i-1,:], fids, medicaidpeoplesub)
+    privaterealized_d = countmap(DemandModel(privatepeoplesub, privatedemandmodelparameters, total_entrants)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
+    medicaidrealized_d = countmap(DemandModel(medicaidpeoplesub, medicaiddemandmodelparameters, total_entrants))
     for fid_i in 1:fields:size(state_history[i,:])[2]-4
       fid = state_history[i,fid_i]
-      demand_re =  try
-        realized_d[fid]
+      privatedemand_re =  try
+        privaterealized_d[fid]
       catch y
         if isa(y, KeyError)
-          demand_re = 0 # write the demand out as -1 to keep track of failure to find val.
+          privatedemand_re = 0 # write the demand out as -1 to keep track of failure to find val.
         else
-          demand_re = realized_d[fid]
+          privatedemand_re = privaterealized_d[fid]
         end
       end
-      state_history[i,fid_i+5] = demand_re
+      state_history[i,fid_i+5] = privatedemand_re  #CHECK INDEX
+      medicaiddemand_re =  try
+        medicaidrealized_d[fid]
+      catch y
+        if isa(y, KeyError)
+          medicaiddemand_re = 0 # write the demand out as -1 to keep track of failure to find val.
+        else
+          medicaiddemand_re = medicaidrealized_d[fid]
+        end
+      end
+      state_history[i,fid_i+6] = medicaiddemand_re #CHECK INDEX
     end
-
     #  println("computing aggregate transition probability")
     state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
     # Total number of firms
@@ -442,9 +468,10 @@ function PerturbSimulator(data::Matrix, peoplesub::Matrix, year::Int64, mkt_fips
     state_history[i, (size(fids)[1])*fields+2] = level2 ;
     state_history[i, (size(fids)[1])*fields+3] = level3 ;
   end
-  peoplesub =rowchange(state_history[1,:], fids, peoplesub) # reset the people to the original state
+  privatepeoplesub =rowchange(state_history[1,:], fids, privatepeoplesub) # fast - see DemandModel.jl. 10 fids: 0.148658 seconds (2.17 M allocations: 88.855 MB).  Probably improvable.
+  medicaidpeoplesub =rowchange(state_history[1,:], fids, medicaidpeoplesub) # reset the people to the original state
   index = findfirst(state_history[1,:], pfid) # only return the state history of the perturbed guy.
-  subset = hcat(state_history[:, index:index+6], state_history[:, end-3:end])
+  subset = hcat(state_history[:, index:index+7], state_history[:, end-3:end])
   return subset # state_history # change order of subset and state_history to return the whole perturbed state.
 end
 
