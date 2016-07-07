@@ -54,7 +54,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
   elseif (history[1,2], history[1,3]) == (1,0)
     levelcount = convert(Int64, sum(history[1, end-3:end-1])) # count of all facilities
     levelcount2 = convert(Int64, history[1,end-2]) # count of level 2 facilities
-    outp[1, levelcount+1] += (β^0)*history[1, 6]*history[1,end] # regular births
+    outp[1, levelcount+1] += (β^0)*history[1, 6]*history[end,end] # regular births
     outp[2, levelcount2+1] += (α₂)*(β^0)*history[1, 6]*history[end,end] # expected fraction to NICU 2
   elseif (history[1,2], history[1,3]) == (0,1)
     levelcount = convert(Int64, sum(history[1, end-3:end-1]))
@@ -75,13 +75,13 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
         # do nothing
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
         # here you downgraded 2 to 1
-        outp2[1, 4] += 1*β^(row-1)
+        outp2[1, 4] += 1*β^(row-1)*history[end,end]
       elseif (history[row-1,2], history[row-1,3]) == (0,1)
         # here you downgraded 3 to 1
-        outp2[1, 7] += 1*β^(row-1)
+        outp2[1, 7] += 1*β^(row-1)*history[end,end]
       elseif ((history[row-1,2], history[row-1,3]) == (999,999))
         # entered previous period
-        outp2[1, 10] += 1
+        outp2[1, 10] += 1*history[end,end]
       end
     elseif (history[row,2], history[row,3]) == (1,0)
       # Here is an error - end-2 on the next line.
@@ -91,45 +91,45 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       outp[2, levelcount2+1] += (α₂)*(β^row)*history[row, 6]*history[end,end] # expected rev from lev 2 admissions
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # Upgraded 1 to 2
-        outp2[1,1] += 1*β^(row-1)
+        outp2[1,1] += 1*β^(row-1)*history[end,end]
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
         # do nothing
       elseif (history[row-1,2], history[row-1,3]) == (0,1)
         # here you downgraded 3 to 2
-        outp2[1,8] += 1*β^(row-1)
+        outp2[1,8] += 1*β^(row-1)*history[end,end]
       elseif ((history[row-1,2], history[row-1,3]) == (999,999))
         # entered previous period
-        outp2[1,end-1] += 1
+        outp2[1,end-1] += 1*history[end,end]
       end
     elseif (history[row,2], history[row,3]) == (0,1)
       levelcount = convert(Int64, sum(history[row, end-3:end-1]))
       levelcount3 = convert(Int64, history[row,end-1])
-      outp[3, levelcount+1] += (β^row)*history[row, 6]*history[end,end]
-      outp[3, levelcount3+1] += (α₃)*(β^row)*history[row, 6]*history[end,end]
+      outp[3, levelcount+1] += (β^(row-1))*history[row, 6]*history[end,end]
+      outp[3, levelcount3+1] += (α₃)*(β^(row-1))*history[row, 6]*history[end,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # upgraded 1 to 3
-        outp2[1,2] += 1*β^(row-1)
+        outp2[1,2] += 1*(β^(row-1))*history[end,end]
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
         #upgraded 2 to 3
-        outp2[1,5] += 1*β^(row-1)
+        outp2[1,5] += 1*(β^(row-1))*history[end,end]
       elseif (history[row-1,2], history[row-1,3]) == (0,1)
         # do nothing
       elseif ((history[row-1,2], history[row-1,3]) == (999,999))
         # entered previous period
-        outp2[1,end] += 1
+        outp2[1,end] += 1*history[end,end]
       end
     elseif (history[row,2], history[row,3]) == (-999,-999)
       # here the firm has exited - need to record this the first time only
       # do this separately.
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # Exited at 1
-        outp2[1,3] += 1*β^(row-1)
+        outp2[1,3] += 1*β^(row-1)*history[end,end]
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
         # Exited at 2
-        outp2[1,6] += 1*β^(row-1)
+        outp2[1,6] += 1*β^(row-1)*history[end,end]
       elseif (history[row-1,2], history[row-1,3]) == (0,1)
         # Exited at 3
-        outp2[1,9] += 1*β^(row-1)
+        outp2[1,9] += 1*β^(row-1)*history[end,end]
       elseif ((history[row-1,2], history[row-1,3]) == (999,999))
         # entered previous period
          outp2[1,3] += 0 # this is a guy who enters and immediately exits.  Not a case worth worrying about, I think.
