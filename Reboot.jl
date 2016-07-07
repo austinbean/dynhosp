@@ -69,6 +69,26 @@ begin
       global const closest_c = modcoeffs[5, 2]
       global const distbed_c = modcoeffs[6, 2]
       demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
+
+      medicaidmodcoeffs = DataFrames.readtable(pathpeople*"TX 2005 Medicaid Model.csv", header = true);
+      global const medicaiddistance_c = medicaidmodcoeffs[1, 2]
+      global const medicaiddistsq_c = medicaidmodcoeffs[2, 2]
+      global const medicaidneoint_c = medicaidmodcoeffs[3, 2]
+      global const medicaidsoloint_c = medicaidmodcoeffs[4, 2]
+      global const medicaidclosest_c = medicaidmodcoeffs[5, 2]
+      global const medicaiddistbed_c = medicaidmodcoeffs[6, 2]
+      medicaiddemandmodelparameters = [medicaiddistance_c medicaiddistsq_c medicaidneoint_c medicaidsoloint_c medicaidclosest_c medicaiddistbed_c]
+
+      privatemodcoeffs = DataFrames.readtable(pathpeople*"TX 2005 Private Ins Model.csv", header = true);
+      global const privatedistance_c = privatemodcoeffs[1, 2]
+      global const privatedistsq_c = privatemodcoeffs[2, 2]
+      global const privateneoint_c = privatemodcoeffs[3, 2]
+      global const privatesoloint_c = privatemodcoeffs[4, 2]
+      global const privateclosest_c = privatemodcoeffs[5, 2]
+      global const privatedistbed_c = privatemodcoeffs[6, 2]
+      privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
+
+
   # Import the people and convert that data to a matrix
   println("Importing People")
     people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
@@ -106,6 +126,79 @@ begin
     # Note this change - I don't think there's anything that requires 64 bits.
     peoples = convert(Array{Float32, 2}, peoples) #doing this as Float32 makes it much, much smaller.
     println("Size of peoples, ", size(peoples))
+
+    println("Importing Medicaid Patients")
+    medicaid = DataFrames.readtable(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true);
+    #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
+    for i in names(medicaid)
+      if ( typeof(medicaid[i]) == DataArrays.DataArray{Float64,1} )
+        medicaid[DataFrames.isna(medicaid[i]), i] = 0
+      elseif (typeof(medicaid[i]) == DataArrays.DataArray{Int64,1})
+        medicaid[DataFrames.isna(medicaid[i]), i] = 0
+      elseif typeof(medicaid[i]) == DataArrays.DataArray{ByteString,1}
+        # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+        # with opposite signs of the corresponding coefficients from modelparameters.
+        # This does that by looking at missing NAMES, not fids.
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(neoint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
+      elseif typeof(medicaid[i]) == DataArrays.DataArray{UTF8String,1}
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(neoint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
+      end
+      if sum(size(medicaid[DataFrames.isna(medicaid[i]), i]))>0
+        println(i)
+      end
+    end
+    pmedicaid = convert(Matrix, medicaid);
+    medicaid = 0; # DataFrame not used - set to 0 and clear out.
+    for i =1:size(pmedicaid, 2)
+      if (typeof(pmedicaid[2,i])==UTF8String) | (typeof(pmedicaid[2,i])==ASCIIString)
+        #      print(i, "\n")
+        pmedicaid[:,i] = "0"
+        pmedicaid[:,i] = map(x->parse(Float64, x), pmedicaid[:,i])
+      end
+    end
+    # Note this change - I don't think there's anything that requires 64 bits.
+    pmedicaid = convert(Array{Float32, 2}, pmedicaid)
+    println("Size of Medicaid, ", size(pmedicaid))
+
+    println("Importing Privately Insured Patients")
+    pinsure = DataFrames.readtable(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
+    for i in names(pinsure)
+      if ( typeof(pinsure[i]) == DataArrays.DataArray{Float64,1} )
+        pinsure[DataFrames.isna(pinsure[i]), i] = 0
+      elseif (typeof(pinsure[i]) == DataArrays.DataArray{Int64,1})
+        pinsure[DataFrames.isna(pinsure[i]), i] = 0
+      elseif typeof(pinsure[i]) == DataArrays.DataArray{ByteString,1}
+        # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+        # with opposite signs of the corresponding coefficients from modelparameters.
+        # This does that by looking at missing NAMES, not fids.
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(neoint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
+      elseif typeof(pinsure[i]) == DataArrays.DataArray{UTF8String,1}
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(neoint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
+      end
+      if sum(size(pinsure[DataFrames.isna(pinsure[i]), i]))>0
+        println(i)
+      end
+    end
+     pinsured = convert(Matrix,pinsure);
+     pinsure= 0; # DataFrame not used - set to 0 and clear out.
+    for i =1:size(pinsured, 2)
+      if (typeof(pinsured[2,i])==UTF8String) | (typeof(pinsured[2,i])==ASCIIString)
+  #      print(i, "\n")
+        pinsured[:,i] = "0"
+        pinsured[:,i] = map(x->parse(Float64, x), pinsured[:,i])
+      end
+    end
+    # Note this change - I don't think there's anything that requires 64 bits.
+     pinsured= convert(Array{Float32, 2}, pinsured)
+     println("Size of Privately Insured, ", size(pinsured))
     global const fipscodeloc = 78; # this is for hospital data, here as "data"
     global const yearloc = 75; # this also for hospital data, here imported as "data"
     global const fidloc = 74; # Also for hospital data, here as "data"
