@@ -1,5 +1,5 @@
 function Simulator(data::Matrix, privatepeoplesub::Matrix, privatedemandmodelparameters::Array{Float64, 2}, medicaidpeoplesub::Matrix, medicaiddemandmodelparameters::Array{Float64, 2}, year::Int64, mkt_fips::Int64; T = 100, sim_start = 2, fields = 8, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002], fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
-  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB)
+  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB) entryprobs = [0.9895, 0.008, 0.0005, 0.002]
   level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
   level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
   level3 = data[marketyear,level3_hospitals0loc][1] # 8 allocations: 512 bytes
@@ -15,8 +15,8 @@ function Simulator(data::Matrix, privatepeoplesub::Matrix, privatedemandmodelpar
     state_history[1, (n-1)*fields+3] = data[a,act_sololoc][1] # 0.000024 seconds (7 allocations: 336 bytes)
     state_history[1, (n-1)*fields+4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields+5] = 10 # No action at the first period?  Or should it be 10?
-    #state_history[1, (n-1)*fields + 6] = #  demand is not recorded here - recorded below.
-    #state_history[1, (n-1)*fields + 7] = #  demand is not recorded here - recorded below
+    #state_history[1, (n-1)*fields + 6] = PRIVATE  #  demand is not recorded here - recorded below.
+    #state_history[1, (n-1)*fields + 7] = MEDICAID #  demand is not recorded here - recorded below
     # state_history[1, (n-1)*fields + 8] = 0 #record the perturbation 0/1 - always 0 in equilibrium simulation.
   end
   # Record aggregte initial values
@@ -373,12 +373,12 @@ function Simulator(data::Matrix, privatepeoplesub::Matrix, privatedemandmodelpar
           data = [data; newrow] # quick but costly: 0.007540 seconds (17 allocations: 9.541 MB)
           # append value to fids
           push!(fids, newrow[fidloc][1])
-          # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
+          # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX private demand, medicaid demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
           #    println("reshaping state history")
           # The problem is the size computation right here - figure it out.  I'm not resizing this right.  The entry condition is not correct now.
           # OLD:  vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids,1)*fields+4 ))
           # Want: vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), (size(fids,1)+1)*fields+4) ))
-          state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) ) # 0.000126 seconds (80 allocations: 132.234 KB) ??
+          state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) ) # 0.000126 seconds (80 allocations: 132.234 KB) ??
 # The above is super inefficient. Can we allocate a new matrix and set certain elements equal to the old ones?
 
         end
@@ -471,7 +471,7 @@ end
 
 # Import Data
 
-yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ]
+yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ];
 mkt_fips = yearins[11][1]
 year = 2005
 fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
@@ -480,9 +480,6 @@ fids = convert(Vector, sort!(unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[
 
 # To reset for repeated simulations:: (This eliminates entrants, all of which have negative id's)
 data = data[data[:,idloc].>= 0, :]
-
-Simulator(dataf, peoplesub, "peoplesub", year, mkt_fips, demandmodelparameters)
-
 
 fipscodeloc = dataf.colindex.lookup[:fipscode]
 fipscodeloc = 78;
@@ -539,7 +536,7 @@ TotalBeds1loc = 4
 TotalBeds2loc = people.colindex.lookup[:TotalBeds2]
 TotalBeds2loc = 20
 
-T = 100; sim_start = 2; fields = 7; neighbors_start = 108; entrants = [0, 1, 2, 3]; entryprobs = [0.9895, 0.008, 0.0005, 0.002]
+T = 100; sim_start = 2; fields = 8; neighbors_start = 108; entrants = [0, 1, 2, 3]; entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 fipscodeloc = 78; yearloc = 75; level1_hospitals0loc = 11; TotalBeds2loc = 20; fidloc = 74; level2solo_hospitals0loc = 10; level3_hospitals0loc = 9; act_intloc = 79; act_sololoc = 80; lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107; v15loc = 94; v16loc = 95; idloc = 1; facilityloc = 82; locationloc = 88; firstyearloc = 91; cityloc = 85;  TotalBeds2loc = 20; TotalBeds1loc = 4;
 fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, TotalBeds2loc = 20, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4,
 =#

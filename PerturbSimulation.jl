@@ -16,7 +16,7 @@ function PerturbSimulator(data::Matrix, privatepeoplesub::Matrix, privatedemandm
     state_history[1, (n-1)*fields+4] = 1 #probability is 1 for the first action
     state_history[1, (n-1)*fields+5] = 10 # No action at the first period?  Or should it be 10?
     #state_history[1, (n-1)*fields + 6] = private # whatever demand is
-    #state_history[1, (n-1)*fields + 7] = private # whatever demand is
+    #state_history[1, (n-1)*fields + 7] = MEDICAID  # whatever demand is
     if el == pfid
       state_history[1, (n-1)*fields+8] = 1 #record the perturbation 0/1
     else
@@ -392,7 +392,7 @@ function PerturbSimulator(data::Matrix, privatepeoplesub::Matrix, privatedemandm
           # Reshape state history: fid, solo state, int state, probability of choice,  action chosen, XXXX demand, perturbed. [newrow[:fid], 999, 999, 0, 1, 0]
           #      println("reshaping state history")
           # The problem is the size computation right here - figure it out.
-          state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) )
+          state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) ) # 0.000126 seconds (80 allocations: 132.234 KB) ??
         end
     #    print("part 4", "\n")
     # Aggregate Probability of Action:
@@ -478,14 +478,6 @@ end
 
 
 
-
-# using DataFrames
-# using DataArrays
-# using Distributions
-#
-# include("/Users/austinbean/Desktop/dynhosp/LogitEst.jl")
-# include("/Users/austinbean/Desktop/dynhosp/Distance.jl")
-# include("/Users/austinbean/Desktop/dynhosp/PerturbAction.jl")
 
 
 #=

@@ -25,6 +25,8 @@ Second output type - record facility changes:
   than the 1 to 2 transition, which is surely negative.
 
   α₂ = 0.07; α₃ = 0.13; pat_types = 1; β = 0.95; max_hosp = 25
+
+  - This now just needs to return the *sum* of the Medicaid women, who we will give some average payment per patient to.
 =#
 
 
@@ -34,6 +36,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
   #fac_section = state_history[:, index:index+6] # take the section from the actual history corresponding
   #agg_section = state_history[:, width-3:end]
   #history = hcat(fac_section, agg_section)
+              #                          change! 6
   history = hcat(state_history[:, index:index+6], state_history[:, width-3:end])
   if maximum(sum(state_history[:, end-3:end-1],2)) > 25
     println("Maximum hospitals observed exceeds max_hosp")
@@ -139,8 +142,9 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       return "Bad firm state"
     end
   end
+  medicaid = history[:, 6]'*(β^(collect(1:T)-1))*history[end,end] # returns
   outp = [ outp[1,1:end] outp[2,1:end] outp[3,1:end]] #rearranges the matrix.
-return outp2, outp
+return medicaid, outp2, outp
 end
 
 
