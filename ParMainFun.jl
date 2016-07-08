@@ -7,8 +7,6 @@
 
 =#
 
-#ADD SECOND DATA TYPE ---
-
 function ParMainfun(dataf::Matrix, insured::Matrix, insuredmodelparameters::Array{Float64, 2}, medicaid::Matrix, medicaidmodelparameters::Array{Float64, 2}, mkt_fips::Int64, year::Int64, fids::Array{Int64};  idloc = 1, npers = 50)
 			 # returns a dataframe unless converted
       numfids = maximum(size(fids))
@@ -24,8 +22,7 @@ function ParMainfun(dataf::Matrix, insured::Matrix, insuredmodelparameters::Arra
   		for f in 1:numfids
           pfid = fids[f]
           pfid_f = convert(Float64, pfid)
-          # Note that it is important that all user-defined functions in this function say ProjectModule.(fn) - these are imported by the module but not brought into scope.
-          # This probably won't be necessary if this is a function in its own file and imported directly via the module.  (The other two functions would surely cause problems if that were necessary.)
+          # Output of DynamicValue is Medicaid Patients, level changes, Private Patients
           neq_med, neq_change, neq_val = ProjectModule.DynamicValue(ProjectModule.PerturbSimulator(dataf, insured, insuredmodelparameters, medicaid, medicaidmodelparameters, year, mkt_fips, pfid; disturb = 0.01, T = npers), pfid_f; pat_types = 1, β = 0.95, max_hosp = 25)
           eq_med, eq_change, eq_val = ProjectModule.DynamicValue(states, pfid_f; pat_types = 1, β = 0.95, max_hosp = 25)
           # Abandon Entrants again.

@@ -4,7 +4,7 @@
 
 
 #lis = addprocs()
-lis = addprocs() # for the 32 core Amazon machine.
+#lis = addprocs() # for the 32 core Amazon machine.
 
 
 
@@ -174,11 +174,11 @@ print("Testing DynamicValue \n")
 DynamicValue(b1, b1[1,1])
 
 # Test parallel
-print("Testing Remote Call \n")
-p1 = remotecall_fetch(lis[1], DemandModel, pinsured, privatedemandmodelparameters, Array{Float64,2}())
-p2 = remotecall_fetch(lis[2], DemandModel, pmedicaid, medicaiddemandmodelparameters, Array{Float64, 2}())
+# print("Testing Remote Call \n")
+# p1 = remotecall_fetch(lis[1], DemandModel, pinsured, privatedemandmodelparameters, Array{Float64,2}())
+# p2 = remotecall_fetch(lis[2], DemandModel, pmedicaid, medicaiddemandmodelparameters, Array{Float64, 2}())
 
-#include(pathprograms*"Main.jl")
+include(pathprograms*"Main.jl")
 
 
 

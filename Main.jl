@@ -24,7 +24,9 @@ include("/Users/austinbean/Desktop/dynhosp/Main.jl")
 
 
 # Next one stores all the years appearing in each fips code
-yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ];
+#yearins = [ [x; findfirst(data[:,fipscodeloc], x); findlast(data[:,fipscodeloc], x ); unique( data[findfirst(data[:,fipscodeloc], x):findlast(data[:,fipscodeloc], x ) , yearloc]  ) ] for x in unique(data[:,fipscodeloc])  ];
+
+yearins = [ x   for x in unique(data[ data[:,yearloc].==2005 , fipscodeloc])]
 
 monopoly = Array{Int64}(0)
 duopoly = Array{Int64}(0)
@@ -34,30 +36,31 @@ nopoly = Array{Int64}(0)
 all = Array{Int64}(0)
 
 for el in yearins
-  unqfids = [x for x in unique(data[el[2]:el[3],fidloc])]
-  if size(unqfids)[1] == 1
+#  unqfids = [x for x in unique(data[el[2]:el[3],fidloc])]
+  unqfids = [x for x in unique(data[ (data[:,fipscodeloc].==el[1])&(data[:,yearloc].==2005) ,fidloc])]
+  if size(unqfids,1) == 1
   #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    println("Fipscode Monopoly: ", data[el[2], fipscodeloc])
-    push!(monopoly, data[el[3], fipscodeloc])
-  elseif size(unqfids)[1] == 2
-  #  print("Fipscode Duopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(duopoly, data[el[3], fipscodeloc])
-  elseif size(unqfids)[1] == 3
-  #  print("Fipscode Triopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(triopoly, data[el[3], fipscodeloc])
-  elseif size(unqfids)[1] == 4
-  #  print("Fipscode Tetrapoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    push!(tetrapoly, data[el[3], fipscodeloc])
-  elseif size(unqfids)[1] > 4
-    print("Fipscode N-opoly: ", data[el[2], fipscodeloc], "\n")
-    print("Fipscode Hospitals: ", size(unqfids, 1), "\n")
-    push!(nopoly, data[el[3], fipscodeloc])
+    println("Fipscode Monopoly: ", el[1])
+    push!(monopoly, el[1])
+  elseif size(unqfids,1) == 2
+    println("Fipscode Duopoly: ", el[1])
+    push!(duopoly, el[1])
+  elseif size(unqfids,1) == 3
+    println("Fipscode Triopoly: ", el[1])
+    push!(triopoly, el[1])
+  elseif size(unqfids,1) == 4
+    println("Fipscode Tetrapoly: ", el[1])
+    push!(tetrapoly, el[1])
+  elseif size(unqfids,1) > 4
+    println("Fipscode N-opoly: ", el[1])
+    println("Fipscode Hospitals: ", size(unqfids, 1))
+    push!(nopoly, el[1])
   end
-  push!(all, size(unqfids,1)  )
+  push!(all, size(unqfids,1))
 end
 
 
-container = zeros(1, ((2*78+12)*2)+3) #must agree with outp in ParMainFun 
+container = zeros(1, ((2*78+12)*2)+3) #must agree with outp in ParMainFun
 
 # Open the existing saved data:
 fout1 = DataFrames.readtable(pathprograms*"simulationresults.csv")
@@ -72,9 +75,11 @@ push!(colnames, :fipscode)
 push!(colnames, :fid)
 push!(colnames, :year)
 for elem in ["EQ", "NEQ"]
-  for j = 1:3
-    for k = 0:25
-      push!(colnames, parse("$elem"*"Lev$j"*"Comp$k"))
+  for name in ["PI", "MED"]
+    for j = 1:3
+      for k = 0:25
+        push!(colnames, parse("$name""$elem"*"Lev$j"*"Comp$k"))
+      end
     end
   end
   for x in [1 2 3]
@@ -91,8 +96,8 @@ end
 
 timestamps = Array{Any}(0)
 
-for y in 1:size(triopoly,1)
-    mkt_fips = triopoly[y][1]
+for y in 1:2 #size(tetrapoly,1)
+    mkt_fips = tetrapoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
     push!(timestamps, (mkt_fips, "begin", timestr))
@@ -101,8 +106,8 @@ for y in 1:size(triopoly,1)
       	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           # This will parallelize the computation across Monte Carlo sims.
-          mcres = @parallel (+) for i = 1:500
-                    ParMainfun(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, mkt_fips, year,  fids)
+          mcres = @parallel (+) for i = 1:5
+                    ParMainfun(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, mkt_fips, year,  fids; npers = 5)
                   end
           # the addition map adds together years, fipscodes and fids.  Divide by nsims to recover.
           mcres[:, 1:3] = mcres[:,1:3]/500
