@@ -3,7 +3,7 @@
 # include("/home/ubuntu/dynhosp/Reboot.jl")
 
 
-#lis = addprocs()
+lis = addprocs(2)
 #lis = addprocs() # for the 32 core Amazon machine.
 
 
@@ -173,10 +173,10 @@ DemandModel(pinsured, privatedemandmodelparameters, [99999 1 0 120 32.96  -96.83
 print("Testing DynamicValue \n")
 DynamicValue(b1, b1[1,1])
 
-# Test parallel
-# print("Testing Remote Call \n")
-# p1 = remotecall_fetch(lis[1], DemandModel, pinsured, privatedemandmodelparameters, Array{Float64,2}())
-# p2 = remotecall_fetch(lis[2], DemandModel, pmedicaid, medicaiddemandmodelparameters, Array{Float64, 2}())
+#Test parallel
+print("Testing Remote Call \n")
+p1 = remotecall_fetch(lis[1], DemandModel, pinsured, privatedemandmodelparameters, Array{Float64,2}())
+p2 = remotecall_fetch(lis[2], DemandModel, pmedicaid, medicaiddemandmodelparameters, Array{Float64, 2}())
 
 include(pathprograms*"Main.jl")
 
