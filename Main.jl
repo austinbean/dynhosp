@@ -57,7 +57,7 @@ for el in yearins
 end
 
 
-container = zeros(1, 183)
+container = zeros(1, ((2*78+12)*2)+3) #must agree with outp in ParMainFun 
 
 # Open the existing saved data:
 fout1 = DataFrames.readtable(pathprograms*"simulationresults.csv")
@@ -102,7 +102,7 @@ for y in 1:size(triopoly,1)
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           # This will parallelize the computation across Monte Carlo sims.
           mcres = @parallel (+) for i = 1:500
-                    ParMainfun(data, peoples, mkt_fips, year, demandmodelparameters, fids)
+                    ParMainfun(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, mkt_fips, year,  fids)
                   end
           # the addition map adds together years, fipscodes and fids.  Divide by nsims to recover.
           mcres[:, 1:3] = mcres[:,1:3]/500

@@ -36,13 +36,13 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
   #fac_section = state_history[:, index:index+6] # take the section from the actual history corresponding
   #agg_section = state_history[:, width-3:end]
   #history = hcat(fac_section, agg_section)
-              #                          change! 6
-  history = hcat(state_history[:, index:index+6], state_history[:, width-3:end])
+  history = hcat(state_history[:, index:index+7], state_history[:, width-3:end])
   if maximum(sum(state_history[:, end-3:end-1],2)) > 25
     println("Maximum hospitals observed exceeds max_hosp")
     return "Size Warning"
   end
   outp = zeros(3*pat_types, max_hosp + 1) # visits to max hospital or 0 at each of 3 levels
+  medoutp = zeros(3*pat_types, max_hosp + 1)
   outp2 = zeros(1, 12) # records
 
 # The last 4 columns of "history" or "state_history" are: level 1, level 2, level 3, probability
@@ -54,16 +54,21 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
   if (history[1,2], history[1,3]) == (0,0) # hosp starts at level 1
     levelcount = convert(Int64, sum(history[1, end-3:end-1])) # counts the number of hospitals total
     outp[1,levelcount+1] += (β^0)*history[1, 6]*history[end,end]
+    medoutp[1,levelcount+1] += (β^0)*history[1, 7]*history[end,end]
   elseif (history[1,2], history[1,3]) == (1,0)
     levelcount = convert(Int64, sum(history[1, end-3:end-1])) # count of all facilities
     levelcount2 = convert(Int64, history[1,end-2]) # count of level 2 facilities
     outp[1, levelcount+1] += (β^0)*history[1, 6]*history[end,end] # regular births
+    medoutp[1, levelcount+1] += (β^0)*history[1, 7]*history[end,end] # regular births
     outp[2, levelcount2+1] += (α₂)*(β^0)*history[1, 6]*history[end,end] # expected fraction to NICU 2
+    medoutp[2, levelcount2+1] += (α₂)*(β^0)*history[1, 7]*history[end,end]
   elseif (history[1,2], history[1,3]) == (0,1)
     levelcount = convert(Int64, sum(history[1, end-3:end-1]))
     levelcount3 = convert(Int64, history[1,end-1]) # count of level 3's
     outp[1, levelcount+1] += (β^0)*history[1, 6]*history[end,end]
+    medoutp[1, levelcount+1] += (β^0)*history[1, 7]*history[end,end]
     outp[3, levelcount3+1] += (α₃)*(β^0)*history[1, 6]*history[end,end] # expected fraction to NICU 3
+    medoutp[3, levelcount3+1] += (α₃)*(β^0)*history[1, 7]*history[end,end]
   elseif (history[1,2], history[1,3]) == (-999,-999)
     # This is a firm which exits as a first action
     # println( "Firm is exiting in first period - ?") # need to think about what to do about this possibility.
@@ -74,6 +79,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
     if (history[row,2], history[row,3]) == (0,0)
       levelcount = convert(Int64, sum(history[row, end-3:end-1])) # revenue depends on total hospitals
       outp[1, levelcount+1] += (β^(row-1))*history[row, 6]*history[end,end] # this is discount^t * demand * probability (aggregate)
+      medoutp[1, levelcount+1] += (β^(row-1))*history[row, 7]*history[end,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # do nothing
       elseif (history[row-1,2], history[row-1,3]) == (1,0)
@@ -91,7 +97,9 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       levelcount = convert(Int64, sum(history[row, end-3:end-1]))
       levelcount2 = convert(Int64, history[row,end-2]) # number of level 2's
       outp[2, levelcount+1] += (β^row)*history[row, 6]*history[end,end]
+      medoutp[2, levelcount+1] += (β^row)*history[row, 7]*history[end,end]
       outp[2, levelcount2+1] += (α₂)*(β^row)*history[row, 6]*history[end,end] # expected rev from lev 2 admissions
+      medoutp[2, levelcount2+1] += (α₂)*(β^row)*history[row, 7]*history[end,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # Upgraded 1 to 2
         outp2[1,1] += 1*β^(row-1)*history[end,end]
@@ -108,7 +116,9 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       levelcount = convert(Int64, sum(history[row, end-3:end-1]))
       levelcount3 = convert(Int64, history[row,end-1])
       outp[3, levelcount+1] += (β^(row-1))*history[row, 6]*history[end,end]
+      medoutp[3, levelcount+1] += (β^(row-1))*history[row, 7]*history[end,end]
       outp[3, levelcount3+1] += (α₃)*(β^(row-1))*history[row, 6]*history[end,end]
+      medoutp[3, levelcount3+1] += (α₃)*(β^(row-1))*history[row, 7]*history[end,end]
       if (history[row-1,2], history[row-1,3]) == (0,0)
         # upgraded 1 to 3
         outp2[1,2] += 1*(β^(row-1))*history[end,end]
@@ -142,7 +152,7 @@ function DynamicValue(state_history::Array, fac_fid::Float64; α₂ = 0.07, α�
       return "Bad firm state"
     end
   end
-  medicaid = history[:, 6]'*(β^(collect(1:T)-1))*history[end,end] # returns
+  medicaid = [medoutp[1,1:end] medoutp[2,1:end] medoutp[3,1:end]] # returns
   outp = [ outp[1,1:end] outp[2,1:end] outp[3,1:end]] #rearranges the matrix.
 return medicaid, outp2, outp
 end

@@ -60,15 +60,6 @@ begin
     end
     data = convert(Matrix, dataf);
     dataf = 0; #set to zero to clear out.
-      # Import the model coefficients
-      # modcoeffs = DataFrames.readtable(pathpeople*"TX 2005 Model.csv", header = true);
-      # global const distance_c = modcoeffs[1, 2]
-      # global const distsq_c = modcoeffs[2, 2]
-      # global const neoint_c = modcoeffs[3, 2]
-      # global const soloint_c = modcoeffs[4, 2]
-      # global const closest_c = modcoeffs[5, 2]
-      # global const distbed_c = modcoeffs[6, 2]
-      # demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 
       medicaidmodcoeffs = DataFrames.readtable(pathpeople*"TX 2005 Medicaid Model.csv", header = true);
       global const medicaiddistance_c = medicaidmodcoeffs[1, 2]
@@ -87,45 +78,6 @@ begin
       global const privateclosest_c = privatemodcoeffs[5, 2]
       global const privatedistbed_c = privatemodcoeffs[6, 2]
       privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
-
-
-  # Import the people and convert that data to a matrix
-  # println("Importing People")
-  #   people = DataFrames.readtable(pathpeople*"TX 2005 Individual Choices.csv", header = true);
-  #   #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
-  #   for i in names(people)
-  #     if ( typeof(people[i]) == DataArrays.DataArray{Float64,1} )
-  #       people[DataFrames.isna(people[i]), i] = 0
-  #     elseif (typeof(people[i]) == DataArrays.DataArray{Int64,1})
-  #       people[DataFrames.isna(people[i]), i] = 0
-  #     elseif typeof(people[i]) == DataArrays.DataArray{ByteString,1}
-  #       # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
-  #       # with opposite signs of the corresponding coefficients from modelparameters.
-  #       # This does that by looking at missing NAMES, not fids.
-  #       people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*99
-  #       people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*99
-  #       people[DataFrames.isna(people[i]), i] = "NONE"
-  #     elseif typeof(people[i]) == DataArrays.DataArray{UTF8String,1}
-  #       people[DataFrames.isna(people[i]), people.colindex.lookup[i]+2] = -sign(neoint_c)*99
-  #       people[DataFrames.isna(people[i]), people.colindex.lookup[i]+8] = -sign(soloint_c)*99
-  #       people[DataFrames.isna(people[i]), i] = "NONE"
-  #     end
-  #     if sum(size(people[DataFrames.isna(people[i]), i]))>0
-  #       print(i, "\n")
-  #     end
-  #   end
-  #   peoples = convert(Matrix, people);
-  #   people = 0; # DataFrame not used - set to 0 and clear out.
-  #   for i =1:size(peoples, 2)
-  #     if (typeof(peoples[2,i])==UTF8String) | (typeof(peoples[2,i])==ASCIIString)
-  # #      print(i, "\n")
-  #       peoples[:,i] = "0"
-  #       peoples[:,i] = map(x->parse(Float64, x), peoples[:,i])
-  #     end
-  #   end
-  #   # Note this change - I don't think there's anything that requires 64 bits.
-  #   peoples = convert(Array{Float32, 2}, peoples) #doing this as Float32 makes it much, much smaller.
-  #   println("Size of peoples, ", size(peoples))
 
     println("Importing Medicaid Patients")
     medicaid = DataFrames.readtable(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true);
@@ -209,21 +161,22 @@ end # of "begin" block
 
 
 #
-# # Test functions:
-# print("Testing Simulator \n")
+# Test functions:
+print("Testing Simulator \n")
 a1 = Simulator(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, 2003, 48027 ; T = 1) #tests logitest, DemandModel, distance
-# print("Testing PerturbSimulator \n")
+print("Testing PerturbSimulator \n")
  b1 = PerturbSimulator(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, 2003, 48027, 273410; T = 1)
-# print("Testing logitest \n")
-# logitest( (1, 0), 2, 3, 1, zeros(9))
-# print("Testing DemandModel \n")
-# DemandModel(peoples, demandmodelparameters, [99999 1 0 120 32.96  -96.8385]) #implicitly tests EntrantsU as well
-# print("Testing DynamicValue \n")
-# DynamicValue(b1, b1[1,1])
-#
-# # Test parallel
-# print("Testing Remote Call \n")
-# p1 = remotecall_fetch(lis[1], DemandModel, peoples, demandmodelparameters, Array{Float64,2}())
+print("Testing logitest \n")
+logitest( (1, 0), 2, 3, 1, zeros(9))
+print("Testing DemandModel \n")
+DemandModel(pinsured, privatedemandmodelparameters, [99999 1 0 120 32.96  -96.8385]) #implicitly tests EntrantsU as well
+print("Testing DynamicValue \n")
+DynamicValue(b1, b1[1,1])
+
+# Test parallel
+print("Testing Remote Call \n")
+p1 = remotecall_fetch(lis[1], DemandModel, pinsured, privatedemandmodelparameters, Array{Float64,2}())
+p2 = remotecall_fetch(lis[2], DemandModel, pmedicaid, medicaiddemandmodelparameters, Array{Float64, 2}())
 
 #include(pathprograms*"Main.jl")
 
