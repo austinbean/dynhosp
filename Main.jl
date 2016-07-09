@@ -96,8 +96,8 @@ end
 
 timestamps = Array{Any}(0)
 
-for y in 1:size(tetrapoly,1)
-    mkt_fips = tetrapoly[y][1]
+for y in 1:2#size(tetrapoly,1)
+    mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
     push!(timestamps, (mkt_fips, "begin", timestr))
@@ -107,6 +107,7 @@ for y in 1:size(tetrapoly,1)
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           # This will parallelize the computation across Monte Carlo sims.
           mcres = @parallel (+) for i = 1:500
+                    println(i)
                     ParMainfun(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, mkt_fips, year,  fids; npers = 50)
                   end
           # the addition map adds together years, fipscodes and fids.  Divide by nsims to recover.
