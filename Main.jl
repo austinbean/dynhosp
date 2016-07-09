@@ -96,8 +96,8 @@ end
 
 timestamps = Array{Any}(0)
 
-for y in 1:size(duopoly,1)
-    mkt_fips = duopoly[y][1]
+for y in 1:size(nopoly,1)
+    mkt_fips = nopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
     push!(timestamps, (mkt_fips, "begin", timestr))
