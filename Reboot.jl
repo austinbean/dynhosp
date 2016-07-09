@@ -3,8 +3,8 @@
 # include("/home/ubuntu/dynhosp/Reboot.jl")
 
 
-lis = addprocs(2)
-#lis = addprocs() # for the 32 core Amazon machine.
+#lis = addprocs(2)
+lis = addprocs() # for the 32 core Amazon machine.
 
 
 
