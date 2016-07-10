@@ -113,6 +113,7 @@ for y in 1:size(nopoly,1)
           # the addition map adds together years, fipscodes and fids.  Divide by nsims to recover.
           mcres[:, 1:3] = mcres[:,1:3]/500
           container = [container; mcres]
+          println("Terminated fips: ", mkt_fips)
       end #Note - rewrite first line of state history back to peoples.
     #  dat = 0
     end
@@ -131,6 +132,7 @@ for y in 1:size(nopoly,1)
     DataFrames.writetable(pathprograms*"temp_results_$mkt_fips.csv", tout) # no slash.
 end
 
+println("Terminated Estimation")
 
 # Add column names to the new data:
 output1 = convert(DataFrame, container);
