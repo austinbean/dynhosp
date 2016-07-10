@@ -91,12 +91,12 @@ begin
         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
         # with opposite signs of the corresponding coefficients from modelparameters.
         # This does that by looking at missing NAMES, not fids.
-        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(neoint_c)*99
-        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(medicaidneoint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(medicaidsoloint_c)*99
         medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
       elseif typeof(medicaid[i]) == DataArrays.DataArray{UTF8String,1}
-        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(neoint_c)*99
-        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(medicaidneoint_c)*99
+        medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(medicaidsoloint_c)*99
         medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
       end
       if sum(size(medicaid[DataFrames.isna(medicaid[i]), i]))>0
@@ -127,12 +127,12 @@ begin
         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
         # with opposite signs of the corresponding coefficients from modelparameters.
         # This does that by looking at missing NAMES, not fids.
-        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(neoint_c)*99
-        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
         pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
       elseif typeof(pinsure[i]) == DataArrays.DataArray{UTF8String,1}
-        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(neoint_c)*99
-        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(soloint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
         pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
       end
       if sum(size(pinsure[DataFrames.isna(pinsure[i]), i]))>0
