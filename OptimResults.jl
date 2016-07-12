@@ -25,7 +25,7 @@ input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedre
 
 
 # The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one.
-fout1 = hcat( interim_private[:,1:29], eq_medicaid_lev1, interim_private[:, 30:55], eq_medicaid_lev2, interim_private[:,56:81 ], eq_medicaid_lev3, interim_private[:,82:119 ], neq_medicaid_lev1, interim_private[:,120:145], neq_medicaid_lev2, interim_private[:,146:171], neq_medicaid_lev3, interim_private[:, 172:183])
+fout1 = hcat( interim_private[:,1:29], eq_medicaid_lev1[:,4], interim_private[:, 30:55], eq_medicaid_lev2[:,4], interim_private[:,56:81 ], eq_medicaid_lev3[:,4], interim_private[:,82:119 ], neq_medicaid_lev1[:,4], interim_private[:,120:145], neq_medicaid_lev2[:,4], interim_private[:,146:171], neq_medicaid_lev3[:,4], interim_private[:, 172:183])
 
 colnames = Array{Symbol}(:0)
 push!(colnames, :fipscode)
@@ -109,23 +109,6 @@ end
 
 =#
 
-#TODO: THIS IS WHAT NEEDS TO BE FIXED 
-
-# This is used below in function definitions
-function dfvec(datafr::DataFrame)
-  vecvals = Vector{Float64}(0)
-  for el in 1:size(datafr,2)
-    push!(vecvals, datafr[el].data[1])
-  end
-  return vecvals
-end
-function dfvec(datafr::Array{Real,2})
-  vecvals = Vector{Float64}(0)
-  for el in 1:size(datafr,2)
-    push!(vecvals, datafr[el].data[1])
-  end
-  return vecvals
-end
 
 # Delete columns of zeros - this is just for the testing part.  Eventually hopefully all will be filled in.
 # This only deletes if both the column for the equilibrium AND non-equilibrium are zero.
@@ -166,10 +149,8 @@ ncols = size(fout1,2) # number of columns with nonzeros (pairs!)
 params = convert(Int, (ncols-3)/2) # don't think this conversion is strictly necessary
 
 
-
-
 for x in 1:size(fout1,1) #hsims #how many facilities are we doing?  Not hsims
-  name = parse("function val$x(x::Vector; inp1 = dfvec(fout1[$x, 4:4+params-1]), inp2 = dfvec(fout1[$x, 4+params:end])) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
+  name = parse("function val$x(x::Vector; inp1 = fout1[$x, 4:4+params-1], inp2 = fout1[$x, 4+params:end]) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
   eval(name)
 end
 
@@ -202,35 +183,60 @@ result3 = optimize(sumval, 700*ones(params), method = SimulatedAnnealing(), iter
 
 
 # Now this will print the parameter name:
-for el in 1:convert(Int, (size(fout1.colindex.names)[1]-3)/2)
-  print(fout1.colindex.names[el+3], "  ", Optim.minimizer(result)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
+for el in 1:size(Optim.minimizer(result), 1)
+  print(varcolnames[el+3], "  ", Optim.minimizer(result)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
 end
 
 # These are not very informative yet.
 
 # Test labeling:
-x1 = paramsymbs[1:20]
-p1 = plot(x=x1, y=Optim.minimizer(result3)[1:20], Guide.xticks(ticks=collect(1:20)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
+x1 = paramsymbs[1:26]
+p1 = plot(x=x1, y=Optim.minimizer(result)[1:26], Guide.xticks(ticks=collect(1:26)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
 
-x2 = paramsymbs[7:10]
-p2 = plot(x=x2, y=Optim.minimizer(result)[7:10], Guide.xticks(ticks=collect(1:4)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+x2 = paramsymbs[28:53]
+p2 = plot(x=x2, y=Optim.minimizer(result)[28:53], Guide.xticks(ticks=collect(1:26)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev2rev.png", 12cm, 6cm), p2)
 
-x3 = paramsymbs[11:13]
-p3 = plot(x=x3, y=Optim.minimizer(result)[11:13], Guide.xticks(ticks=collect(1:3)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+x3 = paramsymbs[55:80]
+p3 = plot(x=x3, y=Optim.minimizer(result)[55:80], Guide.xticks(ticks=collect(1:26)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev3rev.png", 12cm, 6cm), p3)
 
-x4 = collect(1:6)
+x4 = collect(1:26)
 p4 = plot(
-layer(x=x4, y=Optim.minimizer(result)[1:6], Geom.point, Geom.line, Theme(default_color=color("green")) ),
-layer(x=collect(1:4), y=Optim.minimizer(result)[7:10], Geom.point, Geom.line, Theme(default_color=color("purple"))),
-layer(x=collect(1:3), y=Optim.minimizer(result)[11:13], Geom.point, Geom.line, Theme(default_color=color("red"))),
+layer(x=x4, y=Optim.minimizer(result)[1:26], Geom.point, Geom.line, Theme(default_color=colorant"green") ),
+layer(x=x4, y=Optim.minimizer(result)[28:53], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+layer(x=x4, y=Optim.minimizer(result)[55:80], Geom.point, Geom.line, Theme(default_color=colorant"red")),
 Guide.xlabel("Number of Competitors"),
 Guide.ylabel("Dollars"),
 Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
 Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
+
+# Medicaid Revenue:
+
+x5 = collect(1:3)
+medvals = [Optim.minimizer(result)[27] Optim.minimizer(result)[54] Optim.minimizer(result)[81] ]
+p5 = plot(x=x5, y=medvals, Geom.point, Geom.line, Guide.xlabel("Facility Level"), Guide.ylabel("Dollars per Patient"), Guide.title("Per Patient Profit - Medicaid"))
+
+# Expected Revenue - Level 1  + αᵢ × Level i
+α₂ = 0.07, α₃ = 0.13,
+
+x4 = collect(1:26)
+p4 = plot(
+layer(x=x4, y=Optim.minimizer(result)[1:26] , Geom.point, Geom.line, Theme(default_color=colorant"green") ),
+layer(x=x4, y=(Optim.minimizer(result)[1:26]+α₂*Optim.minimizer(result)[28:53]), Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+layer(x=x4, y=(y=Optim.minimizer(result)[1:26]+α₃*Optim.minimizer(result)[55:80]), Geom.point, Geom.line, Theme(default_color=colorant"red")),
+Guide.xlabel("Number of Competitors"),
+Guide.ylabel("Dollars"),
+Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
+Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
+draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
+
+
+
+
+
 
 
 ##
@@ -259,4 +265,27 @@ Outcomes:
  * Gradient Calls: 0
 
 
+=#
+
+
+#=
+
+# These functions mapped a dataframe into two vectors.  Since I am using vectors
+# directly via the matrix, I don't need to do that.
+
+# This is used below in function definitions
+function dfvec(datafr::DataFrame)
+  vecvals = Vector{Float64}(0)
+  for el in 1:size(datafr,2)
+    push!(vecvals, datafr[el].data[1])
+  end
+  return vecvals
+end
+function dfvec(datafr::Array{Real,2})
+  vecvals = Vector{Float64}(0)
+  for el in 1:size(datafr,2)
+    push!(vecvals, datafr[el].data[1])
+  end
+  return vecvals
+end
 =#
