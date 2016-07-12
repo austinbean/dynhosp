@@ -11,6 +11,7 @@ using Gadfly
 input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
 
 # This keeps the privately insured patient counts:
+# Drop the 0 Competitors category here:
   interim_private = convert(Matrix, hcat(input1[:,1:81], input1[:,160:249], input1[:,328:339 ]));
 # This keeps the Medicaid patient counts:
   interim_medicaid = hcat(input1[:,1:3], input1[:, 82:159], input1[:,250:327]);
@@ -24,7 +25,8 @@ input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedre
   neq_medicaid_lev3 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,134:159]),2))
 
 
-# The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one.
+# The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one
+#TODO: the column w/ zero competitors is always 0, so it is dumb to include.  Nothing else seems to be 0.
 fout1 = hcat( interim_private[:,1:29], eq_medicaid_lev1[:,4], interim_private[:, 30:55], eq_medicaid_lev2[:,4], interim_private[:,56:81 ], eq_medicaid_lev3[:,4], interim_private[:,82:119 ], neq_medicaid_lev1[:,4], interim_private[:,120:145], neq_medicaid_lev2[:,4], interim_private[:,146:171], neq_medicaid_lev3[:,4], interim_private[:, 172:183])
 
 colnames = Array{Symbol}(:0)
@@ -122,22 +124,24 @@ end
 
 
 =#
-
-deletdsym = Array{Int64}(0)
+# TODO - Fix this crap: the symbol can't be push!ed into an array.  Why not?  
+deletdsym = Array{Symbol}()
 deletdcols = Array{Int64}(0)
 for col in 4:size(varcolnames[4:end-93],1)
-  el = varcolnames[col] #gets column number from dictionary
+  el = varcolnames[col]
   nel = varcolnames[col+93]
   if (sum(fout1[:,col]) == 0) & (sum(fout1[:,col+93]) == 0)
     println("Empty Column: ", col, "  ", col+93)
     println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
-  #  push!(deletdcols, el)
-  #  push!(deletdcols, nel)
-  #  push!(deletdsym, el-3)
+    push!(deletdcols, col)
+    push!(deletdcols, col+93)
+    push!(deletdsym, el)
   else
-  #  println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
+    println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
   end
 end
+
+
 deleteat!(paramsymbs, deletdsym)
 delete!(fout1, deletdcols)
 
@@ -148,9 +152,9 @@ ncols = size(fout1,2) # number of columns with nonzeros (pairs!)
 # How many parameters am I trying to estimate?  # of Non-zero column pairs
 params = convert(Int, (ncols-3)/2) # don't think this conversion is strictly necessary
 
-
-for x in 1:size(fout1,1) #hsims #how many facilities are we doing?  Not hsims
-  name = parse("function val$x(x::Vector; inp1 = fout1[$x, 4:4+params-1], inp2 = fout1[$x, 4+params:end]) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
+fout1 = fout1[:,4:end]
+for x in 1:size(fout1,1)
+  name = parse("function val$x(x::Vector; inp1 = fout1[$x, 1:params-1], inp2 = fout1[$x, params:end]) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
   eval(name)
 end
 
