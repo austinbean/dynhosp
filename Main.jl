@@ -28,37 +28,6 @@ include("/Users/austinbean/Desktop/dynhosp/Main.jl")
 
 yearins = [ x   for x in unique(data[ data[:,yearloc].==2005 , fipscodeloc])]
 
-monopoly = Array{Int64}(0)
-duopoly = Array{Int64}(0)
-triopoly = Array{Int64}(0)
-tetrapoly = Array{Int64}(0)
-nopoly = Array{Int64}(0)
-all = Array{Int64}(0)
-
-for el in yearins
-#  unqfids = [x for x in unique(data[el[2]:el[3],fidloc])]
-  unqfids = [x for x in unique(data[ (data[:,fipscodeloc].==el[1])&(data[:,yearloc].==2005) ,fidloc])]
-  if size(unqfids,1) == 1
-  #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    println("Fipscode Monopoly: ", el[1])
-    push!(monopoly, el[1])
-  elseif size(unqfids,1) == 2
-    println("Fipscode Duopoly: ", el[1])
-    push!(duopoly, el[1])
-  elseif size(unqfids,1) == 3
-    println("Fipscode Triopoly: ", el[1])
-    push!(triopoly, el[1])
-  elseif size(unqfids,1) == 4
-    println("Fipscode Tetrapoly: ", el[1])
-    push!(tetrapoly, el[1])
-  elseif size(unqfids,1) > 4
-    println("Fipscode N-opoly: ", el[1])
-    println("Fipscode Hospitals: ", size(unqfids, 1))
-    push!(nopoly, el[1])
-  end
-  push!(all, size(unqfids,1))
-end
-
 
 container = zeros(1, ((2*78+12)*2)+3) #must agree with outp in ParMainFun
 
@@ -66,8 +35,6 @@ container = zeros(1, ((2*78+12)*2)+3) #must agree with outp in ParMainFun
 fout1 = DataFrames.readtable(pathprograms*"simulationresults.csv")
 donefips  = [x for x in unique(fout1[!(DataFrames.isna(fout1[:fipscode])),:fipscode])] # take codes NOT done before
 #donefips = [] # set this to be empty until the simulation gets working.
-
-entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 
 
 colnames = Array{Symbol}(:0)
@@ -118,18 +85,18 @@ for y in 1:size(nopoly,1)
     #  dat = 0
     end
     # Record what time certain ends happened.
-    outf = open(pathprograms*"timer.txt", "w")
-    crtime = now()
-    timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
-    push!(timestamps, (mkt_fips, "end", timestr))
-    #print(timestamps, "\n")
-    writedlm(outf, timestamps)
-    close(outf)
+      outf = open(pathprograms*"timer.txt", "w")
+      crtime = now()
+      timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
+      push!(timestamps, (mkt_fips, "end", timestr))
+      #print(timestamps, "\n")
+      writedlm(outf, timestamps)
+      close(outf)
     # Write out temporary files in case the process fails later.
-    tout = convert(DataFrame, container);
-    names!(tout, colnames)
-    tout = tout[ tout[:fipscode].>0, :]
-    DataFrames.writetable(pathprograms*"temp_results_$mkt_fips.csv", tout) # no slash.
+      tout = convert(DataFrame, container);
+      names!(tout, colnames)
+      tout = tout[ tout[:fipscode].>0, :]
+      DataFrames.writetable(pathprograms*"temp_results_$mkt_fips.csv", tout) # no slash.
 end
 
 println("Terminated Estimation")
@@ -162,6 +129,39 @@ writetable(pathprograms*"simulationresults.csv", output1)
 
 
 
+
+#=
+monopoly = Array{Int64}(0)
+duopoly = Array{Int64}(0)
+triopoly = Array{Int64}(0)
+tetrapoly = Array{Int64}(0)
+nopoly = Array{Int64}(0)
+all = Array{Int64}(0)
+
+for el in yearins
+  unqfids = [x for x in unique(data[ (data[:,fipscodeloc].==el[1])&(data[:,yearloc].==2005) ,fidloc])]
+  if size(unqfids,1) == 1
+  #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
+    println("Fipscode Monopoly: ", el[1])
+    println(unqfids)
+    push!(monopoly, el[1])
+  elseif size(unqfids,1) == 2
+    println("Fipscode Duopoly: ", el[1])
+    push!(duopoly, el[1])
+  elseif size(unqfids,1) == 3
+    println("Fipscode Triopoly: ", el[1])
+    push!(triopoly, el[1])
+  elseif size(unqfids,1) == 4
+    println("Fipscode Tetrapoly: ", el[1])
+    push!(tetrapoly, el[1])
+  elseif size(unqfids,1) > 4
+    println("Fipscode N-opoly: ", el[1])
+    println("Fipscode Hospitals: ", size(unqfids, 1))
+    push!(nopoly, el[1])
+  end
+  push!(all, size(unqfids,1))
+end
+=#
 
 
 
@@ -223,5 +223,4 @@ end
 9 "Enter at 3"
 10 "Do Nothing"
 11 "Exit"
-=#
 =#

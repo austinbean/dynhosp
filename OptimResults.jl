@@ -8,17 +8,35 @@ using Gadfly
 # fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
 #fout1 = readtable("/Users/austinbean/Desktop/temp_results_48209.csv")
 
-fout1 = readtable("/Users/austinbean/Google Drive/Simulation Results/simulationresults.csv");
+input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
 
+# This keeps the privately insured patient counts:
+  interim_private = convert(Matrix, hcat(input1[:,1:81], input1[:,160:249], input1[:,328:339 ]));
+# This keeps the Medicaid patient counts:
+  interim_medicaid = hcat(input1[:,1:3], input1[:, 82:159], input1[:,250:327]);
+# This keeps the equilibrium sim medicaid patient counts by level - interim_medicaid summed across competitor numbers
+  eq_medicaid_lev1 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,4:29]),2))
+  eq_medicaid_lev2 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:, 30:55]),2))
+  eq_medicaid_lev3 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:, 56:81]),2))
+# This keeps the non-equilibrium sim medicaid counts by level
+  neq_medicaid_lev1 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,82:107]),2))
+  neq_medicaid_lev2 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,108:133]),2))
+  neq_medicaid_lev3 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,134:159]),2))
+
+
+# The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one.
+fout1 = hcat( interim_private[:,1:29], eq_medicaid_lev1, interim_private[:, 30:55], eq_medicaid_lev2, interim_private[:,56:81 ], eq_medicaid_lev3, interim_private[:,82:119 ], neq_medicaid_lev1, interim_private[:,120:145], neq_medicaid_lev2, interim_private[:,146:171], neq_medicaid_lev3, interim_private[:, 172:183])
 
 colnames = Array{Symbol}(:0)
 push!(colnames, :fipscode)
 push!(colnames, :fid)
 push!(colnames, :year)
 for elem in ["EQ", "NEQ"]
-  for j = 1:3
-    for k = 0:25
-      push!(colnames, parse("$elem"*"Lev$j"*"Comp$k"))
+  for name in ["PI", "MED"]
+    for j = 1:3
+      for k = 0:25
+        push!(colnames, parse("$name""$elem"*"Lev$j"*"Comp$k"))
+      end
     end
   end
   for x in [1 2 3]
@@ -33,6 +51,31 @@ for elem in ["EQ", "NEQ"]
   push!(colnames, parse("$elem"*"Enter3"))
 end
 
+varcolnames = Array{Symbol}(:0)
+push!(varcolnames, :fipscode)
+push!(varcolnames, :fid)
+push!(varcolnames, :year)
+for elem in ["EQ", "NEQ"]
+  for name in ["PI"]
+    for j = 1:3
+      for k = 0:25
+        push!(varcolnames, parse("$name""$elem"*"Lev$j"*"Comp$k"))
+      end
+        push!(varcolnames, parse("$elem"*"Medicaid"*"Lev$j"))
+    end
+  end
+  for x in [1 2 3]
+    for y in [1 2 3 "EX"]
+      if x != y
+        push!(varcolnames, parse("$elem"*"Trans$x$y"))
+      end
+    end
+  end
+  push!(varcolnames, parse("$elem"*"Enter1"))
+  push!(varcolnames, parse("$elem"*"Enter2"))
+  push!(varcolnames, parse("$elem"*"Enter3"))
+end
+
 #names!(fout1, colnames)
 
 paramsymbs = Array{UTF8String}(0)
@@ -40,6 +83,7 @@ for k = 1:3
   for i = 0:25
     push!(paramsymbs, "Θ"*"$k"*"C$i")
   end
+  push!(paramsymbs, "μ"*"$k")
 end
 for y in [1 2 3]
   for z in [1 2 3 "EX"]
@@ -53,15 +97,29 @@ push!(paramsymbs, "Γ1")
 push!(paramsymbs, "Γ2")
 push!(paramsymbs, "Γ3")
 
+
+#=
+
+# This just checks that varcolnames and parasymbs are correct
+
 for i in 1:size(paramsymbs)[1]
-  print(colnames[3+i],"  ", paramsymbs[i], "\n")
+  println(varcolnames[3+i],"  ", paramsymbs[i])
 end
 
 
+=#
 
+#TODO: THIS IS WHAT NEEDS TO BE FIXED 
 
-
+# This is used below in function definitions
 function dfvec(datafr::DataFrame)
+  vecvals = Vector{Float64}(0)
+  for el in 1:size(datafr,2)
+    push!(vecvals, datafr[el].data[1])
+  end
+  return vecvals
+end
+function dfvec(datafr::Array{Real,2})
   vecvals = Vector{Float64}(0)
   for el in 1:size(datafr,2)
     push!(vecvals, datafr[el].data[1])
@@ -72,16 +130,29 @@ end
 # Delete columns of zeros - this is just for the testing part.  Eventually hopefully all will be filled in.
 # This only deletes if both the column for the equilibrium AND non-equilibrium are zero.
 # this doesn't work because the size is changing dynamically.
+#=
+# This will check quickly if there are pairs of columns which are all zeros.
+
+for el in 4:convert(Int,((size(fout1,2)-3))/2)
+  println( sum(fout1[:,el]), "  ", sum(fout1[:,el+93]))
+end
+
+
+=#
+
 deletdsym = Array{Int64}(0)
 deletdcols = Array{Int64}(0)
-for col in colnames[4:end-90]
-  el = fout1.colindex.lookup[col] #gets column number from dictionary
-  nel = el + 90
-  if (sum(fout1[colnames[el]]) == 0) & (sum(fout1[colnames[el+90]]) == 0)
-    print("Empty Column: ", colnames[el], " ", colnames[el+90], " Symbol:", paramsymbs[el-3] ,"\n")
-    push!(deletdcols, el)
-    push!(deletdcols, nel)
-    push!(deletdsym, el-3)
+for col in 4:size(varcolnames[4:end-93],1)
+  el = varcolnames[col] #gets column number from dictionary
+  nel = varcolnames[col+93]
+  if (sum(fout1[:,col]) == 0) & (sum(fout1[:,col+93]) == 0)
+    println("Empty Column: ", col, "  ", col+93)
+    println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
+  #  push!(deletdcols, el)
+  #  push!(deletdcols, nel)
+  #  push!(deletdsym, el-3)
+  else
+  #  println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
   end
 end
 deleteat!(paramsymbs, deletdsym)
@@ -94,10 +165,6 @@ ncols = size(fout1,2) # number of columns with nonzeros (pairs!)
 # How many parameters am I trying to estimate?  # of Non-zero column pairs
 params = convert(Int, (ncols-3)/2) # don't think this conversion is strictly necessary
 
-# Check resulting:
-for el in 1:params
-  print(fout1.colindex.names[el+3], "  ", paramsymbs[el], "\n")
-end
 
 
 
@@ -119,7 +186,7 @@ for x in 1:size(fout1,1)
 end
 
 function sumval(x::Vector; hsims = 500)
-  return (1/hsims)*(val1(x) + val2(x) + val3(x) + val4(x) + val5(x) + val6(x) + val7(x) + val8(x) + val9(x) + val10(x) + val11(x) + val12(x) + val13(x) + val14(x) + val15(x) + val16(x) + val17(x) + val18(x) + val19(x) + val20(x))
+  return (1/hsims)*(val1(x) + val2(x) + val3(x) + val4(x) + val5(x) + val6(x) + val7(x) + val8(x) + val9(x) + val10(x) + val11(x) + val12(x) + val13(x) + val14(x) + val15(x) + val16(x) + val17(x) + val18(x) + val19(x) + val20(x) + val21(x) + val22(x) + val23(x) + val24(x) + val25(x) + val26(x) + val27(x) + val28(x) + val29(x) + val30(x) + val31(x) + val32(x) + val33(x) + val34(x) + val35(x) + val36(x) + val37(x) + val38(x) + val39(x) + val40(x) + val41(x) + val42(x) + val43(x) + val44(x) + val45(x) + val46(x) + val47(x) + val48(x) + val49(x) + val50(x) + val51(x) + val52(x) + val53(x) + val54(x) + val55(x) + val56(x) + val57(x) + val58(x) + val59(x) + val60(x) + val61(x) + val62(x) + val63(x) + val64(x) + val65(x) + val66(x) + val67(x) + val68(x) + val69(x) + val70(x) + val71(x) + val72(x) + val73(x) + val74(x) + val75(x) + val76(x) + val77(x) + val78(x) + val79(x) + val80(x) + val81(x) + val82(x) + val83(x) + val84(x) + val85(x) + val86(x) + val87(x) + val88(x) + val89(x) + val90(x) + val91(x) + val92(x) + val93(x) + val94(x) + val95(x) + val96(x) + val97(x) + val98(x) + val99(x) + val100(x) + val101(x) + val102(x) + val103(x) + val104(x) + val105(x) + val106(x) + val107(x) + val108(x) + val109(x) + val110(x) + val111(x) + val112(x) + val113(x) + val114(x) + val115(x) + val116(x) + val117(x) + val118(x) + val119(x) + val120(x) + val121(x) + val122(x) + val123(x) + val124(x) + val125(x) + val126(x) + val127(x) + val128(x) + val129(x) + val130(x) + val131(x) + val132(x) + val133(x) + val134(x) + val135(x) + val136(x) + val137(x) + val138(x) + val139(x) + val140(x) + val141(x) + val142(x) + val143(x) + val144(x) + val145(x) + val146(x) + val147(x) + val148(x) + val149(x) + val150(x) + val151(x) + val152(x) + val153(x) + val154(x) + val155(x) + val156(x) + val157(x) + val158(x) + val159(x) + val160(x) + val161(x) + val162(x) + val163(x) + val164(x) + val165(x) + val166(x) + val167(x) + val168(x) + val169(x) + val170(x) + val171(x) + val172(x) + val173(x) + val174(x) + val175(x) + val176(x) + val177(x) + val178(x) + val179(x) + val180(x) + val181(x) + val182(x) + val183(x) + val184(x) + val185(x) + val186(x) + val187(x) + val188(x) + val189(x) + val190(x) + val191(x) + val192(x) + val193(x) + val194(x) + val195(x) + val196(x) + val197(x) + val198(x) + val199(x) + val200(x) + val201(x) + val202(x) + val203(x) + val204(x) + val205(x) + val206(x) + val207(x) + val208(x) + val209(x) + val210(x))
 end
 
 
