@@ -11,47 +11,26 @@ using Gadfly
 input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
 
 # This keeps the privately insured patient counts:
-# Drop the 0 Competitors category here:
-  interim_private = convert(Matrix, hcat(input1[:,1:81], input1[:,160:249], input1[:,328:339 ]));
+# The division between first and second half is around 172.
+  interim_private_eq = convert(Matrix, hcat(input1[:,1:81], input1[:,160:171]));
+  interim_private_neq = convert(Matrix, hcat(input1[:,1:3], input1[:,172:249], input1[:,328:339]));
 # This keeps the Medicaid patient counts:
-  interim_medicaid = hcat(input1[:,1:3], input1[:, 82:159], input1[:,250:327]);
+  interim_medicaid_eq = hcat(input1[:,1:3], input1[:,82:159]);
+  interim_medicaid_neq = hcat(input1[:,1:3], input1[:,250:327]);
 # This keeps the equilibrium sim medicaid patient counts by level - interim_medicaid summed across competitor numbers
-  eq_medicaid_lev1 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,4:29]),2))
-  eq_medicaid_lev2 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:, 30:55]),2))
-  eq_medicaid_lev3 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:, 56:81]),2))
+  eq_medicaid_lev1 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,4:29]),2));
+  eq_medicaid_lev2 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,30:55]),2));
+  eq_medicaid_lev3 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,56:81]),2));
 # This keeps the non-equilibrium sim medicaid counts by level
-  neq_medicaid_lev1 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,82:107]),2))
-  neq_medicaid_lev2 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,108:133]),2))
-  neq_medicaid_lev3 = hcat( convert(Matrix, interim_medicaid[:,1:3]) ,sum(convert(Matrix, interim_medicaid[:,134:159]),2))
+  neq_medicaid_lev1 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,4:29]),2));
+  neq_medicaid_lev2 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,30:55]),2));
+  neq_medicaid_lev3 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,56:81]),2));
 
 
 # The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one
-#TODO: the column w/ zero competitors is always 0, so it is dumb to include.  Nothing else seems to be 0.
-fout1 = hcat( interim_private[:,1:29], eq_medicaid_lev1[:,4], interim_private[:, 30:55], eq_medicaid_lev2[:,4], interim_private[:,56:81 ], eq_medicaid_lev3[:,4], interim_private[:,82:119 ], neq_medicaid_lev1[:,4], interim_private[:,120:145], neq_medicaid_lev2[:,4], interim_private[:,146:171], neq_medicaid_lev3[:,4], interim_private[:, 172:183])
-
-colnames = Array{Symbol}(:0)
-push!(colnames, :fipscode)
-push!(colnames, :fid)
-push!(colnames, :year)
-for elem in ["EQ", "NEQ"]
-  for name in ["PI", "MED"]
-    for j = 1:3
-      for k = 0:25
-        push!(colnames, parse("$name""$elem"*"Lev$j"*"Comp$k"))
-      end
-    end
-  end
-  for x in [1 2 3]
-    for y in [1 2 3 "EX"]
-      if x != y
-        push!(colnames, parse("$elem"*"Trans$x$y"))
-      end
-    end
-  end
-  push!(colnames, parse("$elem"*"Enter1"))
-  push!(colnames, parse("$elem"*"Enter2"))
-  push!(colnames, parse("$elem"*"Enter3"))
-end
+# This creates TWO matrices, one with all of the equilibrium results, the other with all of the non-equilibrium results.
+fout11 = hcat( interim_private_eq[:,1:29], eq_medicaid_lev1[:,4], interim_private_eq[:,30:55], eq_medicaid_lev2[:,4], interim_private_eq[:,56:81], eq_medicaid_lev3[:,4], interim_private_eq[:,82:end])
+fout12 = hcat(interim_private_neq[:,1:29], neq_medicaid_lev1[:,4], interim_private_neq[:,30:55], neq_medicaid_lev2[:,4], interim_private_neq[:,56:81], neq_medicaid_lev3[:,4], interim_private_neq[:,82:end])
 
 varcolnames = Array{Symbol}(:0)
 push!(varcolnames, :fipscode)
@@ -104,13 +83,9 @@ push!(paramsymbs, "Γ3")
 
 # This just checks that varcolnames and parasymbs are correct
 
-for i in 1:size(paramsymbs)[1]
+for i in 1:size(paramsymbs,1)
   println(varcolnames[3+i],"  ", paramsymbs[i])
 end
-
-
-=#
-
 
 # Delete columns of zeros - this is just for the testing part.  Eventually hopefully all will be filled in.
 # This only deletes if both the column for the equilibrium AND non-equilibrium are zero.
@@ -118,72 +93,62 @@ end
 #=
 # This will check quickly if there are pairs of columns which are all zeros.
 
-for el in 4:convert(Int,((size(fout1,2)-3))/2)
-  println( sum(fout1[:,el]), "  ", sum(fout1[:,el+93]))
-end
-
-
 =#
-# TODO - Fix this crap: the symbol can't be push!ed into an array.  Why not?  
-deletdsym = Array{Symbol}()
-deletdcols = Array{Int64}(0)
-for col in 4:size(varcolnames[4:end-93],1)
-  el = varcolnames[col]
+
+deletdsym = Array{Int64}(0) # vector of ints, for symbol indices (no "push!" method for arrays of symbols?)
+deletdcols = Array{Int64,1}(0) # vector of ints, for column indices - can index columns with this.  Start with ALL ints and remove these.
+
+for col in 4:size(fout11,2)
+  el = varcolnames[col] # these two lines give column names
   nel = varcolnames[col+93]
-  if (sum(fout1[:,col]) == 0) & (sum(fout1[:,col+93]) == 0)
-    println("Empty Column: ", col, "  ", col+93)
-    println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
+  if (sum(fout11[:,col]) == 0) & (sum(fout12[:,col]) == 0)
+    println("Empty Column: ", col, "  ",sum(fout11[:,col]), "  ", el, "   ",sum(fout12[:,col]), "   ", nel )
+  #  fout1 = fout1[:, (1:size(fout1,2).!=col)&(1:size(fout1,2).!=col+93)]
     push!(deletdcols, col)
-    push!(deletdcols, col+93)
-    push!(deletdsym, el)
+    push!(deletdsym, col)
   else
-    println(sum(fout1[:,col]), "  ",sum(fout1[:,col+93]) )
+  #  println(sum(fout11[:,col]), "  ",sum(fout12[:,col]) )
   end
 end
 
+deleteat!(paramsymbs, [x-3 for x in deletdsym]) # remember that the matrices include a 3-vector of identifiers.
+# Deleting columns:
+nonzeros = setdiff(collect(1:size(fout11,2)), deletdcols) # keep only the columns not in the set deletdcols
+fout11 = fout11[:,nonzeros]
+fout12 = fout12[:,nonzeros]
 
-deleteat!(paramsymbs, deletdsym)
-delete!(fout1, deletdcols)
+
+# Drop identifiers:
+
+eq_opt = convert(Array{Float64, 2}, fout11[:,4:end]);
+neq_opt = convert(Array{Float64, 2}, fout12[:, 4:end]);
+opt = eq_opt - neq_opt;
+
+function objfun_1(inp::Array{Float64,2}, x::Array{Float64, 1})
+  rows, cols = size(inp)
+  sum((min(inp*x, 0)).^2)
+end
+
+function objfun_2(x::Array{Float64,1}; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
+   sum((min(inp1*x - inp2*x, 0)).^2)
+end
 
 # Number of simulations and num
 hsims = 500 #size(fout1)[1] # number of simulations
-ncols = size(fout1,2) # number of columns with nonzeros (pairs!)
-
-# How many parameters am I trying to estimate?  # of Non-zero column pairs
-params = convert(Int, (ncols-3)/2) # don't think this conversion is strictly necessary
-
-fout1 = fout1[:,4:end]
-for x in 1:size(fout1,1)
-  name = parse("function val$x(x::Vector; inp1 = fout1[$x, 1:params-1], inp2 = fout1[$x, params:end]) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
-  eval(name)
-end
-
-#=
-To evaluate the above:
-for x in 1:20
- phrs = parse("val$x(ones(params))")
- print(eval(phrs), "\n")
-end
-=#
-str = ""
-for x in 1:size(fout1,1)
- str = str*"val$x(x) + "
-end
-
-function sumval(x::Vector; hsims = 500)
-  return (1/hsims)*(val1(x) + val2(x) + val3(x) + val4(x) + val5(x) + val6(x) + val7(x) + val8(x) + val9(x) + val10(x) + val11(x) + val12(x) + val13(x) + val14(x) + val15(x) + val16(x) + val17(x) + val18(x) + val19(x) + val20(x) + val21(x) + val22(x) + val23(x) + val24(x) + val25(x) + val26(x) + val27(x) + val28(x) + val29(x) + val30(x) + val31(x) + val32(x) + val33(x) + val34(x) + val35(x) + val36(x) + val37(x) + val38(x) + val39(x) + val40(x) + val41(x) + val42(x) + val43(x) + val44(x) + val45(x) + val46(x) + val47(x) + val48(x) + val49(x) + val50(x) + val51(x) + val52(x) + val53(x) + val54(x) + val55(x) + val56(x) + val57(x) + val58(x) + val59(x) + val60(x) + val61(x) + val62(x) + val63(x) + val64(x) + val65(x) + val66(x) + val67(x) + val68(x) + val69(x) + val70(x) + val71(x) + val72(x) + val73(x) + val74(x) + val75(x) + val76(x) + val77(x) + val78(x) + val79(x) + val80(x) + val81(x) + val82(x) + val83(x) + val84(x) + val85(x) + val86(x) + val87(x) + val88(x) + val89(x) + val90(x) + val91(x) + val92(x) + val93(x) + val94(x) + val95(x) + val96(x) + val97(x) + val98(x) + val99(x) + val100(x) + val101(x) + val102(x) + val103(x) + val104(x) + val105(x) + val106(x) + val107(x) + val108(x) + val109(x) + val110(x) + val111(x) + val112(x) + val113(x) + val114(x) + val115(x) + val116(x) + val117(x) + val118(x) + val119(x) + val120(x) + val121(x) + val122(x) + val123(x) + val124(x) + val125(x) + val126(x) + val127(x) + val128(x) + val129(x) + val130(x) + val131(x) + val132(x) + val133(x) + val134(x) + val135(x) + val136(x) + val137(x) + val138(x) + val139(x) + val140(x) + val141(x) + val142(x) + val143(x) + val144(x) + val145(x) + val146(x) + val147(x) + val148(x) + val149(x) + val150(x) + val151(x) + val152(x) + val153(x) + val154(x) + val155(x) + val156(x) + val157(x) + val158(x) + val159(x) + val160(x) + val161(x) + val162(x) + val163(x) + val164(x) + val165(x) + val166(x) + val167(x) + val168(x) + val169(x) + val170(x) + val171(x) + val172(x) + val173(x) + val174(x) + val175(x) + val176(x) + val177(x) + val178(x) + val179(x) + val180(x) + val181(x) + val182(x) + val183(x) + val184(x) + val185(x) + val186(x) + val187(x) + val188(x) + val189(x) + val190(x) + val191(x) + val192(x) + val193(x) + val194(x) + val195(x) + val196(x) + val197(x) + val198(x) + val199(x) + val200(x) + val201(x) + val202(x) + val203(x) + val204(x) + val205(x) + val206(x) + val207(x) + val208(x) + val209(x) + val210(x))
-end
+ncols = size(eq_opt,2) # number of columns with nonzeros (pairs!)
+params = convert(Int, ncols) # don't think this conversion is strictly necessary
 
 
-result = optimize(sumval, ones(params), method = SimulatedAnnealing(), iterations = 5000)
 
-result = optimize(sumval, ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50)
 
-result2 = optimize(sumval, ones(params), method = SimulatedAnnealing(), iterations = 5000, extended_trace = true, store_trace = true);
+result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
 
-result = optimize(sumval, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 5000, extended_trace = true, store_trace = true);
 
-result3 = optimize(sumval, 700*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+
+result3 = optimize(objfun_2, 700*ones(params), method = SimulatedAnnealing(), iterations = 500000, store_trace = true, show_trace = true, show_every = 10000)
 
 
 # Now this will print the parameter name:
@@ -292,4 +257,59 @@ function dfvec(datafr::Array{Real,2})
   end
   return vecvals
 end
+
+# older set of column names:
+
+colnames = Array{Symbol}(:0)
+push!(colnames, :fipscode)
+push!(colnames, :fid)
+push!(colnames, :year)
+for elem in ["EQ", "NEQ"]
+  for name in ["PI", "MED"]
+    for j = 1:3
+      for k = 0:25
+        push!(colnames, parse("$name""$elem"*"Lev$j"*"Comp$k"))
+      end
+    end
+  end
+  for x in [1 2 3]
+    for y in [1 2 3 "EX"]
+      if x != y
+        push!(colnames, parse("$elem"*"Trans$x$y"))
+      end
+    end
+  end
+  push!(colnames, parse("$elem"*"Enter1"))
+  push!(colnames, parse("$elem"*"Enter2"))
+  push!(colnames, parse("$elem"*"Enter3"))
+end
+
+# Relics from an earlier version when I treated each row separately (very, very slow)
+
+
+# How many parameters am I trying to estimate?  # of Non-zero column pairs
+params = convert(Int, (ncols-3)/2) # don't think this conversion is strictly necessary
+
+fout1 = fout1[:,4:end]
+for x in 1:size(fout1,1)
+  name = parse("function val$x(x::Vector; inp1 = fout1[$x, 1:params-1], inp2 = fout1[$x, params:end]) return (minimum([sum(x.*(inp1 - inp2)), 0.0]))^2 end")
+  eval(name)
+end
+
+
+#To evaluate the above:
+for x in 1:20
+ phrs = parse("val$x(ones(params))")
+ print(eval(phrs), "\n")
+end
+
+str = ""
+for x in 1:size(fout1,1)
+ str = str*"val$x(x) + "
+end
+
+function sumval(x::Vector; hsims = 500)
+  return (1/hsims)*(val1(x) + val2(x) + val3(x) + val4(x) + val5(x) + val6(x) + val7(x) + val8(x) + val9(x) + val10(x) + val11(x) + val12(x) + val13(x) + val14(x) + val15(x) + val16(x) + val17(x) + val18(x) + val19(x) + val20(x) + val21(x) + val22(x) + val23(x) + val24(x) + val25(x) + val26(x) + val27(x) + val28(x) + val29(x) + val30(x) + val31(x) + val32(x) + val33(x) + val34(x) + val35(x) + val36(x) + val37(x) + val38(x) + val39(x) + val40(x) + val41(x) + val42(x) + val43(x) + val44(x) + val45(x) + val46(x) + val47(x) + val48(x) + val49(x) + val50(x) + val51(x) + val52(x) + val53(x) + val54(x) + val55(x) + val56(x) + val57(x) + val58(x) + val59(x) + val60(x) + val61(x) + val62(x) + val63(x) + val64(x) + val65(x) + val66(x) + val67(x) + val68(x) + val69(x) + val70(x) + val71(x) + val72(x) + val73(x) + val74(x) + val75(x) + val76(x) + val77(x) + val78(x) + val79(x) + val80(x) + val81(x) + val82(x) + val83(x) + val84(x) + val85(x) + val86(x) + val87(x) + val88(x) + val89(x) + val90(x) + val91(x) + val92(x) + val93(x) + val94(x) + val95(x) + val96(x) + val97(x) + val98(x) + val99(x) + val100(x) + val101(x) + val102(x) + val103(x) + val104(x) + val105(x) + val106(x) + val107(x) + val108(x) + val109(x) + val110(x) + val111(x) + val112(x) + val113(x) + val114(x) + val115(x) + val116(x) + val117(x) + val118(x) + val119(x) + val120(x) + val121(x) + val122(x) + val123(x) + val124(x) + val125(x) + val126(x) + val127(x) + val128(x) + val129(x) + val130(x) + val131(x) + val132(x) + val133(x) + val134(x) + val135(x) + val136(x) + val137(x) + val138(x) + val139(x) + val140(x) + val141(x) + val142(x) + val143(x) + val144(x) + val145(x) + val146(x) + val147(x) + val148(x) + val149(x) + val150(x) + val151(x) + val152(x) + val153(x) + val154(x) + val155(x) + val156(x) + val157(x) + val158(x) + val159(x) + val160(x) + val161(x) + val162(x) + val163(x) + val164(x) + val165(x) + val166(x) + val167(x) + val168(x) + val169(x) + val170(x) + val171(x) + val172(x) + val173(x) + val174(x) + val175(x) + val176(x) + val177(x) + val178(x) + val179(x) + val180(x) + val181(x) + val182(x) + val183(x) + val184(x) + val185(x) + val186(x) + val187(x) + val188(x) + val189(x) + val190(x) + val191(x) + val192(x) + val193(x) + val194(x) + val195(x) + val196(x) + val197(x) + val198(x) + val199(x) + val200(x) + val201(x) + val202(x) + val203(x) + val204(x) + val205(x) + val206(x) + val207(x) + val208(x) + val209(x) + val210(x))
+end
+
 =#
