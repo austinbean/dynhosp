@@ -97,7 +97,7 @@ end
 
 deletdsym = Array{Int64}(0) # vector of ints, for symbol indices (no "push!" method for arrays of symbols?)
 deletdcols = Array{Int64,1}(0) # vector of ints, for column indices - can index columns with this.  Start with ALL ints and remove these.
-
+pcop = deepcopy(paramsymbs)
 for col in 4:size(fout11,2)
   el = varcolnames[col] # these two lines give column names
   nel = varcolnames[col+93]
@@ -112,10 +112,29 @@ for col in 4:size(fout11,2)
 end
 
 deleteat!(paramsymbs, [x-3 for x in deletdsym]) # remember that the matrices include a 3-vector of identifiers.
+deleteat!(varcolnames, deletdsym) # removes the names of the colums - useful after the optimization to print the vals
 # Deleting columns:
 nonzeros = setdiff(collect(1:size(fout11,2)), deletdcols) # keep only the columns not in the set deletdcols
 fout11 = fout11[:,nonzeros]
 fout12 = fout12[:,nonzeros]
+
+
+#=
+
+# This prints a list of the remaining coefficients, plus their indices in paramsymbs.
+
+for el in 1:size(pcop, 1)
+  index = findfirst(paramsymbs, pcop[el])
+  if index != 0
+    println(index, "   ", paramsymbs[index], "   ", pcop[el])
+  else
+    println("*****   ", pcop[el])
+  end
+end
+
+
+=#
+
 
 
 # Drop identifiers:
@@ -141,26 +160,23 @@ params = convert(Int, ncols) # don't think this conversion is strictly necessary
 
 
 result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50)
-
 result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
-
 result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 5000, extended_trace = true, store_trace = true);
-
 result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
-
-result3 = optimize(objfun_2, 700*ones(params), method = SimulatedAnnealing(), iterations = 500000, store_trace = true, show_trace = true, show_every = 10000)
+# This runs very quickly, even with 500,000 evaluations.
+result3 = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 1000000, store_trace = true, show_trace = true, show_every = 100000)
 
 
 # Now this will print the parameter name:
-for el in 1:size(Optim.minimizer(result), 1)
-  print(varcolnames[el+3], "  ", Optim.minimizer(result)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
+for el in 1:size(Optim.minimizer(result3), 1)
+  print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
 end
 
 # These are not very informative yet.
 
 # Test labeling:
-x1 = paramsymbs[1:26]
-p1 = plot(x=x1, y=Optim.minimizer(result)[1:26], Guide.xticks(ticks=collect(1:26)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
+x1 = paramsymbs[1:19]
+p1 = plot(x=x1, y=Optim.minimizer(result3)[1:19], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
 
 x2 = paramsymbs[28:53]
