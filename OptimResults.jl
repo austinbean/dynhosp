@@ -164,7 +164,7 @@ result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterati
 result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 5000, extended_trace = true, store_trace = true);
 result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
 # This runs very quickly, even with 500,000 evaluations.
-result3 = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 1000000, store_trace = true, show_trace = true, show_every = 100000)
+result3 = optimize(objfun_2, 100*ones(params), method = SimulatedAnnealing(), iterations = 1000000, store_trace = true, show_trace = true, show_every = 100000)
 
 
 # Now this will print the parameter name:
