@@ -154,7 +154,12 @@ function objfun_2(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,
 end
 
 # This will compute the gradient - but check to make sure it's doing what you think.
-c1 = ForwardDiff.gradient(objfun_2, ones(size(eq_opt,2)), Chunk{10}())
+g1 = ForwardDiff.gradient(objfun_2, ones(size(eq_opt,2)), Chunk{10}())
+# This one also works, actually.
+h1 = ForwardDiff.hessian(objfun_2, ones(size(eq_opt,2)), Chunk{10}())
+
+# But it is also pretty straightforward to just code the gradient and hessian by hand -
+# that would handle any conceivable function evaluation.  Maybe that is smarter.
 
 # Number of simulations and num
 hsims = 500 #size(fout1)[1] # number of simulations
