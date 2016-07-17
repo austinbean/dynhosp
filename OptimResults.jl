@@ -4,6 +4,7 @@ using DataFrames
 using Distributions
 using Optim
 using Gadfly
+using ForwardDiff
 
 # fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
 #fout1 = readtable("/Users/austinbean/Desktop/temp_results_48209.csv")
@@ -113,9 +114,9 @@ end
 deleteat!(paramsymbs, [x-3 for x in deletdsym]) # remember that the matrices include a 3-vector of identifiers.
 deleteat!(varcolnames, deletdsym) # removes the names of the colums - useful after the optimization to print the vals
 # Deleting columns:
-nonzeros = setdiff(collect(1:size(fout11,2)), deletdcols) # keep only the columns not in the set deletdcols
-fout11 = fout11[:,nonzeros]
-fout12 = fout12[:,nonzeros]
+nonzers = setdiff(collect(1:size(fout11,2)), deletdcols) # keep only the columns not in the set deletdcols
+fout11 = fout11[:,nonzers]
+fout12 = fout12[:,nonzers]
 
 
 #=
@@ -147,9 +148,13 @@ function objfun_1(inp::Array{Float64,2}, x::Array{Float64, 1})
   sum((min(inp*x, 0)).^2)
 end
 
-function objfun_2(x::Array{Float64,1}; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
+# The next function returns a vector of length equal to number of sims.
+function objfun_2(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
    sum((min(inp1*x - inp2*x, 0)).^2)
 end
+
+# This will compute the gradient - but check to make sure it's doing what you think.
+c1 = ForwardDiff.gradient(objfun_2, ones(size(eq_opt,2)), Chunk{10}())
 
 # Number of simulations and num
 hsims = 500 #size(fout1)[1] # number of simulations
@@ -164,7 +169,7 @@ result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterat
 result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
 # This runs very quickly, even with 500,000 evaluations.
 # store_trace
-result3 = optimize(objfun_2, 900*ones(params), method = SimulatedAnnealing(), iterations = 10000000, keep_best = true, show_trace = true, show_every = 100000)
+result3 = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 3000000, show_trace = true, show_every = 100000)
 
 
 # Now this will print the parameter name:
@@ -179,12 +184,12 @@ x1 = paramsymbs[1:19]
 p1 = plot(x=x1, y=Optim.minimizer(result3)[1:19], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
 
-x2 = paramsymbs[28:53]
-p2 = plot(x=x2, y=Optim.minimizer(result)[28:53], Guide.xticks(ticks=collect(1:26)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+x2 = paramsymbs[21:40]
+p2 = plot(x=x2, y=Optim.minimizer(result3)[21:40], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev2rev.png", 12cm, 6cm), p2)
 
-x3 = paramsymbs[55:80]
-p3 = plot(x=x3, y=Optim.minimizer(result)[55:80], Guide.xticks(ticks=collect(1:26)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+x3 = paramsymbs[42:61]
+p3 = plot(x=x3, y=Optim.minimizer(result3)[42:61], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
 draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev3rev.png", 12cm, 6cm), p3)
 
 x4 = collect(1:26)

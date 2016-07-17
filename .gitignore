@@ -4,6 +4,7 @@ Workspaces
 Project Maps
 TX Census Data files
 Optim
+VOptim
 
 simulationresults.csv
 Deprecated.jl
@@ -11,3 +12,4 @@ parallelnotes.txt
 computetimeestimate.jl
 timer.txt
 TXzipsonly.csv
+temp_results_48001.csv
