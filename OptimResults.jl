@@ -171,6 +171,7 @@ function objfun∇(x::Array{Float64,2}; inp1::Array{Float64,2}=eq_opt, inp2::Arr
       for k = 1:rows
         for j = 1:columns
           if ((inp1[k,j] - inp2[k,j])*x[j]>0)
+            #TODO: this is wrong - remember the chain rule term.  This multiplies the whole vector.
             grad[j] += 2*(inp1[k,j] - inp2[k,j])
           end
         end
