@@ -41,7 +41,7 @@ for elem in ["EQ", "NEQ"]
   for name in ["PI"]
     for j = 1:3
       for k = 0:25
-        push!(varcolnames, parse("$name""$elem"*"Lev$j"*"Comp$k"))
+        push!(varcolnames, parse("$name"*"$elem"*"Lev$j"*"Comp$k"))
       end
         push!(varcolnames, parse("$elem"*"Medicaid"*"Lev$j"))
     end
@@ -148,18 +148,18 @@ function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}
    sum((min(inp1*x - inp2*x, 0)).^2)
 end
 
-function objfun∇(x::Array{Float64,2}; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
-    grad = zeros(size(x))
-    rows, columns = size(inp1)
-      for k = 1:rows
-        for j = 1:columns
-          if ((inp1[k,j] - inp2[k,j])*x[j]>0)
-            #TODO: this is wrong - remember the chain rule term.  This multiplies the whole vector.
-            grad[j] += 2*(inp1[k,j] - inp2[k,j])
-          end
-        end
+
+function objfun∇(x::Array; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
+  params = length(x)
+  gradient = zeros(params)
+  for i = 1:params # indexes columns
+    for j = 1:size(inp1,1) #indexes rows/firms
+      if inp1[j,i] - inp2[j,i] < 0 # could be replaced in the next line with min(inp1[j,i] - inp2[j,i], 0) at the end
+        gradient[i] += (2*sum(min(inp1[j,:]*x - inp2[j,:]*x, 0))*(inp1[j,i] - inp2[j,i])) # sum turns a 1x1 array into a scalar
       end
-    return grad
+    end
+  end
+  return gradient
 end
 
 
