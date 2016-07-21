@@ -31,22 +31,20 @@ end
 function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
    sum((min(inp1*x - inp2*x, 0)).^2)
 end
-
+=#
 function objfun∇(x::Array{Float64,2}; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
     grad = zeros(size(x))
     rows, columns = size(inp1)
       for k = 1:rows
         for j = 1:columns
           if ((inp1[k,j] - inp2[k,j])*x[j]>0)
-          #TODO: this is wrong - remember the chain rule term.  This multiplies the whole vector.
-
-            grad[j] += 2*(inp1[k,j] - inp2[k,j])
+            grad[j] += 2*(inp1[k,j] - inp2[k,j])*()
           end
         end
       end
     return grad
 end
-=#
+
 
 immutable StochasticGradient <: Optimizer
     direction::Function
@@ -54,7 +52,7 @@ end
 
 
 # maybe this should go in "direction"
-function neighbor!(x::Array, k::Int, grad::Function; Aparam::Int= 20, bparam::Float64=0.5, alpha::Float64=0.6, Bparam::Int= 20)
+function neighbor!(x::Array, k::Int; grad::Function=objfun∇; Aparam::Int= 20, bparam::Float64=0.5, alpha::Float64=0.6, Bparam::Int= 20)
     x_proposal = zeros(size(x))
     # Implements a stochastic gradient procedure discussed in Spall (2003) - Stochastic Search and Optimization.
     a = grad*Aparam/(k+1+Aparam)^alpha # the gradient accessed as difffunction.g!

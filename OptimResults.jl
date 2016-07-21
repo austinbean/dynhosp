@@ -143,23 +143,6 @@ eq_opt = convert(Array{Float64, 2}, fout11[:,4:end]);
 neq_opt = convert(Array{Float64, 2}, fout12[:, 4:end]);
 opt = eq_opt - neq_opt;
 
-function objfun_1(x::Array{Float64, 1}, inp::Array{Float64,2}=opt)
-  rows, cols = size(inp)
-  sum((min(inp*x, 0)).^2)
-end
-
-function objfun_12(x::Array{Float64, 1}, inp::Array{Float64,2}=opt)
-  (min(inp*x, 0)).^2
-end
-
-function objfun_13(x::Array{Float64, 1}, inp::Array{Float64,2}=opt)
-  min(inp*x, 0)
-end
-
-function objfun_14(x::Array{Float64, 1}, inp::Array{Float64,2}=opt)
-  inp*x
-end
-
 # The next function returns a vector of length equal to number of sims.
 function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
    sum((min(inp1*x - inp2*x, 0)).^2)
@@ -178,15 +161,6 @@ function objfun∇(x::Array{Float64,2}; inp1::Array{Float64,2}=eq_opt, inp2::Arr
       end
     return grad
 end
-
-
-
-
-
-
-
-
-
 
 
 # This will compute the gradient - but check to make sure it's doing what you think.
@@ -210,7 +184,7 @@ result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterat
 result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
 # This runs very quickly, even with 500,000 evaluations.
 # store_trace
-result3 = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 3000000, show_trace = true, show_every = 100000)
+result3 = optimize(objfun, 500*ones(params), method = SimulatedAnnealing(), iterations = 100000, show_trace = true, show_every = 100000)
 
 
 # Now this will print the parameter name:
