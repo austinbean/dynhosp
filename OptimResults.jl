@@ -148,25 +148,10 @@ function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}
    sum((min(inp1*x - inp2*x, 0)).^2)
 end
 
-
-function objfun∇(x::Array; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
-  params = length(x)
-  gradient = zeros(params)
-  for i = 1:params # indexes columns
-    for j = 1:size(inp1,1) #indexes rows/firms
-      if inp1[j,i] - inp2[j,i] < 0 # could be replaced in the next line with min(inp1[j,i] - inp2[j,i], 0) at the end
-        gradient[i] += (2*sum(min(inp1[j,:]*x - inp2[j,:]*x, 0))*(inp1[j,i] - inp2[j,i])) # sum turns a 1x1 array into a scalar
-      end
-    end
-  end
-  return gradient
-end
-
-
 # This will compute the gradient - but check to make sure it's doing what you think.
-g1 = ForwardDiff.gradient(objfun_2, ones(size(eq_opt,2)), Chunk{10}())
+g1 = ForwardDiff.gradient(objfun, ones(size(eq_opt,2)), Chunk{10}())
 # This one also works, actually.
-h1 = ForwardDiff.hessian(objfun_2, ones(size(eq_opt,2)), Chunk{10}())
+h1 = ForwardDiff.hessian(objfun, ones(size(eq_opt,2)), Chunk{10}())
 
 # But it is also pretty straightforward to just code the gradient and hessian by hand -
 # that would handle any conceivable function evaluation.  Maybe that is smarter.

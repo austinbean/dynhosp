@@ -15,6 +15,7 @@ end
 
 using DataFrames
 using Distributions
+using ForwardDiff
 
 type BestVal
   x::Array{Float64}
@@ -22,7 +23,7 @@ type BestVal
 end
 
 
-function importstuff()
+function main()
 
   input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
 
@@ -155,13 +156,14 @@ function importstuff()
        sum((min(inp1*x - inp2*x, 0)).^2)
     end
 
+
     function objfun∇(x::Array; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
       params = length(x)
       gradient = zeros(params)
       diff = inp1 - inp2
       for i = 1:params # indexes columns
         for j = 1:size(diff,1) #indexes rows/firms
-          if diff[j,i] < 0 # could be replaced in the next line with min(inp1[j,i] - inp2[j,i], 0) at the end
+          if diff[j,i]*x[i] < 0 # could be replaced in the next line with min(inp1[j,i] - inp2[j,i], 0) at the end
             gradient[i] += (2*sum(min(diff[j,:]*x, 0))*(diff[j,i])) # sum turns a 1x1 array into a scalar
           end
         end
@@ -169,23 +171,12 @@ function importstuff()
       return gradient
     end
 
-#=
-# Easy functions for testing.
-    function objfun(x::Vector)
-      return sum(x.^2)
-    end
-
-    function objfun∇(x::Vector)
-      return 2*x
-    end
-=#
-
     function optimizeit(trace::Bool, iters::Int64; def_sd = 10, paramsize = params)
       # Parameters for the search coefficients
       parameter_dim = paramsize #some constant.
 
       # Tolerance:
-      tol = 1e-10
+      tol = 1e-12
 
       # Parameters for the coefficients in the stochastic search
       # Aparam::Int= 20;
@@ -201,11 +192,12 @@ function importstuff()
       iterations = 1 # start at 1 since we take the log of this below.
 
       # Initial Guess for parameters, Initial Value for "next"
-      x = 100*ones(parameter_dim)
-      x_next = zeros(parameter_dim)
+      x_previous = 101*ones(parameter_dim) # cannot be initialized at 0 since then gradient will be zero.
+      x_current = 1000*ones(parameter_dim)
+      println(x_current)
 
       # Initial value for function:
-      f_previous = objfun(x)
+      f_previous = objfun(x_current)
       f_current = 0
 
       # Initial converged = false
@@ -213,7 +205,7 @@ function importstuff()
       x_converged = false
 
       # Best values initialized at initial values.
-      best = BestVal(x, objfun(x))
+      best = BestVal(x_current, f_previous)
 
       while !f_converged && iterations < max_iter
         # an alternate set of coefficients
@@ -223,20 +215,26 @@ function importstuff()
         # Search in the direction
         ai = 1/(10*log(1+iterations))
         bi = 2/(1+iterations)
-        x_next = x .- (ai/bi).*objfun∇(x).*rand(size(x))
-        f_current = objfun(x_next)
+
+        # Try this here tomorrow with ForwardDiff.gradient(objfun, x_previous, Chunk{10}())
+        x_current = x_previous .- (ai/bi).*ForwardDiff.gradient(objfun, x_previous, Chunk{10}()).*rand(parameter_dim)
+        #      x_current = x_previous .- (ai/bi).*objfun∇(x_previous).*rand(parameter_dim)
+        if iterations < 5
+          println(x_current)
+        end
+        f_current = objfun(x_current)
 
         if trace
           if iterations % (max_iter/10) == 0
             println("Current iteration ", iterations)
-            println("Mean current ", mean(x))
-            println("Current x ", x_next)
+            println("Mean current ", mean(x_current))
+            println("Current x ", x_current)
           end
         end
 
         # Is current value better than best value?
         if f_current < best.val
-          best.x = x_next
+          best.x = x_current
           best.val = f_current
         end
 
@@ -245,18 +243,18 @@ function importstuff()
           f_converged = true
         end
         # Has x converged?  This should almost never happen due to randomization - does not stop evaluation.
-        if norm(x- x_next,1) < 1e-5
+        if norm(x_previous- x_current,1) < 1e-5
           x_converged = true
         end
 
         # assign current function value to "previous" for comparison next round
         f_previous = f_current
         # Assign current values of x to "x" for use next round
-        x = x_next
+        x_previous = x_current
         iterations += 1
       end
-      println("Current Parameters ", x)
-      println("Current Function Value ", objfun(x))
+      println("Current Parameters ", x_current)
+      println("Current Function Value ", f_current)
       println("Best Parameter Values ", best.x)
       println("Best Function Value ", best.val)
       println("Current Iteration: ", iterations)
@@ -270,9 +268,21 @@ function importstuff()
 
 end # of main function.
 
-importstuff()
+main()
 
 
 
 
 ###
+
+
+#=
+# Easy functions for testing.
+    function objfun(x::Vector)
+      return sum(x.^2)
+    end
+
+    function objfun∇(x::Vector)
+      return 2*x
+    end
+=#
