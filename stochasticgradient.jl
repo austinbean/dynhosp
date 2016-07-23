@@ -1,12 +1,11 @@
 # StochasticGradient
 #=
 Benchmark - Simulated Annealing (100_000 iterations)
-
 9.635826 seconds (2.68 M allocations: 945.798 MB, 1.00% gc time)
 
 100_000 iterations in this file:
-(Some of the cost will be the file loading, but most probably not. )
-389.816312 seconds (5.73 G allocations: 412.663 GB, 15.41% gc time)
+- The gradient points in the wrong direction?  Something is wrong because
+everything diverges to -∞ and it converges too rapidly.  
 
 function objfun∇(x::Vector)
   return ones(size(x)) #rewrite this.

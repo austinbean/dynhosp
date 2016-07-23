@@ -8,224 +8,238 @@ using ForwardDiff
 
 # fout1 = readtable("/Users/austinbean/Desktop/dynhosp/simulationresults.csv")
 #fout1 = readtable("/Users/austinbean/Desktop/temp_results_48209.csv")
+function mainopt()
+  input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
 
-input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
-
-# This keeps the privately insured patient counts:
-# The division between first and second half is around 172.
-  interim_private_eq = convert(Matrix, hcat(input1[:,1:81], input1[:,160:171]));
-  interim_private_neq = convert(Matrix, hcat(input1[:,1:3], input1[:,172:249], input1[:,328:339]));
-# This keeps the Medicaid patient counts:
-  interim_medicaid_eq = hcat(input1[:,1:3], input1[:,82:159]);
-  interim_medicaid_neq = hcat(input1[:,1:3], input1[:,250:327]);
-# This keeps the equilibrium sim medicaid patient counts by level - interim_medicaid summed across competitor numbers
-  eq_medicaid_lev1 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,4:29]),2));
-  eq_medicaid_lev2 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,30:55]),2));
-  eq_medicaid_lev3 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,56:81]),2));
-# This keeps the non-equilibrium sim medicaid counts by level
-  neq_medicaid_lev1 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,4:29]),2));
-  neq_medicaid_lev2 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,30:55]),2));
-  neq_medicaid_lev3 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,56:81]),2));
+  # This keeps the privately insured patient counts:
+  # The division between first and second half is around 172.
+    interim_private_eq = convert(Matrix, hcat(input1[:,1:81], input1[:,160:171]));
+    interim_private_neq = convert(Matrix, hcat(input1[:,1:3], input1[:,172:249], input1[:,328:339]));
+  # This keeps the Medicaid patient counts:
+    interim_medicaid_eq = hcat(input1[:,1:3], input1[:,82:159]);
+    interim_medicaid_neq = hcat(input1[:,1:3], input1[:,250:327]);
+  # This keeps the equilibrium sim medicaid patient counts by level - interim_medicaid summed across competitor numbers
+    eq_medicaid_lev1 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,4:29]),2));
+    eq_medicaid_lev2 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,30:55]),2));
+    eq_medicaid_lev3 = hcat(convert(Matrix, interim_medicaid_eq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_eq[:,56:81]),2));
+  # This keeps the non-equilibrium sim medicaid counts by level
+    neq_medicaid_lev1 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,4:29]),2));
+    neq_medicaid_lev2 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,30:55]),2));
+    neq_medicaid_lev3 = hcat(convert(Matrix, interim_medicaid_neq[:,1:3]) ,sum(convert(Matrix, interim_medicaid_neq[:,56:81]),2));
 
 
-# The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one
-# This creates TWO matrices, one with all of the equilibrium results, the other with all of the non-equilibrium results.
-fout11 = hcat( interim_private_eq[:,1:29], eq_medicaid_lev1[:,4], interim_private_eq[:,30:55], eq_medicaid_lev2[:,4], interim_private_eq[:,56:81], eq_medicaid_lev3[:,4], interim_private_eq[:,82:end])
-fout12 = hcat(interim_private_neq[:,1:29], neq_medicaid_lev1[:,4], interim_private_neq[:,30:55], neq_medicaid_lev2[:,4], interim_private_neq[:,56:81], neq_medicaid_lev3[:,4], interim_private_neq[:,82:end])
+  # The form of the output is the same as the input, except at each level the 26 medicaid columns have been summed into one
+  # This creates TWO matrices, one with all of the equilibrium results, the other with all of the non-equilibrium results.
+  fout11 = hcat( interim_private_eq[:,1:29], eq_medicaid_lev1[:,4], interim_private_eq[:,30:55], eq_medicaid_lev2[:,4], interim_private_eq[:,56:81], eq_medicaid_lev3[:,4], interim_private_eq[:,82:end])
+  fout12 = hcat(interim_private_neq[:,1:29], neq_medicaid_lev1[:,4], interim_private_neq[:,30:55], neq_medicaid_lev2[:,4], interim_private_neq[:,56:81], neq_medicaid_lev3[:,4], interim_private_neq[:,82:end])
 
-varcolnames = Array{Symbol}(:0)
-push!(varcolnames, :fipscode)
-push!(varcolnames, :fid)
-push!(varcolnames, :year)
-for elem in ["EQ", "NEQ"]
-  for name in ["PI"]
-    for j = 1:3
-      for k = 0:25
-        push!(varcolnames, parse("$name"*"$elem"*"Lev$j"*"Comp$k"))
-      end
-        push!(varcolnames, parse("$elem"*"Medicaid"*"Lev$j"))
-    end
-  end
-  for x in [1 2 3]
-    for y in [1 2 3 "EX"]
-      if x != y
-        push!(varcolnames, parse("$elem"*"Trans$x$y"))
+  varcolnames = Array{Symbol}(:0)
+  push!(varcolnames, :fipscode)
+  push!(varcolnames, :fid)
+  push!(varcolnames, :year)
+  for elem in ["EQ", "NEQ"]
+    for name in ["PI"]
+      for j = 1:3
+        for k = 0:25
+          push!(varcolnames, parse("$name"*"$elem"*"Lev$j"*"Comp$k"))
+        end
+          push!(varcolnames, parse("$elem"*"Medicaid"*"Lev$j"))
       end
     end
+    for x in [1 2 3]
+      for y in [1 2 3 "EX"]
+        if x != y
+          push!(varcolnames, parse("$elem"*"Trans$x$y"))
+        end
+      end
+    end
+    push!(varcolnames, parse("$elem"*"Enter1"))
+    push!(varcolnames, parse("$elem"*"Enter2"))
+    push!(varcolnames, parse("$elem"*"Enter3"))
   end
-  push!(varcolnames, parse("$elem"*"Enter1"))
-  push!(varcolnames, parse("$elem"*"Enter2"))
-  push!(varcolnames, parse("$elem"*"Enter3"))
-end
 
-#names!(fout1, colnames)
+  #names!(fout1, colnames)
 
-paramsymbs = Array{UTF8String}(0)
-for k = 1:3
-  for i = 0:25
-    push!(paramsymbs, "Θ"*"$k"*"C$i")
+  paramsymbs = Array{UTF8String}(0)
+  for k = 1:3
+    for i = 0:25
+      push!(paramsymbs, "Θ"*"$k"*"C$i")
+    end
+    push!(paramsymbs, "μ"*"$k")
   end
-  push!(paramsymbs, "μ"*"$k")
-end
-for y in [1 2 3]
-  for z in [1 2 3 "EX"]
-    if y != z
-      push!(paramsymbs, "ψ"*"$y"*"$z")
+  for y in [1 2 3]
+    for z in [1 2 3 "EX"]
+      if y != z
+        push!(paramsymbs, "ψ"*"$y"*"$z")
+      end
     end
   end
-end
 
-push!(paramsymbs, "Γ1")
-push!(paramsymbs, "Γ2")
-push!(paramsymbs, "Γ3")
+  push!(paramsymbs, "Γ1")
+  push!(paramsymbs, "Γ2")
+  push!(paramsymbs, "Γ3")
 
 
-#=
+  #=
 
-# This just checks that varcolnames and parasymbs are correct
+  # This just checks that varcolnames and parasymbs are correct
 
-for i in 1:size(paramsymbs,1)
-  println(varcolnames[3+i],"  ", paramsymbs[i])
-end
-
-# Delete columns of zeros - this is just for the testing part.  Eventually hopefully all will be filled in.
-# This only deletes if both the column for the equilibrium AND non-equilibrium are zero.
-# this doesn't work because the size is changing dynamically.
-# This will check quickly if there are pairs of columns which are all zeros.
-
-=#
-
-deletdsym = Array{Int64}(0) # vector of ints, for symbol indices (no "push!" method for arrays of symbols?)
-deletdcols = Array{Int64,1}(0) # vector of ints, for column indices - can index columns with this.  Start with ALL ints and remove these.
-pcop = deepcopy(paramsymbs)
-for col in 4:size(fout11,2)
-  el = varcolnames[col] # these two lines give column names
-  nel = varcolnames[col+93]
-  if (sum(fout11[:,col]) == 0) & (sum(fout12[:,col]) == 0)
-    println("Empty Column: ", col, "  ",sum(fout11[:,col]), "  ", el, "   ",sum(fout12[:,col]), "   ", nel )
-  #  fout1 = fout1[:, (1:size(fout1,2).!=col)&(1:size(fout1,2).!=col+93)]
-    push!(deletdcols, col)
-    push!(deletdsym, col)
-  else
-  #  println(sum(fout11[:,col]), "  ",sum(fout12[:,col]) )
+  for i in 1:size(paramsymbs,1)
+    println(varcolnames[3+i],"  ", paramsymbs[i])
   end
-end
 
-deleteat!(paramsymbs, [x-3 for x in deletdsym]) # remember that the matrices include a 3-vector of identifiers.
-deleteat!(varcolnames, deletdsym) # removes the names of the colums - useful after the optimization to print the vals
-# Deleting columns:
-nonzers = setdiff(collect(1:size(fout11,2)), deletdcols) # keep only the columns not in the set deletdcols
-fout11 = fout11[:,nonzers]
-fout12 = fout12[:,nonzers]
+  # Delete columns of zeros - this is just for the testing part.  Eventually hopefully all will be filled in.
+  # This only deletes if both the column for the equilibrium AND non-equilibrium are zero.
+  # this doesn't work because the size is changing dynamically.
+  # This will check quickly if there are pairs of columns which are all zeros.
 
+  =#
 
-#=
-
-# This prints a list of the remaining coefficients, plus their indices in paramsymbs.
-
-for el in 1:size(pcop, 1)
-  index = findfirst(paramsymbs, pcop[el])
-  if index != 0
-    println(index, "   ", paramsymbs[index], "   ", pcop[el])
-  else
-    println("*****   ", pcop[el])
+  deletdsym = Array{Int64}(0) # vector of ints, for symbol indices (no "push!" method for arrays of symbols?)
+  deletdcols = Array{Int64,1}(0) # vector of ints, for column indices - can index columns with this.  Start with ALL ints and remove these.
+  pcop = deepcopy(paramsymbs)
+  for col in 4:size(fout11,2)
+    el = varcolnames[col] # these two lines give column names
+    nel = varcolnames[col+93]
+    if (sum(fout11[:,col]) == 0) & (sum(fout12[:,col]) == 0)
+  #    println("Empty Column: ", col, "  ",sum(fout11[:,col]), "  ", el, "   ",sum(fout12[:,col]), "   ", nel )
+    #  fout1 = fout1[:, (1:size(fout1,2).!=col)&(1:size(fout1,2).!=col+93)]
+      push!(deletdcols, col)
+      push!(deletdsym, col)
+    else
+    #  println(sum(fout11[:,col]), "  ",sum(fout12[:,col]) )
+    end
   end
-end
+
+  deleteat!(paramsymbs, [x-3 for x in deletdsym]) # remember that the matrices include a 3-vector of identifiers.
+  deleteat!(varcolnames, deletdsym) # removes the names of the colums - useful after the optimization to print the vals
+  # Deleting columns:
+  nonzers = setdiff(collect(1:size(fout11,2)), deletdcols) # keep only the columns not in the set deletdcols
+  fout11 = fout11[:,nonzers]
+  fout12 = fout12[:,nonzers]
 
 
-=#
+  #=
+
+  # This prints a list of the remaining coefficients, plus their indices in paramsymbs.
+
+  for el in 1:size(pcop, 1)
+    index = findfirst(paramsymbs, pcop[el])
+    if index != 0
+      println(index, "   ", paramsymbs[index], "   ", pcop[el])
+    else
+      println("*****   ", pcop[el])
+    end
+  end
 
 
-
-# Drop identifiers:
-
-eq_opt = convert(Array{Float64, 2}, fout11[:,4:end]);
-neq_opt = convert(Array{Float64, 2}, fout12[:, 4:end]);
-opt = eq_opt - neq_opt;
-
-# The next function returns a vector of length equal to number of sims.
-function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
-   sum((min(inp1*x - inp2*x, 0)).^2)
-end
-
-# This will compute the gradient - but check to make sure it's doing what you think.
-g1 = ForwardDiff.gradient(objfun, ones(size(eq_opt,2)), Chunk{10}())
-# This one also works, actually.
-h1 = ForwardDiff.hessian(objfun, ones(size(eq_opt,2)), Chunk{10}())
-
-# But it is also pretty straightforward to just code the gradient and hessian by hand -
-# that would handle any conceivable function evaluation.  Maybe that is smarter.
-
-# Number of simulations and num
-hsims = 500 #size(fout1)[1] # number of simulations
-ncols = size(eq_opt,2) # number of columns with nonzeros (pairs!)
-params = convert(Int, ncols) # don't think this conversion is strictly necessary
+  =#
 
 
 
-result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50)
-result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
-result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 5000, extended_trace = true, store_trace = true);
-result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
-# This runs very quickly, even with 500,000 evaluations.
-# store_trace
-result3 = optimize(objfun, 500*ones(params), method = SimulatedAnnealing(), iterations = 100000, show_trace = true, show_every = 100000)
+  # Drop identifiers:
+
+  eq_opt = convert(Array{Float64, 2}, fout11[:,4:end]);
+  neq_opt = convert(Array{Float64, 2}, fout12[:, 4:end]);
+  opt = eq_opt - neq_opt;
+
+  # The next function returns a vector of length equal to number of sims.
+  function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
+     sum((min(inp1*x - inp2*x, 0)).^2)
+  end
+
+  # This will compute the gradient - but check to make sure it's doing what you think.
+  # g1 = ForwardDiff.gradient(objfun, ones(size(eq_opt,2)), Chunk{10}())
+  # # This one also works, actually.
+  # h1 = ForwardDiff.hessian(objfun, ones(size(eq_opt,2)), Chunk{10}())
+
+  # But it is also pretty straightforward to just code the gradient and hessian by hand -
+  # that would handle any conceivable function evaluation.  Maybe that is smarter.
+
+  # Number of simulations and num
+  hsims = 500 #size(fout1)[1] # number of simulations
+  ncols = size(eq_opt,2) # number of columns with nonzeros (pairs!)
+  params = convert(Int, ncols) # don't think this conversion is strictly necessary
 
 
-# Now this will print the parameter name:
-for el in 1:size(Optim.minimizer(result3), 1)
-  print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
-end
+  #
+  # result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50)
+  # result = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+  # result2 = optimize(objfun_2, ones(params), method = SimulatedAnnealing(), iterations = 5000, extended_trace = true, store_trace = true);
+  # result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
+  # This runs very quickly, even with 500,000 evaluations.
+  # store_trace
+  result3 = optimize(objfun, 1000*ones(params), method = SimulatedAnnealing(), iterations = 1_000_000, show_trace = true, show_every = 100000)
+
+
+  # Now this will print the parameter name:
+  for el in 1:size(Optim.minimizer(result3), 1)
+    print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
+  end
+
+  x1 = paramsymbs[1:19]
+  p1 = plot(x=x1, y=Optim.minimizer(result3)[1:19], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
+
+  x2 = paramsymbs[21:40]
+  p2 = plot(x=x2, y=Optim.minimizer(result3)[21:40], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+
+  x3 = paramsymbs[42:61]
+  p3 = plot(x=x3, y=Optim.minimizer(result3)[42:61], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+
+
+end #of mainopt() function
+
+mainopt()
 
 # These are not very informative yet.
-
-# Test labeling:
-x1 = paramsymbs[1:19]
-p1 = plot(x=x1, y=Optim.minimizer(result3)[1:19], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
-draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
-
-x2 = paramsymbs[21:40]
-p2 = plot(x=x2, y=Optim.minimizer(result3)[21:40], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
-draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev2rev.png", 12cm, 6cm), p2)
-
-x3 = paramsymbs[42:61]
-p3 = plot(x=x3, y=Optim.minimizer(result3)[42:61], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
-draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev3rev.png", 12cm, 6cm), p3)
-
-x4 = collect(1:26)
-p4 = plot(
-layer(x=x4, y=Optim.minimizer(result)[1:26], Geom.point, Geom.line, Theme(default_color=colorant"green") ),
-layer(x=x4, y=Optim.minimizer(result)[28:53], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
-layer(x=x4, y=Optim.minimizer(result)[55:80], Geom.point, Geom.line, Theme(default_color=colorant"red")),
-Guide.xlabel("Number of Competitors"),
-Guide.ylabel("Dollars"),
-Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
-Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
-draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
-
-# Medicaid Revenue:
-
-x5 = collect(1:3)
-medvals = [Optim.minimizer(result)[27] Optim.minimizer(result)[54] Optim.minimizer(result)[81] ]
-p5 = plot(x=x5, y=medvals, Geom.point, Geom.line, Guide.xlabel("Facility Level"), Guide.ylabel("Dollars per Patient"), Guide.title("Per Patient Profit - Medicaid"))
-
-# Expected Revenue - Level 1  + αᵢ × Level i
-α₂ = 0.07, α₃ = 0.13,
-
-x4 = collect(1:26)
-p4 = plot(
-layer(x=x4, y=Optim.minimizer(result)[1:26] , Geom.point, Geom.line, Theme(default_color=colorant"green") ),
-layer(x=x4, y=(Optim.minimizer(result)[1:26]+α₂*Optim.minimizer(result)[28:53]), Geom.point, Geom.line, Theme(default_color=colorant"purple")),
-layer(x=x4, y=(y=Optim.minimizer(result)[1:26]+α₃*Optim.minimizer(result)[55:80]), Geom.point, Geom.line, Theme(default_color=colorant"red")),
-Guide.xlabel("Number of Competitors"),
-Guide.ylabel("Dollars"),
-Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
-Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
-draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
-
-
-
-
+#
+# # Test labeling:
+# x1 = paramsymbs[1:19]
+# p1 = plot(x=x1, y=Optim.minimizer(result3)[1:19], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line ) # the collect[1:6] is the NUMBER of parameters, not their indices
+# #draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev1rev.png", 12cm, 6cm), p1)
+#
+# x2 = paramsymbs[21:40]
+# p2 = plot(x=x2, y=Optim.minimizer(result3)[21:40], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+# #draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev2rev.png", 12cm, 6cm), p2)
+#
+# x3 = paramsymbs[42:61]
+# p3 = plot(x=x3, y=Optim.minimizer(result3)[42:61], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line  )
+# #draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/lev3rev.png", 12cm, 6cm), p3)
+#
+# x4 = collect(1:26)
+# p4 = plot(
+# layer(x=x4, y=Optim.minimizer(result)[1:26], Geom.point, Geom.line, Theme(default_color=colorant"green") ),
+# layer(x=x4, y=Optim.minimizer(result)[28:53], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+# layer(x=x4, y=Optim.minimizer(result)[55:80], Geom.point, Geom.line, Theme(default_color=colorant"red")),
+# Guide.xlabel("Number of Competitors"),
+# Guide.ylabel("Dollars"),
+# Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
+# Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
+# #draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
+#
+# # Medicaid Revenue:
+#
+# x5 = collect(1:3)
+# medvals = [Optim.minimizer(result)[27] Optim.minimizer(result)[54] Optim.minimizer(result)[81] ]
+# p5 = plot(x=x5, y=medvals, Geom.point, Geom.line, Guide.xlabel("Facility Level"), Guide.ylabel("Dollars per Patient"), Guide.title("Per Patient Profit - Medicaid"))
+#
+# # Expected Revenue - Level 1  + αᵢ × Level i
+# α₂ = 0.07, α₃ = 0.13,
+#
+# x4 = collect(1:26)
+# p4 = plot(
+# layer(x=x4, y=Optim.minimizer(result)[1:26] , Geom.point, Geom.line, Theme(default_color=colorant"green") ),
+# layer(x=x4, y=(Optim.minimizer(result)[1:26]+α₂*Optim.minimizer(result)[28:53]), Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+# layer(x=x4, y=(y=Optim.minimizer(result)[1:26]+α₃*Optim.minimizer(result)[55:80]), Geom.point, Geom.line, Theme(default_color=colorant"red")),
+# Guide.xlabel("Number of Competitors"),
+# Guide.ylabel("Dollars"),
+# Guide.title("Profit per Patient at Three Levels as a Function of Number of Competitors"),
+# Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3"], ["green", "purple", "red"]))
+# draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/alllevs.png", 12cm, 6cm), p4)
+#
+#
+#
+#
 
 
 
