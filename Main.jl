@@ -61,10 +61,41 @@ for elem in ["EQ", "NEQ"]
   push!(colnames, parse("$elem"*"Enter3"))
 end
 
+monopoly = Array{Int64}(0)
+duopoly = Array{Int64}(0)
+triopoly = Array{Int64}(0)
+tetrapoly = Array{Int64}(0)
+nopoly = Array{Int64}(0)
+all = Array{Int64}(0)
+
+for el in yearins
+  unqfids = [x for x in unique(data[ (data[:,fipscodeloc].==el[1])&(data[:,yearloc].==2005) ,fidloc])]
+  if size(unqfids,1) == 1
+  #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
+    println("Fipscode Monopoly: ", el[1])
+    println(unqfids)
+    push!(monopoly, el[1])
+  elseif size(unqfids,1) == 2
+    println("Fipscode Duopoly: ", el[1])
+    push!(duopoly, el[1])
+  elseif size(unqfids,1) == 3
+    println("Fipscode Triopoly: ", el[1])
+    push!(triopoly, el[1])
+  elseif size(unqfids,1) == 4
+    println("Fipscode Tetrapoly: ", el[1])
+    push!(tetrapoly, el[1])
+  elseif size(unqfids,1) > 4
+    println("Fipscode N-opoly: ", el[1])
+    println("Fipscode Hospitals: ", size(unqfids, 1))
+    push!(nopoly, el[1])
+  end
+  push!(all, size(unqfids,1))
+end
+
 timestamps = Array{Any}(0)
 
-for y in 1:size(nopoly,1)
-    mkt_fips = nopoly[y][1]
+for y in 1:1#size(nopoly,1)
+    mkt_fips = duopoly[y][1]
     crtime = now()
     timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
     push!(timestamps, (mkt_fips, "begin", timestr))
@@ -73,7 +104,7 @@ for y in 1:size(nopoly,1)
       	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
           fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
           # This will parallelize the computation across Monte Carlo sims.
-          mcres = @parallel (+) for i = 1:500
+          mcres = @parallel (+) for i = 1:5
     #                println(i)
                     ParMainfun(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, mkt_fips, year,  fids; npers = 50)
                   end
@@ -131,36 +162,7 @@ writetable(pathprograms*"simulationresults.csv", output1)
 
 
 #=
-monopoly = Array{Int64}(0)
-duopoly = Array{Int64}(0)
-triopoly = Array{Int64}(0)
-tetrapoly = Array{Int64}(0)
-nopoly = Array{Int64}(0)
-all = Array{Int64}(0)
 
-for el in yearins
-  unqfids = [x for x in unique(data[ (data[:,fipscodeloc].==el[1])&(data[:,yearloc].==2005) ,fidloc])]
-  if size(unqfids,1) == 1
-  #  print("Fipscode Monopoly: ", unique(dataf[el[2]:el[3], :fipscode]), "\n")
-    println("Fipscode Monopoly: ", el[1])
-    println(unqfids)
-    push!(monopoly, el[1])
-  elseif size(unqfids,1) == 2
-    println("Fipscode Duopoly: ", el[1])
-    push!(duopoly, el[1])
-  elseif size(unqfids,1) == 3
-    println("Fipscode Triopoly: ", el[1])
-    push!(triopoly, el[1])
-  elseif size(unqfids,1) == 4
-    println("Fipscode Tetrapoly: ", el[1])
-    push!(tetrapoly, el[1])
-  elseif size(unqfids,1) > 4
-    println("Fipscode N-opoly: ", el[1])
-    println("Fipscode Hospitals: ", size(unqfids, 1))
-    push!(nopoly, el[1])
-  end
-  push!(all, size(unqfids,1))
-end
 =#
 
 
