@@ -172,7 +172,7 @@ function LTE()
           while curr_it < max_iterations && !converged # convergence flag not used yet
             # Proposed next value -
             # TODO: this is wrong: this must be *conditional*
-            next_x = rand(proposal, param_dim)
+            next_x = rand(proposal)
 
             # Probability of proposal at prior
             next_prior = pdf(prior, next_x)
@@ -184,7 +184,7 @@ function LTE()
             # Difference in value of objectives
             val_diff = exp(next_vals - curr_vals)
 
-            rho = minimum( val_diff*(next_prior/curr_prior)*(1) , 1) # last term in parens 1 since dist chosen symmetric
+            rho = minimum( [val_diff*(next_prior/curr_prior)*(1) , 1.0]) # last term in parens 1 since dist chosen symmetric
 
             accept = sample([true false], WeightVec([rho, 1-rho]))
 
@@ -203,7 +203,7 @@ function LTE()
 
         end # of MetropolisHastings()
 
-    sim_vals = MetropolisHastings(1000*ones(params), 1_000, 1e-12)
+    sim_vals = MetropolisHastings(1000*ones(params), 100_000, 1e-12)
 
     # Results to return:
     println(mean(sim_vals,1))
