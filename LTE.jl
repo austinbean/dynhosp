@@ -8,7 +8,7 @@ using StatsBase
 
 function LTE()
 
-  # Imports the simulation results.
+    # Imports the simulation results.
     input1 = readtable("/Users/austinbean/Google Drive/Simulation Results/combinedresults.csv");
 
     # This keeps the privately insured patient counts:
@@ -32,6 +32,10 @@ function LTE()
     # This creates TWO matrices, one with all of the equilibrium results, the other with all of the non-equilibrium results.
     fout11 = hcat( interim_private_eq[:,1:29], eq_medicaid_lev1[:,4], interim_private_eq[:,30:55], eq_medicaid_lev2[:,4], interim_private_eq[:,56:81], eq_medicaid_lev3[:,4], interim_private_eq[:,82:end])
     fout12 = hcat(interim_private_neq[:,1:29], neq_medicaid_lev1[:,4], interim_private_neq[:,30:55], neq_medicaid_lev2[:,4], interim_private_neq[:,56:81], neq_medicaid_lev3[:,4], interim_private_neq[:,82:end])
+
+    # Set other values to 0
+    input1 = 0; interim_private_eq = 0; interim_private_neq = 0; interim_medicaid_eq = 0; interim_medicaid_neq = 0;
+    eq_medicaid_lev1 = 0; eq_medicaid_lev2 = 0; eq_medicaid_lev3 = 0; neq_medicaid_lev1 = 0; neq_medicaid_lev2 = 0; neq_medicaid_lev3 = 0;
 
 
     varcolnames = Array{Symbol}(:0)
@@ -141,7 +145,9 @@ function LTE()
         function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
            sum((min(inp1*x - inp2*x, 0)).^2)
         end
-
+#TODO: Think about how to scale these parameters reasonably so that we do not
+# overflow in the exp function.  Maybe estimating in "thousands of dollars" would
+# be better
 
         function MetropolisHastings(initialpr::Vector,
                                     max_iterations::Int64,
@@ -156,37 +162,43 @@ function LTE()
           # Basics
           converged = false
           curr_it = 1
+          overflowcount = 0
 
           # Storing the values:
-          path = zeros(max_iterations, param_dim)
+          path = zeros(max_iterations, param_dim) # 10 allocations / 50 MB
 
           # initial guess:
           curr_x = initialpr
 
           # Probability of initial guess according to prior
-          curr_prior = pdf(prior, curr_x)
+          curr_prior = pdf(prior, curr_x) # 10 allocations.
 
           # Value of objective function at initial guess
-          curr_vals = objfun(curr_x)
+          curr_vals = objfun(curr_x) # 14 allocations / 9 kb
 
           while curr_it < max_iterations && !converged # convergence flag not used yet
             # Proposed next value -
             # TODO: this is wrong: this must be *conditional*
-            next_x = rand(proposal)
+            next_x = rand(proposal) #10 allocations / 970 bytes
 
             # Probability of proposal at prior
-            next_prior = pdf(prior, next_x)
+            next_prior = pdf(prior, next_x) # 10 allocations / 1 kb
 
             # Value of objective at Proposal
             # TODO: I think the problem is in the dimension of the output of the proposal distribution.
-            next_vals = objfun(next_x)
+            next_vals = objfun(next_x) #14 allocations / 9 kb
 
             # Difference in value of objectives
             val_diff = exp(next_vals - curr_vals)
 
+            if val_diff == Inf  # keep track of times when this is too large.
+              overflowcount += 1
+            end
+
+            # 8 allocations
             rho = minimum( [val_diff*(next_prior/curr_prior)*(1) , 1.0]) # last term in parens 1 since dist chosen symmetric
 
-            accept = sample([true false], WeightVec([rho, 1-rho]))
+            accept = sample([true false], WeightVec([rho, 1-rho])) #8 allocations
 
             if accept
               # Accepted Proposal
@@ -194,19 +206,20 @@ function LTE()
               curr_prior = next_prior
               curr_vals = next_vals
             end
-            path[curr_it, :] = curr_x
+            path[curr_it, :] = curr_x # 4 allocations.
             curr_it += 1
             # convergence flag not yet used.
           end
 
-          return path
+          return path, overflowcount
 
         end # of MetropolisHastings()
 
-    sim_vals = MetropolisHastings(1000*ones(params), 100_000, 1e-12)
+    sim_vals, counter = MetropolisHastings(1000*ones(params), 100_000, 1e-12)
 
     # Results to return:
     println(mean(sim_vals,1))
+    println("Count of Numerical Overflow ", counter )
 
 end # of LTE function
 
