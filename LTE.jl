@@ -145,6 +145,8 @@ function LTE()
         function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
            sum((min(inp1*x - inp2*x, 0)).^2)
         end
+
+
 #TODO: Think about how to scale these parameters reasonably so that we do not
 # overflow in the exp function.  Maybe estimating in "thousands of dollars" would
 # be better
@@ -163,6 +165,7 @@ function LTE()
           converged = false
           curr_it = 1
           overflowcount = 0
+          accepted = 0
 
           # Storing the values:
           path = zeros(max_iterations, param_dim) # 10 allocations / 50 MB
@@ -205,6 +208,7 @@ function LTE()
               curr_x = next_x
               curr_prior = next_prior
               curr_vals = next_vals
+              accepted += 1
             end
             path[curr_it, :] = curr_x # 4 allocations.
             curr_it += 1
@@ -219,6 +223,7 @@ function LTE()
 
     # Results to return:
     println(mean(sim_vals,1))
+    println("Fraction Accepted - Add return for accepted.", )
     println("Count of Numerical Overflow ", counter )
 
 end # of LTE function
