@@ -141,25 +141,23 @@ function LTE()
     const params = convert(Int, ncols) # don't think this conversion is strictly necessary
 
 
-
-        function objfun(x::Vector; inp1::Array{Float64,2}=eq_opt, inp2::Array{Float64,2}=neq_opt)
-           sum((min(inp1*x - inp2*x, 0)).^2)
+        function objfun(x::Vector; scale_fact = 1/10000, inp1::Array{Float64,2}=scale_fact*eq_opt, inp2::Array{Float64,2}=scale_fact*neq_opt, diffmat::Array{Float64,2}=inp1-inp2)
+          sum(min(diffmat*x, 0).^2)
         end
 
-
-#TODO: Think about how to scale these parameters reasonably so that we do not
-# overflow in the exp function.  Maybe estimating in "thousands of dollars" would
-# be better
 
         function MetropolisHastings(initialpr::Vector,
                                     max_iterations::Int64,
                                     tolerance::Float64;
                                     param_dim = length(initialpr),
                                     pro_μ = zeros(param_dim),
-                                    pro_σ = 10*eye(param_dim),
+                                    pro_σ_scale::Float64 = 1.0,
+                                    pro_σ = pro_σ_scale*eye(param_dim),
                                     proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                                    prior_μ = 500*ones(param_dim),
-                                    prior_σ = 100*eye(param_dim),
+                                    prior_μ_scale::Float64 = 1.0,
+                                    prior_μ = prior_μ_scale*ones(param_dim),
+                                    prior_σ_scale::Float64 = 1.0,
+                                    prior_σ = prior_σ_scale*eye(param_dim),
                                     prior = Distributions.MvNormal(prior_μ, prior_σ))
           # Basics
           converged = false
@@ -174,21 +172,21 @@ function LTE()
           curr_x = initialpr
 
           # Probability of initial guess according to prior
-          curr_prior = pdf(prior, curr_x) # 10 allocations.
+          curr_prior = pdf(Distributions.MvNormal(curr_x, prior_σ), curr_x) # 10 allocations.
 
           # Value of objective function at initial guess
           curr_vals = objfun(curr_x) # 14 allocations / 9 kb
 
           while curr_it < max_iterations && !converged # convergence flag not used yet
             # Proposed next value -
-            # TODO: this is wrong: this must be *conditional*
-            next_x = rand(proposal) #10 allocations / 970 bytes
+            next_x = curr_x + rand(proposal) #10 allocations / 970 bytes
 
             # Probability of proposal at prior
-            next_prior = pdf(prior, next_x) # 10 allocations / 1 kb
-
+            next_prior = pdf(Distributions.MvNormal(curr_x, prior_σ), next_x) # 10 allocations / 1 kb
+            if curr_it%100 == 0
+              println(next_prior)
+            end
             # Value of objective at Proposal
-            # TODO: I think the problem is in the dimension of the output of the proposal distribution.
             next_vals = objfun(next_x) #14 allocations / 9 kb
 
             # Difference in value of objectives
@@ -199,8 +197,9 @@ function LTE()
             end
 
             # 8 allocations
-            rho = minimum( [val_diff*(next_prior/curr_prior)*(1) , 1.0]) # last term in parens 1 since dist chosen symmetric
-
+            # This is accepting w/ really low probs.
+            rho = minimum( [val_diff*(next_prior/curr_prior) , 1.0])
+            # This is accepting way too many.
             accept = sample([true false], WeightVec([rho, 1-rho])) #8 allocations
 
             if accept
@@ -210,21 +209,24 @@ function LTE()
               curr_vals = next_vals
               accepted += 1
             end
-            path[curr_it, :] = curr_x # 4 allocations.
+            for el = 1:param_dim
+#TODO This isn't working correctly.
+              @inbounds path[curr_it, param_dim] = curr_x[el] # 4 allocations.
+            end
             curr_it += 1
             # convergence flag not yet used.
           end
 
-          return path, overflowcount
+          return path, overflowcount, accepted
 
         end # of MetropolisHastings()
 
-    sim_vals, counter = MetropolisHastings(1000*ones(params), 100_000, 1e-12)
+    sim_vals, counter, accept = MetropolisHastings(ones(params), 1000, 1e-12)
 
     # Results to return:
     println(mean(sim_vals,1))
-    println("Fraction Accepted - Add return for accepted.", )
-    println("Count of Numerical Overflow ", counter )
+    println("Fraction Accepted", accept)
+    println("Count of Numerical Overflow ", counter)
 
 end # of LTE function
 
