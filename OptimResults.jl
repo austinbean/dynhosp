@@ -159,9 +159,9 @@ function mainopt()
   # that would handle any conceivable function evaluation.  Maybe that is smarter.
 
   # Number of simulations and num
-  hsims = 500 #size(fout1)[1] # number of simulations
-  ncols = size(eq_opt,2) # number of columns with nonzeros (pairs!)
-  params = convert(Int, ncols) # don't think this conversion is strictly necessary
+  const hsims = 500 #size(fout1)[1] # number of simulations
+  const ncols = size(eq_opt,2) # number of columns with nonzeros (pairs!)
+  const params = convert(Int, ncols) # don't think this conversion is strictly necessary
 
 
   #
@@ -171,14 +171,17 @@ function mainopt()
   # result = optimize(objfun_2, 500*ones(params), method = SimulatedAnnealing(), iterations = 50000, store_trace = true)
   # This runs very quickly, even with 500,000 evaluations.
   # store_trace
-  const starting = 3500
-  result3 = optimize(objfun, starting*ones(params), method = SimulatedAnnealing(), iterations = 3_000_000, show_trace = true, show_every = 100000)
+  const starting = 1000
+  result3 = optimize(objfun, starting*ones(params), method = SimulatedAnnealing(), iterations = 1_000_000, show_trace = true, show_every = 100000)
 
 
   # Now this will print the parameter name:
   for el in 1:size(Optim.minimizer(result3), 1)
     print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
   end
+
+  const α₂ = 0.07
+  const α₃ = 0.13
 
   x1 = paramsymbs[1:19]
   x2 = paramsymbs[21:40]
@@ -195,6 +198,19 @@ function mainopt()
             layer(x=x1, y=starting*ones(size(Optim.minimizer(result3)[1:19])), Geom.line, Theme(default_color=colorant"black")),
             Guide.xlabel("Number of Competitors"), Guide.ylabel("Dollars"), Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3", "Initial Value"], ["green", "purple", "red", "black"])
             )
+
+
+x2prime = paramsymbs[21:39]
+x3prime = paramsymbs[42:60]
+            p2 = plot(
+                      layer(x=x1, y=Optim.minimizer(result3)[1:19], Geom.point, Geom.line, Theme(default_color=colorant"green")),
+                      layer(x=x2prime, y=Optim.minimizer(result3)[1:19]+α₂*Optim.minimizer(result3)[21:39], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+                      layer(x=x3prime, y=Optim.minimizer(result3)[1:19]+α₃*Optim.minimizer(result3)[42:60], Geom.point, Geom.line, Theme(default_color=colorant"red")),
+                      layer(x=x1, y=starting*ones(size(Optim.minimizer(result3)[1:19])), Geom.line, Theme(default_color=colorant"black")),
+                      Guide.xlabel("Number of Competitors"), Guide.ylabel("Dollars"), Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3", "Initial Value"], ["green", "purple", "red", "black"])
+                      )
+
+                      draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/combinedscaledres.png", 12cm, 6cm), p2)
 
 
 end #of mainopt() function
