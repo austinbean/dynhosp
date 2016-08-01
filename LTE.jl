@@ -5,6 +5,7 @@
 using DataFrames
 using Distributions
 using StatsBase
+using Gadfly
 
 function LTE()
 
@@ -134,6 +135,8 @@ function LTE()
     =#
     # Drop identifiers:
     eq_opt = convert(Array{Float64, 2}, fout11[:,4:end]);
+    plot(x=ones(20), Geom.point, Guide.xlabel("Die") )
+
     neq_opt = convert(Array{Float64, 2}, fout12[:, 4:end]);
     opt = eq_opt - neq_opt;
     hsims = 500 #size(fout1)[1] # number of simulations
@@ -183,14 +186,13 @@ function LTE()
 
             # Probability of proposal at prior
             next_prior = pdf(Distributions.MvNormal(curr_x, prior_σ), next_x) # 10 allocations / 1 kb
-            if curr_it%100 == 0
-              println(next_prior)
-            end
+
             # Value of objective at Proposal
             next_vals = objfun(next_x) #14 allocations / 9 kb
 
             # Difference in value of objectives
-            val_diff = exp(next_vals - curr_vals)
+            #TODO: Consider the LOG of the hastings ratio here.  See Hdbk MCMC p.23
+            val_diff = next_vals - curr_vals
 
             if val_diff == Inf  # keep track of times when this is too large.
               overflowcount += 1
@@ -198,37 +200,54 @@ function LTE()
 
             # 8 allocations
             # This is accepting w/ really low probs.
-            rho = minimum( [val_diff*(next_prior/curr_prior) , 1.0])
+            rho = minimum( [val_diff+log(next_prior)-log(curr_prior), 1.0])
             # This is accepting way too many.
-            accept = sample([true false], WeightVec([rho, 1-rho])) #8 allocations
+        #    accept = sample([true false], WeightVec([rho, 1-rho])) #8 allocations
 
-            if accept
+            if rand() < rho
               # Accepted Proposal
               curr_x = next_x
               curr_prior = next_prior
               curr_vals = next_vals
               accepted += 1
             end
+             # Record the current parameter values whether they changed or not.
             for el = 1:param_dim
-#TODO This isn't working correctly.
-              @inbounds path[curr_it, param_dim] = curr_x[el] # 4 allocations.
+              @inbounds path[curr_it, el] = curr_x[el] # 4 allocations.
             end
             curr_it += 1
-            # convergence flag not yet used.
+            # convergence flag not yet used.  What is it going to do?  Anything?
           end
 
           return path, overflowcount, accepted
 
         end # of MetropolisHastings()
-
-    sim_vals, counter, accept = MetropolisHastings(ones(params), 1000, 1e-12)
+    const nsims = 100000
+    sim_vals, counter, accept = MetropolisHastings(ones(params), nsims, 1e-12)
 
     # Results to return:
     println(mean(sim_vals,1))
-    println("Fraction Accepted", accept)
+#    plot(x=rand(20), Geom.point, Guide.xlabel("This is a plot  "))
+    println("Fraction Accepted ", accept/nsims)
     println("Count of Numerical Overflow ", counter)
+  p1 = plot(x=sim_vals[:,1], Geom.histogram)
+  p2 = plot(x=sim_vals[:,2], Geom.histogram)
+
+  #=
+  # for printing in the future:
+  for el in 1:size(Optim.minimizer(result3), 1)
+    print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
+  end
+  =#
+  return sim_vals
 
 end # of LTE function
 
 
-LTE()
+sims = LTE()
+
+# function test()
+#   x1 = rand(22, 130)
+#   plot(x=mean(x1,1), Geom.histogram)
+# end
+# test()
