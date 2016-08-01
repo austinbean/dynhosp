@@ -70,8 +70,23 @@ plot(layer(x=sds[ :,2], Geom.histogram, Theme(default_color=colorant"blue")),
 
 # multiply the variance in sds by 10 and the plot looks much better.
 
+output1 = hcat(sds, zeros(dims1, 1) )
 
 
+for el in output1[:,1]
+  index_s = findfirst(empirical_sds[:fid], el)
+  index_0 = findfirst(output1[:,1], el)
+  if index_s>0
+    output1[index_0,3] = empirical_sds[index_s, :sdd]
+  else
+    println("not found ", el)
+  end
+end
+
+colnames = [:fid, :simulated_sd, :empirical_sd]
+output = convert(DataFrame, output1);
+names!(output, colnames)
+writetable("/Users/austinbean/Desktop/dynhosp/DemandSDSimulation.csv", output)
 
 
 ###
