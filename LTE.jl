@@ -162,6 +162,14 @@ function LTE()
                                     prior_σ_scale::Float64 = 1.0,
                                     prior_σ = prior_σ_scale*eye(param_dim),
                                     prior = Distributions.MvNormal(prior_μ, prior_σ))
+# TODO: What's going on with the scaling of the parameters and the proposal distributions?  How do I
+# rescale at the end?  And what is a proper distribution for the prior and the proposals?
+
+
+
+#TODO: in the main loop below, am I getting the difference between the prior and proposal Distributions
+# mixed up?  And should I include both in the log Hastings ratio? 
+
           # Basics
           converged = false
           curr_it = 1
@@ -199,7 +207,6 @@ function LTE()
             end
 
             # 8 allocations
-            # This is accepting w/ really low probs.
             rho = minimum( [val_diff+log(next_prior)-log(curr_prior), 1.0])
             # This is accepting way too many.
         #    accept = sample([true false], WeightVec([rho, 1-rho])) #8 allocations
