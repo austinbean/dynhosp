@@ -154,27 +154,30 @@ function LTE()
                                     tolerance::Float64;
                                     param_dim = length(initialpr),
                                     pro_μ = zeros(param_dim),
-                                    pro_σ_scale::Float64 = 1.0,
+                                    pro_σ_scale::Float64 = 10.0,
                                     pro_σ = pro_σ_scale*eye(param_dim),
                                     proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                                    prior_μ_scale::Float64 = 1.0,
+                                    prior_μ_scale::Float64 = 500.0,
                                     prior_μ = prior_μ_scale*ones(param_dim),
-                                    prior_σ_scale::Float64 = 1.0,
+                                    prior_σ_scale::Float64 = 2000.0,
                                     prior_σ = prior_σ_scale*eye(param_dim),
-                                    prior = Distributions.MvNormal(prior_μ, prior_σ))
-# TODO: What's going on with the scaling of the parameters and the proposal distributions?  How do I
-# rescale at the end?  And what is a proper distribution for the prior and the proposals?
+                                    prior = Distributions.MvNormal(prior_μ, prior_σ),
+                                    debug::Bool = true)
 
-
-
-#TODO: in the main loop below, am I getting the difference between the prior and proposal Distributions
-# mixed up?  And should I include both in the log Hastings ratio? 
+#TODO: Loop over the estimated values - when the objective function is giving you a zero, maybe
+# don't change the parameters anymore?  Does that make sense?
 
           # Basics
           converged = false
           curr_it = 1
           overflowcount = 0
+          underflowcount = 0
+          priorzerocount = 0
           accepted = 0
+          if debug
+            trace = zeros(max_iterations, 6)
+            zeroparams = zeros(max_iterations, param_dim)
+          end
 
           # Storing the values:
           path = zeros(max_iterations, param_dim) # 10 allocations / 50 MB
@@ -182,79 +185,119 @@ function LTE()
           # initial guess:
           curr_x = initialpr
 
-          # Probability of initial guess according to prior
+          # Probability of initial guess according to prior: π(Θ)
           curr_prior = pdf(Distributions.MvNormal(curr_x, prior_σ), curr_x) # 10 allocations.
+          if curr_prior == 0.0
+            return "Probability of Prior too low"
+          end
 
-          # Value of objective function at initial guess
+          # Value of objective function at initial guess: Ln(Θ)
           curr_vals = objfun(curr_x) # 14 allocations / 9 kb
 
-          while curr_it < max_iterations && !converged # convergence flag not used yet
-            # Proposed next value -
+          # Probability of initial guess under proposal/Initialize a proposal probability. q(Θ'|Θ)
+          curr_proposal_prob = 1
+
+          while curr_it <= max_iterations && !converged # convergence flag not used yet
+            # Proposed next value, Θ'
+            # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
             next_x = curr_x + rand(proposal) #10 allocations / 970 bytes
 
-            # Probability of proposal at prior
-            next_prior = pdf(Distributions.MvNormal(curr_x, prior_σ), next_x) # 10 allocations / 1 kb
+            # Probability of proposed new value  Θ' under the prior: π(Θ')
+            # This is *not* conditional on the current location
+            next_prior = pdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # 10 allocations / 1 kb
+            if next_prior == 0.0
+              priorzerocount += 1
+              if debug
+                println("Zero Prob of prior ")
+                println(priorzerocount)
+                for j = 1:param_dim
+                  zeroparams[curr_it, j] = next_x[j]
+                end
+              end
+            end
+
+            # Probability of new value under proposal distribution:
+            # This one *is* conditional on the current location.
+            next_proposal_prob = pdf(Distributions.MvNormal(curr_x, pro_σ), next_x)
 
             # Value of objective at Proposal
             next_vals = objfun(next_x) #14 allocations / 9 kb
 
             # Difference in value of objectives
-            #TODO: Consider the LOG of the hastings ratio here.  See Hdbk MCMC p.23
             val_diff = next_vals - curr_vals
 
-            if val_diff == Inf  # keep track of times when this is too large.
-              overflowcount += 1
+            if val_diff == Inf || val_diff == 0.0  # keep track of times when this is too large.
+              if val_diff == Inf
+                overflowcount += 1
+              else val_diff == 0.0
+                underflowcount += 1
+              end
             end
 
             # 8 allocations
-            rho = minimum( [val_diff+log(next_prior)-log(curr_prior), 1.0])
-            # This is accepting way too many.
-        #    accept = sample([true false], WeightVec([rho, 1-rho])) #8 allocations
+            # Now this rule is wrong...
+            logrho = minimum([val_diff+log(next_proposal_prob)+log(next_prior)-log(curr_prior)-log(curr_proposal_prob),0.0]) #add the proposal.
 
-            if rand() < rho
+            if logrho >= 0 || rand() < exp(logrho)
               # Accepted Proposal
               curr_x = next_x
               curr_prior = next_prior
               curr_vals = next_vals
+              curr_proposal_prob = next_proposal_prob
               accepted += 1
             end
              # Record the current parameter values whether they changed or not.
             for el = 1:param_dim
               @inbounds path[curr_it, el] = curr_x[el] # 4 allocations.
             end
+            if debug
+              trace[curr_it, 1] = logrho
+              trace[curr_it, 2] = val_diff
+              trace[curr_it, 3] = next_prior
+              trace[curr_it, 4] = next_prior
+              trace[curr_it, 5] = next_vals
+            end
             curr_it += 1
             # convergence flag not yet used.  What is it going to do?  Anything?
+
           end
-
-          return path, overflowcount, accepted
-
+          if debug
+            return  path, overflowcount, underflowcount, accepted, trace, zeroparams
+          else
+            return path, overflowcount, underflowcount, accepted
+          end
         end # of MetropolisHastings()
-    const nsims = 100000
-    sim_vals, counter, accept = MetropolisHastings(ones(params), nsims, 1e-12)
+    const nsims = 1000
+    sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(500*ones(params), nsims, 1e-12)
 
     # Results to return:
-    println(mean(sim_vals,1))
-#    plot(x=rand(20), Geom.point, Guide.xlabel("This is a plot  "))
     println("Fraction Accepted ", accept/nsims)
-    println("Count of Numerical Overflow ", counter)
-  p1 = plot(x=sim_vals[:,1], Geom.histogram)
-  p2 = plot(x=sim_vals[:,2], Geom.histogram)
+    println("Count of Numerical Overflow ", overcounter)
+    println("Count of Underflow ", undercounter)
 
-  #=
-  # for printing in the future:
-  for el in 1:size(Optim.minimizer(result3), 1)
-    print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
-  end
-  =#
-  return sim_vals
+# remove latter two when not tracing results.
+  return sim_vals, tr, zerop
 
 end # of LTE function
 
 
-sims = LTE()
+sims, tr, zerop = LTE()
+
+# Why are these values zero?
+test_these = zerop[ zerop[:,1].!=0 ,:]
+
+p1 = plot(x=sims[:,1], Geom.histogram)
+p2 = plot(x=sims[:,2], Geom.histogram)
 
 # function test()
 #   x1 = rand(22, 130)
 #   plot(x=mean(x1,1), Geom.histogram)
 # end
 # test()
+
+#=
+# for printing in the future:
+for el in 1:size(Optim.minimizer(result3), 1)
+  print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
+end
+=#
