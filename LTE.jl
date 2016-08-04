@@ -64,8 +64,6 @@ function LTE()
       push!(varcolnames, parse("$elem"*"Enter3"))
     end
 
-    #names!(fout1, colnames)
-
     paramsymbs = Array{UTF8String}(0)
     for k = 1:3
       for i = 0:25
@@ -135,8 +133,6 @@ function LTE()
     =#
     # Drop identifiers:
     eq_opt = convert(Array{Float64, 2}, fout11[:,4:end]);
-    plot(x=ones(20), Geom.point, Guide.xlabel("Die") )
-
     neq_opt = convert(Array{Float64, 2}, fout12[:, 4:end]);
     opt = eq_opt - neq_opt;
     hsims = 500 #size(fout1)[1] # number of simulations
@@ -150,16 +146,15 @@ function LTE()
 
 
         function MetropolisHastings(initialpr::Vector,
-                                    max_iterations::Int64,
-                                    tolerance::Float64;
+                                    max_iterations::Int64;
                                     param_dim = length(initialpr),
                                     pro_μ = zeros(param_dim),
-                                    pro_σ_scale::Float64 = 10.0,
+                                    pro_σ_scale::Float64 = 100.0,
                                     pro_σ = pro_σ_scale*eye(param_dim),
                                     proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                                    prior_μ_scale::Float64 = 500.0,
+                                    prior_μ_scale::Float64 = 1000.0,
                                     prior_μ = prior_μ_scale*ones(param_dim),
-                                    prior_σ_scale::Float64 = 2000.0,
+                                    prior_σ_scale::Float64 = 1000.0,
                                     prior_σ = prior_σ_scale*eye(param_dim),
                                     prior = Distributions.MvNormal(prior_μ, prior_σ),
                                     debug::Bool = true)
@@ -168,7 +163,6 @@ function LTE()
 # don't change the parameters anymore?  Does that make sense?
 
           # Basics
-          converged = false
           curr_it = 1
           overflowcount = 0
           underflowcount = 0
@@ -176,7 +170,6 @@ function LTE()
           accepted = 0
           if debug
             trace = zeros(max_iterations, 6)
-            zeroparams = zeros(max_iterations, param_dim)
           end
 
           # Storing the values:
@@ -186,9 +179,13 @@ function LTE()
           curr_x = initialpr
 
           # Probability of initial guess according to prior: π(Θ)
-          curr_prior = pdf(Distributions.MvNormal(curr_x, prior_σ), curr_x) # 10 allocations.
+          curr_prior = logpdf(Distributions.MvNormal(curr_x, prior_σ), curr_x) # 10 allocations.
           if curr_prior == 0.0
             return "Probability of Prior too low"
+          end
+          if debug
+            zeroparams = Array{Float64,1}()
+            push!(zeroparams, curr_prior)
           end
 
           # Value of objective function at initial guess: Ln(Θ)
@@ -197,28 +194,23 @@ function LTE()
           # Probability of initial guess under proposal/Initialize a proposal probability. q(Θ'|Θ)
           curr_proposal_prob = 1
 
-          while curr_it <= max_iterations && !converged # convergence flag not used yet
+          while curr_it <= max_iterations
             # Proposed next value, Θ'
             # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
             next_x = curr_x + rand(proposal) #10 allocations / 970 bytes
 
             # Probability of proposed new value  Θ' under the prior: π(Θ')
             # This is *not* conditional on the current location
-            next_prior = pdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # 10 allocations / 1 kb
-            if next_prior == 0.0
-              priorzerocount += 1
-              if debug
-                println("Zero Prob of prior ")
-                println(priorzerocount)
-                for j = 1:param_dim
-                  zeroparams[curr_it, j] = next_x[j]
-                end
-              end
+            # Using Log of normal PDF to avoid underflow.
+            next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # 10 allocations / 1 kb
+            if debug
+              push!(zeroparams, next_prior)
             end
 
             # Probability of new value under proposal distribution:
             # This one *is* conditional on the current location.
-            next_proposal_prob = pdf(Distributions.MvNormal(curr_x, pro_σ), next_x)
+            # Using Log of normal PDF to avoid underflow.
+            next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), next_x)
 
             # Value of objective at Proposal
             next_vals = objfun(next_x) #14 allocations / 9 kb
@@ -234,9 +226,8 @@ function LTE()
               end
             end
 
-            # 8 allocations
-            # Now this rule is wrong...
-            logrho = minimum([val_diff+log(next_proposal_prob)+log(next_prior)-log(curr_prior)-log(curr_proposal_prob),0.0]) #add the proposal.
+
+            logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0]) #add the proposal.
 
             if logrho >= 0 || rand() < exp(logrho)
               # Accepted Proposal
@@ -258,8 +249,6 @@ function LTE()
               trace[curr_it, 5] = next_vals
             end
             curr_it += 1
-            # convergence flag not yet used.  What is it going to do?  Anything?
-
           end
           if debug
             return  path, overflowcount, underflowcount, accepted, trace, zeroparams
@@ -267,8 +256,8 @@ function LTE()
             return path, overflowcount, underflowcount, accepted
           end
         end # of MetropolisHastings()
-    const nsims = 1000
-    sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(500*ones(params), nsims, 1e-12)
+    const nsims = 1_00000 #_000
+    sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(1000*ones(params), nsims)
 
     # Results to return:
     println("Fraction Accepted ", accept/nsims)
@@ -283,11 +272,42 @@ end # of LTE function
 
 sims, tr, zerop = LTE()
 
-# Why are these values zero?
-test_these = zerop[ zerop[:,1].!=0 ,:]
-
+#=
 p1 = plot(x=sims[:,1], Geom.histogram)
 p2 = plot(x=sims[:,2], Geom.histogram)
+p3 = plot(x=sims[:,3], Geom.histogram)
+p4 = plot(x=sims[:,4], Geom.histogram)
+p5 = plot(x=sims[:,5], Geom.histogram)
+p6 = plot(x=sims[:,6], Geom.histogram)
+p7 = plot(x=sims[:,7], Geom.histogram)
+
+p62 = plot(x=sims[:,62], Geom.histogram)
+
+=#
+probs = plot(x=zerop, Geom.histogram)
+
+
+
+
+# for i = 1:size(sims, 2)
+#   mode_n = mode(sims[:,i])
+#   println("plot(x=sims[:,$i], Geom.histogram, Guide.xlabel(\" Parameter "*"$i"*" Mode $mode_n \"))")
+# #  plot(x=sims[:,i], Geom.histogram)
+# end
+
+
+
+
+
+#
+# params_rec = zeros(size(sims,2))
+# for el in 1:size(sims, 2)
+#   tem = mode(sims[:,el])
+#   println( tem)
+#   params_rec[el] = tem
+# end
+#
+# plot(x = collect(1:19), y=params_rec[1:19], Geom.line)
 
 # function test()
 #   x1 = rand(22, 130)
@@ -298,6 +318,6 @@ p2 = plot(x=sims[:,2], Geom.histogram)
 #=
 # for printing in the future:
 for el in 1:size(Optim.minimizer(result3), 1)
-  print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
+  println(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
 end
 =#
