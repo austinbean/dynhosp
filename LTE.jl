@@ -225,7 +225,8 @@ function LTE()
                 underflowcount += 1
               end
             end
-
+#TODO: Note - maximizing or minimizing?  I want to get that right.  But it's irrelevant to the
+# algorithm since I can use -L instead of L 
 
             logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0]) #add the proposal.
 
@@ -256,7 +257,7 @@ function LTE()
             return path, overflowcount, underflowcount, accepted
           end
         end # of MetropolisHastings()
-    const nsims = 1_00000 #_000
+    const nsims = 100_000 #_000
     sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(1000*ones(params), nsims)
 
     # Results to return:
