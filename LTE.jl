@@ -226,7 +226,7 @@ function LTE()
               end
             end
 #TODO: Note - maximizing or minimizing?  I want to get that right.  But it's irrelevant to the
-# algorithm since I can use -L instead of L 
+# algorithm since I can use -L instead of L
 
             logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0]) #add the proposal.
 
@@ -257,7 +257,7 @@ function LTE()
             return path, overflowcount, underflowcount, accepted
           end
         end # of MetropolisHastings()
-    const nsims = 100_000 #_000
+    const nsims = 1_000_00 #_000
     sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(1000*ones(params), nsims)
 
     # Results to return:
@@ -303,7 +303,7 @@ probs = plot(x=zerop, Geom.histogram)
 #
 # params_rec = zeros(size(sims,2))
 # for el in 1:size(sims, 2)
-#   tem = mode(sims[:,el])
+#   tem = mean(sims[ convert(Int, size(sims,1)/4):end,el])
 #   println( tem)
 #   params_rec[el] = tem
 # end
