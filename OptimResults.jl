@@ -180,42 +180,41 @@ function mainopt()
     print(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
   end
 
+      return starting, paramsymbs, Optim.minimizer(result3)
+end #of mainopt() function
+
+starting, paramsymbs, results = mainopt()
+
+
   const α₂ = 0.07
   const α₃ = 0.13
 
   x1 = paramsymbs[1:19]
   x2 = paramsymbs[21:40]
   x3 = paramsymbs[42:61]
-  # p1 = plot(
-  #           layer(x=x1, y=Optim.minimizer(result3)[1:19], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 1 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line, Theme(default_color=colorant"green")),
-  #           layer(x=x2, y=Optim.minimizer(result3)[21:40], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 2 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line, Theme(default_color=colorant"purple")),
-  #           layer(x=x3, y=Optim.minimizer(result3)[42:61], Guide.xticks(ticks=collect(1:19)), Guide.xlabel("Profits Per Patient at Level 3 \n Given Competitors C#"), Guide.ylabel("Dollars"), Geom.point, Geom.line, Theme(default_color=colorant"red"))
-  #           )
+
   p1 = plot(
-            layer(x=x1, y=Optim.minimizer(result3)[1:19], Geom.point, Geom.line, Theme(default_color=colorant"green")),
-            layer(x=x2, y=Optim.minimizer(result3)[21:40], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
-            layer(x=x3, y=Optim.minimizer(result3)[42:61], Geom.point, Geom.line, Theme(default_color=colorant"red")),
-            layer(x=x1, y=starting*ones(size(Optim.minimizer(result3)[1:19])), Geom.line, Theme(default_color=colorant"black")),
+            layer(x=x1, y=results[1:19], Geom.point, Geom.line, Theme(default_color=colorant"green")),
+            layer(x=x2, y=results[21:40], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+            layer(x=x3, y=results[42:61], Geom.point, Geom.line, Theme(default_color=colorant"red")),
+            layer(x=x1, y=starting*ones(size(results[1:19])), Geom.line, Theme(default_color=colorant"black")),
             Guide.xlabel("Number of Competitors"), Guide.ylabel("Dollars"), Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3", "Initial Value"], ["green", "purple", "red", "black"])
             )
 
 
 x2prime = paramsymbs[21:39]
 x3prime = paramsymbs[42:60]
+xlab = collect(1:19)
             p2 = plot(
-                      layer(x=x1, y=Optim.minimizer(result3)[1:19], Geom.point, Geom.line, Theme(default_color=colorant"green")),
-                      layer(x=x2prime, y=Optim.minimizer(result3)[1:19]+α₂*Optim.minimizer(result3)[21:39], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
-                      layer(x=x3prime, y=Optim.minimizer(result3)[1:19]+α₃*Optim.minimizer(result3)[42:60], Geom.point, Geom.line, Theme(default_color=colorant"red")),
-                      layer(x=x1, y=starting*ones(size(Optim.minimizer(result3)[1:19])), Geom.line, Theme(default_color=colorant"black")),
+                      layer(x=x1, y=results[1:19], Geom.point, Geom.line, Theme(default_color=colorant"green")),
+                      layer(x=xlab, y=results[1:19]+α₂*results[21:39], Geom.point, Geom.line, Theme(default_color=colorant"purple")),
+                      layer(x=xlab, y=results[1:19]+α₃*results[42:60], Geom.point, Geom.line, Theme(default_color=colorant"red")),
+                      layer(x=xlab, y=starting*ones(size(results[1:19])), Geom.line, Theme(default_color=colorant"black")),
                       Guide.xlabel("Number of Competitors"), Guide.ylabel("Dollars"), Guide.manual_color_key("Levels", ["Level 1", "Level 2", "Level 3", "Initial Value"], ["green", "purple", "red", "black"])
                       )
 
-                      draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/combinedscaledres.png", 12cm, 6cm), p2)
+                      draw(PNG("/Users/austinbean/Google Drive/Current Projects/!Job Market/!Job Market Paper/combinedscaledres.png", 18cm, 9cm), p2)
 
-
-end #of mainopt() function
-
-mainopt()
 
 # These are not very informative yet.
 #
