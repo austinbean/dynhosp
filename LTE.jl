@@ -170,6 +170,7 @@ function LTE()
           accepted = 0
           if debug
             trace = zeros(max_iterations, 6)
+            param_accept = zeros(param_dim)
           end
 
           # Storing the values:
@@ -195,60 +196,58 @@ function LTE()
           curr_proposal_prob = 1
 
           while curr_it <= max_iterations
-            # Proposed next value, Θ'
-            # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
-            next_x = curr_x + rand(proposal) #10 allocations / 970 bytes
+            for i =1:param_dim
+              # Proposed next value, Θ'[i] - this is just *one* element.
+              # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
+              next_x = curr_x
+              next_x[i] = rand(proposal)[i]
 
-            # Probability of proposed new value  Θ' under the prior: π(Θ')
-            # This is *not* conditional on the current location
-            # Using Log of normal PDF to avoid underflow.
-            next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # 10 allocations / 1 kb
-            if debug
-              push!(zeroparams, next_prior)
-            end
+              # Probability of proposed new value  Θ' under the prior: π(Θ')
+              # This is *not* conditional on the current location
+              # Using Log of normal PDF to avoid underflow.
+              # Compute the prob of the entire new proposal
+              next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # 10 allocations / 1 kb
 
-            # Probability of new value under proposal distribution:
-            # This one *is* conditional on the current location.
-            # Using Log of normal PDF to avoid underflow.
-            next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), next_x)
+              # Probability of new value under proposal distribution:
+              # This one *is* conditional on the current location.
+              # Using Log of normal PDF to avoid underflow.
+              next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), next_x)
 
-            # Value of objective at Proposal
-            next_vals = objfun(next_x) #14 allocations / 9 kb
+              # Value of objective at Proposal
+              next_vals = objfun(next_x) #14 allocations / 9 kb
 
-            # Difference in value of objectives
-            val_diff = next_vals - curr_vals
+              # Difference in value of objectives
+              val_diff = next_vals - curr_vals
 
-            if val_diff == Inf || val_diff == 0.0  # keep track of times when this is too large.
-              if val_diff == Inf
-                overflowcount += 1
-              else val_diff == 0.0
-                underflowcount += 1
+              if val_diff == Inf || val_diff == 0.0  # keep track of times when this is too large.
+                if val_diff == Inf
+                  overflowcount += 1
+                else val_diff == 0.0
+                  underflowcount += 1
+                end
               end
-            end
-#TODO: Note - maximizing or minimizing?  I want to get that right.  But it's irrelevant to the
-# algorithm since I can use -L instead of L
+              #TODO: Note - maximizing or minimizing?  I want to get that right.  But it's irrelevant to the
+              # algorithm since I can use -L instead of L
 
-            logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0]) #add the proposal.
+              logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0]) #add the proposal.
 
-            if logrho >= 0 || rand() < exp(logrho)
-              # Accepted Proposal
-              curr_x = next_x
-              curr_prior = next_prior
-              curr_vals = next_vals
-              curr_proposal_prob = next_proposal_prob
-              accepted += 1
-            end
-             # Record the current parameter values whether they changed or not.
-            for el = 1:param_dim
-              @inbounds path[curr_it, el] = curr_x[el] # 4 allocations.
-            end
-            if debug
-              trace[curr_it, 1] = logrho
-              trace[curr_it, 2] = val_diff
-              trace[curr_it, 3] = next_prior
-              trace[curr_it, 4] = next_prior
-              trace[curr_it, 5] = next_vals
-            end
+              if logrho >= 0 || rand() < exp(logrho)
+                # Accepted Proposal
+                curr_x = next_x
+                curr_prior = next_prior
+                curr_vals = next_vals
+                curr_proposal_prob = next_proposal_prob
+                accepted += 1
+                if debug
+                  param_accept[i]+= 1
+                end
+              end
+            end # of iteration over state elements.
+            # Record the current parameter values whether they changed or not.
+            # This is OUTSIDE the loop over parameter elements.
+           for el = 1:param_dim
+             @inbounds path[curr_it, el] = curr_x[el] # 4 allocations.
+           end
             curr_it += 1
           end
           if debug
@@ -257,7 +256,7 @@ function LTE()
             return path, overflowcount, underflowcount, accepted
           end
         end # of MetropolisHastings()
-    const nsims = 1_000_00 #_000
+    const nsims = 1_000 #_000
     sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(1000*ones(params), nsims)
 
     # Results to return:
