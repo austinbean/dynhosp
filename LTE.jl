@@ -158,23 +158,25 @@ function LTE()
                                     prior_σ = prior_σ_scale*eye(param_dim),
                                     prior = Distributions.MvNormal(prior_μ, prior_σ),
                                     debug::Bool = true)
-
-#TODO: Loop over the estimated values - when the objective function is giving you a zero, maybe
-# don't change the parameters anymore?  Does that make sense?
-
           # Basics
-          curr_it = 1
+          curr_it = 2
           overflowcount = 0
           underflowcount = 0
           priorzerocount = 0
           accepted = 0
           if debug
-            trace = zeros(max_iterations, 6)
+            trace = zeros(max_iterations*param_dim, 6+param_dim)
+            allvals = zeros(max_iterations*param_dim, param_dim)
             param_accept = zeros(param_dim)
+            counter = 1
           end
 
           # Storing the values:
           path = zeros(max_iterations, param_dim) # 10 allocations / 50 MB
+          for j = 1:param_dim
+            path[1,j] = initialpr[j] #record initial guess
+            allvals[1,j] = initialpr[j]
+          end
 
           # initial guess:
           curr_x = initialpr
@@ -199,8 +201,9 @@ function LTE()
             for i =1:param_dim
               # Proposed next value, Θ'[i] - this is just *one* element.
               # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
-              next_x = curr_x
-              next_x[i] = rand(proposal)[i]
+              next_x = curr_x #TODO: is this accepting every proposal?  Maybe.
+              proposed = rand(proposal)[i]
+              next_x[i] += proposed # This proposal is conditional - added noise to the current value.
 
               # Probability of proposed new value  Θ' under the prior: π(Θ')
               # This is *not* conditional on the current location
@@ -230,7 +233,17 @@ function LTE()
               # algorithm since I can use -L instead of L
 
               logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0]) #add the proposal.
-
+              if debug
+                trace[counter, 1] = logrho
+                trace[counter, 2] = val_diff
+                trace[counter, 3] = next_prior
+                trace[counter, 4] = next_prior
+                trace[counter, 5] = next_vals
+                trace[counter, 6+i] = proposed
+                for k =1:param_dim
+                  allvals[counter,k] = next_x[k]
+                end
+              end
               if logrho >= 0 || rand() < exp(logrho)
                 # Accepted Proposal
                 curr_x = next_x
@@ -242,7 +255,9 @@ function LTE()
                   param_accept[i]+= 1
                 end
               end
+              counter += 1
             end # of iteration over state elements.
+
             # Record the current parameter values whether they changed or not.
             # This is OUTSIDE the loop over parameter elements.
            for el = 1:param_dim
@@ -251,13 +266,13 @@ function LTE()
             curr_it += 1
           end
           if debug
-            return  path, overflowcount, underflowcount, accepted, trace, zeroparams
+            return  path, overflowcount, underflowcount, accepted, trace, param_accept, allvals
           else
             return path, overflowcount, underflowcount, accepted
           end
         end # of MetropolisHastings()
-    const nsims = 1_000 #_000
-    sim_vals, overcounter, undercounter, accept, tr, zerop = MetropolisHastings(1000*ones(params), nsims)
+    const nsims = 5000 #_000
+    sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(1000*ones(params), nsims)
 
     # Results to return:
     println("Fraction Accepted ", accept/nsims)
@@ -265,12 +280,12 @@ function LTE()
     println("Count of Underflow ", undercounter)
 
 # remove latter two when not tracing results.
-  return sim_vals, tr, zerop
+  return sim_vals, tr, param_accept, allvals
 
 end # of LTE function
 
 
-sims, tr, zerop = LTE()
+sims, tr, param_accept, allvals = LTE()
 
 #=
 p1 = plot(x=sims[:,1], Geom.histogram)
@@ -284,7 +299,7 @@ p7 = plot(x=sims[:,7], Geom.histogram)
 p62 = plot(x=sims[:,62], Geom.histogram)
 
 =#
-probs = plot(x=zerop, Geom.histogram)
+#probs = plot(x=zerop, Geom.histogram)
 
 
 
@@ -300,12 +315,12 @@ probs = plot(x=zerop, Geom.histogram)
 
 
 #
-# params_rec = zeros(size(sims,2))
-# for el in 1:size(sims, 2)
-#   tem = mean(sims[ convert(Int, size(sims,1)/4):end,el])
-#   println( tem)
-#   params_rec[el] = tem
-# end
+params_rec = zeros(size(sims,2))
+for el in 1:size(sims, 2)
+  tem = mean(sims[ convert(Int, size(sims,1)/4):end,el])
+  println( tem)
+  params_rec[el] = tem
+end
 #
 # plot(x = collect(1:19), y=params_rec[1:19], Geom.line)
 
@@ -320,4 +335,12 @@ probs = plot(x=zerop, Geom.histogram)
 for el in 1:size(Optim.minimizer(result3), 1)
   println(varcolnames[el+3], "  ", Optim.minimizer(result3)[el], " param: ", paramsymbs[el], " symbol number: ", el, "\n")
 end
+cnt = 0
+for i=2:size(allvals,1)
+  if allvals[i-1,1] != allvals[i, 1]
+    println(allvals[i,1])
+    cnt+=1
+  end
+end
+
 =#
