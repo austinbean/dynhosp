@@ -205,16 +205,16 @@ function LTE()
                 proposed = rand(proposal)[i]
                 next_x[i] += proposed # This proposal is conditional - added noise to the current value.
 
-                # Probability of proposed new value  Θ' under the prior: π(Θ')
+                # Probability of proposed new value  Θ' under the *prior*: π(Θ')
                 # This is *not* conditional on the current location
                 # Using Log of normal PDF to avoid underflow.
-                # Compute the prob of the entire new proposal
-                next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # 10 allocations / 1 kb
+                # Compute the prob of the entire new proposal under the prior π()
+                next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # could be done as logpdf(prior, next_x)
 
-                # Probability of new value under proposal distribution:
+                # Probability of new value under the *proposal* q(x|y) distribution:
                 # This one *is* conditional on the current location.
                 # Using Log of normal PDF to avoid underflow.
-                next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), next_x)
+                next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), next_x) # computing this isn't really necessary since it's not in the Hastings ratio.
 
                 # Value of objective at Proposal
                 next_vals = objfun(next_x) #14 allocations / 9 kb
@@ -224,35 +224,32 @@ function LTE()
 
                 if val_diff == Inf || val_diff == 0.0  # keep track of times when this is too large.
                   if val_diff == Inf
-                    overflowcount += 1
+                    overflowcount += 1 # basically can't have overflow since not taking exp() of objective
                   else val_diff == 0.0
-                    underflowcount += 1
+                    underflowcount += 1 # this tracks when next_vals = current_vals, not underflow.  No exp() of objective anymore.
                   end
                 end
-
-                logrho = minimum([val_diff+next_proposal_prob+next_prior-curr_prior-curr_proposal_prob,0.0])
+                # The probability under the proposal is symmetric - q(next_x|curr_x) = q(curr_x|next_x) - I can drop it.
+                # Next line is log of Hastings ratio.
+                logrho = minimum([val_diff+next_prior-curr_prior,0.0])
                 if debug
                   tr[counter, 1] = logrho
                   tr[counter, 2] = val_diff
                   tr[counter, 3] = next_prior
-                  tr[counter, 4] = next_proposal_prob
+                  tr[counter, 4] = next_proposal_prob # not using this for anything in the transition, but keeping track.
                   tr[counter, 5] = next_vals
                   tr[counter, 6+i] = proposed
                   for k =1:param_dim
-                    allvals[counter,k] = next_x[k]
+                    @inbounds allvals[counter,k] = next_x[k]
                   end
                 end
-#TODO: this counter is messed up.  We are only accepting a small fraction of
-# the proposed values, apparently.   Or they are being counted wrong.  What's
-# going on with this counter?  It doesn't make sense.  Values are accepted every
-# iteration so I have 1000 unique values of sims[:,1] but accepted is only 7.  WTF.
                 if (logrho >= 0 || rand() < exp(logrho) )
                   # Accepted Proposal
                   curr_x = next_x
                   curr_prior = next_prior
                   curr_vals = next_vals
                   curr_proposal_prob = next_proposal_prob
-                  accepted += 1
+                  accepted += 1 # this counting acceptances over all parameters.
                   if debug
                     param_accept[i] += 1
                   end
@@ -263,6 +260,7 @@ function LTE()
               # Record the current parameter values whether they changed or not.
               # This is OUTSIDE the loop over parameter elements.
              for el = 1:param_dim
+               # When proposal rejected, this should write out the old value.
                @inbounds path[curr_it, el] = curr_x[el] # 4 allocations.
              end
              curr_it += 1
