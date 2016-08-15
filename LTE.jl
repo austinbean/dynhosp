@@ -152,7 +152,7 @@ function LTE()
                                     pro_σ_scale::Float64 = 100.0,
                                     pro_σ = pro_σ_scale*eye(param_dim),
                                     proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                                    prior_μ_scale::Float64 = 1000.0,
+                                    prior_μ_scale::Float64 = 100.0, # note that this should probably match the starting point.
                                     prior_μ = prior_μ_scale*ones(param_dim),
                                     prior_σ_scale::Float64 = 1000.0,
                                     prior_σ = prior_σ_scale*eye(param_dim),
@@ -201,23 +201,24 @@ function LTE()
             for i =1:param_dim
                 # Proposed next value, Θ'[i] - this is just *one* element.
                 # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
-                next_x = curr_x
-                proposed = rand(proposal)[i]
-                next_x[i] += proposed # This proposal is conditional - added noise to the current value.
+
+                proposed =  zeros(param_dim)
+                disturb = rand(proposal)[i] #perturbation value.
+                proposed[i] += disturb
 
                 # Probability of proposed new value  Θ' under the *prior*: π(Θ')
                 # This is *not* conditional on the current location
                 # Using Log of normal PDF to avoid underflow.
                 # Compute the prob of the entire new proposal under the prior π()
-                next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), next_x) # could be done as logpdf(prior, next_x)
+                next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), curr_x + proposed) # could be done as logpdf(prior, next_x)
 
                 # Probability of new value under the *proposal* q(x|y) distribution:
                 # This one *is* conditional on the current location.
                 # Using Log of normal PDF to avoid underflow.
-                next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), next_x) # computing this isn't really necessary since it's not in the Hastings ratio.
+                next_proposal_prob = logpdf(Distributions.MvNormal(curr_x, pro_σ), curr_x + proposed) # computing this isn't really necessary since it's not in the Hastings ratio.
 
                 # Value of objective at Proposal
-                next_vals = objfun(next_x) #14 allocations / 9 kb
+                next_vals = objfun(curr_x + proposed) #14 allocations / 9 kb
 
                 # Difference in value of objectives
                 val_diff = next_vals - curr_vals
@@ -238,18 +239,18 @@ function LTE()
                   tr[counter, 3] = next_prior
                   tr[counter, 4] = next_proposal_prob # not using this for anything in the transition, but keeping track.
                   tr[counter, 5] = next_vals
-                  tr[counter, 6+i] = proposed
+                  tr[counter, 6+i] = disturb
                   for k =1:param_dim
-                    @inbounds allvals[counter,k] = next_x[k]
+                    @inbounds allvals[counter,k] = (curr_x + proposed)[k]
                   end
                 end
                 if (logrho >= 0 || rand() < exp(logrho) )
                   # Accepted Proposal
-                  curr_x = next_x
+                  curr_x[i] += disturb
                   curr_prior = next_prior
                   curr_vals = next_vals
                   curr_proposal_prob = next_proposal_prob
-                  accepted += 1 # this counting acceptances over all parameters.
+                  accepted += 1 # this is counting acceptances over all parameters.
                   if debug
                     param_accept[i] += 1
                   end
@@ -272,7 +273,7 @@ function LTE()
           end
         end # of MetropolisHastings()
     const nsims = 1000 #_000
-    sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(1000*ones(paramsize), nsims)
+    sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(100*ones(paramsize), nsims)
 
     # Results to return:
     println("Fraction Accepted ", accept/nsims)
