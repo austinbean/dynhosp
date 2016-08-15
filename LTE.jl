@@ -140,7 +140,7 @@ function LTE()
     const paramsize = convert(Int, ncols) # don't think this conversion is strictly necessary
 
 
-        function objfun(x::Vector; scale_fact = 1/10000, inp1::Array{Float64,2}=scale_fact*eq_opt, inp2::Array{Float64,2}=scale_fact*neq_opt, diffmat::Array{Float64,2}=inp1-inp2)
+        function objfun(x::Vector; scale_fact = 1/10, inp1::Array{Float64,2}=scale_fact*eq_opt, inp2::Array{Float64,2}=scale_fact*neq_opt, diffmat::Array{Float64,2}=inp1-inp2)
           sum(min(diffmat*x, 0).^2)
         end
 
@@ -152,9 +152,9 @@ function LTE()
                                     pro_σ_scale::Float64 = 100.0,
                                     pro_σ = pro_σ_scale*eye(param_dim),
                                     proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                                    prior_μ_scale::Float64 = 100.0, # note that this should probably match the starting point.
+                                    prior_μ_scale::Float64 = 1000.0, # note that this should match the starting point, else the prob under the prior becomes 0
                                     prior_μ = prior_μ_scale*ones(param_dim),
-                                    prior_σ_scale::Float64 = 1000.0,
+                                    prior_σ_scale::Float64 = 100.0,
                                     prior_σ = prior_σ_scale*eye(param_dim),
                                     prior = Distributions.MvNormal(prior_μ, prior_σ),
                                     debug::Bool = true)
@@ -239,7 +239,7 @@ function LTE()
                   tr[counter, 3] = next_prior
                   tr[counter, 4] = next_proposal_prob # not using this for anything in the transition, but keeping track.
                   tr[counter, 5] = next_vals
-                  tr[counter, 6+i] = disturb
+                  tr[counter, 6+i] = disturb # trace records the disturbance to the value
                   for k =1:param_dim
                     @inbounds allvals[counter,k] = (curr_x + proposed)[k]
                   end
@@ -253,6 +253,12 @@ function LTE()
                   accepted += 1 # this is counting acceptances over all parameters.
                   if debug
                     param_accept[i] += 1
+                  end
+                  # Keep track of this too - should change the scaling factor.
+                  if logrho < 0
+                    if exp(logrho) == Inf
+                      overflowcount += 1
+                    end
                   end
                 end
                 counter += 1
@@ -273,7 +279,7 @@ function LTE()
           end
         end # of MetropolisHastings()
     const nsims = 1000 #_000
-    sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(100*ones(paramsize), nsims)
+    sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(1000*ones(paramsize), nsims)
 
     # Results to return:
     println("Fraction Accepted ", accept/nsims)
@@ -324,6 +330,7 @@ for el in 1:size(sims, 2)
 end
 #
 # plot(x = collect(1:19), y=params_rec[1:19], Geom.line)
+# plot(x = collect(6:19), y=params_rec[6:19], Geom.line)
 
 # function test()
 #   x1 = rand(22, 130)
