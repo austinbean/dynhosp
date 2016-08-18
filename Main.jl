@@ -98,17 +98,17 @@ function main1()
   timestamps = Array{Any}(0)
 
   for y in 1:1#size(nopoly,1)
-      mkt_fips = duopoly[y][1]
+      mkt_fips = nopoly[y][1]
       crtime = now()
       timestr = Dates.format(crtime, "yyyy-mm-dd HH:MM:ss")
       push!(timestamps, (mkt_fips, "begin", timestr))
-      if !(in(mkt_fips, donefips)) & (mkt_fips != 48201) & (mkt_fips != 0) # this is going to do new fipscodes only
+      if !(in(mkt_fips, donefips))&(mkt_fips != 48201)&(mkt_fips != 0) # this is going to do new fipscodes only
         print("Market FIPS Code ", mkt_fips, "\n")
         	for year in [ 2005 ]   #yearins[y][4:end] # can do all years or several.
             fids =  sort!(convert(Array{Int64}, unique(data[(data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year),fidloc])))
             # This will parallelize the computation across Monte Carlo sims.
             mcres = @parallel (+) for i = 1:5
-      #                println(i)
+                      println(i)
                       ParMainfun(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, mkt_fips, year,  fids; npers = 50)
                     end
             # the addition map adds together years, fipscodes and fids.  Divide by nsims to recover.
