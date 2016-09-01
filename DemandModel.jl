@@ -79,27 +79,7 @@ type  RowSizeError  <: Exception end
 
 
 
-function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, :fid4, :fid5, :fid6, :fid7, :fid8, :fid9, :fid10, :fid11] )
-  #=
-    This function takes a single row of a dataframe "targ" and finds the value in "value"
-    by looking in the columns in "vals".  Those items in vals must be a list of symbols, so
-    [ :fid1, :fid2, ..., :fidN ] (commas necessary).  If the DataFrame is too big, it Returns
-    the RowSizeError exception defined above.  To search specific fids, must call function as
-    rowfindfid(targ, value, vals = [:fidx, :fidy])
-  =#
-  if size(targ)[1] > 1
-    return RowSizeError #defined in Main.jl
-  end
-  numb = 0
-  index = :ident
-  for i in vals # what about NAs?  All of the fid columns are zeros.
-      if targ[i][1] == value # the second [1] is needed to access the *value* of the element, rather than the 1 element DataFrame
-          numb = targ.colindex.lookup[i] # returns the *column number* of the element i
-          index =  i
-      end
-  end
-  return numb, index
-end
+
 
 # fid1loc = 2, fid2loc = 18, fid3loc = 34, fid4loc = 50, fid5loc = 66, fid6loc = 82, fid7loc = 98, fid8loc = 114, fid9loc = 130, fid10loc = 146, fid11loc = 162
 # fidnd = [2, 18, 34, 50, 66, 82, 98, 114, 130, 146, 162]
@@ -127,7 +107,7 @@ end
 # sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
 # sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]
 
-function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc = [ 104 105], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc = [ 105 106], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
   siz = size(peo,1)
   rands = rand(d, siz, entnum)
   entvals = zeros(siz, entnum)
@@ -156,14 +136,16 @@ end
 # entrants1 = [99999 1 0 120 32.96  -96.8385]
 # Much improved now.
 # Most of the slowness comes when entrants are present.
-# choicerow/people  has the form: [identity] ∪ [fid, NeoIntensive, Solo Intermediate, distance, Is Closest?, Selected?, distance × bed, distance², amount charged] × (# facilities) ⋃ [Patient Zip, medicaid, Private insurance, Zip Lat, Zip Long]
+# choicerow/people  has the form: [identity] ∪ [fid, NeoIntensive, Solo Intermediate, distance, Is Closest?, Selected?, distance × bed, distance², amount charged] × (# facilities) ⋃ [Patient Zip, DRG, medicaid, Private insurance, Zip Lat, Zip Long]
 # Order of Demand Model Coefficients: [distance_c  distsq_c  neoint_c  soloint_c  closest_c  distbed_c ]
 # demandmodelparameters = [distance_c distsq_c neoint_c soloint_c closest_c distbed_c]
 # Original locations, pre breaking change: ind = [12 17 11 5 13 16], iind = [28 33 27 21 29 32], iiind = [44 49 43 37 45 48], ivnd = [60 65 59 53 61 64], vnd = [76 81 75 69 77 80], vind = [92 97 91 85 93 96], viind = [108 113 107 101 109 112], viiind = [124 129 123 117 125 128], ixnd = [140 145 139 133 141 144], xnd = [156 161 155 149 157 160], xind = [172 177 171 165 173 176], fidnd = [2 18 34 50 66 82 98 114 130 146 162]
-
+# Prior to changing return type to include zip.
+# @time DemandModel(pinsured, privatedemandmodelparameters, entrants)
+#  0.527198 seconds (2.45 M allocations: 272.934 MB, 25.48% gc time) - but this was for a larger set, probably mothers and infants.
 #ind = [5 9 3 4 6 8 ]; iind = [14 18 12 13 15 17 ]; iiind = [23 27 21 22 24 26 ]; ivnd = [32 36 30 31 33 35 ]; vnd = [41 45 39 40 42 44 ]; vind = [50 54 48 49 51 53 ]; viind = [59 63 57 58 60 62 ]; viiind = [68 72 66 67 69 71 ]; ixnd = [77 81 75 76 78 80 ]; xnd = [86 90 84 85 87 89 ]; xind = [95 99 93 94 96 98 ]
 
-function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
+function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), ziploc = 101, drgloc = 102, entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(peo,1), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
 # Computed utilities + error
   rand_el = Array(Float64, siz)
   mat1 = peo[:,ind[1:6]]*modelparameters' + rand!(d, rand_el)
@@ -189,7 +171,7 @@ function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::
       vals, inds = findmax([mat1 mat2 mat3 mat4 mat5 mat6 mat7 mat8 mat9 mat10 mat11] , 2)
       outp = map((i,x)->allfids[i,x], 1:size(mat1,1), ind2sub((size(mat1,1),11), vec(inds) )[2] )
   end
-return outp
+return hcat( peo[:, ziploc], peo[:, drgloc], outp)
 end
 
 
@@ -384,8 +366,28 @@ end
 
 
 
-
-
+# DEPRECATED:
+# function rowfindfid(targ::DataFrame, value::Int64; vals = [:fid1, :fid2, :fid3, :fid4, :fid5, :fid6, :fid7, :fid8, :fid9, :fid10, :fid11] )
+#   #=
+#     This function takes a single row of a dataframe "targ" and finds the value in "value"
+#     by looking in the columns in "vals".  Those items in vals must be a list of symbols, so
+#     [ :fid1, :fid2, ..., :fidN ] (commas necessary).  If the DataFrame is too big, it Returns
+#     the RowSizeError exception defined above.  To search specific fids, must call function as
+#     rowfindfid(targ, value, vals = [:fidx, :fidy])
+#   =#
+#   if size(targ)[1] > 1
+#     return RowSizeError #defined in Main.jl
+#   end
+#   numb = 0
+#   index = :ident
+#   for i in vals # what about NAs?  All of the fid columns are zeros.
+#       if targ[i][1] == value # the second [1] is needed to access the *value* of the element, rather than the 1 element DataFrame
+#           numb = targ.colindex.lookup[i] # returns the *column number* of the element i
+#           index =  i
+#       end
+#   end
+#   return numb, index
+# end
 
 
 

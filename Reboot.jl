@@ -80,7 +80,7 @@ begin
       global const privatedistbed_c = privatemodcoeffs[6, 2]
       privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
 
-    println("Importing Medicaid Patients")
+    println("Importing Medicaid Patients") # use the infants only.
     medicaid = DataFrames.readtable(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true);
     #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
     for i in names(medicaid)
@@ -117,7 +117,7 @@ begin
     pmedicaid = convert(Array{Float32, 2}, pmedicaid)
     println("Size of Medicaid, ", size(pmedicaid))
 
-    println("Importing Privately Insured Patients")
+    println("Importing Privately Insured Patients") #use the infants only.
     pinsure = DataFrames.readtable(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
     for i in names(pinsure)
       if ( typeof(pinsure[i]) == DataArrays.DataArray{Float64,1} )
@@ -152,6 +152,13 @@ begin
     # Note this change - I don't think there's anything that requires 64 bits.
      pinsured= convert(Array{Float32, 2}, pinsured)
      println("Size of Privately Insured, ", size(pinsured))
+     # TX zip codes:
+     TXzps = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false)
+     TXzips = convert(Vector, TXzps[:x1])
+     # DRG codes:
+     # These are for infants only.
+     DRGs = [385 386 387 388 389 390 391]
+
     global const fipscodeloc = 78; # this is for hospital data, here as "data"
     global const yearloc = 75; # this also for hospital data, here imported as "data"
     global const fidloc = 74; # Also for hospital data, here as "data"
