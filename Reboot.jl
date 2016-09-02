@@ -163,6 +163,9 @@ begin
     global const yearloc = 75; # this also for hospital data, here imported as "data"
     global const fidloc = 74; # Also for hospital data, here as "data"
     global const idloc = 1; # Also for Hospital data, here as "data"
+    # Collect FIDs
+    allfids = sort(unique(data[:,74]))
+
   #  global const nsims = 500;
   #  global const dirs = pwd() # present working directory path
 end # of "begin" block
