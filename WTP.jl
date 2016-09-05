@@ -107,6 +107,44 @@ end # of WTP
 
 
 
+function MapWTP2(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+  # Creates the Output:
+  # This block takes kind of a long time: 0.028215 seconds (132.51 k allocations: 39.350 MB, 18.91% gc time)
+  output = zeros( size(zipcodes,1)*size(drg,2)+1, size(fids, 1)+3)
+  for i = 1:size(fids, 1)
+    output[1, i+3] = fids[i]
+  end
+  for i = 1:size(zipcodes, 1)
+    for j =1:size(drg, 2)
+      output[7*(i-1)+j+1, 1] = zipcodes[i] # first column is zip
+      output[7*(i-1)+j+1, 2] = drg[j] # second column is drg.
+      # third column reports whether found or not.
+    end
+  end
+  # Map the comp_wtp to the matrix of values
+  curr = 1
+  for i = 1:size(comp_wtp,1)
+    st = findfirst(output[curr:end,1], comp_wtp[i, pziploc]) # find first occurrence of zipcode
+    j = convert(Int, comp_wtp[i, pdrgloc]-384)
+    # if j > 7 # can't actually be greater than 7 by construction in stata
+    #   println("Messed up DRG code row ", i, " ", comp_wtp[i,j])
+    #   j = 0
+    # end
+    if output[st+j, 3] == 0 # not found before
+      for k in fidlocs # indexes columns containing fids
+        hos = findfirst(output[1,3:end], comp_wtp[i,k]) #find the fid in the first row of output
+        if hos > 0
+          output[st+j, k] += comp_wtp[i, k-1]
+        end
+      end
+    end
+    output[st+j, 3] += 1
+    curr = st
+  end
+  return output
+end # of MapWTP2
+
+
 
 pziploc = 1
 pdrgloc = 2
