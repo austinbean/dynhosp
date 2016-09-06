@@ -174,6 +174,24 @@ function DemandModel(peo::Matrix, modelparameters::Array{Float64, 2}, entrants::
 return hcat( peo[:, ziploc], peo[:, drgloc], outp)
 end
 
+# Call DetUtil first, then this.
+function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), ziploc = 1, drgloc = 2, entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(detutil,1), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+# Computed utilities + error
+  rand_el = Array{Float64}(siz, 11)
+  if size(entrants, 2) > 1
+    entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
+    entutil = EntrantsU(XXXdetutil??XXX , entrants, modelparameters)
+    vals, inds = findmax( [detutil[:,ulocs[:]] + rand!(d, rand_el) entutil[:,1]] , 2)
+    # Fuck-up is right here.
+    outp = map( (i,x)->allfids[i,x], collect(1:size(mat1,1)), ind2sub((size(mat1,1),12), vec(inds) )[2] )
+  else #  no entrants
+      vals, inds = findmax(detutil[:,ulocs[:]] + rand!(d, rand_el), 2) # returns indices in the range [1, ..., 11]
+      outp = map((i,x)->detutil[i,x], 1:siz, 2*(ind2sub((siz,11), vec(inds) )[2])+2 )
+  end
+return hcat( detutil[:, ziploc], detutil[:, drgloc], outp)
+end
+
+
 
 #=
 # This next loop will list the column index of the relevant parameters in order.
