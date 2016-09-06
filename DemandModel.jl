@@ -107,6 +107,7 @@ end
 # sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
 # sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]
 # sample entrants3 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385 77777 0 0 120 31.96  -97.8385]
+# with 3 entrants this takes 0.05 seconds.
 
 function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc=[25,26], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
   siz = size(peo,1)
@@ -130,8 +131,7 @@ function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Ar
     end
   end
   utils, inds = findmax(entvals + rands, 2) # findmax returns value and index over given dimension
-  outp = hcat(utils, zeros(size(peo, 1), 1)) # I may not want this.
-  outp = map(x->entfids[convert(Int, x)],  )
+  outp = hcat(utils, map(x->entfids[x], ind2sub((siz, size(entfids,1)), vec(inds))[2]))
   return outp  # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
 
@@ -184,10 +184,9 @@ function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entra
   rand_el = Array{Float64}(siz, 11)
   if size(entrants, 2) > 1
     entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
-    entutil = EntrantsU( , entrants, modelparameters)
+    entutil = EntrantsU(detutil, entrants, modelparameters)
     vals, inds = findmax( [detutil[:,ulocs[:]] + rand!(d, rand_el) entutil[:,1]] , 2)
-    # Fuck-up is right here.
-    outp = map( (i,x)->allfids[i,x], collect(1:size(mat1,1)), ind2sub((size(mat1,1),12), vec(inds) )[2] )
+    outp = map( (i,x)->allfids[i,x], collect(1:size(detutil ,1)), ind2sub((size(detutil,1),12), vec(inds) )[2] )
   else #  no entrants
       vals, inds = findmax(detutil[:,ulocs[:]] + rand!(d, rand_el), 2) # returns indices in the range [1, ..., 11]
       outp = map((i,x)->detutil[i,x], 1:siz, 2*(ind2sub((siz,11), vec(inds) )[2])+2 )
