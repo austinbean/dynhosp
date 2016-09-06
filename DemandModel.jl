@@ -106,12 +106,14 @@ end
 
 # sample entrants1 = [99999 1 0 120 32.96  -96.8385] [newrow[fidloc] newrow[act_intloc] newrow[act_sololoc] entrantbeds ent_lat ent_lon]
 # sample entrants2 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385]
+# sample entrants3 = [99999 1 0 120 32.96  -96.8385 888888 0 1 120 32.96  -96.8385 77777 0 0 120 31.96  -97.8385]
 
-function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc = [ 105 106], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc=[25,26], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
   siz = size(peo,1)
   rands = rand(d, siz, entnum)
   entvals = zeros(siz, entnum)
   plocs = peo[:,persloc[:]] # this format is: LATITUDE, LONGITUDE
+  entfids = entrants[:, 1:entsize:end] # selects all fids.
   for j = 1:entnum
     for i = 1:siz # ENTRANT FORMAT ends with [Latitude, Longitude]
       d1 = distance(entrants[6*j-1], entrants[6*j], plocs[i,1], plocs[i,2])
@@ -128,7 +130,9 @@ function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Ar
     end
   end
   utils, inds = findmax(entvals + rands, 2) # findmax returns value and index over given dimension
-  return [utils ind2sub(size(entvals), vec(inds))[2]]  # note that due to the randomization, this will generally not return -999, but -999 + rand
+  outp = hcat(utils, zeros(size(peo, 1), 1)) # I may not want this.
+  outp = map(x->entfids[convert(Int, x)],  )
+  return outp  # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
 
 # Another version with fewer allocations:
@@ -180,7 +184,7 @@ function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entra
   rand_el = Array{Float64}(siz, 11)
   if size(entrants, 2) > 1
     entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
-    entutil = EntrantsU(XXXdetutil??XXX , entrants, modelparameters)
+    entutil = EntrantsU( , entrants, modelparameters)
     vals, inds = findmax( [detutil[:,ulocs[:]] + rand!(d, rand_el) entutil[:,1]] , 2)
     # Fuck-up is right here.
     outp = map( (i,x)->allfids[i,x], collect(1:size(mat1,1)), ind2sub((size(mat1,1),12), vec(inds) )[2] )

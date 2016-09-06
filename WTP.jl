@@ -11,7 +11,7 @@ This will be easier than expected.
 
 # Takes about 0.09 - 0.12 seconds per call: 0.124532 seconds (334 allocations: 82.751 MB, 37.50% gc time)
 
-function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 101, drgloc = 102,  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
+function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 101, drgloc = 102, persloc = [ 105 106],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
 # Computed utilities
 # Use as input to WTP as market shares and to Demand Model by adding random shocks
 # This is inefficient because it does it for *everyone*, which we really don't need.
@@ -26,7 +26,7 @@ function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 101, 
   mat9 = peo[:,ixnd[1:6]]*modelparameters'
   mat10 = peo[:,xnd[1:6]]*modelparameters'
   mat11 = peo[:,xind[1:6]]*modelparameters'
-  return hcat( peo[:, ziploc], peo[:, drgloc], mat1, peo[:, fidnd[1]], mat2, peo[:, fidnd[2]], mat3, peo[:, fidnd[3]], mat4, peo[:, fidnd[4]], mat5, peo[:, fidnd[5]], mat6, peo[:, fidnd[6]], mat7, peo[:, fidnd[7]],  mat8, peo[:, fidnd[8]],  mat9, peo[:, fidnd[9]], mat10, peo[:, fidnd[10]], mat11, peo[:, fidnd[11]])
+  return hcat( peo[:, ziploc], peo[:, drgloc], mat1, peo[:, fidnd[1]], mat2, peo[:, fidnd[2]], mat3, peo[:, fidnd[3]], mat4, peo[:, fidnd[4]], mat5, peo[:, fidnd[5]], mat6, peo[:, fidnd[6]], mat7, peo[:, fidnd[7]],  mat8, peo[:, fidnd[8]],  mat9, peo[:, fidnd[9]], mat10, peo[:, fidnd[10]], mat11, peo[:, fidnd[11]], peo[:, persloc[:]])
 end
 
 # I DON'T want to call DetUtil inside this function - the whole point of DetUtil is to avoid Multiple calls to that.
