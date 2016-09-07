@@ -136,6 +136,17 @@ function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Ar
 end
 
 
+#=
+
+Right now it is not getting all of the fids - DemandModel2 returns maybe 7 fids.  This
+doesn't make sense.  FIX tomorrow.
+
+
+
+
+=#
+
+
 # Call DetUtil first, then this.
 function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), ziploc = 1, drgloc = 2, entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize), siz = size(detutil,1), fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
 # Computed utilities + error
