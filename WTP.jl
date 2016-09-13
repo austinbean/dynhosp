@@ -11,7 +11,7 @@ This will be easier than expected.
 
 # Takes about 0.09 - 0.12 seconds per call: 0.124532 seconds (334 allocations: 82.751 MB, 37.50% gc time)
 
-function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 110, drgloc = 111, persloc = [ 105 106],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
+function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 110, drgloc = 111, persloc = [ 114 115],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
 # Computed utilities
 # Use as input to WTP as market shares and to Demand Model by adding random shocks
 # This is inefficient because it does it for *everyone*, which we really don't need.
@@ -132,7 +132,7 @@ end
 
 
 # Test the Deterministic Components:
-
+#=
 testmodelparameters = [-0.172602  0.00456541  0.962496  0.674374  0.53948  0.0171834]
 #            [ID   FID   NEO SOLO DIS CLO SEL D×B D^2 $$$]
 testpeople1 = [1.0 12719.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 16122.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 30105.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.216088e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 856364.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.136268e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.136007e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.13105e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.135009e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 855094.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.13106e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1415013 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 75001.0 391.0 0.0 1.0 32.96005 -96.838524;
@@ -192,7 +192,7 @@ b3 = ComputeWTP(a3)
 c3 = MapWTP(b3)
 # sum(c4[:,3])==size(testpeople3, 1) # -> must return true.
 
-
+=#
 
 
 
