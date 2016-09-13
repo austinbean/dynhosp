@@ -66,51 +66,8 @@ end
 # Output of ComputeWTP is (Zip, DRG, ) ∪ (Utility, Hospital) × 12
 # DRGs = 385 386 387 388 389 390 391
 # IF instead I take JUST the unique zip code DRG sets, then I can get the time down from 7 seconds to 0.3-0.4 seconds.
-function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, modparams = privatedemandmodelparameters, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
-  # Creates the Output:
-  # This block takes kind of a long time: 0.028215 seconds (132.51 k allocations: 39.350 MB, 18.91% gc time)
-  output = zeros( size(zipcodes,1)*size(drg,2)+1, size(fids, 1)+3)
-  for i = 1:size(fids, 1)
-    output[1, i+2] = fids[i]
-  end
-  for i = 1:size(zipcodes, 1)
-    for j =1:size(drg, 2)
-      output[7*(i-1)+j+1, 1] = zipcodes[i] # first column is zip
-      output[7*(i-1)+j+1, 2] = drg[j] # second column is drg.
-      # third column reports whether found or not.
-    end
-  end
-  # Map the comp_wtp to the matrix of values
-  for i = 1:size(comp_wtp,1)
-    st = findfirst(output[:,1], comp_wtp[i, pziploc]) # find first occurrence of zipcode
-    for j = 0:size(drg, 2)-1 # this is inefficient - I know the order and the number of DRGs every time.  Maybe hardcode that?
-      if output[st+j, 2] == comp_wtp[i, pdrgloc]
-        if output[st+j, 3] == 0 # not found before
-          for k in fidlocs # indexes columns containing fids
-            hos = findfirst(output[1,3:end], comp_wtp[i,k]) #find the fid in the first row of output
-            if hos > 0
-              if output[st+j,k] == 0
-                output[st+j, k] += comp_wtp[i, k-1]
-              else
-                println("Row ", i, " column ", k, " problem ")
-              end
-            end
-          end
-        end
-        output[st+j, 3] += 1
-      end
-    end
-  end
-  # This is sure to be horribly slow
-  return output
-end # of WTP
 
-
-###  I think I want to use this one, not WTP1 above.
-# There is an indexing problem in WTP2 where I subtract 384 or 385.  This isn't getting it right. 
-
-
-function MapWTP2(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   # Creates the Output:
   # This block takes kind of a long time: 0.028215 seconds (132.51 k allocations: 39.350 MB, 18.91% gc time)
   output = zeros( size(zipcodes,1)*size(drg,2)+1, size(fids, 1)+3)
@@ -125,25 +82,25 @@ function MapWTP2(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips,
     end
   end
   # Map the comp_wtp to the matrix of values
-  curr = 1
   for i = 1:size(comp_wtp,1)
-    st = findfirst(output[curr:end,1], comp_wtp[i, pziploc]) # find first occurrence of zipcode
+    st = findfirst(output[:,1], comp_wtp[i, pziploc]) # find first occurrence of zipcode
     j = convert(Int, comp_wtp[i, pdrgloc]-385) # this is always the same
-    println(comp_wtp[i, pdrgloc-1:pdrgloc+1], "  ", j )
-    println(output[st+j, 1:3])
     if output[st+j, 3] == 0 # not found before
       for k in fidlocs # indexes columns containing fids
         hos = findfirst(output[1,3:end], comp_wtp[i,k]) #find the fid in the first row of output
         if hos > 0
-          output[st+j, k] += comp_wtp[i, k-1]
+          output[st+j, k] += log(1/(1-comp_wtp[i, k-1]))
         end
       end
     end
     output[st+j, 3] += 1
-    curr = st
   end
   return output
 end # of MapWTP2
+
+function ReturnWTP(mapped_wtp::Matrix)
+  return vcat( mapped_wtp[1,4:end], sum( mapped_wtp[2:end, 4:end].*mapped_wtp[2:end,3] ,1))
+end
 
 
 #=
@@ -216,6 +173,7 @@ b2 = ComputeWTP(a2)
 
 
 # Test the mapping of WTP
+# This tested with WTP mapped just as prob directly, NOT as ln(1/1-prob)
 
 testpeople3 = [1.0 12719.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 16122.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 00000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 000000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 000000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 00000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 75001.0 391.0 0.0 1.0 32.96005 -96.838524;
                2.0 12719.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 16122.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 30105.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 000000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.00000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 000000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0000000 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 00000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 75001.0 391.0 0.0 1.0 32.96005 -96.838524;
@@ -228,7 +186,57 @@ testpeople3 = [1.0 12719.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 16122.0 1.0 0.0 0.0 0
                9.0 12719.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 16122.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 30105.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.216088e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 856364.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.136268e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.136007e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.13105e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.135009e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 855094.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.13106e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1415013 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 75001.0 386.0 0.0 1.0 32.96005 -96.838524;
               10.0 12719.0 1.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 16122.0 1.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 30105.0 1.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.216088e6 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 856364.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.136268e6 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.136007e6 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.13105e6 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.135009e6 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 855094.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.13106e6 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1415013 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 75001.0 386.0 0.0 1.0 32.96005 -96.838524]
 
+testparameters2 = [1.0 2 1 1 1 1]
 a3 = DetUtil(testpeople3, testparameters2)
 b3 = ComputeWTP(a3)
 c3 = MapWTP(b3)
-c4 = MapWTP2(b3)
+# sum(c4[:,3])==size(testpeople3, 1) # -> must return true.
+
+
+
+
+
+#=
+# Slightly slower version of MapWTP
+
+function MapWTP2(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, modparams = privatedemandmodelparameters, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+  # Creates the Output:
+  # This block takes kind of a long time: 0.028215 seconds (132.51 k allocations: 39.350 MB, 18.91% gc time)
+  output = zeros( size(zipcodes,1)*size(drg,2)+1, size(fids, 1)+3)
+  for i = 1:size(fids, 1)
+    output[1, i+2] = fids[i]
+  end
+  for i = 1:size(zipcodes, 1)
+    for j =1:size(drg, 2)
+      output[7*(i-1)+j+1, 1] = zipcodes[i] # first column is zip
+      output[7*(i-1)+j+1, 2] = drg[j] # second column is drg.
+      # third column reports whether found or not.
+    end
+  end
+  # Map the comp_wtp to the matrix of values
+  for i = 1:size(comp_wtp,1)
+    st = findfirst(output[:,1], comp_wtp[i, pziploc]) # find first occurrence of zipcode
+    for j = 0:size(drg, 2)-1 # this is inefficient - I know the order and the number of DRGs every time.  Maybe hardcode that?
+      if output[st+j, 2] == comp_wtp[i, pdrgloc]
+        if output[st+j, 3] == 0 # not found before
+          for k in fidlocs # indexes columns containing fids
+            hos = findfirst(output[1,3:end], comp_wtp[i,k]) #find the fid in the first row of output
+            if hos > 0
+              if output[st+j,k] == 0
+                output[st+j, k] += comp_wtp[i, k-1]
+              else
+                println("Row ", i, " column ", k, " problem ")
+              end
+            end
+          end
+        end
+        output[st+j, 3] += 1
+      end
+    end
+  end
+  # This is sure to be horribly slow
+  return output
+end # of WTP
+
+
+=#
