@@ -7,44 +7,76 @@ This will be easier than expected.
 
 """
 
+
 # choicerow/people  has the form: [identity] ∪ [fid, NeoIntensive, Solo Intermediate, distance, Is Closest?, Selected?, distance × bed, distance², amount charged] × (# facilities) ⋃ [Patient Zip, DRG, medicaid, Private insurance, Zip Lat, Zip Long]
 
 # Takes about 0.09 - 0.12 seconds per call: 0.124532 seconds (334 allocations: 82.751 MB, 37.50% gc time)
 
-function FindCorrect(peo::Matrix; ziploc = 110, drgloc = 113, persloc = [ 116 117] )
+function FindCorrect(peo::Matrix; ziploc = 101, drgloc = 104, persloc = [ 107 108] )
   checklocs = true
-  if peo[1,ziploc] != 75001
-    println("FIX THE ZIP CODE LOCATION IN DETUTIL")
-    println("IT'S PROBABLY HERE: ")
-    println(findfirst(peo[1,:], 75001))
-    println("*******************")
-    checklocs = false
+  try
+     peo[1,ziploc]
+   catch errz
+     if isa(errz, BoundsError)
+       checklocs = false
+       println("Size Changed")
+       println("ZIPLOC PROBABLY HERE: ")
+       println(findfirst(peo[1,:], 75001))
+       println("*******************")
+     elseif peo[1,ziploc] != 75001
+      println("FIX THE ZIP CODE LOCATION IN DETUTIL")
+      println("IT'S PROBABLY HERE: ")
+      println(findfirst(peo[1,:], 75001))
+      println("*******************")
+      checklocs = false
+    end
   end
-  if peo[1,drgloc] != 391
-    println("FIX THE DRG CODE LOCATION IN DETUTIL")
-    println("IT'S PROBABLY HERE: ")
-    println(findfirst(peo[1,:], 391))
-    println("*******************")
-    checklocs = false
-  end
-  if peo[1,persloc[:]] != [convert(Float32,32.960049)	convert(Float32, -96.838524)]
-    println("FIX THE LAT/LONG CODE LOCATION IN DETUTIL")
-    println("IT'S PROBABLY HERE: ")
-    println(findfirst(peo[1,:], convert(Float32, 32.960049)))
-    println(findfirst(peo[1,:], convert(Float32, -96.838524)))
-    println("*******************")
-    checklocs = false
-  end
-  if checklocs
-    println("Locations Correct") 
-  end
+    try
+      peo[1,drgloc]
+    catch errz
+      if isa(errz, BoundsError)
+        println("Size Changed")
+        println("DRGLOC PROBABLY HERE: ")
+        println(findfirst(peo[1,:], 391))
+        println("*******************")
+        checklocs = false
+      elseif peo[1, drgloc ]!= 391
+        println("FIX THE DRG CODE LOCATION IN DETUTIL")
+        println("DRGLOC PROBABLY HERE: ")
+        println(findfirst(peo[1,:], 391))
+        println("*******************")
+        checklocs = false
+      end
+    end
+    try
+      peo[1,persloc[:]]
+    catch errz
+      if isa(errz, BoundsError)
+        println("size Changed")
+        println("LOCATION PROBABLY HERE: ")
+        println(findfirst(peo[1,:], convert(Float32, 32.960049)))
+        println(findfirst(peo[1,:], convert(Float32, -96.838524)))
+        println("*******************")
+        checklocs = false
+      elseif peo[1,persloc[:]] != [convert(Float32,32.960049)	convert(Float32, -96.838524)]
+        println("FIX THE LAT/LONG CODE LOCATION IN DETUTIL")
+        println("IT'S PROBABLY HERE: ")
+        println(findfirst(peo[1,:], convert(Float32, 32.960049)))
+        println(findfirst(peo[1,:], convert(Float32, -96.838524)))
+        println("*******************")
+        checklocs = false
+      end
+    end
+    if checklocs
+      println("Locations Correct")
+    end
 end
 
 FindCorrect(pinsured)
 
 
 
-function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 110, drgloc = 113, persloc = [ 116 117],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
+function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 101, drgloc = 104, persloc = [107 108],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
 # Computed utilities
 # Use as input to WTP as market shares and to Demand Model by adding random shocks
 # This is inefficient because it does it for *everyone*, which we really don't need.
@@ -87,7 +119,7 @@ function ComputeWTP(utils::Matrix ; ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21,
           output[i,j-1] = exp(utils[i,j-1])
           interim += exp(utils[i,j-1]) # add the previous value
         else
-          utils[i, j-1] = 0 # this has different output than DetUtil, so a 0 is fine.
+          output[i, j-1] = 0 # be careful - I'll be this *doesn't* allocate a new array
         end
       end
     end
@@ -121,28 +153,28 @@ function ChoiceCount(comp_wtp::Matrix; fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 2
   onechoice = Array{Float64,1}()
   nochoice = Array{Float64,1}()
   for i = 1:size(comp_wtp,1)
-      count = 0
+      counting = 0
       for j in fidlocs
         if comp_wtp[i,j] != 0
-          count += 1
+          counting += 1
         end
         if (comp_wtp[i,j-1] >= 1 - eps())&&(comp_wtp[i,j-1] <= 1+eps())
           println("Found a 1 ", i, "  ", j-1)
           push!(ones_f, i)
         end
       end
-      if count == 1
+      if counting == 1
         println("One Choice at ", i)
         push!(onechoice, i)
-      elseif count == 0
+      elseif counting == 0
         println("Zero Choices at ", i)
         push!(nochoice, i)
       end
   end
-  return count, onechoice, nochoice, ones_f
+  return onechoice, nochoice, ones_f
 end
 
-count_vals, onecn, noch, ones_f = ChoiceCount(testWTP)
+onecn, noch, ones_f = ChoiceCount(testWTP)
 
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   # Creates the Output:
@@ -177,9 +209,6 @@ end # of MapWTP2
 
 mappedWTP = MapWTP(testWTP)
 
-
-# TODO: Some of these are returing Inf.  This must come from getting 1 as ComputeWTP ?  Then line 104 above gives Inf
-# If somehow you only have one actual choice, which should never happen, that might give you prob 1 of your choice.
 
 function ReturnWTP(mapped_wtp::Matrix)
   return vcat( mapped_wtp[1,4:end], sum( mapped_wtp[2:end, 4:end].*mapped_wtp[2:end,3] ,1))
