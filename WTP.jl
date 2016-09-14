@@ -11,18 +11,21 @@ This will be easier than expected.
 
 # Takes about 0.09 - 0.12 seconds per call: 0.124532 seconds (334 allocations: 82.751 MB, 37.50% gc time)
 
-function FindCorrect(peo::Matrix; ziploc = 110, drgloc = 111, persloc = [ 114 115] )
+function FindCorrect(peo::Matrix; ziploc = 110, drgloc = 113, persloc = [ 116 117] )
+  checklocs = true
   if peo[1,ziploc] != 75001
     println("FIX THE ZIP CODE LOCATION IN DETUTIL")
     println("IT'S PROBABLY HERE: ")
     println(findfirst(peo[1,:], 75001))
     println("*******************")
+    checklocs = false
   end
   if peo[1,drgloc] != 391
     println("FIX THE DRG CODE LOCATION IN DETUTIL")
     println("IT'S PROBABLY HERE: ")
     println(findfirst(peo[1,:], 391))
     println("*******************")
+    checklocs = false
   end
   if peo[1,persloc[:]] != [convert(Float32,32.960049)	convert(Float32, -96.838524)]
     println("FIX THE LAT/LONG CODE LOCATION IN DETUTIL")
@@ -30,6 +33,10 @@ function FindCorrect(peo::Matrix; ziploc = 110, drgloc = 111, persloc = [ 114 11
     println(findfirst(peo[1,:], convert(Float32, 32.960049)))
     println(findfirst(peo[1,:], convert(Float32, -96.838524)))
     println("*******************")
+    checklocs = false
+  end
+  if checklocs
+    println("Locations Correct") 
   end
 end
 
