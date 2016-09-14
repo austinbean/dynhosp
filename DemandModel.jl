@@ -137,6 +137,7 @@ function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Ar
   return outp  # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
 
+# TODO: the problem now is that some zeros are being chosen.  Map to negative numbers?
 
 
 # Call DetUtil first, then this.

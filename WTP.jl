@@ -11,7 +11,33 @@ This will be easier than expected.
 
 # Takes about 0.09 - 0.12 seconds per call: 0.124532 seconds (334 allocations: 82.751 MB, 37.50% gc time)
 
-function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 110, drgloc = 111, persloc = [ 114 115],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
+function FindCorrect(peo::Matrix; ziploc = 110, drgloc = 111, persloc = [ 114 115] )
+  if peo[1,ziploc] != 75001
+    println("FIX THE ZIP CODE LOCATION IN DETUTIL")
+    println("IT'S PROBABLY HERE: ")
+    println(findfirst(peo[1,:], 75001))
+    println("*******************")
+  end
+  if peo[1,drgloc] != 391
+    println("FIX THE DRG CODE LOCATION IN DETUTIL")
+    println("IT'S PROBABLY HERE: ")
+    println(findfirst(peo[1,:], 391))
+    println("*******************")
+  end
+  if peo[1,persloc[:]] != [convert(Float32,32.960049)	convert(Float32, -96.838524)]
+    println("FIX THE LAT/LONG CODE LOCATION IN DETUTIL")
+    println("IT'S PROBABLY HERE: ")
+    println(findfirst(peo[1,:], convert(Float32, 32.960049)))
+    println(findfirst(peo[1,:], convert(Float32, -96.838524)))
+    println("*******************")
+  end
+end
+
+FindCorrect(pinsured)
+
+
+
+function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 110, drgloc = 113, persloc = [ 116 117],  fidnd = [2; 11; 20; 29; 38; 47; 56; 65; 74; 83; 92] , fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24], ind = [5 9 3 4 6 8 ], iind = [14 18 12 13 15 17 ], iiind = [23 27 21 22 24 26 ], ivnd = [32 36 30 31 33 35 ], vnd = [41 45 39 40 42 44 ], vind = [50 54 48 49 51 53 ], viind = [59 63 57 58 60 62 ], viiind = [68 72 66 67 69 71 ], ixnd = [77 81 75 76 78 80 ], xnd = [86 90 84 85 87 89 ], xind = [95 99 93 94 96 98 ] )
 # Computed utilities
 # Use as input to WTP as market shares and to Demand Model by adding random shocks
 # This is inefficient because it does it for *everyone*, which we really don't need.
@@ -26,30 +52,44 @@ function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 110, 
   mat9 = peo[:,ixnd[1:6]]*modelparameters'
   mat10 = peo[:,xnd[1:6]]*modelparameters'
   mat11 = peo[:,xind[1:6]]*modelparameters'
-  return hcat( peo[:, ziploc], peo[:, drgloc], mat1, peo[:, fidnd[1]], mat2, peo[:, fidnd[2]], mat3, peo[:, fidnd[3]], mat4, peo[:, fidnd[4]], mat5, peo[:, fidnd[5]], mat6, peo[:, fidnd[6]], mat7, peo[:, fidnd[7]],  mat8, peo[:, fidnd[8]],  mat9, peo[:, fidnd[9]], mat10, peo[:, fidnd[10]], mat11, peo[:, fidnd[11]], peo[:, persloc[:]])
+  vals = hcat( peo[:, ziploc], peo[:, drgloc], mat1, peo[:, fidnd[1]], mat2, peo[:, fidnd[2]], mat3, peo[:, fidnd[3]], mat4, peo[:, fidnd[4]], mat5, peo[:, fidnd[5]], mat6, peo[:, fidnd[6]], mat7, peo[:, fidnd[7]],  mat8, peo[:, fidnd[8]],  mat9, peo[:, fidnd[9]], mat10, peo[:, fidnd[10]], mat11, peo[:, fidnd[11]], peo[:, persloc[:]])
+  # Adding the next loop doubles - triples the time per function evaluation: 0.08 seconds to 0.24 seconds for ≈ 150,000 rows.
+  for i = 1:size(vals,1)
+    for j in fidlocs
+      if vals[i,j] == 0
+        vals[i, j-1] = -99 # prevent missing facilities from being chosen by assigning them large negative utility.
+      end
+    end
+  end
+  return vals
 end
 
-# I DON'T want to call DetUtil inside this function - the whole point of DetUtil is to avoid Multiple calls to that.
-# test = DetUtil(pinsured, privatedemandmodelparameters)
+test = DetUtil(pinsured, privatedemandmodelparameters)
 
 # 0.221892 seconds (5.12 M allocations: 263.652 MB, 20.08% gc time)
 function ComputeWTP(utils::Matrix ; ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
-  output = zeros(size(utils, 1), size(fidlocs,1) )
+  output = zeros(size(utils))
   for i = 1:size(utils,1) # over rows of return type
-    utils[i, ulocs[:]] = exp(utils[i, ulocs[:]])
     interim = 0
-    for j in fidlocs
-      if utils[i,j] != 0 # the facility is not absent
-#        utils[i, j-1] = exp(utils[i,j-1])
-        interim += utils[i,j-1] # add the previous value
-      else
-        utils[i, j-1] = 0
+    for j in 1:size(utils,2)
+      if (j == 1)|(j == 2)
+        output[i,j] = utils[i,j] # be careful - I'll be this *doesn't* allocate a new array, just a set of pointers or something.
+      elseif j in fidlocs
+        output[i,j] = utils[i, j]
+        if utils[i,j] != 0 # the facility is not absent
+          output[i,j-1] = exp(utils[i,j-1])
+          interim += exp(utils[i,j-1]) # add the previous value
+        else
+          utils[i, j-1] = 0 # this has different output than DetUtil, so a 0 is fine.
+        end
       end
     end
-    utils[i,ulocs[:]] = utils[i, ulocs[:]]./interim
+    output[i,ulocs[:]] = output[i, ulocs[:]]./interim
   end
-  return utils
+  return output
 end # of ComputeWTP
+
+testWTP = ComputeWTP(test)
 
 # This is a tester - does the function ComputeWTP return a set of probabilities or not?
 # It does to that, to within floating point errors, basically.
@@ -60,12 +100,42 @@ function CheckWTP(peo::Matrix; params = privatedemandmodelparameters, ulocs = [3
   return checkvec[(checkvec.>1.0 + eps())|(checkvec.<1.0-eps())]
 end
 
-# Call this after DetUtil and ComputeWTP
-# test = DetUtil(pinsured, privatedemandmodelparameters)
-# tst_probs = ComputeWTP(test)
+testprobs = CheckWTP(pinsured)
+
 # Output of ComputeWTP is (Zip, DRG, ) ∪ (Utility, Hospital) × 12
 # DRGs = 385 386 387 388 389 390 391
 # IF instead I take JUST the unique zip code DRG sets, then I can get the time down from 7 seconds to 0.3-0.4 seconds.
+
+
+# This function tests whether some of the computed probs in ComputeWTP are 1 - this will create a problem in MapWTP as the valuation will be ∞
+
+function ChoiceCount(comp_wtp::Matrix; fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+  ones_f = Array{Float64,1}()
+  onechoice = Array{Float64,1}()
+  nochoice = Array{Float64,1}()
+  for i = 1:size(comp_wtp,1)
+      count = 0
+      for j in fidlocs
+        if comp_wtp[i,j] != 0
+          count += 1
+        end
+        if (comp_wtp[i,j-1] >= 1 - eps())&&(comp_wtp[i,j-1] <= 1+eps())
+          println("Found a 1 ", i, "  ", j-1)
+          push!(ones_f, i)
+        end
+      end
+      if count == 1
+        println("One Choice at ", i)
+        push!(onechoice, i)
+      elseif count == 0
+        println("Zero Choices at ", i)
+        push!(nochoice, i)
+      end
+  end
+  return count, onechoice, nochoice, ones_f
+end
+
+count_vals, onecn, noch, ones_f = ChoiceCount(testWTP)
 
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   # Creates the Output:
@@ -98,9 +168,29 @@ function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, 
   return output
 end # of MapWTP2
 
+mappedWTP = MapWTP(testWTP)
+
+
+# TODO: Some of these are returing Inf.  This must come from getting 1 as ComputeWTP ?  Then line 104 above gives Inf
+# If somehow you only have one actual choice, which should never happen, that might give you prob 1 of your choice.
+
 function ReturnWTP(mapped_wtp::Matrix)
   return vcat( mapped_wtp[1,4:end], sum( mapped_wtp[2:end, 4:end].*mapped_wtp[2:end,3] ,1))
 end
+
+sumWTP = ReturnWTP(mappedWTP)
+
+function CheckMaxWTP(wtp::Matrix)
+  for i = 1:size(wtp,2)
+    if wtp[2,i] == Inf
+      println("Inf Found ", wtp[1,i])
+      println(wtp[2,i])
+    end
+  end
+  return maximum(wtp[2,:]), minimum(wtp[2,:])
+end
+
+extremawtp = CheckMaxWTP(sumWTP)
 
 
 #=
