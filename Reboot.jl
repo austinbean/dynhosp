@@ -173,6 +173,14 @@ end # of "begin" block
 
 #
 # Test functions:
+println("Testing Demand")
+test = DetUtil(pinsured, privatedemandmodelparameters)
+println("Testing WTP Computation")
+testWTP = ComputeWTP(test)
+println("WTP Mapping")
+mappedWTP = MapWTP(testWTP)
+println("Check Return WTP")
+sumWTP = ReturnWTP(mappedWTP)
 print("Testing Simulator \n")
 a1 = Simulator(data, pinsured, privatedemandmodelparameters, pmedicaid, medicaiddemandmodelparameters, 2003, 48027 ; T = 1) #tests logitest, DemandModel, distance
 print("Testing PerturbSimulator \n")
