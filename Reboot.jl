@@ -173,7 +173,7 @@ end # of "begin" block
 
 #
 # Test functions:
-println("Locations")
+println("Locations - are they correct?")
 FindCorrect(pinsured)
 println("Testing Demand")
 test = DetUtil(pinsured, privatedemandmodelparameters)
