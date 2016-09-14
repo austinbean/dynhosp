@@ -173,6 +173,8 @@ end # of "begin" block
 
 #
 # Test functions:
+println("Locations")
+FindCorrect(pinsured)
 println("Testing Demand")
 test = DetUtil(pinsured, privatedemandmodelparameters)
 println("Testing WTP Computation")
