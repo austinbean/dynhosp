@@ -32,10 +32,11 @@ module ProjectModule
   include(pathprograms*"PerturbAction.jl")
   include(pathprograms*"ParallelFunctions.jl")
   include(pathprograms*"ParMainFun.jl")
+  include(pathprograms*"WTP.jl")
 
 
 
-  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue, ParMainfun
+  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue, ParMainfun, DetUtil, ComputeWTP, MapWTP, ReturnWTP, FindCorrect
   println("Loaded Module")
 end #end of module
 
