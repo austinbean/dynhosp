@@ -111,7 +111,14 @@ end
 
 
 
-function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2}; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ), persloc=[25,26], entsize = 6, entnum = convert(Int, size(entrants, 2)/entsize))
+function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Array{Float64, 2};
+                   dist_μ = 0,
+                   dist_σ = 1,
+                   dist_ξ = 0,
+                   d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ),
+                   persloc=[25,26],
+                   entsize = 6,
+                   entnum = convert(Int, size(entrants, 2)/entsize))
   siz = size(peo,1)
   rands = rand(d, siz, entnum)
   entvals = zeros(siz, entnum)
@@ -137,8 +144,6 @@ function EntrantsU(peo::Matrix, entrants::Array{Float64, 2}, modelparameters::Ar
   return outp  # note that due to the randomization, this will generally not return -999, but -999 + rand
 end
 
-# TODO: the problem now is that some zeros are being chosen.  Map to negative numbers?
-
 
 # Call DetUtil first, then this.
 function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2};
@@ -157,7 +162,6 @@ function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entra
 # Computed utilities + error
   rand_el = Array{Float64}(siz, 11)
   if size(entrants, 2) > 1
-  #  entfids = convert(Vector{Int64}, [entrants[x] for x in 1:entsize:size(entrants,2)])'
     entutil = EntrantsU(detutil, entrants, modelparameters)
     both = hcat(detutil[:,ulocs[:]] + rand!(d, rand_el), entutil[:,1])
     fids = hcat(detutil[:, fidlocs[:]], entutil[:,2])
@@ -166,9 +170,6 @@ function DemandModel2(detutil::Matrix, modelparameters::Array{Float64, 2}, entra
     outp = map((i,x)->fids[i,x], 1:siz, ind2sub((size(detutil,1),11 + 1), vec(inds) )[2] )
   else #  no entrants
       vals, inds = findmax(detutil[:,ulocs[:]] + rand!(d, rand_el), 2) # returns indices in the range [1, ..., 11]
-
-      ## TODO: Why am I not subtracting 1 here?  The indices returned above are not exactly right...
-      
       outp = map((i,x)->detutil[i,x], 1:siz, 2*(ind2sub((siz,11), vec(inds) )[2])+2 )
   end
 return hcat( detutil[:, ziploc], detutil[:, drgloc], outp)
