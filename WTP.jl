@@ -72,7 +72,6 @@ function FindCorrect(peo::Matrix; ziploc = 101, drgloc = 104, persloc = [ 107 10
     end
 end
 
-FindCorrect(pinsured)
 
 
 
@@ -103,7 +102,6 @@ function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 101, 
   return vals
 end
 
-test = DetUtil(pinsured, privatedemandmodelparameters)
 
 # 0.221892 seconds (5.12 M allocations: 263.652 MB, 20.08% gc time)
 function ComputeWTP(utils::Matrix ; ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
@@ -128,7 +126,6 @@ function ComputeWTP(utils::Matrix ; ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21,
   return output
 end # of ComputeWTP
 
-testWTP = ComputeWTP(test)
 
 # This is a tester - does the function ComputeWTP return a set of probabilities or not?
 # It does to that, to within floating point errors, basically.
@@ -139,7 +136,7 @@ function CheckWTP(peo::Matrix; params = privatedemandmodelparameters, ulocs = [3
   return checkvec[(checkvec.>1.0 + eps())|(checkvec.<1.0-eps())]
 end
 
-testprobs = CheckWTP(pinsured)
+#testprobs = CheckWTP(pinsured)
 
 # Output of ComputeWTP is (Zip, DRG, ) ∪ (Utility, Hospital) × 12
 # DRGs = 385 386 387 388 389 390 391
@@ -174,7 +171,7 @@ function ChoiceCount(comp_wtp::Matrix; fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 2
   return onechoice, nochoice, ones_f
 end
 
-onecn, noch, ones_f = ChoiceCount(testWTP)
+#onecn, noch, ones_f = ChoiceCount(testWTP)
 
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   # Creates the Output:
@@ -207,14 +204,12 @@ function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, 
   return output
 end # of MapWTP2
 
-mappedWTP = MapWTP(testWTP)
 
 
 function ReturnWTP(mapped_wtp::Matrix)
   return vcat( mapped_wtp[1,4:end], sum( mapped_wtp[2:end, 4:end].*mapped_wtp[2:end,3] ,1))
 end
 
-sumWTP = ReturnWTP(mappedWTP)
 
 function CheckMaxWTP(wtp::Matrix)
   for i = 1:size(wtp,2)
@@ -226,7 +221,7 @@ function CheckMaxWTP(wtp::Matrix)
   return maximum(wtp[2,:]), minimum(wtp[2,:])
 end
 
-extremawtp = CheckMaxWTP(sumWTP)
+#extremawtp = CheckMaxWTP(sumWTP)
 
 
 #=
