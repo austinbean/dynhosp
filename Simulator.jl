@@ -1,4 +1,42 @@
-function Simulator(data::Matrix, privatepeoplesub::Matrix, privatedemandmodelparameters::Array{Float64, 2}, medicaidpeoplesub::Matrix, medicaiddemandmodelparameters::Array{Float64, 2}, year::Int64, mkt_fips::Int64; T = 100, sim_start = 2, fields = 8, neighbors_start = 108, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002], fipscodeloc = 78, yearloc = 75, level1_hospitals0loc = 11, fidloc = 74, level2solo_hospitals0loc = 10, level3_hospitals0loc = 9, act_intloc = 79, act_sololoc = 80, lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107, v15loc = 94, v16loc = 95, idloc = 1, facilityloc = 82, locationloc = 88, firstyearloc = 91, cityloc = 85,  TotalBeds2loc = 20, TotalBeds1loc = 4)
+function Simulator(data::Matrix,
+                   privatepeoplesub::Matrix,
+                   privatedemandmodelparameters::Array{Float64, 2},
+                   medicaidpeoplesub::Matrix,
+                   medicaiddemandmodelparameters::Array{Float64, 2},
+                   year::Int64,
+                   mkt_fips::Int64;
+                   T = 100,
+                   sim_start = 2,
+                   fields = 8,
+                   neighbors_start = 108,
+                   entrants = [0, 1, 2, 3],
+                   entryprobs = [0.9895, 0.008, 0.0005, 0.002],
+                   fipscodeloc = 78,
+                   yearloc = 75,
+                   level1_hospitals0loc = 11,
+                   fidloc = 74,
+                   level2solo_hospitals0loc = 10,
+                   level3_hospitals0loc = 9,
+                   act_intloc = 79,
+                   act_sololoc = 80,
+                   lev105loc = 97,
+                   lev205loc = 98,
+                   lev305loc = 99,
+                   lev1515loc = 101,
+                   lev2515loc = 102,
+                   lev3515loc = 103,
+                   lev11525loc = 105,
+                   lev21525loc = 106,
+                   lev31525loc = 107,
+                   v15loc = 94,
+                   v16loc = 95,
+                   idloc = 1,
+                   facilityloc = 82,
+                   locationloc = 88,
+                   firstyearloc = 91,
+                   cityloc = 85,
+                   TotalBeds2loc = 20,
+                   TotalBeds1loc = 4)
   marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB) entryprobs = [0.9895, 0.008, 0.0005, 0.002]
   level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
   level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
@@ -29,8 +67,13 @@ function Simulator(data::Matrix, privatepeoplesub::Matrix, privatedemandmodelpar
   medicaidpeoplesub =rowchange(state_history[1,:], fids, medicaidpeoplesub)
   #DemandModel(people::DataFrame, frname::ASCIIString, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}; maxfid = 11, ent_length = 6 )
   emp_arr = Array{Float64, 2}()
-  privaterealized_d = countmap(DemandModel(privatepeoplesub, privatedemandmodelparameters, emp_arr)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
-  medicaidrealized_d = countmap(DemandModel(medicaidpeoplesub, medicaiddemandmodelparameters, emp_arr))
+  private_dem = DetUtil(privatepeoplesub, privatedemandmodelparameters)
+  medicaid_dem = DetUtil(medicaidpeoplesub ,medicaiddemandmodelparameters)
+# TODO: countmap isn't quite right - it's counting BY DRG type right now.  I only want to count by fid.
+
+# TODO: No - that is wrong.  I DO want the count by patient type as well.  
+  privaterealized_d = countmap(DemandModel(private_dem, privatedemandmodelparameters, emp_arr, false)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
+  medicaidrealized_d = countmap(DemandModel(medicaid_dem, medicaiddemandmodelparameters, emp_arr, false))
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     privatedemand_re =  try

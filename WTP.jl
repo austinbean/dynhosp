@@ -173,7 +173,12 @@ end
 
 #onecn, noch, ones_f = ChoiceCount(testWTP)
 
-function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = DRGs, ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+TXzps = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false)
+TXzips = convert(Vector, TXzps[:x1])
+txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
+allfids = convert(Vector, txfd[:fid])
+
+function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = [385 386 387 388 389 390 391], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   # Creates the Output:
   # This block takes kind of a long time: 0.028215 seconds (132.51 k allocations: 39.350 MB, 18.91% gc time)
   output = zeros( size(zipcodes,1)*size(drg,2)+1, size(fids, 1)+3)
@@ -222,6 +227,10 @@ function CheckMaxWTP(wtp::Matrix)
 end
 
 #extremawtp = CheckMaxWTP(sumWTP)
+
+
+
+
 
 
 #=

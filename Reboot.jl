@@ -164,7 +164,8 @@ begin
     global const fidloc = 74; # Also for hospital data, here as "data"
     global const idloc = 1; # Also for Hospital data, here as "data"
     # Collect FIDs
-    allfids = sort(unique(data[:,74]))
+    txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
+    allfids = convert(Vector, txfd[:fid])
 
   #  global const nsims = 500;
   #  global const dirs = pwd() # present working directory path
