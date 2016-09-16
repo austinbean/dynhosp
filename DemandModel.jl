@@ -155,8 +155,6 @@ function DemandModel(detutil::Matrix, modelparameters::Array{Float64, 2}, entran
   end
 end # of DemandModel
 
-
-
 #=
 # This next loop will list the column index of the relevant parameters in order.
 for i = 1:11
