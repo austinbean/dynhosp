@@ -194,7 +194,7 @@ print("Testing PerturbSimulator \n")
 print("Testing logitest \n")
 logitest( (1, 0), 2, 3, 1, zeros(9))
 print("Testing DemandModel \n")
-DemandModel(pinsured, privatedemandmodelparameters, [99999 1 0 120 32.96  -96.8385]) #implicitly tests EntrantsU as well
+DemandModel(pinsured, privatedemandmodelparameters, [99999 1 0 120 32.96  -96.8385], true) #implicitly tests EntrantsU as well
 print("Testing DynamicValue \n")
 DynamicValue(b1, b1[1,1])
 
