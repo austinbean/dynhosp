@@ -178,6 +178,9 @@ TXzips = convert(Vector, TXzps[:x1])
 txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
 allfids = convert(Vector, txfd[:fid])
 
+# TODO: this is not doing exactly what I want it to, I think.  Check TX WTP Creator.do for discussion.  But there is reason to be concerned.
+
+
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = [385 386 387 388 389 390 391], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   # Creates the Output:
   # This block takes kind of a long time: 0.028215 seconds (132.51 k allocations: 39.350 MB, 18.91% gc time)
@@ -229,7 +232,8 @@ end
 #extremawtp = CheckMaxWTP(sumWTP)
 
 
-
+WTPvals = DataFrames.readtable(pathprograms*"WTPTemplate.csv", header = true)
+WTPvals = convert(Matrix, WTPvals)
 
 
 
