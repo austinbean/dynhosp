@@ -181,27 +181,28 @@ txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
 allfids = convert(Vector, txfd[:fid])
 
 
-# Record format:
-# :fid1
- :NeoIntensive1
- :SoloIntermediate1
- :distance1
- :hosplat1
- :hosplong1
- :distsq1
- :closest1
- :distbed1
- privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
-ch1 =  [6 9 4 5 10 11]
-ch2 = [15 18 13 14 19 20]
-ch3 = [24 27 22 23 28 29]
-ch4 = [33 36 31 32 37 38]
-ch5 = [42 45 40 41 46 47]
-ch6 = [51 54 49 50 55 56]
-ch7 = [60 63 58 59 64 65]
-ch8 = [69 72 67 68 73 74]
-ch9 = [78 81 76 77 82 83]
-ch10 = [87 90 85 86 91 92]
+function DemandCounter(peo::Array{Float64, 2}; fids = allfids, drg = [385 386 387 388 389 390 391])
+  output = vcat( fids', zeros(7, size(fids,1)))
+  dim1, dim2 = size(output) #rows, columns
+  println(dim1, "   ", dim2)
+  for i = 1:size(peo,1)
+    col = findfirst(output[1,:], peo[i, 3]) # this will be slow
+    if (col > dim2)||(col == 0)
+      println(i, "    ", col, "   ", peo[i,3])
+    end
+    rr = convert(Int, peo[i, 2] - 383) # rows are ordered: fid, 385, 386, ..., 391
+    if rr > dim1
+      println(rr, "   ", peo[i, 2])
+    end
+    if (col != 0) && rr <= 8
+      output[rr, col] += 1
+    end
+  end
+  return output
+end
+
+
+# This function takes a solid 0.4 seconds, which is a lot.
 
 function EasyWTP(zipdrg::Matrix, modelparameters::Array{Float64,2};
                  fids = allfids,
@@ -215,17 +216,36 @@ function EasyWTP(zipdrg::Matrix, modelparameters::Array{Float64,2};
                  ch7 = [60 63 58 59 64 65],
                  ch8 = [69 72 67 68 73 74],
                  ch9 = [78 81 76 77 82 83],
-                 ch10 = [87 90 85 86 91 92])
-  wtp1 = zipdrg[:, ch1[:]]*modelparameters'
-  wtp2 = zipdrg[:, ch2[:]]*modelparameters'
-  wtp3 = zipdrg[:, ch3[:]]*modelparameters'
-  wtp4 = zipdrg[:, ch4[:]]*modelparameters'
-  wtp5 = zipdrg[:, ch5[:]]*modelparameters'
-  wtp6 = zipdrg[:, ch6[:]]*modelparameters'
-  wtp7 = zipdrg[:, ch7[:]]*modelparameters'
-  wtp8 = zipdrg[:, ch8[:]]*modelparameters'
-  wtp9 = zipdrg[:, ch9[:]]*modelparameters'
-  wtp10 = zipdrg[:, ch10[:]]*modelparameters'
+                 ch10 = [87 90 85 86 91 92],
+                 fidls = [3 12 21 30 39 48 57 66 75 84],
+                 its = zip(collect(1:10), collect(fidls)))
+  outp = zeros(size(zipdrg,1), 10)
+  outp[:, 1] = exp(zipdrg[:, ch1[:]]*modelparameters')
+  outp[:, 2] = exp(zipdrg[:, ch2[:]]*modelparameters')
+  outp[:, 3] = exp(zipdrg[:, ch3[:]]*modelparameters')
+  outp[:, 4] = exp(zipdrg[:, ch4[:]]*modelparameters')
+  outp[:, 5] = exp(zipdrg[:, ch5[:]]*modelparameters')
+  outp[:, 6] = exp(zipdrg[:, ch6[:]]*modelparameters')
+  outp[:, 7] = exp(zipdrg[:, ch7[:]]*modelparameters')
+  outp[:, 8] = exp(zipdrg[:, ch8[:]]*modelparameters')
+  outp[:, 9] = exp(zipdrg[:, ch9[:]]*modelparameters')
+  outp[:, 10] = exp(zipdrg[:, ch10[:]]*modelparameters')
+  for i = 1:size(zipdrg,1)
+    interim = 0
+    for j in its # this will iterate over pairs
+      if zipdrg[i,j[2]] != 0
+        interim += outp[i,j[1]]
+      elseif zipdrg[i,j[2]] == 0
+        outp[i,j[1]] = 0
+      end
+    end
+    outp[i,:] = outp[i,:]/interim
+  end
+  return hcat(zipdrg[:,1], zipdrg[:,2], outp)
+end
+
+function VarMapWTP(mapped::Matrix; fids = allfids)
+  outp = vcat(fids', zeros(5, size(fids,1)))
 
 end
 
