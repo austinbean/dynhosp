@@ -103,6 +103,8 @@ function DetUtil(peo::Matrix, modelparameters::Array{Float64, 2}; ziploc = 101, 
 end
 
 
+
+
 # 0.221892 seconds (5.12 M allocations: 263.652 MB, 20.08% gc time)
 function ComputeWTP(utils::Matrix ; ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
   output = zeros(size(utils))
@@ -178,7 +180,62 @@ TXzips = convert(Vector, TXzps[:x1])
 txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
 allfids = convert(Vector, txfd[:fid])
 
+
+# Record format:
+# :fid1
+ :NeoIntensive1
+ :SoloIntermediate1
+ :distance1
+ :hosplat1
+ :hosplong1
+ :distsq1
+ :closest1
+ :distbed1
+ privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
+ch1 =  [6 9 4 5 10 11]
+ch2 = [15 18 13 14 19 20]
+ch3 = [24 27 22 23 28 29]
+ch4 = [33 36 31 32 37 38]
+ch5 = [42 45 40 41 46 47]
+ch6 = [51 54 49 50 55 56]
+ch7 = [60 63 58 59 64 65]
+ch8 = [69 72 67 68 73 74]
+ch9 = [78 81 76 77 82 83]
+ch10 = [87 90 85 86 91 92]
+
+function EasyWTP(zipdrg::Matrix, modelparameters::Array{Float64,2};
+                 fids = allfids,
+                 drg = [385 386 387 388 389 390 391],
+                 ch1 =  [6 9 4 5 10 11],
+                 ch2 = [15 18 13 14 19 20],
+                 ch3 = [24 27 22 23 28 29],
+                 ch4 = [33 36 31 32 37 38],
+                 ch5 = [42 45 40 41 46 47],
+                 ch6 = [51 54 49 50 55 56],
+                 ch7 = [60 63 58 59 64 65],
+                 ch8 = [69 72 67 68 73 74],
+                 ch9 = [78 81 76 77 82 83],
+                 ch10 = [87 90 85 86 91 92])
+  wtp1 = zipdrg[:, ch1[:]]*modelparameters'
+  wtp2 = zipdrg[:, ch2[:]]*modelparameters'
+  wtp3 = zipdrg[:, ch3[:]]*modelparameters'
+  wtp4 = zipdrg[:, ch4[:]]*modelparameters'
+  wtp5 = zipdrg[:, ch5[:]]*modelparameters'
+  wtp6 = zipdrg[:, ch6[:]]*modelparameters'
+  wtp7 = zipdrg[:, ch7[:]]*modelparameters'
+  wtp8 = zipdrg[:, ch8[:]]*modelparameters'
+  wtp9 = zipdrg[:, ch9[:]]*modelparameters'
+  wtp10 = zipdrg[:, ch10[:]]*modelparameters'
+
+end
+
+
+
+
 # TODO: this is not doing exactly what I want it to, I think.  Check TX WTP Creator.do for discussion.  But there is reason to be concerned.
+# The issue is that this sums over all of the WTP's, which is not what I want - or maybe it is but I want to be able to treat them separately at first.
+# What do I want to do?  Do this by DRG.  That should remain constant over time.  But I only need one per type
+
 
 
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = [385 386 387 388 389 390 391], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
