@@ -180,20 +180,12 @@ TXzips = convert(Vector, TXzps[:x1])
 txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
 allfids = convert(Vector, txfd[:fid])
 
-
+# takes 0.25 seconds pretty robustly
 function DemandCounter(peo::Array{Float64, 2}; fids = allfids, drg = [385 386 387 388 389 390 391])
   output = vcat( fids', zeros(7, size(fids,1)))
-  dim1, dim2 = size(output) #rows, columns
-  println(dim1, "   ", dim2)
   for i = 1:size(peo,1)
     col = findfirst(output[1,:], peo[i, 3]) # this will be slow
-    if (col > dim2)||(col == 0)
-      println(i, "    ", col, "   ", peo[i,3])
-    end
     rr = convert(Int, peo[i, 2] - 383) # rows are ordered: fid, 385, 386, ..., 391
-    if rr > dim1
-      println(rr, "   ", peo[i, 2])
-    end
     if (col != 0) && rr <= 8
       output[rr, col] += 1
     end
