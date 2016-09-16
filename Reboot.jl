@@ -167,6 +167,9 @@ begin
     txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
     allfids = convert(Vector, txfd[:fid])
 
+    # WTP values -
+    txwp = DataFrames.readtable(pathprograms*"WTPTemplate.csv", header = true)
+    WTP = convert(Matrix, txwp)
   #  global const nsims = 500;
   #  global const dirs = pwd() # present working directory path
 end # of "begin" block
