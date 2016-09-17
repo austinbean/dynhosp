@@ -182,7 +182,7 @@ allfids = convert(Vector, txfd[:fid])
 
 # takes 0.25 seconds pretty robustly
 # TODO: Something is weird - there are fids in this list which don't appear in the stata file at all?  How is that possible?
-function DemandCounter(peo::Array{Float64, 2}; fids = allfids, drg = [385 386 387 388 389 390 391])
+function DemandCounter(peo::Matrix; fids = allfids, drg = [385 386 387 388 389 390 391])
   output = vcat( fids', zeros(7, size(fids,1)))
   for i = 1:size(peo,1)
     col = findfirst(output[1,:], peo[i, 3]) # this will be slow
@@ -243,12 +243,7 @@ function VarMapWTP(mapped::Matrix; fids = allfids)
 end
 
 
-
-
-# TODO: this is not doing exactly what I want it to, I think.  Check TX WTP Creator.do for discussion.  But there is reason to be concerned.
-# The issue is that this sums over all of the WTP's, which is not what I want - or maybe it is but I want to be able to treat them separately at first.
-# What do I want to do?  Do this by DRG.  That should remain constant over time.  But I only need one per type
-
+# TODO: this is apparently not working as intended - many of the fids are mapped to columns of zeros.  
 
 
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = [385 386 387 388 389 390 391], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
@@ -284,8 +279,12 @@ end # of MapWTP2
 
 
 
-function ReturnWTP(mapped_wtp::Matrix)
-  return vcat( mapped_wtp[1,4:end], sum( mapped_wtp[2:end, 4:end].*mapped_wtp[2:end,3] ,1))
+function ReturnWTP(mapped_wtp::Matrix; fids = allfids, siz = size(mapped_wtp, 1))
+  out = vcat(allfids', zeros(7, size(allfids, 1)) )
+  for j = 2:8
+    out[j, :] = sum(mapped_wtp[j:7:end, 4:end], 1)
+  end
+  return out
 end
 
 
