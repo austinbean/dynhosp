@@ -36,7 +36,7 @@ module ProjectModule
 
 
 
-  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue, ParMainfun, DetUtil, ComputeWTP, MapWTP, ReturnWTP, FindCorrect, DemandCounter
+  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue, ParMainfun, DetUtil, ComputeWTP, ReturnWTP, FindCorrect, DemandCounter, MapWTP, MapCheck, MapIndividualCheck         
   println("Loaded Module")
 end #end of module
 
