@@ -69,9 +69,7 @@ function Simulator(data::Matrix,
   emp_arr = Array{Float64, 2}()
   private_dem = DetUtil(privatepeoplesub, privatedemandmodelparameters)
   medicaid_dem = DetUtil(medicaidpeoplesub ,medicaiddemandmodelparameters)
-# TODO: countmap isn't quite right - it's counting BY DRG type right now.  I only want to count by fid.
-
-# TODO: No - that is wrong.  I DO want the count by patient type as well.  
+# TODO: Now can replace this with DemandCounter
   privaterealized_d = countmap(DemandModel(private_dem, privatedemandmodelparameters, emp_arr, false)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
   medicaidrealized_d = countmap(DemandModel(medicaid_dem, medicaiddemandmodelparameters, emp_arr, false))
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
