@@ -181,6 +181,7 @@ txfd = DataFrames.readtable(pathprograms*"TXfidsonly.csv", header = true)
 allfids = convert(Vector, txfd[:fid])
 
 # takes 0.25 seconds pretty robustly
+# TODO: Something is weird - there are fids in this list which don't appear in the stata file at all?  How is that possible?
 function DemandCounter(peo::Array{Float64, 2}; fids = allfids, drg = [385 386 387 388 389 390 391])
   output = vcat( fids', zeros(7, size(fids,1)))
   for i = 1:size(peo,1)
