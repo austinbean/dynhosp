@@ -122,7 +122,7 @@ end
 
 
 # Call DetUtil first, then this.
-function DemandModel(detutil::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2}, variety::Bool;
+function DemandModel(detutil::Matrix, modelparameters::Array{Float64, 2}, entrants::Array{Float64, 2};
                       dist_μ = 0,
                       dist_σ = 1,
                       dist_ξ = 0,
@@ -148,11 +148,7 @@ function DemandModel(detutil::Matrix, modelparameters::Array{Float64, 2}, entran
       vals, inds = findmax(detutil[:,ulocs[:]] + rand!(d, rand_el), 2) # returns indices in the range [1, ..., 11]
       outp = map((i,x)->detutil[i,x], 1:siz, 2*(ind2sub((siz,11), vec(inds) )[2])+2 )
   end
-  if variety
     return hcat( detutil[:, ziploc], detutil[:, drgloc], outp)
-  else
-    return hcat(detutil[:, ziploc], outp)
-  end
 end # of DemandModel
 
 #=
