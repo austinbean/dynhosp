@@ -243,7 +243,6 @@ function VarMapWTP(mapped::Matrix; fids = allfids)
 end
 
 
-# TODO: this is apparently not working as intended - many of the fids are mapped to columns of zeros.  
 
 
 function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, fids = allfids, drg = [385 386 387 388 389 390 391], ulocs = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23], fidlocs = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
@@ -257,26 +256,61 @@ function MapWTP(comp_wtp::Matrix ; pziploc = 1, pdrgloc = 2, zipcodes = TXzips, 
     for j =1:size(drg, 2)
       output[7*(i-1)+j+1, 1] = zipcodes[i] # first column is zip
       output[7*(i-1)+j+1, 2] = drg[j] # second column is drg.
-      # third column reports whether found or not.
+      # third column reports patient count.
     end
   end
   # Map the comp_wtp to the matrix of values
   for i = 1:size(comp_wtp,1)
     st = findfirst(output[:,1], comp_wtp[i, pziploc]) # find first occurrence of zipcode
+    if st == 0
+      println("Zip Not Found", comp_wtp[i, pziploc]) # this never happens.
+    end
     j = convert(Int, comp_wtp[i, pdrgloc]-385) # this is always the same
     if output[st+j, 3] == 0 # not found before
       for k in fidlocs # indexes columns containing fids
         hos = findfirst(output[1,3:end], comp_wtp[i,k]) #find the fid in the first row of output
         if hos > 0
-          output[st+j, k] += log(1/(1-comp_wtp[i, k-1]))
+          output[st+j, hos] += log(1/(1-comp_wtp[i, k-1]))
         end
       end
+    else
+  #    println( sum(output[st+j, ulocs[:]]))
     end
-    output[st+j, 3] += 1
+    output[st+j, 3] += 1 # The count here in the output seems to be right.
   end
   return output
-end # of MapWTP2
+end # of MapWTP
 
+
+function MapCheck(mappedwtp::Matrix)
+  zercnt = 0
+  for i = 4:size(mappedwtp,2)
+    interim = sum(mappedwtp[2:end,i])
+    if interim == 0
+      zercnt += 1
+    end
+  end
+  return zercnt
+end
+
+function MapIndividualCheck(mappedwtp::Matrix; fids = allfids)
+  outp = zeros(3, size(allfids, 1))
+  for j = 4:size(mappedwtp,2) #indexes columns
+    outp[1,j-3] = mappedwtp[1,j]
+    zer = 0
+    nzer = 0
+    for i = 1:size(mappedwtp,1)
+      if mappedwtp[i,j] == 0
+        zer += 1
+      else
+        nzer += 1
+      end
+    end
+     outp[2,j-3] = zer
+     outp[3, j-3] = nzer
+  end
+  return outp
+end
 
 
 function ReturnWTP(mapped_wtp::Matrix; fids = allfids, siz = size(mapped_wtp, 1))
