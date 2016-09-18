@@ -236,12 +236,12 @@ function EasyWTP(zipdrg::Matrix, modelparameters::Array{Float64,2};
   end
   return hcat(zipdrg[:,1], zipdrg[:,2], outp)
 end
-
-function VarMapWTP(mapped::Matrix; fids = allfids)
-  outp = vcat(fids', zeros(5, size(fids,1)))
-
-end
-
+#
+# function VarMapWTP(mapped::Matrix; fids = allfids)
+#   outp = vcat(fids', zeros(5, size(fids,1)))
+#
+# end
+#
 
 
 
@@ -334,9 +334,9 @@ end
 
 #extremawtp = CheckMaxWTP(sumWTP)
 
-
-WTPvals = DataFrames.readtable(pathprograms*"WTPTemplate.csv", header = true)
-WTPvals = convert(Matrix, WTPvals)
+# 
+# WTPvals = DataFrames.readtable(pathprograms*"WTPTemplate.csv", header = true)
+# WTPvals = convert(Matrix, WTPvals)
 
 
 
