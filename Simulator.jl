@@ -37,6 +37,9 @@ function Simulator(data::Matrix,
                    cityloc = 85,
                    TotalBeds2loc = 20,
                    TotalBeds1loc = 4)
+
+                   # TODO: this next section could potentially be put inside that loop below, if I want to do all at once
+                   # Think about how that works.
   marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB) entryprobs = [0.9895, 0.008, 0.0005, 0.002]
   level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
   level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
@@ -44,9 +47,13 @@ function Simulator(data::Matrix,
   fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # 0.006925 seconds 4.06 k allocations: 208.760 KB - slow.
   state_history = zeros(T+1, fields*size(fids,1)+4) #  0.000060 seconds (9 allocations: 58.688 KB)
   state_history[1,end-3] = 1 # set probability of initial outcome at 1
+                  # TODO: End that here - but something would have to be done with this "end" numbering
   # Writes the values to the first row of the state history
   for n in 1:size(fids,1)
     el = fids[n]
+
+    # TODO: can compute market size for each fid at this point.
+
     a = ((data[:,fidloc].==el)&marketyear) # 0.000446 seconds (6.93 k allocations: 168.484 KB)
     state_history[1, (n-1)*fields+1] = el # Change
     state_history[1, (n-1)*fields+2] = data[a,act_intloc][1] # 0.000020 seconds (7 allocations: 336 bytes)
@@ -57,11 +64,14 @@ function Simulator(data::Matrix,
     #state_history[1, (n-1)*fields + 7] = MEDICAID #  demand is not recorded here - recorded below
     # state_history[1, (n-1)*fields + 8] = 0 #record the perturbation 0/1 - always 0 in equilibrium simulation.
   end
+  # TODO: this section in the loop above - do by market
   # Record aggregte initial values
   state_history[1, size(fids,1)*fields+1] = level1 ; # 0.000006 seconds (4 allocations: 160 bytes)
   state_history[1, size(fids,1)*fields+2] = level2 ;
   state_history[1, size(fids,1)*fields+3] = level3 ;
   state_history[1, size(fids,1)*fields+4] = 1; # initial probability.
+  # TODO: Put in the loop above.
+
   # Compute initial demand here:
   privatepeoplesub =rowchange(state_history[1,:], fids, privatepeoplesub) # fast - see DemandModel.jl. 10 fids: 0.148658 seconds (2.17 M allocations: 88.855 MB).  Probably improvable.
   medicaidpeoplesub =rowchange(state_history[1,:], fids, medicaidpeoplesub)
@@ -69,9 +79,12 @@ function Simulator(data::Matrix,
   emp_arr = Array{Float64, 2}()
   private_dem = DetUtil(privatepeoplesub, privatedemandmodelparameters)
   medicaid_dem = DetUtil(medicaidpeoplesub ,medicaiddemandmodelparameters)
-# TODO: Now can replace this with DemandCounter
-  privaterealized_d = countmap(DemandModel(private_dem, privatedemandmodelparameters, emp_arr, false)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
-  medicaidrealized_d = countmap(DemandModel(medicaid_dem, medicaiddemandmodelparameters, emp_arr, false))
+  privaterealized_d = DemandCounter(DemandModel(private_dem, privatedemandmodelparameters, emp_arr)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
+  medicaidrealized_d = DemandCounter(DemandModel(medicaid_dem, medicaiddemandmodelparameters, emp_arr))
+#TODO: Compute Initial Willingness To Pay here -
+  init_wtp = ReturnWTP(ComputeWTP(MapWTP(private_dem))) # This takes a solid 7 seconds, all of which is in MapWTP
+
+  # TODO: This is no longer in dictionary form.
   for fid_i in 1:fields:size(state_history[1,:])[2]-4
     fid = state_history[1,fid_i]
     privatedemand_re =  try
@@ -95,11 +108,16 @@ function Simulator(data::Matrix,
     end
     state_history[1,fid_i+6] = medicaiddemand_re #CHECK INDEX
   end # Whole block: 0.003834 seconds (3.86 k allocations: 148.006 KB)
+#TODO: Fix demand mapping above - not a dictionary anymore.
+
+
   # Start simulation here:
   total_entrants = Array{Float64, 2}() # define outside the loop, only for the first round.
   for i = sim_start:T+1
-    marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # 0.000962 seconds (13.85 k allocations: 335.766 KB)
+    #TODO: Perhaps this can be done every time?  Put in the loop below over fids.
+      marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # 0.000962 seconds (13.85 k allocations: 335.766 KB)
       fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # needs to be updated each round to catch entrants
+    #TODO: End of that which can be put below.
         for fid in 1:size(fids,1) # this has to be handled separately for each hospital, due to the geography issue
           el = fids[fid] # takes the fid
           a = ((data[:,fidloc].==el)&marketyear)
@@ -243,6 +261,8 @@ function Simulator(data::Matrix,
         end # The whole block above took (for 10 facilities) 0.084701 seconds (125.78 k allocations: 4.188 MB)
         # Measure distances to neighbors
         #### Speed up opportunity.
+    # TODO: This whole thing should be rethought -
+    # TODO: The only thing that changes period-to-period are entrants, exiters, and level changers.
         for f in fids # 0.159000 seconds (82.68 k allocations: 23.804 MB) - for 10 fids.  This can be sped up.
           hospmktyear = (data[ :,fidloc].==f)&marketyear # 0.000447 seconds (6.93 k allocations: 168.531 KB)
           own_fac = (data[hospmktyear, act_sololoc][1], data[hospmktyear, act_intloc][1])
@@ -320,7 +340,7 @@ function Simulator(data::Matrix,
           newrow[v16loc] = ent_lon
           # Take the size as the mean bed number from neighboring hospitals.  There is no field for this in dataf, unfortunately.
           # Just compute the mean over all beds in the state?  This needs to be fixed later.
-# THIS IS WRONG
+          # THIS IS WRONG
           entrantbeds = convert(Int, floor(mean( unique(unique(privatepeoplesub[ privatepeoplesub[:,TotalBeds1loc].>0 ,TotalBeds1loc])) ))) # 0.000021 seconds (28 allocations: 1.406 KB)
           # This part IS necessary
           if newentrant == 1
@@ -382,7 +402,7 @@ function Simulator(data::Matrix,
                 elseif entrant_state == (0,1)
                   newrow[lev305loc]+=1
                 else
-    #              println("Bad facility in Entrant 1")
+                  #              println("Bad facility in Entrant 1")
                 end
               elseif (td > 5) & (td < 15)
                 if entrant_state == (0,0)
@@ -392,7 +412,7 @@ function Simulator(data::Matrix,
                 elseif entrant_state == (0,1)
                   newrow[lev3515loc]+=1
                 else
-      #            println("Bad facility in Entrant 2")
+                  #            println("Bad facility in Entrant 2")
                 end
               elseif (td > 15) & (td < 25)
                 if entrant_state == (0,0)
@@ -402,10 +422,10 @@ function Simulator(data::Matrix,
                 elseif entrant_state == (0,1)
                   newrow[lev31525loc]+=1
                 else
-      #            println("Bad facility in Entrant 3")
+                  #            println("Bad facility in Entrant 3")
                 end
               else
-      #          println("Bad distance measured from entrant")
+                #          println("Bad distance measured from entrant")
               end
             end
           end
@@ -420,9 +440,9 @@ function Simulator(data::Matrix,
           # OLD:  vcat(hcat(state_history[1:i,1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i, 1), state_history[1:i, end-3:end]), zeros((T-i+1), size(fids,1)*fields+4 ))
           # Want: vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), (size(fids,1)+1)*fields+4) ))
           state_history = vcat( hcat(state_history[1:i-1, 1:end-4], repmat([newrow[fidloc][1] 999 999 1 0 0 0 0], i-1, 1), state_history[1:i-1,end-3:end]), hcat(state_history[i,1:end-4], [newrow[fidloc] newrow[act_sololoc] newrow[act_intloc] entrantout[2] 0 0 0 0], state_history[i, end-3:end]) ,zeros((T-i+1), size(fids,1)*fields+4) ) # 0.000126 seconds (80 allocations: 132.234 KB) ??
-# The above is super inefficient. Can we allocate a new matrix and set certain elements equal to the old ones?
+          # The above is super inefficient. Can we allocate a new matrix and set certain elements equal to the old ones?
 
-        end
+        end # of the entrants section.
         # Aggregate Probability of Action:
       tprob = 1
 #      print("Part 4", "\n")
@@ -444,6 +464,7 @@ function Simulator(data::Matrix,
           tprob = tprob*entryprobs[4]
         end
       # Sum the levels for next period:
+    #TODO: This has to change - this needs to be done by fid, potentially.
       level1 = 0; level2 = 0; level3 = 0;
       update_mkt = state_history[i, 1:fields:end-4]
       total = maximum(size(update_mkt))
@@ -462,10 +483,15 @@ function Simulator(data::Matrix,
       - At the end call DemandModel(people::DataFrame, modelparameters::Array{Float64, 2}) on the result.
       - Obtain demand and map it into state_history
       =#
+      # TODO: check that the WTP calculation gets the change in facilities right.  Where are levels read?  Does DetUtil change?  It looks like it's ok but check.
       privatepeoplesub =rowchange(state_history[i-1,:], fids, privatepeoplesub) # fast - see DemandModel.jl. 10 fids: 0.148658 seconds (2.17 M allocations: 88.855 MB).  Probably improvable.
       medicaidpeoplesub =rowchange(state_history[i-1,:], fids, medicaidpeoplesub)
-      privaterealized_d = countmap(DemandModel(privatepeoplesub, privatedemandmodelparameters, total_entrants)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
-      medicaidrealized_d = countmap(DemandModel(medicaidpeoplesub, medicaiddemandmodelparameters, total_entrants))
+      # TODO: rewrite in line with the above:
+      private_dem = DetUtil(privatepeoplesub, privatedemandmodelparameters)
+      medicaid_dem = DetUtil(medicaidpeoplesub ,medicaiddemandmodelparameters)
+      privaterealized_d = DemandCounter(DemandModel(private_dem, privatedemandmodelparameters, entrants)) # maps chosen hospitals to counts.  Speed not great: 0.632453 seconds (757.94 k allocations: 347.089 MB, 36.85% gc time) / 10 hospitals.
+      medicaidrealized_d = DemandCounter(DemandModel(medicaid_dem, medicaiddemandmodelparameters, entrants))
+      # TODO: Fix the fact that this is not working with a dictionary anymore.
       for fid_i in 1:fields:size(state_history[i,:])[2]-4
         fid = state_history[i,fid_i]
         privatedemand_re =  try
@@ -489,10 +515,12 @@ function Simulator(data::Matrix,
         end
         state_history[i,fid_i+6] = medicaiddemand_re #CHECK INDEX
       end
+# TODO: end dictionary mapping fix.
+
 #      print("Part 5 \n")
       #  println("computing aggregate transition probability")
       state_history[i, (size(fids)[1])*fields+4] = state_history[i-1, (size(fids)[1])*fields+4]*tprob  #prob of ending up at previous state * current transition prob
-
+# TODO: This has to be done by market, potentially.
       # Total number of firms
       state_history[i, (size(fids)[1])*fields+1] = level1 ;
       state_history[i, (size(fids)[1])*fields+2] = level2 ;
