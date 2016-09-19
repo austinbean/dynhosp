@@ -179,8 +179,30 @@ function MktSize(n::neighbors, variety::Int)
     return n.lev305 + n.lev3515 + n.lev31525
   else
     return n.lev105 + n.lev1515 + n.lev11525 + n.lev205 + n.lev2515 + n.lev21525 + n.lev305 + n.lev3515 + n.lev31525
-  end 
+  end
 end
+
+# When the facility level changes, the choices need to change too.
+function ChoicesAvailable(h::hospital)
+  if h.level == 1
+    return [10 1 2 11]
+  elseif h.level == 2
+    return [10    11]
+  elseif h.level == 3
+    return [10    11]
+  else # exited?
+
+  end
+
+end
+
+
+for el in Texas.ms
+  for elm in el.config
+    println( sample([10 2 1 11], elm.chprobability))
+  end
+end
+
 
 #=
 
