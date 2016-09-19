@@ -181,6 +181,9 @@ function MarketPrint(mkt::Market)
   for el in mkt.config
     println(el.name)
   end
+  for el in mkt.collection
+    println(el)
+  end
 end
 
 function NeighborsPrint(mkt::Market)
@@ -307,8 +310,8 @@ end
 
 function NeighborRemove(elm::hospital, entrant::hospital)
   #=
-  takes two hospital records, computes the distance between them and adds a 1 to the relevant record in the neighborhood type.
-   And appends it to the hood of elm, which is a list of fids.
+  takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
+  It removes the record of entrant FROM the record of elm.
   =#
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
@@ -340,74 +343,115 @@ function NeighborRemove(elm::hospital, entrant::hospital)
         end
       end
     end
+    deleteat!(elm.hood, findin(elm.hood, entrant.fid))
   end
 end
 
 function HospFindFirst(mkt::Market, hosp::hospital)
+  # looks for a hospital given by hosp in the market mkt, by searching for the fid and returning the index.
+  found = 0
   for el in 1:size(mkt.config,1)
     if mkt.config[el].fid == hosp.fid
-      return el
+      found = el
     end
   end
+  return found
+end
+
+function FidFindFirst(mkt::Market, fid::Int64)
+  # looks for a fid in the market, then returns the index of the fid.
+  found = 0
+  for el in 1:size(mkt.config,1)
+    if mkt.config[el].fid == fid
+      found = el
+    end
+  end
+  return found
 end
 
 function MarketCleaner(mkt::Market)
   # Should take as an argument a whole market and then remove the records of any entrants.
+  entlist = Array{Int64,1}()
   for el in mkt.config
     if el.fid < 0
-      # Remove the hospital from the market array
-      deleteat!(mkt.config, HospFindFirst(mkt, el)) # NB: HospFindFirst takes *market* as argument, but deleteat! takes *array*, i.e, market.config
-      # Remove the hospital from the market dictionary
-      pop!(mkt.collection, el.fid)
-      # Remove from the list of neighbors in
-      for others in mkt.config
-        NeighborRemove(el, others)
+      push!(entlist, el.fid)
+    end
+  end
+  for hosps in mkt.config
+    for exfid in entlist
+      if in(exfid, hosps.hood)
+        NeighborRemove(hosps, mkt.config[FidFindFirst(mkt, exfid)] ) #TODO: This is not getting the distance change right.
       end
     end
+  end
+  for el in entlist
+  #  println(el)
+    # Remove the hospital from the market array
+    deleteat!(mkt.config, FidFindFirst(mkt, el)) # NB: HospFindFirst takes *market* as argument, but deleteat! takes *array*, i.e, market.config
+    # Remove the hospital from the market dictionary
+    pop!(mkt.collection, el)
   end
 end
 
 
-entrants = [0, 1, 2, 3]
-entryprobs = [0.9895, 0.008, 0.0005, 0.002]
-for i = 1:5
-  for el in Texas.ms
-    entrant = sample(entrants, WeightVec(entryprobs))
-    if entrant != 0
-      println("Entry! ", entrant , " FIPS ", el.fipscode)
-      entloc = NewEntrantLocation(el) # called on the market
-      newfid = -floor(rand()*1e6)
-      entr = hospital( newfid,
-                       entloc[1],
-                       entloc[2],
-                       " Entrant $newfid ",
-                       el.fipscode,
-                       entrant,
-                       [entrant],
-                       DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                       WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                       WeightVec([0.1, 0.1, 0.1]), #TODO: needs to be fixed with logitest
-                       neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0),
-                       Array{Int64, 1}())
-      push!(el.config, entr) # need to create a new record for this hospital in the market
-      # need to add it to the dictionary too:
-      el.collection[newfid] = entr
+
+function HospUpdate(hosp::hospital, choice::Int)
+ if hosp.level != choice
+   # logitest((0,1),
+              level1,
+              level2,
+              level3,
+              [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
+   LogitEst( )
+ end
+end
+
+
+function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
+  for i = 1:T
+    for el in Tex.ms
+      entrant = sample(entrants, WeightVec(entryprobs))
+      if entrant != 0
+        println("Entry! ", entrant , " FIPS ", el.fipscode)
+        entloc = NewEntrantLocation(el) # called on the market
+        newfid = -floor(rand()*1e6)
+        entr = hospital( newfid,
+                         entloc[1],
+                         entloc[2],
+                         " Entrant $newfid ",
+                         el.fipscode,
+                         entrant,
+                         [entrant],
+                         DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                         WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                         WeightVec([0.1, 0.1, 0.1, 0.1]), #TODO: needs to be fixed with logitest
+                         neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                         Array{Int64, 1}())
+        push!(el.config, entr) # need to create a new record for this hospital in the market
+        # need to add it to the dictionary too:
+        el.collection[newfid] = entr
+        for elm in el.config
+          NeighborAppend(elm, entr)
+          NeighborAppend(entr, elm)
+        end
+
+      end
       for elm in el.config
-        NeighborAppend(elm, entr)
-        NeighborAppend(entr, elm)
-      end
+      # This does the actual sampling process - Takes the hospital in elm, selects the corresponding choices, then samples according to the probs.
+    #    println(sample( ChoicesAvailable(elm), elm.chprobability ))
+        newchoice = LevelFunction(elm, sample( ChoicesAvailable(elm), elm.chprobability ))
+        # TODO: change features when choice is made:
 
-    end
-    for elm in el.config
-    # This does the actual sampling process - Takes the hospital in elm, selects the corresponding choices, then samples according to the probs.
-  #    println(sample( ChoicesAvailable(elm), elm.chprobability ))
-      newchoice = LevelFunction(elm, sample( ChoicesAvailable(elm), elm.chprobability ))
-      elm.level = newchoice
-      push!(elm.levelhistory, newchoice)
-    #  println(elm.levelhistory)
+        elm.level = newchoice
+        push!(elm.levelhistory, newchoice)
+      #  println(elm.levelhistory)
+      end
     end
   end
 end
+
+NewSim(25, Texas)
+
 for el in Texas.ms
   MarketCleaner(el) # Remove Entrants from Market Record.
 end
