@@ -5,55 +5,6 @@
 using Distributions
 using DataFrames # WeightVec is in DataFrames, not Distributions.
 
-type WTP
-  w385::Vector
-  w386::Vector
-  w387::Vector
-  w388::Vector
-  w389::Vector
-  w390::Vector
-  w391::Vector
-end
-
-type DemandHistory
-  demand385::Vector
-  demand386::Vector
-  demand387::Vector
-  demand388::Vector
-  demand389::Vector
-  demand390::Vector
-  demand391::Vector
-end
-
-type hospital
-  fid::Int64
-  lat::Float64
-  long::Float64
-  name::AbstractString
-  fipscode::Int
-  level::Int
-  levelhistory::Vector{Int}
-  demandhist::DemandHistory
-  wtphist::WTP
-  chprobability::WeightVec
-  neighbors::Array{hospital, 1}
-end
-
-
-type Market
-	config::Array{hospital, 1}
-  collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
-  fipscode::Int
-end
-
-type EntireState
-  ms::Array{Market, 1}
-  mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
-end
-
-# Initialize Empty collection of markets:
-Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}())
-# See below for dictionary comprehension.
 
 push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
 push!(LOAD_PATH, "/dynhosp/dynhosp")
@@ -98,6 +49,72 @@ println("Importing Hosp Data")
   data = convert(Matrix, dataf);
 #  dataf = 0; #set to zero to clear out.
 
+
+type WTP
+  w385::Vector
+  w386::Vector
+  w387::Vector
+  w388::Vector
+  w389::Vector
+  w390::Vector
+  w391::Vector
+end
+
+type DemandHistory
+  demand385::Vector
+  demand386::Vector
+  demand387::Vector
+  demand388::Vector
+  demand389::Vector
+  demand390::Vector
+  demand391::Vector
+end
+
+type neighbors
+  level105::Int
+  level205::Int
+  level305::Int
+  level1515::Int
+  level2515::Int
+  level3515::Int
+  level11525::Int
+  level21525::Int
+  level31525::Int
+end
+
+type hospital
+  fid::Int64
+  lat::Float64
+  long::Float64
+  name::AbstractString
+  fipscode::Int
+  level::Int
+  levelhistory::Vector{Int}
+  demandhist::DemandHistory
+  wtphist::WTP
+  chprobability::WeightVec
+  # The logitest function takes the following:
+  # logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
+  neigh::neighbors
+  hood::Array{hospital, 1}
+end
+
+
+type Market
+	config::Array{hospital, 1}
+  collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
+  fipscode::Int
+end
+
+type EntireState
+  ms::Array{Market, 1}
+  mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
+end
+
+# Initialize Empty collection of markets:
+Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}())
+# See below for dictionary comprehension.
+
 fips = unique(data[:,78])
 # This adds a list of the markets covered to the whole state iterable.
 for el in fips
@@ -111,8 +128,8 @@ Texas.mkts = [ m.fipscode => m for m in Texas.ms]
 
 # fid - col 74, lat - col 94, long - col 95, name - col 82, fipscode - col 78, act_int - col 79, act_solo - col 80
 
-data05 = data[(data[:,75].==2005), :]  # -> This isn't working quite right I think.
-
+data05 = data[(data[:,75].==2005), :] ;
+lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107;
 for i = 1:size(data05,1)
   fips = data05[i, 78]
   if fips != 0
@@ -124,7 +141,19 @@ for i = 1:size(data05,1)
     else
       level = 1
     end
-    push!(Texas.mkts[fips].config, hospital( data05[i, 74], data05[i,94], data05[i, 95], data05[i, 82], fips, level, [level], DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ), WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ), WeightVec([0.1, 0.2]), Array{hospital,1}())  )
+    push!(Texas.mkts[fips].config,
+    hospital( data05[i, 74],
+              data05[i,94],
+              data05[i, 95],
+              data05[i, 82],
+              fips,
+              level,
+              [level],
+              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+              WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]),
+              neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
+              Array{hospital,1}() ) )
   end
 end
 
@@ -135,9 +164,23 @@ function MarketPrint(mkt::Market)
   end
 end
 
+function NeighborsPrint(mkt::Market)
+  for el in mkt.config
+    println(el.name, " ", el.neigh)
+  end
+end
 
-
-
+function MktSize(n::neighbors, variety::Int)
+  if variety == 1
+    return n.lev105 + n.lev1515 + n.lev11525
+  elseif variety == 2
+    return n.lev205 + n.lev2515 + n.lev21525
+  elseif variety == 3
+    return n.lev305 + n.lev3515 + n.lev31525
+  else
+    return n.lev105 + n.lev1515 + n.lev11525 + n.lev205 + n.lev2515 + n.lev21525 + n.lev305 + n.lev3515 + n.lev31525
+  end 
+end
 
 #=
 
