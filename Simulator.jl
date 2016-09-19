@@ -38,18 +38,18 @@ function Simulator(data::Matrix,
                    TotalBeds2loc = 20,
                    TotalBeds1loc = 4)
 
-                   # TODO: this next section could potentially be put inside that loop below, if I want to do all at once
                    # Think about how that works.
-  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB) entryprobs = [0.9895, 0.008, 0.0005, 0.002]
-  level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
-  level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
-  level3 = data[marketyear,level3_hospitals0loc][1] # 8 allocations: 512 bytes
-  fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # 0.006925 seconds 4.06 k allocations: 208.760 KB - slow.
-  state_history = zeros(T+1, fields*size(fids,1)+4) #  0.000060 seconds (9 allocations: 58.688 KB)
-  state_history[1,end-3] = 1 # set probability of initial outcome at 1
-                  # TODO: End that here - but something would have to be done with this "end" numbering
+# Not needed:  marketyear = (data[:,fipscodeloc].==mkt_fips)&(data[:, yearloc].==year) # It is a major speed up to do this once. (14.00 k allocations: 377.698 KB) entryprobs = [0.9895, 0.008, 0.0005, 0.002]
+# Not needed:  level1 = data[marketyear,level1_hospitals0loc][1] # 7 allocations: 464 bytes
+# Not needed:  level2 = data[marketyear,level2solo_hospitals0loc][1] # 8 allocations: 512 bytes
+# Not needed:  level3 = data[marketyear,level3_hospitals0loc][1] # 8 allocations: 512 bytes
+# Not needed:  fids = convert(Vector{Int64}, sort!(unique(data[marketyear,fidloc]))) # 0.006925 seconds 4.06 k allocations: 208.760 KB - slow.
+# Not needed:  state_history = zeros(T+1, fields*size(fids,1)+4) #  0.000060 seconds (9 allocations: 58.688 KB)
+# Not needed:  state_history[1,end-3] = 1 # set probability of initial outcome at 1
   # Writes the values to the first row of the state history
-  for n in 1:size(fids,1)
+
+  # We need the state history, but we might do it for ALL of the fids.  That's ok.
+  for n in 1:size(fids,1)  # TODO: think about using ALL of the fids here.  That can be done.  
     el = fids[n]
 
     # TODO: can compute market size for each fid at this point.
