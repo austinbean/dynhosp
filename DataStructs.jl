@@ -93,10 +93,12 @@ type hospital
   demandhist::DemandHistory
   wtphist::WTP
   chprobability::WeightVec
+  probhistory::Array{Float64,1}
   # The logitest function takes the following:
   # logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
   neigh::neighbors
-  hood::Array{Int64, 1} # keep an array of fids here, rather than an array of hospitals, since the ref is circular.
+  hood::Array{Int64, 1}
+  perturbed::Bool
 end
 
 
@@ -153,8 +155,10 @@ for i = 1:size(data05,1)
               DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
               WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
               WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]),
+              Array{Float64,1}(),
               neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
-              Array{Int64,1}() ) )
+              Array{Int64,1}(),
+              false ) )
   end
   # push all hospital fid/ fips pairs into the directory.
   Texas.fipsdirectory[data05[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
@@ -172,10 +176,6 @@ for el in Texas.ms
     end
   end
 end
-
-
-
-
 
 function MarketPrint(mkt::Market)
   for el in mkt.config
@@ -206,16 +206,11 @@ end
 
 
 
-function MktSize(n::neighbors, variety::Int)
-  if variety == 1
-    return n.lev105 + n.lev1515 + n.lev11525
-  elseif variety == 2
-    return n.lev205 + n.lev2515 + n.lev21525
-  elseif variety == 3
-    return n.lev305 + n.lev3515 + n.lev31525
-  else
-    return n.lev105 + n.lev1515 + n.lev11525 + n.lev205 + n.lev2515 + n.lev21525 + n.lev305 + n.lev3515 + n.lev31525
-  end
+function MktSize(n::neighbors)
+  sum1 = n.level105 + n.level1515 + n.level11525
+  sum2 = n.level205 + n.level2515 + n.level21525
+  sum3 = n.level305 + n.level3515 + n.level31525
+  return sum1, sum2, sum3
 end
 
 # When the facility level changes, the choices need to change too.
@@ -396,14 +391,21 @@ end
 
 
 function HospUpdate(hosp::hospital, choice::Int)
+  levl = (-1, -1)
  if hosp.level != choice
-   # logitest((0,1),
-              level1,
-              level2,
-              level3,
-              [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
-   LogitEst( )
- end
+   if choice == 1
+     levl = (0,0)
+   elseif choice == 2
+     levl = (1,0)
+   elseif choice == 3
+     levl = (0,1)
+   end
+   levels = MktSize(hosp.neigh)
+   prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
+   println(prs)
+   hosp.chprobability = WeightVec(vec(prs))
+   return prs
+  end
 end
 
 
@@ -424,9 +426,11 @@ function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = 
                          [entrant],
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                         WeightVec([0.1, 0.1, 0.1, 0.1]), #TODO: needs to be fixed with logitest
+                         WeightVec([0.1, 0.1, 0.1, 0.1]),
+                         Array{Float64,1}(),
                          neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0),
-                         Array{Int64, 1}())
+                         Array{Int64, 1}(),
+                         false)
         push!(el.config, entr) # need to create a new record for this hospital in the market
         # need to add it to the dictionary too:
         el.collection[newfid] = entr
@@ -434,7 +438,8 @@ function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = 
           NeighborAppend(elm, entr)
           NeighborAppend(entr, elm)
         end
-
+        # TODO: Call Hospital Update here once the neighbors exist
+         HospUpdate(entr, entrant) #entrant is the level
       end
       for elm in el.config
       # This does the actual sampling process - Takes the hospital in elm, selects the corresponding choices, then samples according to the probs.
