@@ -130,52 +130,62 @@ end
 Texas.mkts = [ m.fipscode => m for m in Texas.ms]
 
 # fid - col 74, lat - col 94, long - col 95, name - col 82, fipscode - col 78, act_int - col 79, act_solo - col 80
-
+# TODO: Put this in a function too.
 data05 = data[(data[:,75].==2005), :] ;
-lev105loc = 97; lev205loc = 98; lev305loc = 99; lev1515loc = 101; lev2515loc = 102; lev3515loc = 103; lev11525loc = 105; lev21525loc = 106; lev31525loc = 107;
-for i = 1:size(data05,1)
-  fips = data05[i, 78]
-  if fips != 0
-    level = 0
-    if (data05[i, 79] == 1)&(data05[i,80]==0)
-      level = 3
-    elseif (data05[i, 79] == 0)&(data05[i,80]==1)
-      level = 2
-    else
-      level = 1
+
+function TXSetup(Tex::EntireState, data05::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
+  for i = 1:size(data05,1)
+    fips = data05[i, 78]
+    if fips != 0
+      level = 0
+      if (data05[i, 79] == 1)&(data05[i,80]==0)
+        level = 3
+      elseif (data05[i, 79] == 0)&(data05[i,80]==1)
+        level = 2
+      else
+        level = 1
+      end
+      push!(Tex.mkts[fips].config,
+      hospital( data05[i, 74],
+                data05[i,94],
+                data05[i, 95],
+                data05[i, 82],
+                fips,
+                level,
+                [level],
+                DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]),
+                Array{Float64,1}(),
+                neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
+                Array{Int64,1}(),
+                false ) )
     end
-    push!(Texas.mkts[fips].config,
-    hospital( data05[i, 74],
-              data05[i,94],
-              data05[i, 95],
-              data05[i, 82],
-              fips,
-              level,
-              [level],
-              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]),
-              Array{Float64,1}(),
-              neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
-              Array{Int64,1}(),
-              false ) )
+    # push all hospital fid/ fips pairs into the directory.
+    Tex.fipsdirectory[data05[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
-  # push all hospital fid/ fips pairs into the directory.
-  Texas.fipsdirectory[data05[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+  return Tex
 end
 
+Texas = TXSetup(Texas, data05)
+
 # Expand the market dictionaries so that they are filled with the hospitals
-for el in Texas.ms
-  el.collection = [ i.fid => i for i in el.config ]
-  # I would like to append to each hospital a list of the others in the market.
-  for hosp in el.config
-    for hosp2 in el.config
-      if hosp.fid != hosp2.fid
-        push!(hosp.hood, hosp2.fid)
+function ExpandDict(Tex::EntireState)
+  for el in Tex.ms
+    el.collection = [ i.fid => i for i in el.config ]
+    # I would like to append to each hospital a list of the others in the market.
+    for hosp in el.config
+      for hosp2 in el.config
+        if hosp.fid != hosp2.fid
+          push!(hosp.hood, hosp2.fid)
+        end
       end
     end
   end
 end
+
+ExpandDict(Texas)
+
 
 function MarketPrint(mkt::Market)
   for el in mkt.config
