@@ -96,7 +96,7 @@ type hospital
   # The logitest function takes the following:
   # logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
   neigh::neighbors
-  hood::Array{hospital, 1}
+  hood::Array{Int64, 1} # keep an array of fids here, rather than an array of hospitals, since the ref is circular.
 end
 
 
@@ -109,10 +109,11 @@ end
 type EntireState
   ms::Array{Market, 1}
   mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
+  fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
 end
 
 # Initialize Empty collection of markets:
-Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}())
+Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
 # See below for dictionary comprehension.
 
 fips = unique(data[:,78])
@@ -153,9 +154,27 @@ for i = 1:size(data05,1)
               WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
               WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]),
               neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
-              Array{hospital,1}() ) )
+              Array{Int64,1}() ) )
+  end
+  # push all hospital fid/ fips pairs into the directory.
+  Texas.fipsdirectory[data05[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+end
+
+# Expand the market dictionaries so that they are filled with the hospitals
+for el in Texas.ms
+  el.collection = [ i.fid => i for i in el.config ]
+  # I would like to append to each hospital a list of the others in the market.
+  for hosp in el.config
+    for hosp2 in el.config
+      if hosp.fid != hosp2.fid
+        push!(hosp.hood, hosp2.fid)
+      end
+    end
   end
 end
+
+
+
 
 
 function MarketPrint(mkt::Market)
@@ -169,6 +188,18 @@ function NeighborsPrint(mkt::Market)
     println(el.name, " ", el.neigh)
   end
 end
+
+function NewEntrantLocation(mkt::Market)
+# Takes the market, takes the mean location of all hospitals, adds normal noise to it.
+  meanlat = 0
+  meanlong = 0
+  for el in mkt.config # over hospitals
+    meanlat += el.lat
+    meanlong += el.long
+  end
+  return [meanlat/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1], meanlong/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1]]
+end
+
 
 function MktSize(n::neighbors, variety::Int)
   if variety == 1
@@ -185,124 +216,128 @@ end
 # When the facility level changes, the choices need to change too.
 function ChoicesAvailable(h::hospital)
   if h.level == 1
-    return [10 1 2 11]
+    return [10 2 1 11]
   elseif h.level == 2
-    return [10    11]
+    return [5 10 6 11]
   elseif h.level == 3
-    return [10    11]
-  else # exited?
-
+    return [4 3 10 11]
+  else # exited
+    return [-999 -999 -999 -999]
   end
+end
 
+function LevelFunction(h::hospital, choice::Int64)
+  # Takes a hospital record and a choice and returns the corresponding level.
+  if h.level == 1
+    if choice == 10
+      return 1
+    elseif choice == 2
+      return 3
+    elseif choice == 1
+      return 2
+    else # choice must be 11
+      return -999
+    end
+  elseif h.level == 2
+    if choice == 5
+      return 1
+    elseif choice == 10
+      return 2
+    elseif choice == 6
+      return 3
+    else # choice must be 11
+      return -999
+    end
+  elseif h.level == 3
+    if choice == 4
+      return 1
+    elseif choice == 3
+      return 2
+    elseif choice == 10
+      return 3
+    else # choice must be 11
+      return -999
+    end
+  else # value must be -999
+    return -999
+  end
 end
 
 
+function NeighborAppend(elm::hospital, entrant::hospital)
+  # takes two hospital records, computes the distance between them and adds a 1 to the relevant record in the neighborhood type.
+  dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
+  if !in(entrant.fid, elm.hood)
+    if dist < 5
+      if entrant.level == 1
+        elm.neigh.nlev105 += 1
+      elseif entrant.level == 2
+        elm.neigh.nlev205 += 1
+      elseif entrant.level == 3
+        elm.neigh.nlev305 += 1
+      end
+    elseif (dist > 5)&(dist<15)
+      if entrant.level == 1
+        elm.neigh.nlev1515 += 1
+      elseif entrant.level == 2
+        elm.neigh.nlev2515 += 1
+      elseif entrant.level == 3
+        elm.neigh.nlev3515 += 1
+      end
+    elseif (dist>15)&(dist<25)
+      if entrant.level == 1
+        elm.neigh.nlev11525 += 1
+      elseif entrant.level == 2
+        elm.neigh.nlev21525 += 1
+      elseif entrant.level == 3
+        elm.neigh.nlev31525 += 1
+      end
+    end
+  end
+end
+
+entrants = [0, 1, 2, 3]
+entryprobs = [0.9895, 0.008, 0.0005, 0.002]
 for el in Texas.ms
+  entrant = sample(entrants, WeightVec(entryprobs))
+  if entrant != 0
+    println("Entry! ", entrant )
+    entloc = NewEntrantLocation(el) # called on the market
+    newfid = -floor(rand()*1e6)
+    push!(el.config, hospital( newfid,
+                               entloc[1],
+                               entloc[2],
+                               " Entrant $newfid ",
+                               el.fipscode,
+                               entrant,
+                               [entrant],
+                               DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                               WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                               WeightVec([0.1, 0.1, 0.1]), #TODO: needs to be fixed with logitest
+                               neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                               Array{Int64, 1}())) # need to create a new record
+  end
   for elm in el.config
-    println( sample([10 2 1 11], elm.chprobability))
+  # This does the actual sampling process - Takes the hospital in elm, selects the corresponding choices, then samples according to the probs.
+#    println(sample( ChoicesAvailable(elm), elm.chprobability ))
+    newchoice = LevelFunction(elm, sample( ChoicesAvailable(elm), elm.chprobability ))
+    elm.level = newchoice
+    push!(elm.levelhistory, newchoice)
+    println(elm.levelhistory)
+    if entrant != 0
+      # TODO: add to the list of neighbors the new entrant
+    #  push!(elm.hood,  )
+
+    end
   end
 end
 
 
-#=
-
-# Test Hospitals:
 
 
 
-a1 = hospital(123,
-              31.20323,
-              41.239453,
-              "Hosp1",
-              48001,
-              1,
-              Array{Int,1}(),
-              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WeightVec([0.1, 0.2]),
-              Array{hospital,1}())
 
 
-a2 = hospital(456,
-              31.20323,
-              41.239453,
-              "Hosp2",
-              48001,
-              1,
-              Array{Int,1}(),
-              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WeightVec([0.1, 0.2]),
-              Array{hospital,1}())
-
-a3 = hospital(789,
-              31.20323,
-              41.239453,
-              "Hosp3",
-              48001,
-              1,
-              Array{Int,1}(),
-              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WeightVec([0.1, 0.2]),
-              Array{hospital,1}())
 
 
-a4 = hospital(1011,
-              31.20323,
-              41.239453,
-              "Hosp4",
-              48001,
-              1,
-              Array{Int,1}(),
-              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-              WeightVec([0.1, 0.2]),
-              Array{hospital,1}())
-
-
-# Test Markets
-
-
-m1 = Market([a1, a2], Dict{Int64, hospital}(), 48001)
-m2 = Market([a3, a4], Dict{Int64, hospital}(), 48002)
-
-
-# Initialize the above w/ empty dict, then create with:
-# This should make it much, much easier to look everything up.
-m1.collection = [ a.fid => a for a in m1.config]
-m2.collection = [ a.fid => a for a in m2.config]
-
-# Demonstrations:
-
-
-# This works, since config::Array{hospital}
-for el in m1.config
-  println(el)
-  println(el.demandhist.demand385)
-end
-# to add demand of some kind or other
-for el in m1.config
-  push!(el.demandhist.demand385, 210)
-end
-
-
-# Illustrations of iteration -
-
-# Note that here the iterable object inside the type must be accessed to iterate.
-for market in Texas.ms
-  for hosp in market.config
-    println(hosp.name)
-  end
-end
-
-
-=#
-
-#=
-# These are *not* necessary.
-# Because config is a kind of array, we can already iterate over the elements.
-Base.start(M::Market) = M.config[1]
-Base.next(M::Market, state) = (M.config[state], state+1)
-Base.done(M::Market, state) = state > size(M.config, 1)
-=#
+###
