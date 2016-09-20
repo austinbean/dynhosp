@@ -206,7 +206,7 @@ function MakeNew(fi::Vector, dat::Matrix)
   return Texas
 end
 
-Texas = MakeNew(fips, data05)
+Texas = MakeNew(fips, data05);
 
 
 function MarketPrint(mkt::Market)
@@ -555,6 +555,58 @@ end
 
 # Try something similar with patients.
 
+
+    println("Importing Privately Insured Patients") #use the infants only.
+    pinsure = DataFrames.readtable(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
+    for i in names(pinsure)
+      if ( typeof(pinsure[i]) == DataArrays.DataArray{Float64,1} )
+        pinsure[DataFrames.isna(pinsure[i]), i] = 0
+      elseif (typeof(pinsure[i]) == DataArrays.DataArray{Int64,1})
+        pinsure[DataFrames.isna(pinsure[i]), i] = 0
+      elseif typeof(pinsure[i]) == DataArrays.DataArray{ByteString,1}
+        # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
+        # with opposite signs of the corresponding coefficients from modelparameters.
+        # This does that by looking at missing NAMES, not fids.
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
+      elseif typeof(pinsure[i]) == DataArrays.DataArray{UTF8String,1}
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
+        pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
+      end
+      if sum(size(pinsure[DataFrames.isna(pinsure[i]), i]))>0
+        println(i)
+      end
+    end
+     pinsured = convert(Matrix,pinsure);
+     pinsure= 0; # DataFrame not used - set to 0 and clear out.
+    for i =1:size(pinsured, 2)
+      if (typeof(pinsured[2,i])==UTF8String) | (typeof(pinsured[2,i])==ASCIIString)
+  #      print(i, "\n")
+        pinsured[:,i] = "0"
+        pinsured[:,i] = map(x->parse(Float64, x), pinsured[:,i])
+      end
+    end
+    # Note this change - I don't think there's anything that requires 64 bits.
+     pinsured= convert(Array{Float32, 2}, pinsured)
+     println("Size of Privately Insured, ", size(pinsured))
+
+zips = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false)
+zips = convert(Array, zips[:,1])
+choices = DataFrames.readtable(pathdata*"TX Zip Code Choice Sets.csv", header = true)
+
+for el in choices.colindex.names
+  println(typeof(choices[el]), "  ", el)
+  if (typeof(choices[el]) == DataArrays.DataArray{Int64,1})|(typeof(choices[el]) == DataArrays.DataArray{Float64,1})
+    choices[isna(choices[:,el]) , el] = 0
+  elseif (typeof(choices[el]) == DataArrays.DataArray{UTF8String,1})
+    choices[isna(choices[:,el]), el] = "Missing"
+  end
+end
+
+choices = convert(Array{Any, 2}, choices)
+
 type patientcount
  count385::Int64
  count386::Int64
@@ -566,6 +618,7 @@ type patientcount
 end
 
 type zip
+ code::Int64
  facilities::Dict{Int64, hospital}
  lat::Float64
  long::Float64
@@ -576,7 +629,48 @@ type patientcollection
  zips::Dict{Int64, zip}
 end
 
+function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState)
+  ppatients = patientcollection( Dict{Int64, zip}() )
+  unfound = Array{Int64,1}()
+  for el in zipcodes
+    ppatients.zips[el] = zip(el, Dict{Int64,hospital}(), 0.0, 0.0, patientcount(0,0,0,0,0,0,0))
+  end
+  for i = 1:size(ch, 1) #rows
+    ppatients.zips[ch[i,1]].lat = ch[i,7]
+    ppatients.zips[ch[i,1]].long = ch[i,8]
+    for j = 11:17:size(ch,2)
+      missingj = 0
+      try #TODO: the "elseif" branch is never reached.  Why not?
+        Tex.fipsdirectory[ch[i,j]]
+      catch y
+        if isa(y, KeyError)
+          missingj += 1
+          push!(unfound,ch[i, j])
+        elseif !is(y, KeyError)
+          println("ffffff")
+          fipscode = Tex.fipsdirectory[ch[i,j]]
+          println(i, " ", j, " ", fipscode)
+        #  ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]
+        #  Tex.mkts[ fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]
+        else
+          println("what?")
+        end
+      end
+      println(missingj)
+    end
+  end
+  return ppatients, unfound
+end
 
+# NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
+# NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
+# NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
+
+ppatients, unf = CreateZips(zips, choices, Texas);
+
+for el in zips
+  ppatients.zips[el].facilities
+end
 
 
 ###
