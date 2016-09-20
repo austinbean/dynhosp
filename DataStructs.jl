@@ -49,6 +49,10 @@ println("Importing Hosp Data")
   data = convert(Matrix, dataf);
 #  dataf = 0; #set to zero to clear out.
 
+include(pathprograms*"LogitEst.jl")
+include(pathprograms*"Distance.jl")
+
+
 
 type WTP
   w385::Vector
@@ -188,11 +192,12 @@ ExpandDict(Texas)
 
 
 function MarketPrint(mkt::Market)
+  println(mkt.fipscode)
   for el in mkt.config
+    println("*******************")
     println(el.name)
-  end
-  for el in mkt.collection
-    println(el)
+    println(el.neigh)
+    println(el.hood)
   end
 end
 
@@ -281,7 +286,7 @@ function NeighborAppend(elm::hospital, entrant::hospital)
   =#
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
-    if dist < 25
+    if (dist < 25)&(entrant.level != -999)
       push!(elm.hood, entrant.fid)
       if dist<5
         if entrant.level == 1
@@ -349,6 +354,53 @@ function NeighborRemove(elm::hospital, entrant::hospital)
       end
     end
     deleteat!(elm.hood, findin(elm.hood, entrant.fid))
+  end
+end
+
+function NeighborClean(state::EntireState)
+  # This will set every value in the neighbors category of every hospital in the state to zero.
+  for mkt in state.ms
+    for hosp in mkt.config
+      hosp.neigh = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0)
+      hosp.hood = Array{Int64,1}()
+    end
+  end
+end
+
+
+function NeighborFix(state::EntireState)
+  # For every hospital in the state, append all other hospitals within 25 miles, ignoring county boundaries
+  for mkt1 in state.ms
+    for mkt2 in state.ms
+      if mkt1.fipscode != mkt2.fipscode
+        for hos1 in mkt1.config
+          for hos2 in mkt2.config
+            if distance(hos1.lat, hos1.long, hos2.lat, hos2.long) < 25
+              NeighborAppend(hos1, hos2)
+              NeighborAppend(hos2, hos1)
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+#NB: The function below will fix the neighbors while respecting the county boundaries, unlike the above.
+
+function StrictCountyNeighborFix(state::EntireState)
+  # For every hospital in the state, append all other hospitals within 25 miles
+  for mkt1 in state.ms
+    for hos1 in mkt1.config
+      for hos2 in mkt1.config
+        if hos1.fid != hos2.fid
+          if distance(hos1.lat, hos1.long, hos2.lat, hos2.long) < 25
+            NeighborAppend(hos1, hos2)
+            NeighborAppend(hos2, hos1)
+          end
+        end
+      end
+    end
   end
 end
 
@@ -452,12 +504,12 @@ function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = 
          HospUpdate(entr, entrant) #entrant is the level
       end
       for elm in el.config
-      # This does the actual sampling process - Takes the hospital in elm, selects the corresponding choices, then samples according to the probs.
-    #    println(sample( ChoicesAvailable(elm), elm.chprobability ))
-        newchoice = LevelFunction(elm, sample( ChoicesAvailable(elm), elm.chprobability ))
-        # TODO: change features when choice is made:
-
-        elm.level = newchoice
+        #TODO: What about exiters?  The prob of choice must be 1.
+        action = sample( ChoicesAvailable(elm), elm.chprobability )                         # Take the action
+        push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action) ]) # Record the prob with which the action was taken.
+        newchoice = LevelFunction(elm, action)                                              # What is the new level?
+        elm.chprobability = HospUpdate(elm, newchoice)                                      # What are the new probabilities, given the new level?
+        elm.level = newchoice                                                               # Set the level to be the new choice.
         push!(elm.levelhistory, newchoice)
       #  println(elm.levelhistory)
       end
