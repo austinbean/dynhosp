@@ -102,6 +102,7 @@ type hospital
   # logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
   neigh::neighbors
   hood::Array{Int64, 1}
+  bedcount::Float64
   perturbed::Bool
 end
 
@@ -117,6 +118,8 @@ type EntireState
   mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
   fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
 end
+
+
 
 # Initialize Empty collection of markets:
 # Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
@@ -167,6 +170,7 @@ function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98,
                 Array{Float64,1}(),
                 neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
                 Array{Int64,1}(),
+                  0    , # need the beds here - currently NOT in this data.
                 false ) )
     end
     # push all hospital fid/ fips pairs into the directory.
@@ -547,6 +551,30 @@ end
 
 
 
+
+
+# Try something similar with patients.
+
+type patientcount
+ count385::Int64
+ count386::Int64
+ count387::Int64
+ count388::Int64
+ count389::Int64
+ count390::Int64
+ count391::Int64
+end
+
+type zip
+ facilities::Dict{Int64, hospital}
+ lat::Float64
+ long::Float64
+ patients::patientcount
+end
+
+type patientcollection
+ zips::Dict{Int64, zip}
+end
 
 
 
