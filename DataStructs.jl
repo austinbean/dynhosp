@@ -119,41 +119,45 @@ type EntireState
 end
 
 # Initialize Empty collection of markets:
-Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
+# Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
 # See below for dictionary comprehension.
 
 fips = unique(data[:,78])
 # This adds a list of the markets covered to the whole state iterable.
-for el in fips
-  if el != 0
-    el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}() ,$el)"))
-    push!(Texas.ms, el)
+function MakeIt(Tex::EntireState, fip::Vector)
+  for el in fip
+    if el != 0
+      el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}() ,$el)"))
+      push!(Tex.ms, el)
+    end
   end
+  Tex.mkts = [ m.fipscode => m for m in Tex.ms]
 end
+
+#MakeIt(Texas, fips)
 # Write the market dictionary out as a comprehension:
-Texas.mkts = [ m.fipscode => m for m in Texas.ms]
+# Texas.mkts = [ m.fipscode => m for m in Texas.ms]
 
 # fid - col 74, lat - col 94, long - col 95, name - col 82, fipscode - col 78, act_int - col 79, act_solo - col 80
-# TODO: Put this in a function too.
 data05 = data[(data[:,75].==2005), :] ;
 
-function TXSetup(Tex::EntireState, data05::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
-  for i = 1:size(data05,1)
-    fips = data05[i, 78]
+function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
+  for i = 1:size(data,1)
+    fips = data[i, 78]
     if fips != 0
       level = 0
-      if (data05[i, 79] == 1)&(data05[i,80]==0)
+      if (data[i, 79] == 1)&(data[i,80]==0)
         level = 3
-      elseif (data05[i, 79] == 0)&(data05[i,80]==1)
+      elseif (data[i, 79] == 0)&(data[i,80]==1)
         level = 2
       else
         level = 1
       end
       push!(Tex.mkts[fips].config,
-      hospital( data05[i, 74],
-                data05[i,94],
-                data05[i, 95],
-                data05[i, 82],
+      hospital( data[i, 74],
+                data[i,94],
+                data[i, 95],
+                data[i, 82],
                 fips,
                 level,
                 [level],
@@ -166,12 +170,12 @@ function TXSetup(Tex::EntireState, data05::Matrix; lev105loc = 97, lev205loc = 9
                 false ) )
     end
     # push all hospital fid/ fips pairs into the directory.
-    Tex.fipsdirectory[data05[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+    Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
   return Tex
 end
 
-Texas = TXSetup(Texas, data05)
+#Texas = TXSetup(Texas, data05);
 
 # Expand the market dictionaries so that they are filled with the hospitals
 function ExpandDict(Tex::EntireState)
@@ -188,10 +192,21 @@ function ExpandDict(Tex::EntireState)
   end
 end
 
-ExpandDict(Texas)
+#ExpandDict(Texas)
+
+function MakeNew(fi::Vector, dat::Matrix)
+  Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
+  MakeIt(Texas, fi)
+  TXSetup(Texas, dat)
+  ExpandDict(Texas)
+  return Texas
+end
+
+Texas = MakeNew(fips, data05)
 
 
 function MarketPrint(mkt::Market)
+  println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   println(mkt.fipscode)
   for el in mkt.config
     println("*******************")
@@ -205,6 +220,16 @@ function NeighborsPrint(mkt::Market)
   for el in mkt.config
     println(el.name, " ", el.neigh)
   end
+end
+
+function FacPrint(hosp::hospital)
+  println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
+  println(hosp.name)
+  println(hosp.fid)
+  println("Fips: ", hosp.fipscode)
+  println("Level: ", hosp.level)
+  println("Neighbors: ", hosp.hood)
+  println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
 end
 
 function NewEntrantLocation(mkt::Market)
@@ -451,22 +476,26 @@ function MarketCleaner(mkt::Market)
 end
 
 
-
 function HospUpdate(hosp::hospital, choice::Int)
   levl = (-1, -1)
- if hosp.level != choice
-   if choice == 1
-     levl = (0,0)
-   elseif choice == 2
-     levl = (1,0)
-   elseif choice == 3
-     levl = (0,1)
+ if (hosp.level!=choice)
+   if choice != -999
+     if choice == 1
+       levl = (0,0)
+     elseif choice == 2
+       levl = (1,0)
+     elseif choice == 3
+       levl = (0,1)
+     end
+     levels = MktSize(hosp.neigh)
+     prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
+  #   println(prs)
+     return WeightVec(vec(prs))
+   else # choice = -999
+     return WeightVec([1.0]) #TODO: one option, no choices ??  Might need four options [1.0 1.0 1.0 1.0]
    end
-   levels = MktSize(hosp.neigh)
-   prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
-   println(prs)
-   hosp.chprobability = WeightVec(vec(prs))
-   return prs
+ else
+   return hosp.chprobability
   end
 end
 
@@ -479,20 +508,10 @@ function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = 
         println("Entry! ", entrant , " FIPS ", el.fipscode)
         entloc = NewEntrantLocation(el) # called on the market
         newfid = -floor(rand()*1e6)
-        entr = hospital( newfid,
-                         entloc[1],
-                         entloc[2],
-                         " Entrant $newfid ",
-                         el.fipscode,
-                         entrant,
-                         [entrant],
+        entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                         WeightVec([0.1, 0.1, 0.1, 0.1]),
-                         Array{Float64,1}(),
-                         neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0),
-                         Array{Int64, 1}(),
-                         false)
+                         WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), false)
         push!(el.config, entr) # need to create a new record for this hospital in the market
         # need to add it to the dictionary too:
         el.collection[newfid] = entr
@@ -504,20 +523,22 @@ function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = 
          HospUpdate(entr, entrant) #entrant is the level
       end
       for elm in el.config
-        #TODO: What about exiters?  The prob of choice must be 1.
-        action = sample( ChoicesAvailable(elm), elm.chprobability )                         # Take the action
-        push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action) ]) # Record the prob with which the action was taken.
-        newchoice = LevelFunction(elm, action)                                              # What is the new level?
-        elm.chprobability = HospUpdate(elm, newchoice)                                      # What are the new probabilities, given the new level?
-        elm.level = newchoice                                                               # Set the level to be the new choice.
+      #  println("Facility ", elm.fid, "   ", elm.fipscode)
+        #TODO: There may be a very infrequent error that pops up connected to HospUpdate.
+        action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
+        push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
+        newchoice = LevelFunction(elm, action)                                                 # What is the new level?
+        elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
+        elm.level = newchoice                                                                  # Set the level to be the new choice.
         push!(elm.levelhistory, newchoice)
-      #  println(elm.levelhistory)
       end
     end
+    NeighborClean(Tex)
+    NeighborFix(Tex)
   end
 end
 
-NewSim(25, Texas)
+NewSim(50, Texas)
 
 for el in Texas.ms
   MarketCleaner(el) # Remove Entrants from Market Record.
