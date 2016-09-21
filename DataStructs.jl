@@ -3,58 +3,6 @@
 # to matrices and keeping track of all of the indices, etc.
 
 include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
-#
-# using Distributions
-# using DataFrames # WeightVec is in DataFrames, not Distributions.
-#
-#
-# push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
-# push!(LOAD_PATH, "/dynhosp/dynhosp")
-# push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
-# push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
-# dir = pwd()
-# global pathdata = "";global pathpeople = "";global  pathprograms = "";
-# if dir == "/Users/austinbean/Desktop/dynhosp"
-#   global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
-#   global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
-#   global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
-# elseif dir == "/dynhosp/dynhosp"
-#   global pathdata = dir*"/"
-#   global pathpeople = dir*"/"
-#   global pathprograms = dir*"/"
-# elseif (dir == "/home/ubuntu/Notebooks") | (dir == "/home/ubuntu/dynhosp")
-#   global pathdata = "/home/ubuntu/dynhosp/"
-#   global pathpeople = "/home/ubuntu/dynhosp/"
-#   global pathprograms = "/home/ubuntu/dynhosp/"
-# elseif (dir == "/home1/04179/abean/dynhosp")
-#   global pathdata = "/home1/04179/abean/dynhosp"
-#   global pathpeople = "/home1/04179/abean/dynhosp"
-#   global pathprograms = "/home1/04179/abean/dynhosp"
-# end
-# # Import the hospital data and convert to a matrix -
-# println("Importing Hosp Data")
-#   dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
-#   for i in names(dataf)
-#       if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
-#           dataf[DataFrames.isna(dataf[i]), i] = 0
-#       elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
-#           dataf[DataFrames.isna(dataf[i]), i] = 0
-#       elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
-#           dataf[DataFrames.isna(dataf[i]), i] = "NONE"
-#       elseif typeof(dataf[i]) == DataArrays.DataArray{UTF8String,1}
-#             dataf[DataFrames.isna(dataf[i]), i] = "NONE"
-#     end
-#       if sum(size(dataf[DataFrames.isna(dataf[i]), i]))>0
-#       print(i, "\n")
-#     end
-#   end
-#   data = convert(Matrix, dataf);
-# #  dataf = 0; #set to zero to clear out.
-#
-# include(pathprograms*"LogitEst.jl")
-# include(pathprograms*"Distance.jl")
-
-
 
 type WTP
   w385::Vector
@@ -552,101 +500,6 @@ end
 
 
 
-
-
-
-# Try something similar with patients.
-
-#
-#     println("Importing Privately Insured Patients") #use the infants only.
-#     pinsure = DataFrames.readtable(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
-#     for i in names(pinsure)
-#       if ( typeof(pinsure[i]) == DataArrays.DataArray{Float64,1} )
-#         pinsure[DataFrames.isna(pinsure[i]), i] = 0
-#       elseif (typeof(pinsure[i]) == DataArrays.DataArray{Int64,1})
-#         pinsure[DataFrames.isna(pinsure[i]), i] = 0
-#       elseif typeof(pinsure[i]) == DataArrays.DataArray{ByteString,1}
-#         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
-#         # with opposite signs of the corresponding coefficients from modelparameters.
-#         # This does that by looking at missing NAMES, not fids.
-#         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
-#         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
-#         pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
-#       elseif typeof(pinsure[i]) == DataArrays.DataArray{UTF8String,1}
-#         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
-#         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
-#         pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
-#       end
-#       if sum(size(pinsure[DataFrames.isna(pinsure[i]), i]))>0
-#         println(i)
-#       end
-#     end
-#      pinsured = convert(Matrix,pinsure);
-#      pinsure= 0; # DataFrame not used - set to 0 and clear out.
-#     for i =1:size(pinsured, 2)
-#       if (typeof(pinsured[2,i])==UTF8String) | (typeof(pinsured[2,i])==ASCIIString)
-#   #      print(i, "\n")
-#         pinsured[:,i] = "0"
-#         pinsured[:,i] = map(x->parse(Float64, x), pinsured[:,i])
-#       end
-#     end
-#     # Note this change - I don't think there's anything that requires 64 bits.
-#      pinsured= convert(Array{Float32, 2}, pinsured)
-#      println("Size of Privately Insured, ", size(pinsured))
-#
-#      println("Importing Medicaid Patients") # use the infants only.
-#      medicaid = DataFrames.readtable(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true);
-#      #people = DataFrames.readtable(pathpeople*"TX 2005 1 Individual Choices.csv", header = true); #smaller version for testing.
-#      for i in names(medicaid)
-#        if ( typeof(medicaid[i]) == DataArrays.DataArray{Float64,1} )
-#          medicaid[DataFrames.isna(medicaid[i]), i] = 0
-#        elseif (typeof(medicaid[i]) == DataArrays.DataArray{Int64,1})
-#          medicaid[DataFrames.isna(medicaid[i]), i] = 0
-#        elseif typeof(medicaid[i]) == DataArrays.DataArray{ByteString,1}
-#          # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
-#          # with opposite signs of the corresponding coefficients from modelparameters.
-#          # This does that by looking at missing NAMES, not fids.
-#          medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(medicaidneoint_c)*99
-#          medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(medicaidsoloint_c)*99
-#          medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
-#        elseif typeof(medicaid[i]) == DataArrays.DataArray{UTF8String,1}
-#          medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(medicaidneoint_c)*99
-#          medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(medicaidsoloint_c)*99
-#          medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
-#        end
-#        if sum(size(medicaid[DataFrames.isna(medicaid[i]), i]))>0
-#          println(i)
-#        end
-#      end
-#      pmedicaid = convert(Matrix, medicaid);
-#      medicaid = 0; # DataFrame not used - set to 0 and clear out.
-#      for i =1:size(pmedicaid, 2)
-#        if (typeof(pmedicaid[2,i])==UTF8String) | (typeof(pmedicaid[2,i])==ASCIIString)
-#          #      print(i, "\n")
-#          pmedicaid[:,i] = "0"
-#          pmedicaid[:,i] = map(x->parse(Float64, x), pmedicaid[:,i])
-#        end
-#      end
-#      # Note this change - I don't think there's anything that requires 64 bits.
-#      pmedicaid = convert(Array{Float32, 2}, pmedicaid)
-#      println("Size of Medicaid, ", size(pmedicaid))
-#
-#
-# zips = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false);
-# zips = convert(Array, zips[:,1]);
-# choices = DataFrames.readtable(pathdata*"TX Zip Code Choice Sets.csv", header = true);
-#
-# for el in choices.colindex.names
-#   #println(typeof(choices[el]), "  ", el)
-#   if (typeof(choices[el]) == DataArrays.DataArray{Int64,1})|(typeof(choices[el]) == DataArrays.DataArray{Float64,1})
-#     choices[isna(choices[:,el]) , el] = 0
-#   elseif (typeof(choices[el]) == DataArrays.DataArray{UTF8String,1})
-#     choices[isna(choices[:,el]), el] = "Missing"
-#   end
-# end
-#
-# choices = convert(Array{Any, 2}, choices)
-
 type patientcount
  count385::Int64
  count386::Int64
@@ -656,6 +509,7 @@ type patientcount
  count390::Int64
  count391::Int64
 end
+
 
 type coefficients
   distance::Float64
@@ -673,7 +527,7 @@ type zip
  facilities::Dict{Int64, hospital}
  fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
  pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
- mdetutilts::Dict{Int64, Float64} # the same for medicare patients.
+ mdetutils::Dict{Int64, Float64} # the same for medicare patients.
  lat::Float64
  long::Float64
  pcoeffs::coefficients
@@ -692,7 +546,8 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
   for el in zipcodes
     ppatients.zips[el] = zip(el, 0, Dict{Int64,hospital}(), Dict{Int64,Float64}(), # zipcode, public health region, facilities, hospital FE's.
                              Dict{Int64,Float64}(), Dict{Int64, Float64}(), # private det utilities, medicaid det utilities.
-                             0.0, 0.0, coefficients(0.0, 0.0, 0.0, 0.0, 0.0, 0.0), coefficients(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  #lat, long, private coefficients, medicaid coefficients
+                             0.0, 0.0, coefficients(privatedistance_c, privatedistsq_c, privateneoint_c, privatesoloint_c, privatedistbed_c, privateclosest_c),
+                             coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),  #lat, long, private coefficients, medicaid coefficients
                              patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0)) # private and medicaid patients
   end
   for i = 1:size(ch, 1) #rows
@@ -717,7 +572,7 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
   return ppatients, unfound
 end
 
-ppatients, unf = CreateZips(zips, choices, Texas);
+patients, unf = CreateZips(zips, choices, Texas);
 
 
 function PrintZip(zi::zip)
@@ -791,31 +646,71 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
   pats = FillMPatients(pats, medicaid)
 end
 
-patients = FillPatients(ppatients, pinsured, pmedicaid);
+patients = FillPatients(patients, pinsured, pmedicaid);
 
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
-  if p_or_m
-
+  # Computes the deterministic component of utility for each hospital.
+  dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
+  if p_or_m #if TRUE private
+    if zipc.facilities[fid].level == 1
+      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 2
+      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 3
+      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    else  # =-999
+      return - 99 # can't choose a facility which has exited - set det utility very low.
+    end
   else
-
+    if zipc.facilities[fid].level == 1
+      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 2
+      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 3
+      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    else  # =-999
+      return - 99
+    end
   end
 end
 
 function UpdateDeterministic(collect::patientcollection)
   for el in keys(collect.zips) #iterates over zips
     for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
-      if collect.zips[el].facilities[fid].level != collect.zips[el].facilities[fid].levelhistory[end] #state has changed
-        collect.zips[el].mdetutils[] =
-        collect.zips[el].pdetutils[] =
-
+      if (size(collect.zips[el].facilities[fid].levelhistory,1)==1)||(collect.zips[el].facilities[fid].level!=collect.zips[el].facilities[fid].levelhistory[end]) #state has changed OR this is the first period.
+        collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
+        collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
       end
     end
   end
 end
 
-
-
-
-
+function GenChoices(collect::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+  for el in keys(zip.facilities) # dict has field count - has element number. 
+      utils = hcat([ [k1,collect.zips[el].pdetutils[k1]] for k1 in keys(collect.zips[el].pdetutils)]...)
+      temparr = zeros(size(utils, 2))
+      for k = 1:collect.zips[el].ppatients.count385
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+      for k = 1:collect.zips[el].ppatients.count386
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+      for k = 1:collect.zips[el].ppatients.count387
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+      for i=1:collect.zips[el].ppatients.count388
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+      for i = 1:collect.zips[el].ppatients.count389
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+      for i=1:collect.zips[el].ppatients.count390
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+      for i = 1:collect.zips[el].ppatients.count391
+        utils[1,indmax(utils + rand!(d, temparr))] += 1
+      end
+  end
+end
 
 ###
