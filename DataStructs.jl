@@ -639,38 +639,66 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState)
     ppatients.zips[ch[i,1]].lat = ch[i,7]
     ppatients.zips[ch[i,1]].long = ch[i,8]
     for j = 11:17:size(ch,2)
-      missingj = 0
-      try #TODO: the "elseif" branch is never reached.  Why not?
+      try
         Tex.fipsdirectory[ch[i,j]]
+        # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
+        # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
+        # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
+        fipscode = Tex.fipsdirectory[ch[i,j]]
+        ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]
+        Tex.mkts[ fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]
       catch y
         if isa(y, KeyError)
-          missingj += 1
           push!(unfound,ch[i, j])
-        elseif !is(y, KeyError)
-          println("ffffff")
-          fipscode = Tex.fipsdirectory[ch[i,j]]
-          println(i, " ", j, " ", fipscode)
-        #  ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]
-        #  Tex.mkts[ fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]
-        else
-          println("what?")
         end
       end
-      println(missingj)
     end
   end
   return ppatients, unfound
 end
 
-# NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
-# NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
-# NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
-
 ppatients, unf = CreateZips(zips, choices, Texas);
 
-for el in zips
-  ppatients.zips[el].facilities
+
+function PrintZip(zi::zip)
+  # Prints the fid and the name of the facilities attached to the zips.
+  for el in keys(zi.facilities)
+    println(el, "  ", zi.facilities[el].name)
+  end
 end
+
+function FillPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
+  notfound = Array{Int64,1}()
+  for row in 1:size(imported, 1)
+    if imported[row, drgloc ] == 385
+      pats.zips[imported[row, ziploc]].patients.count385 += 1;
+    elseif imported[row, drgloc ] == 386
+      pats.zips[imported[row, ziploc]].patients.count386 += 1;
+    elseif imported[row, drgloc ] == 387
+      pats.zips[imported[row, ziploc]].patients.count387 += 1;
+    elseif imported[row, drgloc ] == 388
+      pats.zips[imported[row, ziploc]].patients.count388 += 1;
+    elseif imported[row, drgloc ] == 389
+      pats.zips[imported[row, ziploc]].patients.count389 += 1;
+    elseif imported[row, drgloc ] == 390
+      pats.zips[imported[row, ziploc]].patients.count390 += 1;
+    elseif imported[row, drgloc ] == 391
+      pats.zips[imported[row, ziploc]].patients.count391 += 1;
+    else # not found?
+        push!(notfound, pats.zips[imported[row, ziploc]].code);
+  #     println( imported[row, drgloc])
+    end
+  end
+  return pats;
+end
+
+fill = FillPatients(ppatients, pinsured);
+
+
+
+
+
+
 
 
 ###
