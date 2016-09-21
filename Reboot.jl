@@ -172,6 +172,22 @@ begin
     # WTP = convert(Matrix, txwp)
   #  global const nsims = 500;
   #  global const dirs = pwd() # present working directory path
+  zips = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false);
+  zips = convert(Array, zips[:,1]);
+  choices = DataFrames.readtable(pathdata*"TX Zip Code Choice Sets.csv", header = true);
+
+  for el in choices.colindex.names
+    #println(typeof(choices[el]), "  ", el)
+    if (typeof(choices[el]) == DataArrays.DataArray{Int64,1})|(typeof(choices[el]) == DataArrays.DataArray{Float64,1})
+      choices[isna(choices[:,el]) , el] = 0
+    elseif (typeof(choices[el]) == DataArrays.DataArray{UTF8String,1})
+      choices[isna(choices[:,el]), el] = "Missing"
+    end
+  end
+
+  choices = convert(Array{Any, 2}, choices)
+
+
 end # of "begin" block
 
 
