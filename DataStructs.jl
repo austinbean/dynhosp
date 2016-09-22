@@ -685,33 +685,61 @@ function UpdateDeterministic(collect::patientcollection)
   end
 end
 
-function GenChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+function GenPChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
   for el in keys(zipc.facilities) # dict has field count - has element number.
       utils = hcat([ [k1,zipc.pdetutils[k1]] for k1 in keys(zipc.pdetutils)]...)
       temparr = zeros(size(utils, 2))
       for k = 1:zipc.ppatients.count385
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count385 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count385 += 1
       end
-
-      #TODO: there is something wrong with the sizes here - maybe a misplaced index or something.  Or paren.  
       for k = 1:zipc.ppatients.count386
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count386 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count386 += 1
       end
       for k = 1:zipc.ppatients.count387
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count387 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count387 += 1
       end
       for i=1:zipc.ppatients.count388
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count388 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count388 += 1
       end
       for i = 1:zipc.ppatients.count389
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count389 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count389 += 1
       end
       for i=1:zipc.ppatients.count390
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count390 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count390 += 1
       end
       for i = 1:zipc.ppatients.count391
-        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count391 += 1
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count391 += 1
+      end
+  end
+  return outp
+end
+
+function GenMChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+  outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
+  for el in keys(zipc.facilities) # dict has field count - has element number.
+      utils = hcat([ [k1,zipc.mdetutils[k1]] for k1 in keys(zipc.mdetutils)]...)
+      temparr = zeros(size(utils, 2))
+      for k = 1:zipc.mpatients.count385
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count385 += 1
+      end
+      for k = 1:zipc.mpatients.count386
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count386 += 1
+      end
+      for k = 1:zipc.mpatients.count387
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count387 += 1
+      end
+      for i=1:zipc.mpatients.count388
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count388 += 1
+      end
+      for i = 1:zipc.mpatients.count389
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count389 += 1
+      end
+      for i=1:zipc.mpatients.count390
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count390 += 1
+      end
+      for i = 1:zipc.mpatients.count391
+        outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count391 += 1
       end
   end
   return outp
