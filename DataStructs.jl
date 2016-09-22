@@ -510,6 +510,10 @@ type patientcount
  count391::Int64
 end
 
+import Base.+
+function +(x::patientcount, y::patientcount)
+  return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
+end
 
 type coefficients
   distance::Float64
@@ -648,6 +652,9 @@ end
 
 patients = FillPatients(patients, pinsured, pmedicaid);
 
+
+#TODO: What happens with firms which exit here?
+
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   # Computes the deterministic component of utility for each hospital.
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
@@ -674,6 +681,18 @@ function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   end
 end
 
+#TODO: What happens with firms which exit here?
+
+function CalcWTP(zipc::zip)
+  outp = [j => 0.0 for j in keys(zipc.pdetutils)]
+  interim = 0.0
+  for el in keys(zipc.pdetutils)
+    interim +=  (outp[el] = exp(zipc.pdetutils[el]) ) #NB: This is a nice trick - simultaneously assigning and adding.
+  end
+  return [ j => outp[j]/interim for j in keys(outp)]
+end
+
+
 function UpdateDeterministic(collect::patientcollection)
   for el in keys(collect.zips) #iterates over zips
     for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
@@ -684,6 +703,11 @@ function UpdateDeterministic(collect::patientcollection)
     end
   end
 end
+
+UpdateDeterministic(patients)
+
+
+#TODO: What happens with firms which exit here?
 
 function GenPChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
@@ -714,6 +738,9 @@ function GenPChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distr
   end
   return outp
 end
+
+#TODO: What happens with firms which exit here?
+
 
 function GenMChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
