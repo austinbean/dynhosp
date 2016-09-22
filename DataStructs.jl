@@ -4,24 +4,25 @@
 
 include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
 
+          ### NB: Supply-side Data Structures. ###
 type WTP
-  w385::Vector
-  w386::Vector
-  w387::Vector
-  w388::Vector
-  w389::Vector
-  w390::Vector
-  w391::Vector
+  w385::Array{Float64, 1}
+  w386::Array{Float64, 1}
+  w387::Array{Float64, 1}
+  w388::Array{Float64, 1}
+  w389::Array{Float64, 1}
+  w390::Array{Float64, 1}
+  w391::Array{Float64, 1}
 end
 
 type DemandHistory
-  demand385::Vector
-  demand386::Vector
-  demand387::Vector
-  demand388::Vector
-  demand389::Vector
-  demand390::Vector
-  demand391::Vector
+  demand385::Array{Int64, 1}
+  demand386::Array{Int64, 1}
+  demand387::Array{Int64, 1}
+  demand388::Array{Int64, 1}
+  demand389::Array{Int64, 1}
+  demand390::Array{Int64, 1}
+  demand391::Array{Int64, 1}
 end
 
 type neighbors
@@ -41,15 +42,13 @@ type hospital
   lat::Float64
   long::Float64
   name::AbstractString
-  fipscode::Int
-  level::Int
-  levelhistory::Vector{Int}
+  fipscode::Int64
+  level::Int64
+  levelhistory::Vector{Int64}
   demandhist::DemandHistory
   wtphist::WTP
   chprobability::WeightVec
   probhistory::Array{Float64,1}
-  # The logitest function takes the following:
-  # logitest((0,0), level1, level2, level3, [data[a,lev105loc][1]; data[a,lev205loc][1]; data[a,lev305loc][1]; data[a,lev1515loc][1]; data[a,lev2515loc][1]; data[a,lev3515loc][1]; data[a,lev11525loc][1]; data[a,lev21525loc][1]; data[a,lev31525loc][1]] )
   neigh::neighbors
   hood::Array{Int64, 1}
   bedcount::Float64
@@ -69,14 +68,56 @@ type EntireState
   fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
 end
 
+        #### NB: Demand-side Data Structures ######
+
+type patientcount
+ count385::Int64
+ count386::Int64
+ count387::Int64
+ count388::Int64
+ count389::Int64
+ count390::Int64
+ count391::Int64
+end
+
+import Base.+
+function +(x::patientcount, y::patientcount)
+  return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
+end
+
+type coefficients
+  distance::Float64
+  distsq::Float64
+  inten::Float64
+  inter::Float64
+  distbed::Float64
+  closest::Float64
+  # can add extras
+end
+
+type zip
+ code::Int64
+ phr::Int64 # may have coefficients differing by PHR
+ facilities::Dict{Int64, hospital}
+ fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
+ pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
+ mdetutils::Dict{Int64, Float64} # the same for medicare patients.
+ lat::Float64
+ long::Float64
+ pcoeffs::coefficients
+ mcoeffs::coefficients
+ ppatients::patientcount
+ mpatients::patientcount
+end
+
+type patientcollection
+ zips::Dict{Int64, zip}
+end
 
 
-# Initialize Empty collection of markets:
-# Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
-# See below for dictionary comprehension.
 
-fips = unique(data[:,78])
-# This adds a list of the markets covered to the whole state iterable.
+        ##### NB: Supply-side Functions ######
+
 function MakeIt(Tex::EntireState, fip::Vector)
   for el in fip
     if el != 0
@@ -87,12 +128,6 @@ function MakeIt(Tex::EntireState, fip::Vector)
   Tex.mkts = [ m.fipscode => m for m in Tex.ms]
 end
 
-#MakeIt(Texas, fips)
-# Write the market dictionary out as a comprehension:
-# Texas.mkts = [ m.fipscode => m for m in Texas.ms]
-
-# fid - col 74, lat - col 94, long - col 95, name - col 82, fipscode - col 78, act_int - col 79, act_solo - col 80
-data05 = data[(data[:,75].==2005), :] ;
 
 function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
   for i = 1:size(data,1)
@@ -120,7 +155,7 @@ function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98,
                 Array{Float64,1}(),
                 neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
                 Array{Int64,1}(),
-                  0    , # need the beds here - currently NOT in this data.
+                  0    , # beds added later.
                 false ) )
     end
     # push all hospital fid/ fips pairs into the directory.
@@ -129,7 +164,6 @@ function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98,
   return Tex
 end
 
-#Texas = TXSetup(Texas, data05);
 
 # Expand the market dictionaries so that they are filled with the hospitals
 function ExpandDict(Tex::EntireState)
@@ -146,7 +180,6 @@ function ExpandDict(Tex::EntireState)
   end
 end
 
-#ExpandDict(Texas)
 
 function MakeNew(fi::Vector, dat::Matrix)
   Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
@@ -156,9 +189,14 @@ function MakeNew(fi::Vector, dat::Matrix)
   return Texas
 end
 
+# Data - should be moved to Reboot.jl eventually.
+fips = unique(data[:,78])
+data05 = data[(data[:,75].==2005), :] ;
+
+#NB: Creates hospital datastructure
 Texas = MakeNew(fips, data05);
 
-
+      #### NB:  Supply-side  Printing Utilities to Display Simulation Outcomes
 function MarketPrint(mkt::Market)
   println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   println(mkt.fipscode)
@@ -186,8 +224,10 @@ function FacPrint(hosp::hospital)
   println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
 end
 
+  ### NB: Substantive Supply-side Functions.
+
 function NewEntrantLocation(mkt::Market)
-# Takes the market, takes the mean location of all hospitals, adds normal noise to it.
+  # Takes the market, takes the mean location of all hospitals, adds normal noise to it.  ≈ 6 miles perturbation from mean.
   meanlat = 0
   meanlong = 0
   for el in mkt.config # over hospitals
@@ -198,17 +238,16 @@ function NewEntrantLocation(mkt::Market)
 end
 
 
-
-
 function MktSize(n::neighbors)
+  # takes a set of neighbors and returns the sum of levels 1, 2, 3 at the various distances.
   sum1 = n.level105 + n.level1515 + n.level11525
   sum2 = n.level205 + n.level2515 + n.level21525
   sum3 = n.level305 + n.level3515 + n.level31525
   return sum1, sum2, sum3
 end
 
-# When the facility level changes, the choices need to change too.
 function ChoicesAvailable(h::hospital)
+  # Takes a hospital, returns the choices available at that level as vectors.
   if h.level == 1
     return [10 2 1 11]
   elseif h.level == 2
@@ -261,7 +300,7 @@ end
 function NeighborAppend(elm::hospital, entrant::hospital)
   #=
   takes two hospital records, computes the distance between them and adds a 1 to the relevant record in the neighborhood type.
-   And appends it to the hood of elm, which is a list of fids.
+  Appends it to the hood of elm, which is a list of fids.  It is not symmetric - it appends entrant to elm, not vice versa.
   =#
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
@@ -300,7 +339,7 @@ end
 function NeighborRemove(elm::hospital, entrant::hospital)
   #=
   takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
-  It removes the record of entrant FROM the record of elm.
+  It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
   =#
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
@@ -368,7 +407,8 @@ end
 #NB: The function below will fix the neighbors while respecting the county boundaries, unlike the above.
 
 function StrictCountyNeighborFix(state::EntireState)
-  # For every hospital in the state, append all other hospitals within 25 miles
+  # For every hospital in the state, append all other hospitals within 25 miles AND in the same county.
+  # More restrictive than NeighborFix
   for mkt1 in state.ms
     for hos1 in mkt1.config
       for hos2 in mkt1.config
@@ -406,10 +446,10 @@ function FidFindFirst(mkt::Market, fid::Int64)
 end
 
 function MarketCleaner(mkt::Market)
-  # Should take as an argument a whole market and then remove the records of any entrants.
+  # Takes a whole market and then removes the records of any entrants.
   entlist = Array{Int64,1}()
   for el in mkt.config
-    if el.fid < 0
+    if el.fid < 0 # all entrants are tagged with negative fids.
       push!(entlist, el.fid)
     end
   end
@@ -421,7 +461,6 @@ function MarketCleaner(mkt::Market)
     end
   end
   for el in entlist
-  #  println(el)
     # Remove the hospital from the market array
     deleteat!(mkt.config, FidFindFirst(mkt, el)) # NB: HospFindFirst takes *market* as argument, but deleteat! takes *array*, i.e, market.config
     # Remove the hospital from the market dictionary
@@ -431,6 +470,7 @@ end
 
 
 function HospUpdate(hosp::hospital, choice::Int)
+  # Takes a hospital record and updates the probabilities of the choices.
   levl = (-1, -1)
  if (hosp.level!=choice)
    if choice != -999
@@ -452,6 +492,249 @@ function HospUpdate(hosp::hospital, choice::Int)
    return hosp.chprobability
   end
 end
+
+      ##### NB: Demand-side Data Structure Creation.
+
+
+function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
+  ppatients = patientcollection( Dict{Int64, zip}() )
+  unfound = Array{Int64,1}()
+  for el in zipcodes
+    ppatients.zips[el] = zip(el, 0, Dict{Int64,hospital}(), Dict{Int64,Float64}(), # zipcode, public health region, facilities, hospital FE's.
+                             Dict{Int64,Float64}(), Dict{Int64, Float64}(), # private det utilities, medicaid det utilities.
+                             0.0, 0.0, coefficients(privatedistance_c, privatedistsq_c, privateneoint_c, privatesoloint_c, privatedistbed_c, privateclosest_c),
+                             coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),  #lat, long, private coefficients, medicaid coefficients
+                             patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0)) # private and medicaid patients
+  end
+  for i = 1:size(ch, 1) #rows
+    ppatients.zips[ch[i,1]].lat = ch[i,7]
+    ppatients.zips[ch[i,1]].long = ch[i,8]
+    for j = 11:17:size(ch,2)
+      try
+        Tex.fipsdirectory[ch[i,j]]
+        # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
+        # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
+        # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
+        fipscode = Tex.fipsdirectory[ch[i,j]]
+        ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]
+        Tex.mkts[ fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]
+      catch y
+        if isa(y, KeyError)
+          push!(unfound,ch[i, j])
+        end
+      end
+    end
+  end
+  return ppatients, unfound
+end
+
+patients, unf = CreateZips(zips, choices, Texas);
+
+function FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
+  # Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
+  # There is a separate function for the Medicaid patients.
+  notfound = Array{Int64,1}()
+  for row in 1:size(imported, 1)
+    if imported[row, drgloc ] == 385
+      pats.zips[imported[row, ziploc]].ppatients.count385 += 1;
+    elseif imported[row, drgloc ] == 386
+      pats.zips[imported[row, ziploc]].ppatients.count386 += 1;
+    elseif imported[row, drgloc ] == 387
+      pats.zips[imported[row, ziploc]].ppatients.count387 += 1;
+    elseif imported[row, drgloc ] == 388
+      pats.zips[imported[row, ziploc]].ppatients.count388 += 1;
+    elseif imported[row, drgloc ] == 389
+      pats.zips[imported[row, ziploc]].ppatients.count389 += 1;
+    elseif imported[row, drgloc ] == 390
+      pats.zips[imported[row, ziploc]].ppatients.count390 += 1;
+    elseif imported[row, drgloc ] == 391
+      pats.zips[imported[row, ziploc]].ppatients.count391 += 1;
+    else # not found?
+        push!(notfound, pats.zips[imported[row, ziploc]].code);
+    end
+  end
+  return pats;
+end
+
+function FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
+  # Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
+  # There is a separate function for the privately-insured patients.
+  notfound = Array{Int64,1}()
+  for row in 1:size(imported, 1)
+    if imported[row, drgloc ] == 385
+      pats.zips[imported[row, ziploc]].mpatients.count385 += 1;
+    elseif imported[row, drgloc ] == 386
+      pats.zips[imported[row, ziploc]].mpatients.count386 += 1;
+    elseif imported[row, drgloc ] == 387
+      pats.zips[imported[row, ziploc]].mpatients.count387 += 1;
+    elseif imported[row, drgloc ] == 388
+      pats.zips[imported[row, ziploc]].mpatients.count388 += 1;
+    elseif imported[row, drgloc ] == 389
+      pats.zips[imported[row, ziploc]].mpatients.count389 += 1;
+    elseif imported[row, drgloc ] == 390
+      pats.zips[imported[row, ziploc]].mpatients.count390 += 1;
+    elseif imported[row, drgloc ] == 391
+      pats.zips[imported[row, ziploc]].mpatients.count391 += 1;
+    else # not found?
+        push!(notfound, pats.zips[imported[row, ziploc]].code);
+    end
+  end
+  return pats;
+end
+
+function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)
+  # Adds the privately insured and medicaid patients to the zip records.
+  pats = FillPPatients(pats, private)
+  pats = FillMPatients(pats, medicaid)
+end
+
+patients = FillPatients(patients, pinsured, pmedicaid);
+
+
+    ### NB: Zip code record printing utility.
+
+function PrintZip(zi::zip)
+  # Prints the fid and the name of the facilities attached to the zips.
+  for el in keys(zi.facilities)
+    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
+    println(el, "  ", zi.facilities[el].name)
+  end
+    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
+    println("385 ", zi.ppatients.count385, " ", zi.mpatients.count385)
+    println("386 ", zi.ppatients.count386, " ", zi.mpatients.count386)
+    println("387 ", zi.ppatients.count387, " ", zi.mpatients.count387)
+    println("388 ", zi.ppatients.count388, " ", zi.mpatients.count388)
+    println("389 ", zi.ppatients.count389, " ", zi.mpatients.count389)
+    println("390 ", zi.ppatients.count390, " ", zi.mpatients.count390)
+    println("391 ", zi.ppatients.count391, " ", zi.mpatients.count391)
+end
+
+  ### NB: Substantive Demand-side Functions.
+
+function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
+  # Computes the deterministic component of utility for each hospital in the zip "zipc".
+  # Maps exited facilites to have deterministic utility -999
+  # Works on private and medicaid patients by setting p_or_m to true or false, respectively.
+  # Has been written to accomodate hospital FE's when available.
+  dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
+  if p_or_m #if TRUE private
+    if zipc.facilities[fid].level == 1
+      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 2
+      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 3
+      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    else  # =-999
+      return -999 # can't choose a facility which has exited - set det utility very low.
+    end
+  else
+    if zipc.facilities[fid].level == 1
+      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 2
+      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    elseif zipc.facilities[fid].level == 3
+      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+    else  # =-999
+      return -999
+    end
+  end
+end
+
+
+
+function CalcWTP(zipc::zip)
+  # Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
+  outp = [j => 0.0 for j in keys(zipc.pdetutils)]
+  interim = 0.0
+  for el in keys(zipc.pdetutils)
+    #NB: computed utility of exited firm will be zero by ComputeDetUtil assigning it to -999, so exp(-999) = 0
+    interim +=  (outp[el] = exp(zipc.pdetutils[el]) ) #NB: This is a nice trick - simultaneously assigning and adding.
+  end
+  return [ j => outp[j]/interim for j in keys(outp)]
+end
+
+
+function UpdateDeterministic(collect::patientcollection)
+  # Computes the deterministic component of the utility - updates every firm every time it is called.
+  for el in keys(collect.zips) #iterates over zips
+    for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
+      collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
+      collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
+    end
+  end
+end
+
+UpdateDeterministic(patients)
+
+
+
+function GenPChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+  # The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
+  # the privately insured category from FillPPatients.  This returns a dict of fids and patient counts, where patient counts are
+  # generated by repeatedly finding max i = 1, ..., N \bar{U}_i + ϵ_i.  Note the corresponding GenMChoices below.
+  outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
+  utils = hcat([ [k1,zipc.pdetutils[k1]] for k1 in keys(zipc.pdetutils)]...)
+  temparr = zeros(size(utils, 2))
+  for k = 1:zipc.ppatients.count385
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count385 += 1
+  end
+  for k = 1:zipc.ppatients.count386
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count386 += 1
+  end
+  for k = 1:zipc.ppatients.count387
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count387 += 1
+  end
+  for i=1:zipc.ppatients.count388
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count388 += 1
+  end
+  for i = 1:zipc.ppatients.count389
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count389 += 1
+  end
+  for i=1:zipc.ppatients.count390
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count390 += 1
+  end
+  for i = 1:zipc.ppatients.count391
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count391 += 1
+  end
+  return outp
+end
+
+
+function GenMChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+  # The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
+  # the Medicaid category from FillMPatients.  This returns a dict of fids and patient counts, where patient counts are
+  # generated by repeatedly finding max i = 1, ..., N \bar{U}_i + ϵ_i.  Note the corresponding GenPChoices above.
+  outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
+  utils = hcat([ [k1,zipc.mdetutils[k1]] for k1 in keys(zipc.mdetutils)]...)
+  temparr = zeros(size(utils, 2))
+  for k = 1:zipc.mpatients.count385
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count385 += 1
+  end
+  for k = 1:zipc.mpatients.count386
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count386 += 1
+  end
+  for k = 1:zipc.mpatients.count387
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count387 += 1
+  end
+  for i=1:zipc.mpatients.count388
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count388 += 1
+  end
+  for i = 1:zipc.mpatients.count389
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count389 += 1
+  end
+  for i=1:zipc.mpatients.count390
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count390 += 1
+  end
+  for i = 1:zipc.mpatients.count391
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count391 += 1
+  end
+  return outp
+end
+
+
+
+    ### NB: The business of the simulation.
+
 
 
 function NewSim(T::Int, Tex::EntireState; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
@@ -500,272 +783,6 @@ end
 
 
 
-type patientcount
- count385::Int64
- count386::Int64
- count387::Int64
- count388::Int64
- count389::Int64
- count390::Int64
- count391::Int64
-end
 
-import Base.+
-function +(x::patientcount, y::patientcount)
-  return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
-end
-
-type coefficients
-  distance::Float64
-  distsq::Float64
-  inten::Float64
-  inter::Float64
-  distbed::Float64
-  closest::Float64
-  # can add extras
-end
-
-type zip
- code::Int64
- phr::Int64 # may have coefficients differing by PHR
- facilities::Dict{Int64, hospital}
- fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
- pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
- mdetutils::Dict{Int64, Float64} # the same for medicare patients.
- lat::Float64
- long::Float64
- pcoeffs::coefficients
- mcoeffs::coefficients
- ppatients::patientcount
- mpatients::patientcount
-end
-
-type patientcollection
- zips::Dict{Int64, zip}
-end
-
-function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
-  ppatients = patientcollection( Dict{Int64, zip}() )
-  unfound = Array{Int64,1}()
-  for el in zipcodes
-    ppatients.zips[el] = zip(el, 0, Dict{Int64,hospital}(), Dict{Int64,Float64}(), # zipcode, public health region, facilities, hospital FE's.
-                             Dict{Int64,Float64}(), Dict{Int64, Float64}(), # private det utilities, medicaid det utilities.
-                             0.0, 0.0, coefficients(privatedistance_c, privatedistsq_c, privateneoint_c, privatesoloint_c, privatedistbed_c, privateclosest_c),
-                             coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),  #lat, long, private coefficients, medicaid coefficients
-                             patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0)) # private and medicaid patients
-  end
-  for i = 1:size(ch, 1) #rows
-    ppatients.zips[ch[i,1]].lat = ch[i,7]
-    ppatients.zips[ch[i,1]].long = ch[i,8]
-    for j = 11:17:size(ch,2)
-      try
-        Tex.fipsdirectory[ch[i,j]]
-        # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
-        # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
-        # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
-        fipscode = Tex.fipsdirectory[ch[i,j]]
-        ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]
-        Tex.mkts[ fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]
-      catch y
-        if isa(y, KeyError)
-          push!(unfound,ch[i, j])
-        end
-      end
-    end
-  end
-  return ppatients, unfound
-end
-
-patients, unf = CreateZips(zips, choices, Texas);
-
-
-function PrintZip(zi::zip)
-  # Prints the fid and the name of the facilities attached to the zips.
-  for el in keys(zi.facilities)
-    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
-    println(el, "  ", zi.facilities[el].name)
-  end
-    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
-    println("385 ", zi.ppatients.count385, " ", zi.mpatients.count385)
-    println("386 ", zi.ppatients.count386, " ", zi.mpatients.count386)
-    println("387 ", zi.ppatients.count387, " ", zi.mpatients.count387)
-    println("388 ", zi.ppatients.count388, " ", zi.mpatients.count388)
-    println("389 ", zi.ppatients.count389, " ", zi.mpatients.count389)
-    println("390 ", zi.ppatients.count390, " ", zi.mpatients.count390)
-    println("391 ", zi.ppatients.count391, " ", zi.mpatients.count391)
-end
-
-function FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
-  notfound = Array{Int64,1}()
-  for row in 1:size(imported, 1)
-    if imported[row, drgloc ] == 385
-      pats.zips[imported[row, ziploc]].ppatients.count385 += 1;
-    elseif imported[row, drgloc ] == 386
-      pats.zips[imported[row, ziploc]].ppatients.count386 += 1;
-    elseif imported[row, drgloc ] == 387
-      pats.zips[imported[row, ziploc]].ppatients.count387 += 1;
-    elseif imported[row, drgloc ] == 388
-      pats.zips[imported[row, ziploc]].ppatients.count388 += 1;
-    elseif imported[row, drgloc ] == 389
-      pats.zips[imported[row, ziploc]].ppatients.count389 += 1;
-    elseif imported[row, drgloc ] == 390
-      pats.zips[imported[row, ziploc]].ppatients.count390 += 1;
-    elseif imported[row, drgloc ] == 391
-      pats.zips[imported[row, ziploc]].ppatients.count391 += 1;
-    else # not found?
-        push!(notfound, pats.zips[imported[row, ziploc]].code);
-  #     println( imported[row, drgloc])
-    end
-  end
-  return pats;
-end
-
-function FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
-  notfound = Array{Int64,1}()
-  for row in 1:size(imported, 1)
-    if imported[row, drgloc ] == 385
-      pats.zips[imported[row, ziploc]].mpatients.count385 += 1;
-    elseif imported[row, drgloc ] == 386
-      pats.zips[imported[row, ziploc]].mpatients.count386 += 1;
-    elseif imported[row, drgloc ] == 387
-      pats.zips[imported[row, ziploc]].mpatients.count387 += 1;
-    elseif imported[row, drgloc ] == 388
-      pats.zips[imported[row, ziploc]].mpatients.count388 += 1;
-    elseif imported[row, drgloc ] == 389
-      pats.zips[imported[row, ziploc]].mpatients.count389 += 1;
-    elseif imported[row, drgloc ] == 390
-      pats.zips[imported[row, ziploc]].mpatients.count390 += 1;
-    elseif imported[row, drgloc ] == 391
-      pats.zips[imported[row, ziploc]].mpatients.count391 += 1;
-    else # not found?
-        push!(notfound, pats.zips[imported[row, ziploc]].code);
-  #     println( imported[row, drgloc])
-    end
-  end
-  return pats;
-end
-
-function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)
-  pats = FillPPatients(pats, private)
-  pats = FillMPatients(pats, medicaid)
-end
-
-patients = FillPatients(patients, pinsured, pmedicaid);
-
-
-#TODO: What happens with firms which exit here?
-
-function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
-  # Computes the deterministic component of utility for each hospital.
-  dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
-  if p_or_m #if TRUE private
-    if zipc.facilities[fid].level == 1
-      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
-    elseif zipc.facilities[fid].level == 2
-      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
-    elseif zipc.facilities[fid].level == 3
-      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
-    else  # =-999
-      return - 99 # can't choose a facility which has exited - set det utility very low.
-    end
-  else
-    if zipc.facilities[fid].level == 1
-      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
-    elseif zipc.facilities[fid].level == 2
-      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
-    elseif zipc.facilities[fid].level == 3
-      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
-    else  # =-999
-      return - 99
-    end
-  end
-end
-
-#TODO: What happens with firms which exit here?
-
-function CalcWTP(zipc::zip)
-  outp = [j => 0.0 for j in keys(zipc.pdetutils)]
-  interim = 0.0
-  for el in keys(zipc.pdetutils)
-    interim +=  (outp[el] = exp(zipc.pdetutils[el]) ) #NB: This is a nice trick - simultaneously assigning and adding.
-  end
-  return [ j => outp[j]/interim for j in keys(outp)]
-end
-
-
-function UpdateDeterministic(collect::patientcollection)
-  for el in keys(collect.zips) #iterates over zips
-    for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
-      if (size(collect.zips[el].facilities[fid].levelhistory,1)==1)||(collect.zips[el].facilities[fid].level!=collect.zips[el].facilities[fid].levelhistory[end]) #state has changed OR this is the first period.
-        collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
-        collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
-      end
-    end
-  end
-end
-
-UpdateDeterministic(patients)
-
-
-#TODO: What happens with firms which exit here?
-
-function GenPChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
-  utils = hcat([ [k1,zipc.pdetutils[k1]] for k1 in keys(zipc.pdetutils)]...)
-  temparr = zeros(size(utils, 2))
-  for k = 1:zipc.ppatients.count385
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count385 += 1
-  end
-  for k = 1:zipc.ppatients.count386
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count386 += 1
-  end
-  for k = 1:zipc.ppatients.count387
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count387 += 1
-  end
-  for i=1:zipc.ppatients.count388
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count388 += 1
-  end
-  for i = 1:zipc.ppatients.count389
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count389 += 1
-  end
-  for i=1:zipc.ppatients.count390
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count390 += 1
-  end
-  for i = 1:zipc.ppatients.count391
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count391 += 1
-  end
-  return outp
-end
-
-#TODO: What happens with firms which exit here?
-
-
-function GenMChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(zipc.facilities)] # output is a {FID, patientcount} dictionary.
-  utils = hcat([ [k1,zipc.mdetutils[k1]] for k1 in keys(zipc.mdetutils)]...)
-  temparr = zeros(size(utils, 2))
-  for k = 1:zipc.mpatients.count385
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count385 += 1
-  end
-  for k = 1:zipc.mpatients.count386
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count386 += 1
-  end
-  for k = 1:zipc.mpatients.count387
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count387 += 1
-  end
-  for i=1:zipc.mpatients.count388
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count388 += 1
-  end
-  for i = 1:zipc.mpatients.count389
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count389 += 1
-  end
-  for i=1:zipc.mpatients.count390
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count390 += 1
-  end
-  for i = 1:zipc.mpatients.count391
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr)')]].count391 += 1
-  end
-  return outp
-end
 
 ###
