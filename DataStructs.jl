@@ -736,7 +736,7 @@ function GenPChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distr
   return outp
 end
 
-
+#TODO: Make this work on the whole state!  Comprehend an entire dictionary and then fill it one zip at a time.
 
 function GenMChoices(zipc::zip; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   # The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
