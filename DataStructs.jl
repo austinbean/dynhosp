@@ -618,6 +618,8 @@ end
 
   ### NB: Substantive Demand-side Functions.
 
+  #TODO: Modify to add the outside option!
+
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   # Computes the deterministic component of utility for each hospital in the zip "zipc".
   # Maps exited facilites to have deterministic utility -999
@@ -674,29 +676,44 @@ function CalcWTP(zipc::zip)
   return [ j => outp[j]/interim for j in keys(outp)]
 end
 
-# TODO: this is not working, but I can't see why yet.
-# TODO: Includes Infs and NaN's.  Figure it out.  
+
+#TODO: here we need to make sure that there is always an outside option which is zeros.
+#TODO: Also - these need to vary by DRG.  That requires: detutil by the DRG at the zipcode level.
+
 function WTPMap(pats::patientcollection, Tex::EntireState)
+  # Takes a patient collection and an entire state and returns a dict{fid, WTP}
+  # computed by calling CalcWTP.  Right now it ignores Inf and NaN.
   outp = [ j=> 0.0 for j in keys(Tex.fipsdirectory) ]
-  facs = Array{Int64,1}()
   for zipc in keys(pats.zips)
     vals = CalcWTP(pats.zips[zipc])
     for el in keys(vals) # What to do about key errors?  there will be some.
-      push!(facs, el)
       try
         outp[el]
-        outp[el]+= (1/(1-vals[el]))
-      catch y
+        if (vals[el]!=1)&!isnan(vals[el])
+          outp[el]+= (1/(1-vals[el]))
+        end
+      catch y # here the issue was that this was catching an "InexactError" but there was no test for it.
         if isa(y, KeyError)
-          println(el) #the facility is missing.  Could be an entrant.
+          #println(el) #the facility is missing.  Could be an entrant.
         end
       end
     end
   end
-  println(size(unique(facs)))
   return outp # gives a dict{fid, WTP} back
 end
 
+function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)
+  # Takes a dict of {fid, WTP} and writes it out by DRG.
+  for els in keys(reslt)
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
+  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
+  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387, reslt[els])
+  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388, reslt[els])
+  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389, reslt[els])
+  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390, reslt[els])
+  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391, reslt[els])
+  end
+end
 
 function UpdateDeterministic(collect::patientcollection)
   # Computes the deterministic component of the utility - updates every firm every time it is called.
@@ -863,8 +880,7 @@ end
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
   for i = 1:T
     println(i)
-    #      WTPMap(pats, Tex)
-
+    WriteWTP(WTPMap(pats, Tex), Tex)
     PDemandMap(GenPChoices(pats, Tex), Tex)
     MDemandMap(GenMChoices(pats, Tex), Tex)
     for el in Tex.ms
@@ -895,22 +911,44 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
         elm.level = newchoice                                                                  # Set the level to be the new choice.
         push!(elm.levelhistory, newchoice)
       end
+    end
+    # This updates after all of the facilities have been changed.
       UpdateDeterministic(pats)                                                                # Updates deterministic component of utility
       for zipc in keys(pats.zips)
-        pdetutils = CalcWTP(pats.zips[zipc])                                                               # Calculates WTP from deterministic utility, now updated.
+        pdetutils = CalcWTP(pats.zips[zipc])                                                   # Calculates WTP from deterministic utility, now updated.
       end
-    end
     #TODO: Figure out the cleanup things, but they are turned off for now.  Alternatively - remake every time in the larger sim.
   #  NeighborClean(Tex)
   #  NeighborFix(Tex)
   end
+  return Tex
 end
 
-NewSim(50, Texas, patients)
+NewSim(10, Texas, patients)
 
 for el in Texas.ms
   MarketCleaner(el) # Remove Entrants from Market Record.
 end
+
+
+function OuterSim(MCcount::Int)
+  MakeIt() #recreate the state
+  #TODO: call the function to create the individual records.
+  for j = 1:MCcount
+    NTex = NewSim(50, Texas, patients) # generates the sim results.
+    ResultsOut(NTex)
+  end
+
+end
+
+function ResultsOut(Tex::EntireState)
+  for el in keys(Tex.fipsdirectory) # Now this is all of the hospitals.
+
+  end
+end
+
+
+
 
 
 ### TODO: What's next?
