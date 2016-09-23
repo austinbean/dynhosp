@@ -595,6 +595,8 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
   pats = FillMPatients(pats, medicaid)
 end
 
+# TODO: write this out so that it can be called in one function call.  
+
 patients = FillPatients(patients, pinsured, pmedicaid);
 
 
@@ -725,7 +727,6 @@ function UpdateDeterministic(collect::patientcollection)
   end
 end
 
-UpdateDeterministic(patients)
 
 function GenPChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   # The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
@@ -913,27 +914,22 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
       end
     end
     # This updates after all of the facilities have been changed.
-      UpdateDeterministic(pats)                                                                # Updates deterministic component of utility
-      for zipc in keys(pats.zips)
-        pdetutils = CalcWTP(pats.zips[zipc])                                                   # Calculates WTP from deterministic utility, now updated.
-      end
-    #TODO: Figure out the cleanup things, but they are turned off for now.  Alternatively - remake every time in the larger sim.
-  #  NeighborClean(Tex)
-  #  NeighborFix(Tex)
+    UpdateDeterministic(pats)                                                                # Updates deterministic component of utility
+    for zipc in keys(pats.zips)
+      pdetutils = CalcWTP(pats.zips[zipc])                                                   # Calculates WTP from deterministic utility, now updated.
+    end
   end
-  return Tex
+  return Tex # Returns the whole state so the results can be written out.
 end
 
 NewSim(10, Texas, patients)
 
-for el in Texas.ms
-  MarketCleaner(el) # Remove Entrants from Market Record.
-end
+
 
 
 function OuterSim(MCcount::Int)
-  MakeIt() #recreate the state
-  #TODO: call the function to create the individual records.
+  Texas = MakeNew(fips, data05);  #very quick ≈ 0.1 seconds.
+  #TODO: call the function to create the individual records of results..
   for j = 1:MCcount
     NTex = NewSim(50, Texas, patients) # generates the sim results.
     ResultsOut(NTex)
@@ -962,7 +958,9 @@ end
 
 =#
 
-
+# for el in Texas.ms
+#   MarketCleaner(el) # Remove Entrants from Market Record.
+# end
 
 
 ###
