@@ -790,7 +790,7 @@ function MHistoryAdd(hos::hospital, cnt::patientcount)
   push!(hos.mdemandhist.demand391, cnt.count391)
 end
 
-
+#TODO - fix this. It is not mapping the SUM correctly.  
 function PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
   for el in keys(patd)
     PHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el])
@@ -898,6 +898,16 @@ for el in Texas.ms
   MarketCleaner(el) # Remove Entrants from Market Record.
 end
 
+
+### TODO: What's next?
+
+#=
+
+- Outer function for MC sims.
+- Map Results to payoff function.  This first.
+
+
+=#
 
 
 
