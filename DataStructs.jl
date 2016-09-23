@@ -647,6 +647,20 @@ function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   end
 end
 
+function WhichZips(pats::patientcollection, fid::Int64)
+  # Takes a patientcollection and tells me which zips have the hospital fid
+  for zi in keys(pats.zips)
+    try
+      pats.zips[zi].facilities[fid]
+      println(zi)
+    catch y
+      if isa(y, KeyError)
+        #not found.  Whatever.
+      end
+    end
+  end
+end
+
 
 
 function CalcWTP(zipc::zip)
@@ -661,25 +675,24 @@ function CalcWTP(zipc::zip)
 end
 
 # TODO: this is not working, but I can't see why yet.
+# TODO: Includes Infs and NaN's.  Figure it out.  
 function WTPMap(pats::patientcollection, Tex::EntireState)
-  outp = [ j=> 0 for j in keys(Tex.fipsdirectory) ]
-  itercounter = 0
+  outp = [ j=> 0.0 for j in keys(Tex.fipsdirectory) ]
   facs = Array{Int64,1}()
   for zipc in keys(pats.zips)
     vals = CalcWTP(pats.zips[zipc])
     for el in keys(vals) # What to do about key errors?  there will be some.
-      itercounter +=1
       push!(facs, el)
       try
-        outp[el] += (1/(1-vals[el]))
+        outp[el]
+        outp[el]+= (1/(1-vals[el]))
       catch y
         if isa(y, KeyError)
           println(el) #the facility is missing.  Could be an entrant.
         end
-        end
+      end
     end
   end
-  println(itercounter)
   println(size(unique(facs)))
   return outp # gives a dict{fid, WTP} back
 end
@@ -790,7 +803,6 @@ function MHistoryAdd(hos::hospital, cnt::patientcount)
   push!(hos.mdemandhist.demand391, cnt.count391)
 end
 
-#TODO - fix this. It is not mapping the SUM correctly.  
 function PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
   for el in keys(patd)
     PHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el])
@@ -850,10 +862,15 @@ end
 
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
   for i = 1:T
+    println(i)
+    #      WTPMap(pats, Tex)
+
+    PDemandMap(GenPChoices(pats, Tex), Tex)
+    MDemandMap(GenMChoices(pats, Tex), Tex)
     for el in Tex.ms
       entrant = sample(entrants, WeightVec(entryprobs))
       if entrant != 0
-        println("Entry! ", entrant , " FIPS ", el.fipscode)
+      #  println("Entry! ", entrant , " FIPS ", el.fipscode)
         entloc = NewEntrantLocation(el) # called on the market
         newfid = -floor(rand()*1e6) # all entrant fids negative to facilitate their removal later.
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
@@ -870,9 +887,6 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
         end
          HospUpdate(entr, entrant) #entrant is the level
       end
-#      WTPMap(pats, Tex)  #TODO - fix this!
-        PDemandMap(GenPChoices(pats, Tex), Tex)
-        MDemandMap(GenMChoices(pats, Tex), Tex)
       for elm in el.config
         action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
         push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
@@ -892,7 +906,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
   end
 end
 
-NewSim(10, Texas, patients)
+NewSim(50, Texas, patients)
 
 for el in Texas.ms
   MarketCleaner(el) # Remove Entrants from Market Record.
@@ -905,6 +919,7 @@ end
 
 - Outer function for MC sims.
 - Map Results to payoff function.  This first.
+- Fix WTP.
 
 
 =#
