@@ -198,9 +198,9 @@ function MakeNew(fi::Vector, dat::Matrix)
 end
 
 function CreateEmpty(fi::Vector, dat::Matrix)
-  # This creates an empty entire state record for the perturbed simulation. 
-  Tex = EntireState(Array{hospita,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
-  Tex = Makeit(Tex, fi)
+  # This creates an empty entire state record for the perturbed simulation.
+  Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+  MakeIt(Tex, fi)
   TXSetup(Tex, dat)
   return Tex
 end
@@ -934,16 +934,18 @@ end
 
 NewSim(50, Texas, patients)
 
-function PSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
+function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
+  # The results are stored in EmptyState, which is an EntireState record instance.
   for i = 1:T
       println(i)
       WriteWTP(WTPMap(pats, Tex), Tex)
       PDemandMap(GenPChoices(pats, Tex), Tex)
       MDemandMap(GenMChoices(pats, Tex), Tex)
-      for el in Texas.ms
+      for el in Tex.ms
+        # Check for completion in EmptyState
         done = [ el.noneqrecord[i] for i in keys(el.noneqrecord)]
-        while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms perturbed.
+        while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms in the market are perturbed.
           entrant = sample(entrants, WeightVec(entryprobs))
           if entrant!= 0
             entloc = NewEntrantLocation(el) # called on the market
@@ -963,7 +965,6 @@ function PSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 
              HospUpdate(entr, entrant) #entrant is the level
            for elm in el.config
              if !elm.perturbed # not perturbed
-               # TODO: better idea - create a duplicate state record.  All hospitals empty but write them out when the perturbed sim is done.
                action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
                push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
                newchoice = LevelFunction(elm, action)                                                 # What is the new level?
@@ -984,7 +985,8 @@ function PSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 
         end
       end
   end
-  return Tex
+  #TODO: here write out the results.  Also - here should be the place to TRACK which firms have been
+  return Empty
 end
 
 
