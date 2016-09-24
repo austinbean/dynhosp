@@ -61,6 +61,7 @@ type Market
 	config::Array{hospital, 1}
   collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
   fipscode::Int
+  noneqrecord::Dict{Int64, Bool}
 end
 
 type EntireState
@@ -123,7 +124,7 @@ function MakeIt(Tex::EntireState, fip::Vector)
   # Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
   for el in fip
     if el != 0
-      el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}() ,$el)"))
+      el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}(), $el, Dict{Int64, Bool}())"))
       push!(Tex.ms, el)
     end
   end
@@ -174,6 +175,7 @@ function ExpandDict(Tex::EntireState)
   # Expand the market dictionaries so that they are filled with the hospitals
   for el in Tex.ms
     el.collection = [ i.fid => i for i in el.config ]
+    el.noneqrecord = [ i.fid => false for i in el.config]
     # I would like to append to each hospital a list of the others in the market.
     for hosp in el.config
       for hosp2 in el.config
@@ -193,6 +195,14 @@ function MakeNew(fi::Vector, dat::Matrix)
   TXSetup(Texas, dat)
   ExpandDict(Texas)
   return Texas
+end
+
+function CreateEmpty(fi::Vector, dat::Matrix)
+  # This creates an empty entire state record for the perturbed simulation. 
+  Tex = EntireState(Array{hospita,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+  Tex = Makeit(Tex, fi)
+  TXSetup(Tex, dat)
+  return Tex
 end
 
 # Data - should be moved to Reboot.jl eventually.
@@ -595,7 +605,7 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
   pats = FillMPatients(pats, medicaid)
 end
 
-# TODO: write this out so that it can be called in one function call.  
+# TODO: write this out so that it can be called in one function call.
 
 patients = FillPatients(patients, pinsured, pmedicaid);
 
@@ -879,6 +889,7 @@ end
 
 
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
+  # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
     println(i)
     WriteWTP(WTPMap(pats, Tex), Tex)
@@ -887,7 +898,6 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
     for el in Tex.ms
       entrant = sample(entrants, WeightVec(entryprobs))
       if entrant != 0
-      #  println("Entry! ", entrant , " FIPS ", el.fipscode)
         entloc = NewEntrantLocation(el) # called on the market
         newfid = -floor(rand()*1e6) # all entrant fids negative to facilitate their removal later.
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
@@ -922,7 +932,60 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
   return Tex # Returns the whole state so the results can be written out.
 end
 
-NewSim(10, Texas, patients)
+NewSim(50, Texas, patients)
+
+function PSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
+  # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
+  for i = 1:T
+      println(i)
+      WriteWTP(WTPMap(pats, Tex), Tex)
+      PDemandMap(GenPChoices(pats, Tex), Tex)
+      MDemandMap(GenMChoices(pats, Tex), Tex)
+      for el in Texas.ms
+        done = [ el.noneqrecord[i] for i in keys(el.noneqrecord)]
+        while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms perturbed.
+          entrant = sample(entrants, WeightVec(entryprobs))
+          if entrant!= 0
+            entloc = NewEntrantLocation(el) # called on the market
+            newfid = -floor(rand()*1e6) # all entrant fids negative to facilitate their removal later.
+            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
+                             DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                             DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                             WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                             WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
+                             push!(el.config, entr) # need to create a new record for this hospital in the market
+            # need to add it to the dictionary too:
+            el.collection[newfid] = entr
+            for elm in el.config
+              NeighborAppend(elm, entr)
+              NeighborAppend(entr, elm)
+           end
+             HospUpdate(entr, entrant) #entrant is the level
+           for elm in el.config
+             if !elm.perturbed # not perturbed
+               # TODO: better idea - create a duplicate state record.  All hospitals empty but write them out when the perturbed sim is done.
+               action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
+               push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
+               newchoice = LevelFunction(elm, action)                                                 # What is the new level?
+               elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
+               elm.level = newchoice                                                                  # Set the level to be the new choice.
+               push!(elm.levelhistory, newchoice)
+             else # perturbed.
+               # Call function perturb which needs to be exported in PerturbAction.jl
+               action = sample( ChoicesAvailable(elm), perturb(elm.chprobability)) #TODO: this may require a conversion - perturb takes a vector, not weightvec.
+               push!( elm.probabilty, elm.chprobability[findin(ChoicesAvailable(elm), action)[1]])
+               newchoice = LevelFunction(elm, action)
+               elm.chprobability = HospUpdate(elm, newchoice)
+               elm.level = newchoice
+               push!(elm.levelhistory, newchoice)
+             end
+           end
+          end
+        end
+      end
+  end
+  return Tex
+end
 
 
 
@@ -958,9 +1021,6 @@ end
 
 =#
 
-# for el in Texas.ms
-#   MarketCleaner(el) # Remove Entrants from Market Record.
-# end
 
 
 ###
