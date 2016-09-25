@@ -953,26 +953,31 @@ EmpTex = CreateEmpty(fips, data05);
 
 function Termination(EmTex::EntireState)
   # Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
-  # TODO: DEBUG!
   isdone = true
-  for mark in EmTex.mkts # iterates over markets
-    isdone = (isdone)&(reduce(&, [mark.noneqrecord[i] for i in keys(mark.noneqrecord) ] ))
+  for mark in keys(EmTex.mkts) # iterates over markets
+    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].noneqrecord[i] for i in keys(EmTex.mkts[mark].noneqrecord) ] ))
   end
+  return isdone
 end
 
 
 function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
-  while !Termination(EmptyState)
+  termflag = !Termination(EmptyState) # Checks the termination condition over every market in the state.
+  while termflag # true if there is some hospital which has not been perturbed.
     for i = 1:T
         println(i)
         WriteWTP(WTPMap(pats, Tex), Tex)
         PDemandMap(GenPChoices(pats, Tex), Tex)
         MDemandMap(GenMChoices(pats, Tex), Tex)
         for el in Tex.ms
-          done = [ EmptyState.mkts[el.fipscode].noneqrecord[i] for i in keys(EmptyState.mkts[el.fipscode].noneqrecord)]
-          while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms in the market are perturbed.
+          done = [ EmptyState.mkts[el.fipscode].noneqrecord[i] for i in keys(EmptyState.mkts[el.fipscode].noneqrecord)] # check whether all firms in market have been perturbed.  If True, skip it.
+          while !reduce(&, done)
+            pfids = prod(hcat( [ [i, EmptyState.mkts[el.fipscode].noneqrecord[i]] for i in keys(EmptyState.mkts[el.fipscode].noneqrecord) ]),1)
+            pfid = pfids[findfirst(pfids)]                        # takes the first non-zero element of the above and returns the element.
+            EmptyState.mkts[el.fipscode].noneqrecord[pfid] = true # record that this one has been done in EmptyState
+            el.collection[pfid] = true                            # change the value of this so that it gets perturbed in the section below.
             entrant = sample(entrants, WeightVec(entryprobs))
             if entrant!= 0
               entloc = NewEntrantLocation(el) # called on the market
@@ -983,15 +988,16 @@ function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientco
                                WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                                WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
                                push!(el.config, entr) # need to create a new record for this hospital in the market
-              # need to add it to the dictionary too:
-              el.collection[newfid] = entr
-              for elm in el.config
-                NeighborAppend(elm, entr)
-                NeighborAppend(entr, elm)
-             end
+               # need to add it to the dictionary too:
+               el.collection[newfid] = entr
+               for elm in el.config
+                 NeighborAppend(elm, entr)
+                 NeighborAppend(entr, elm)
+               end
                HospUpdate(entr, entrant) #entrant is the level
-             for elm in el.config
-               if !elm.perturbed # not perturbed
+              end
+             for elm in el.config   #TODO which elements am I checking?  Should check in emptystate.
+               if !elm.perturbed # not perturbed, i.e., "perturbed" == false
                  action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
                  push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
                  newchoice = LevelFunction(elm, action)                                                 # What is the new level?
@@ -999,7 +1005,6 @@ function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientco
                  elm.level = newchoice                                                                  # Set the level to be the new choice.
                  push!(elm.levelhistory, newchoice)
                else # perturbed.
-                 # Call function perturb which needs to be exported in PerturbAction.jl
                  action = sample( ChoicesAvailable(elm), perturb(elm.chprobability)) #TODO: this may require a conversion - perturb takes a vector, not weightvec.
                  push!( elm.probabilty, elm.chprobability[findin(ChoicesAvailable(elm), action)[1]])
                  newchoice = LevelFunction(elm, action)
@@ -1012,19 +1017,26 @@ function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientco
           end
         end
     end
-    # TODO: here write out the results.  Also - here should be the place to TRACK which firms have been
-    # TODO: like this: h1 = deepcopy(whatever hospital I just did), Empty.mkts[fipscode[fid]].ms[fid] = h1.
-    # TODO: And change the value in the empty.perturbedhistory to be true.
-    for el in Tex.mkts #markets
-      for hos in keys( EmptyState.mkts[el.fipscode]. ) #hospital fids in EmptyState
-
+    for el in Tex.mkts #markets in the perturbed state.
+      for hos in keys( EmptyState.mkts[el.fipscode].noneqrecord ) #hospital fids in EmptyState
+        if el.collection[hos].perturbed # true if the hospital in the perturbed collection is the one simulating the non-eq strategy.
+          htemp = deepcopy(el.collection[hos]) # make a copy of that hospital record.
+          EmptyState.mkts[el.fipscode].collection[hos] = htemp # write that record out to the EmptyState
+          for hs in EmptyState.mkts[el.fipscode].config # iterate over the array of hospitals in EmptyState too
+            if hs.fid == hos
+              EmptyState.mkts[el.fipscode].config = htemp #Assign the temporary to the array in EmptyState.
+            end
+          end
+          EmptyState.mkts[el.fipscode].noneqrecord[hos] = true # write out to the Empty State that the perturbation is complete.
+        end
       end
     end
-  end
-  return EmptyState
+  return EmptyState, termflag
 end
 
-
+Texas = MakeNew(fips, data05);
+EmpTex = CreateEmpty(fips, data05);
+PSim(5, Texas ,EmpTex)
 
 
 function OuterSim(MCcount::Int)
