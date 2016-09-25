@@ -1,3 +1,18 @@
+#=
+Julia Version 0.4.5
+Commit 2ac304d (2016-03-18 00:58 UTC)
+Platform Info:
+  System: Darwin (x86_64-apple-darwin13.4.0)
+  CPU: Intel(R) Core(TM) i7-5557U CPU @ 3.10GHz
+  WORD_SIZE: 64
+  BLAS: libopenblas (USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell)
+  LAPACK: libopenblas64_
+  LIBM: libopenlibm
+  LLVM: libLLVM-3.3
+
+=#
+
+
 
 # Store the hospitals in data structures to reduce the complexity of writing out all of the values
 # to matrices and keeping track of all of the indices, etc.
@@ -26,15 +41,15 @@ type DemandHistory
 end
 
 type neighbors
-  level105::Int
-  level205::Int
-  level305::Int
-  level1515::Int
-  level2515::Int
-  level3515::Int
-  level11525::Int
-  level21525::Int
-  level31525::Int
+  level105::Int64
+  level205::Int64
+  level305::Int64
+  level1515::Int64
+  level2515::Int64
+  level3515::Int64
+  level11525::Int64
+  level21525::Int64
+  level31525::Int64
 end
 
 type hospital
@@ -60,7 +75,7 @@ end
 type Market
 	config::Array{hospital, 1}
   collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
-  fipscode::Int
+  fipscode::Int64
   noneqrecord::Dict{Int64, Bool}
 end
 
@@ -202,6 +217,7 @@ function CreateEmpty(fi::Vector, dat::Matrix)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   MakeIt(Tex, fi)
   TXSetup(Tex, dat)
+  ExpandDict(Tex)
   return Tex
 end
 
@@ -937,14 +953,17 @@ NewSim(50, Texas, patients)
 function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
+  # TODO: I'm still not getting this right.  The Tex object will be remade every time.  I can't record the status there.
+  # Ok, so record it in the EmptyState.  The keys can be iterated through - order doesn't matter.
   for i = 1:T
       println(i)
       WriteWTP(WTPMap(pats, Tex), Tex)
       PDemandMap(GenPChoices(pats, Tex), Tex)
       MDemandMap(GenMChoices(pats, Tex), Tex)
       for el in Tex.ms
+        #TODO: Do this by: taking the fid, the fids from empty in the history, seeing if true, then continuing.
         # Check for completion in EmptyState
-        done = [ el.noneqrecord[i] for i in keys(el.noneqrecord)]
+        done = [ EmptyState.mkts[el.fipscode].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)]
         while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms in the market are perturbed.
           entrant = sample(entrants, WeightVec(entryprobs))
           if entrant!= 0
@@ -985,7 +1004,14 @@ function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientco
         end
       end
   end
-  #TODO: here write out the results.  Also - here should be the place to TRACK which firms have been
+  # TODO: here write out the results.  Also - here should be the place to TRACK which firms have been
+  # TODO: like this: h1 = deepcopy(whatever hospital I just did), Empty.mkts[fipscode[fid]].ms[fid] = h1.
+  # TODO: And change the value in the empty.perturbedhistory to be true.
+  for el in Tex.mkts #markets
+    for hos in keys( EmptyState.mkts[el.fipscode]. ) #hospital fids in EmptyState
+
+    end
+  end
   return Empty
 end
 
