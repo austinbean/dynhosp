@@ -949,70 +949,79 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
 end
 
 NewSim(50, Texas, patients)
+EmpTex = CreateEmpty(fips, data05);
+
+function Termination(EmTex::EntireState)
+  # Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
+  # TODO: DEBUG!
+  isdone = true
+  for mark in EmTex.mkts # iterates over markets
+    isdone = (isdone)&(reduce(&, [mark.noneqrecord[i] for i in keys(mark.noneqrecord) ] ))
+  end
+end
+
 
 function PSim(T::Int, Tex::EntireState, EmptyState::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
-  # TODO: I'm still not getting this right.  The Tex object will be remade every time.  I can't record the status there.
-  # Ok, so record it in the EmptyState.  The keys can be iterated through - order doesn't matter.
-  for i = 1:T
-      println(i)
-      WriteWTP(WTPMap(pats, Tex), Tex)
-      PDemandMap(GenPChoices(pats, Tex), Tex)
-      MDemandMap(GenMChoices(pats, Tex), Tex)
-      for el in Tex.ms
-        #TODO: Do this by: taking the fid, the fids from empty in the history, seeing if true, then continuing.
-        # Check for completion in EmptyState
-        done = [ EmptyState.mkts[el.fipscode].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)]
-        while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms in the market are perturbed.
-          entrant = sample(entrants, WeightVec(entryprobs))
-          if entrant!= 0
-            entloc = NewEntrantLocation(el) # called on the market
-            newfid = -floor(rand()*1e6) # all entrant fids negative to facilitate their removal later.
-            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
-                             DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                             DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                             WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                             WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
-                             push!(el.config, entr) # need to create a new record for this hospital in the market
-            # need to add it to the dictionary too:
-            el.collection[newfid] = entr
-            for elm in el.config
-              NeighborAppend(elm, entr)
-              NeighborAppend(entr, elm)
-           end
-             HospUpdate(entr, entrant) #entrant is the level
-           for elm in el.config
-             if !elm.perturbed # not perturbed
-               action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
-               push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
-               newchoice = LevelFunction(elm, action)                                                 # What is the new level?
-               elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
-               elm.level = newchoice                                                                  # Set the level to be the new choice.
-               push!(elm.levelhistory, newchoice)
-             else # perturbed.
-               # Call function perturb which needs to be exported in PerturbAction.jl
-               action = sample( ChoicesAvailable(elm), perturb(elm.chprobability)) #TODO: this may require a conversion - perturb takes a vector, not weightvec.
-               push!( elm.probabilty, elm.chprobability[findin(ChoicesAvailable(elm), action)[1]])
-               newchoice = LevelFunction(elm, action)
-               elm.chprobability = HospUpdate(elm, newchoice)
-               elm.level = newchoice
-               push!(elm.levelhistory, newchoice)
+  while !Termination(EmptyState)
+    for i = 1:T
+        println(i)
+        WriteWTP(WTPMap(pats, Tex), Tex)
+        PDemandMap(GenPChoices(pats, Tex), Tex)
+        MDemandMap(GenMChoices(pats, Tex), Tex)
+        for el in Tex.ms
+          done = [ EmptyState.mkts[el.fipscode].noneqrecord[i] for i in keys(EmptyState.mkts[el.fipscode].noneqrecord)]
+          while !reduce(&, done) # reduce used because done is Array{Any}, this should be false until all firms in the market are perturbed.
+            entrant = sample(entrants, WeightVec(entryprobs))
+            if entrant!= 0
+              entloc = NewEntrantLocation(el) # called on the market
+              newfid = -floor(rand()*1e6) # all entrant fids negative to facilitate their removal later.
+              entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
+                               DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                               DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                               WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                               WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
+                               push!(el.config, entr) # need to create a new record for this hospital in the market
+              # need to add it to the dictionary too:
+              el.collection[newfid] = entr
+              for elm in el.config
+                NeighborAppend(elm, entr)
+                NeighborAppend(entr, elm)
              end
-           end
+               HospUpdate(entr, entrant) #entrant is the level
+             for elm in el.config
+               if !elm.perturbed # not perturbed
+                 action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
+                 push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
+                 newchoice = LevelFunction(elm, action)                                                 # What is the new level?
+                 elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
+                 elm.level = newchoice                                                                  # Set the level to be the new choice.
+                 push!(elm.levelhistory, newchoice)
+               else # perturbed.
+                 # Call function perturb which needs to be exported in PerturbAction.jl
+                 action = sample( ChoicesAvailable(elm), perturb(elm.chprobability)) #TODO: this may require a conversion - perturb takes a vector, not weightvec.
+                 push!( elm.probabilty, elm.chprobability[findin(ChoicesAvailable(elm), action)[1]])
+                 newchoice = LevelFunction(elm, action)
+                 elm.chprobability = HospUpdate(elm, newchoice)
+                 elm.level = newchoice
+                 push!(elm.levelhistory, newchoice)
+               end
+             end
+            end
           end
         end
-      end
-  end
-  # TODO: here write out the results.  Also - here should be the place to TRACK which firms have been
-  # TODO: like this: h1 = deepcopy(whatever hospital I just did), Empty.mkts[fipscode[fid]].ms[fid] = h1.
-  # TODO: And change the value in the empty.perturbedhistory to be true.
-  for el in Tex.mkts #markets
-    for hos in keys( EmptyState.mkts[el.fipscode]. ) #hospital fids in EmptyState
+    end
+    # TODO: here write out the results.  Also - here should be the place to TRACK which firms have been
+    # TODO: like this: h1 = deepcopy(whatever hospital I just did), Empty.mkts[fipscode[fid]].ms[fid] = h1.
+    # TODO: And change the value in the empty.perturbedhistory to be true.
+    for el in Tex.mkts #markets
+      for hos in keys( EmptyState.mkts[el.fipscode]. ) #hospital fids in EmptyState
 
+      end
     end
   end
-  return Empty
+  return EmptyState
 end
 
 
