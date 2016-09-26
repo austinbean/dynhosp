@@ -1114,6 +1114,9 @@ function CondSum(hos::hospital)
   # times two types of patients.
   private = zeros(1,3)
   medicaid = zeros(1,3)
+
+# TODO: start here - return a vector of counts of the patients at different DRG's by level.
+
   for el in hos.pdemandhist.
 
   end
