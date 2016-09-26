@@ -24,19 +24,19 @@ module ProjectModule
 
   include(pathprograms*"LogitEst.jl")
   include(pathprograms*"Distance.jl")
-  include(pathprograms*"Simulator.jl")
-  include(pathprograms*"PerturbSimulation.jl")
-  include(pathprograms*"DynamicValue.jl")
-  include(pathprograms*"DemandModel.jl")
-  include(pathprograms*"MainFunction.jl")
-  include(pathprograms*"PerturbAction.jl")
-  include(pathprograms*"ParallelFunctions.jl")
-  include(pathprograms*"ParMainFun.jl")
-  include(pathprograms*"WTP.jl")
+  #include(pathprograms*"Simulator.jl")
+  #include(pathprograms*"PerturbSimulation.jl")
+  #include(pathprograms*"DynamicValue.jl")
+  #include(pathprograms*"DemandModel.jl")
+  #include(pathprograms*"MainFunction.jl")
+  #include(pathprograms*"PerturbAction.jl")
+  #include(pathprograms*"ParallelFunctions.jl")
+  #include(pathprograms*"ParMainFun.jl")
+  #include(pathprograms*"WTP.jl")
 
 
 
-  export LogitEst, Simulator, PerturbSimulator, logitest, states1, states2, states3, poly, Mainfun, DemandModel, EntrantsU, rowchange, rowfindfid, fidfinder, sendto, passobj, perturb, distance, DynamicValue, ParMainfun, DetUtil, ComputeWTP, ReturnWTP, FindCorrect, DemandCounter, MapWTP, MapCheck, MapIndividualCheck
+  export LogitEst, logitest, states1, states2, states3, poly, perturb, distance
   println("Loaded Module")
 end #end of module
 
