@@ -222,7 +222,7 @@ end # of "begin" block
 # val1 = DynamicValue(b1, b1[1,1])
 
 #Test parallel
-print("Testing Remote Call \n")
+# print("Testing Remote Call \n")
 #p1 = remotecall_fetch(lis[1], DemandModel, pinsured, privatedemandmodelparameters, Array{Float64,2}())
 #p2 = remotecall_fetch(lis[2], DemandModel, pmedicaid, medicaiddemandmodelparameters, Array{Float64, 2}())
 
