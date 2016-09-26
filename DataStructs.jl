@@ -1098,7 +1098,7 @@ function OuterSim(MCcount::Int; dim1::Int64 = size(fids,1), dim2::Int64 = 24)
   # Runs the equilibrium and non-equilibrium simulations for MCcount times
   # to get an approximation to the value function.
   outp = Array{Float64, 2}(dim1, dim2)  # num hospitals X num parameters
-  for j = 1:MCcount
+  @parallel (+) for j = 1:MCcount
     Texas = MakeNew(fips, data05);      #very quick ≈ 0.1 seconds.
 # TODO: add something to reset the patients
     NTex = NewSim(50, Texas, patients) # generates eq results.
