@@ -153,8 +153,8 @@ begin
      pinsured= convert(Array{Float32, 2}, pinsured)
      println("Size of Privately Insured, ", size(pinsured))
      # TX zip codes:
-     TXzps = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false)
-     TXzips = convert(Vector, TXzps[:x1])
+     TXzps = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false);
+     TXzips = convert(Vector, TXzps[:x1]);
      # DRG codes:
      # These are for infants only.
      DRGs = [385 386 387 388 389 390 391]
@@ -185,7 +185,7 @@ begin
     end
   end
 
-  choices = convert(Array{Any, 2}, choices)
+  choices = convert(Array{Any, 2}, choices);
 
 
 end # of "begin" block
