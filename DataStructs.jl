@@ -991,7 +991,9 @@ end
 function PSim(T::Int, EmptyState::EntireState, pats::patientcollection; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
-  termflag = true   # Initializes the termination flag.
+  outp = Dict{Int64, hospital}()
+  termflag = true                                                                                       # Initializes the termination flag.
+  counter = 1
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
     Tex = MakeNew(fips, data05);                                                                        # New state every time - this is kind of inefficient.
@@ -1010,9 +1012,8 @@ function PSim(T::Int, EmptyState::EntireState, pats::patientcollection; di = dat
       end
     end
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
-    println(size(pmarkets))
+    println("Remaining Markets ",  size(pmarkets))
     for i = 1:T
-      println(i)
       WriteWTP(WTPMap(pats, Tex), Tex)
       PDemandMap(GenPChoices(pats, Tex), Tex)
       MDemandMap(GenMChoices(pats, Tex), Tex)
@@ -1055,41 +1056,78 @@ function PSim(T::Int, EmptyState::EntireState, pats::patientcollection; di = dat
         end
       end
     end
+    fipst = 0; fidt = 0;
     for fips in pmarkets                                                                              # definitely a collection of fips codes
-      temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
-      EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
+      # temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
+      # EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
+      # EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
       for hos in EmptyState.mkts[fips].config                                                         # iterate over the market config, which is an array.
-        if hos.fid == temph.fid                                                                       # check for equality in the fids
-          #hos = temph                                                                                # If they match, write out the record.
-          hos = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])
-          println(" Demand in the temporary: ", temph.pdemandhist)
-          println("Demand in the Record: ", hos.pdemandhist)
+        if hos.fid == Tex.mkts[fips].collection[currentfac[fips]].fid  #temph.fid                                                                       # check for equality in the fids
+          # hos = temph                                                                                # If they match, write out the record.
+          # hos = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])
+          # hos = Tex.mkts[fips].collection[currentfac[fips]]
+          outp[hos.fid] = Tex.mkts[fips].collection[currentfac[fips]]
         end
       end
     end
     termflag = !Termination(EmptyState)                                                               # Checks the termination condition over every market in the state.
-    println(EmptyState.mkts[pmarkets[1]].config[1].pdemandhist)
+    counter += 1
   end # of while
-  return EmptyState
+  println("Iteration Count: ", counter)
+  return outp #EmptyState
 end
 
 EmpTex = CreateEmpty(fips, data05);
-nst = PSim(3, EmpTex, patients);
+#TODO: fix this - there is no reason to have to return a stupid dictionary.
+# the above can be made to work, it is only a matter of figuring out what's wrong.
+nst = PSim(50, EmpTex, patients);
 
 
-function OuterSim(MCcount::Int)
-  Texas = MakeNew(fips, data05);  #very quick ≈ 0.1 seconds.
-  #TODO: call the function to create the individual records of results..
+function DemandCheck(Tex::EntireState)
+  # Not so useful - just prints everyone's history of demand at DRG 385
+  for el in Tex.ms
+    for hos in el.config
+      println(hos.pdemandhist.demand385)
+    end
+  end
+end
+
+
+function OuterSim(MCcount::Int; dim1::Int64 = size(fids,1), dim2::Int64 = 24)
+  # Runs the equilibrium and non-equilibrium simulations for MCcount times
+  # to get an approximation to the value function.
+  outp = Array{Float64, 2}(dim1, dim2)  # num hospitals X num parameters
   for j = 1:MCcount
-    NTex = NewSim(50, Texas, patients) # generates the sim results.
-    ResultsOut(NTex)
+    Texas = MakeNew(fips, data05);      #very quick ≈ 0.1 seconds.
+# TODO: add something to reset the patients
+    NTex = NewSim(50, Texas, patients) # generates eq results.
+    PSim(50, EmpTex, patients)         # generates non-eq results
+    ResultsOut(NTex)                   # writes out the results.
+
   end
 
 end
 
-function ResultsOut(Tex::EntireState)
-  for el in keys(Tex.fipsdirectory) # Now this is all of the hospitals.
+function CondSum(hos::hospital)
+  # For each DRG - need a conditional sum at each level.
+  # times two types of patients.
+  private = zeros(1,3)
+  medicaid = zeros(1,3)
+  for el in hos.pdemandhist.
+
+  end
+end
+
+function ResultsOut(Tex::EntireState, ptrbd::Dict; beta = 0.95, dim1::Int64 = size(fids,1), dim2::Int64 = 24)
+  outp = Array{Float64,2}(dim1, dim2)
+  for el in keys(Tex.fipsdirectory)                                     # Now this is all of the hospitals.
+    hosp = Tex.mkts[Tex.fipsdirectory[el]].collection[el]
+    outprob = prod(hosp.probhistory)                                    # Prob of the outcome.
+    temparr = Array{Float64, 1}()
+  end
+  for ky in keys(ptrbd)
+
 
   end
 end
