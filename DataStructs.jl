@@ -40,6 +40,7 @@ type DemandHistory
   demand391::Array{Int64, 1}
 end
 
+
 type neighbors
   level105::Int64
   level205::Int64
@@ -59,7 +60,7 @@ type hospital
   name::AbstractString
   fipscode::Int64
   level::Int64
-  levelhistory::Vector{Int64}
+  levelhistory::Array{Int64,1}
   pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
   mdemandhist::DemandHistory
   wtphist::WTP
@@ -168,7 +169,7 @@ function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98,
                 data[i, 82],
                 fips,
                 level,
-                [level],
+                Array{Int64,1}(),
                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                 WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
@@ -991,7 +992,7 @@ end
 function PSim(T::Int, EmptyState::EntireState, pats::patientcollection; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
-  outp = Dict{Int64, hospital}()
+#  outp = Dict{Int64, hospital}()
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
@@ -1058,16 +1059,18 @@ function PSim(T::Int, EmptyState::EntireState, pats::patientcollection; di = dat
     end
     fipst = 0; fidt = 0;
     for fips in pmarkets                                                                              # definitely a collection of fips codes
-      # temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
-      # EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
-      # EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
+      temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
+      EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
+      # one of these is assigning an empty record.  Fuck.
+      # TODO: fix this bullshit.
+      EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
       for hos in EmptyState.mkts[fips].config                                                         # iterate over the market config, which is an array.
         if hos.fid == Tex.mkts[fips].collection[currentfac[fips]].fid  #temph.fid                                                                       # check for equality in the fids
-          # hos = temph                                                                                # If they match, write out the record.
-          # hos = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])
-          # hos = Tex.mkts[fips].collection[currentfac[fips]]
-          outp[hos.fid] = Tex.mkts[fips].collection[currentfac[fips]]
+          hos = temph                                                                                # If they match, write out the record.
+          hos = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])
+          hos = Tex.mkts[fips].collection[currentfac[fips]]
+        #  outp[hos.fid] = Tex.mkts[fips].collection[currentfac[fips]]
         end
       end
     end
@@ -1075,13 +1078,13 @@ function PSim(T::Int, EmptyState::EntireState, pats::patientcollection; di = dat
     counter += 1
   end # of while
   println("Iteration Count: ", counter)
-  return outp #EmptyState
+  #return outp #EmptyState
 end
 
 EmpTex = CreateEmpty(fips, data05);
 #TODO: fix this - there is no reason to have to return a stupid dictionary.
 # the above can be made to work, it is only a matter of figuring out what's wrong.
-nst = PSim(50, EmpTex, patients);
+nst = PSim(1, EmpTex, patients);
 
 
 function DemandCheck(Tex::EntireState)
@@ -1109,17 +1112,167 @@ function OuterSim(MCcount::Int; dim1::Int64 = size(fids,1), dim2::Int64 = 24)
 
 end
 
-function CondSum(hos::hospital)
+function CondSum(hos::hospital; DRG = 7)
   # For each DRG - need a conditional sum at each level.
   # times two types of patients.
-  private = zeros(1,3)
-  medicaid = zeros(1,3)
-
-# TODO: start here - return a vector of counts of the patients at different DRG's by level.
-
-  for el in hos.pdemandhist.
-
+  private = zeros(DRG,3)
+  medicaid = zeros(DRG,3)
+  for el in 1:size(hos.pdemandhist.demand385,1)
+    if hos.levelhistory[el] == 1
+      private[1,1] += hos.pdemandhist.demand385[el]
+    elseif hos.levelhistory[el] == 2
+      private[1,2] += hos.pdemandhist.demand385[el]
+    elseif hos.levelhistory[el] == 3
+      private[1,3] += hos.pdemandhist.demand385[el]
+    else # -999 - exited.
+      # skip
+    end
   end
+  for el in 1:size(hos.pdemandhist.demand386,1)
+    if hos.levelhistory[el] == 1
+      private[2,1] += hos.pdemandhist.demand386[el]
+    elseif hos.levelhistory[el] == 2
+      private[2,2] += hos.pdemandhist.demand386[el]
+    elseif hos.levelhistory[el] == 3
+      private[2,3] += hos.pdemandhist.demand386[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.pdemandhist.demand387,1)
+    if hos.levelhistory[el] == 1
+      private[3,1] += hos.pdemandhist.demand387[el]
+    elseif hos.levelhistory[el] == 2
+      private[3,2] += hos.pdemandhist.demand387[el]
+    elseif hos.levelhistory[el] == 3
+      private[3,3] += hos.pdemandhist.demand387[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.pdemandhist.demand388,1)
+    if hos.levelhistory[el] == 1
+      private[4,1] += hos.pdemandhist.demand388[el]
+    elseif hos.levelhistory[el] == 2
+      private[4,2] += hos.pdemandhist.demand388[el]
+    elseif hos.levelhistory[el] == 3
+      private[4,3] += hos.pdemandhist.demand388[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.pdemandhist.demand389,1)
+    if hos.levelhistory[el] == 1
+      private[5,1] += hos.pdemandhist.demand389[el]
+    elseif hos.levelhistory[el] == 2
+      private[5,2] += hos.pdemandhist.demand389[el]
+    elseif hos.levelhistory[el] == 3
+      private[5,3] += hos.pdemandhist.demand389[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.pdemandhist.demand390,1)
+    if hos.levelhistory[el] == 1
+      private[6,1] += hos.pdemandhist.demand390[el]
+    elseif hos.levelhistory[el] == 2
+      private[6,2] += hos.pdemandhist.demand390[el]
+    elseif hos.levelhistory[el] == 3
+      private[6,3] += hos.pdemandhist.demand390[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.pdemandhist.demand391,1)
+    if hos.levelhistory[el] == 1
+      private[7,1] += hos.pdemandhist.demand391[el]
+    elseif hos.levelhistory[el] == 2
+      private[7,2] += hos.pdemandhist.demand391[el]
+    elseif hos.levelhistory[el] == 3
+      private[7,3] += hos.pdemandhist.demand391[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  ##########  NB: Begin Medicaid Section #################
+  for el in 1:size(hos.mdemandhist.demand385,1)
+    if hos.levelhistory[el] == 1
+      medicaid[1,1] += hos.mdemandhist.demand385[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[1,2] += hos.mdemandhist.demand385[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[1,3] += hos.mdemandhist.demand385[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.mdemandhist.demand386,1)
+    if hos.levelhistory[el] == 1
+      medicaid[2,1] += hos.mdemandhist.demand386[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[2,2] += hos.mdemandhist.demand386[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[2,3] += hos.mdemandhist.demand386[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.mdemandhist.demand387,1)
+    if hos.levelhistory[el] == 1
+      medicaid[3,1] += hos.mdemandhist.demand387[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[3,2] += hos.mdemandhist.demand387[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[3,3] += hos.mdemandhist.demand387[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.mdemandhist.demand388,1)
+    if hos.levelhistory[el] == 1
+      medicaid[4,1] += hos.mdemandhist.demand388[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[4,2] += hos.mdemandhist.demand388[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[4,3] += hos.mdemandhist.demand388[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.mdemandhist.demand389,1)
+    if hos.levelhistory[el] == 1
+      medicaid[5,1] += hos.mdemandhist.demand389[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[5,2] += hos.mdemandhist.demand389[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[5,3] += hos.mdemandhist.demand389[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.mdemandhist.demand390,1)
+    if hos.levelhistory[el] == 1
+      medicaid[6,1] += hos.mdemandhist.demand390[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[6,2] += hos.mdemandhist.demand390[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[6,3] += hos.mdemandhist.demand390[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  for el in 1:size(hos.mdemandhist.demand391,1)
+    if hos.levelhistory[el] == 1
+      medicaid[7,1] += hos.mdemandhist.demand391[el]
+    elseif hos.levelhistory[el] == 2
+      medicaid[7,2] += hos.mdemandhist.demand391[el]
+    elseif hos.levelhistory[el] == 3
+      medicaid[7,3] += hos.mdemandhist.demand391[el]
+    else # -999 - exited.
+      # skip
+    end
+  end
+  return private, medicaid
 end
 
 function ResultsOut(Tex::EntireState, ptrbd::Dict; beta = 0.95, dim1::Int64 = size(fids,1), dim2::Int64 = 24)
