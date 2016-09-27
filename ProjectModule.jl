@@ -19,6 +19,12 @@ module ProjectModule
     global pathdata = "/home/ubuntu/dynhosp/"
     global pathpeople = "/home/ubuntu/dynhosp/"
     global pathprograms = "/home/ubuntu/dynhosp/"
+  else
+    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
+    println("Hey you're in the wrong directory!")
+    println("Error Messages on this are not super helpful.")
+    println("But you're in the wrong place.")
+    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   end
 
 
