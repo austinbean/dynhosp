@@ -647,7 +647,6 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
   pats = FillMPatients(pats, medicaid)
 end
 
-# TODO: write this out so that it can be called in one function call.
 
 patients = FillPatients(patients, pinsured, pmedicaid);
 
@@ -672,7 +671,6 @@ end
 
   ### NB: Substantive Demand-side Functions.
 
-  #TODO: Modify to add the outside option!
 
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   # Computes the deterministic component of utility for each hospital in the zip "zipc".
@@ -731,8 +729,6 @@ function CalcWTP(zipc::zip)
 end
 
 
-#TODO: here we need to make sure that there is always an outside option which is zeros.
-#TODO: Also - these need to vary by DRG.  That requires: detutil by the DRG at the zipcode level.
 
 function WTPMap(pats::patientcollection, Tex::EntireState)
   # Takes a patient collection and an entire state and returns a dict{fid, WTP}
@@ -760,12 +756,12 @@ function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)
   # Takes a dict of {fid, WTP} and writes it out by DRG.
   for els in keys(reslt)
     push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
-  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
-  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387, reslt[els])
-  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388, reslt[els])
-  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389, reslt[els])
-  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390, reslt[els])
-  #  push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391, reslt[els])
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387, reslt[els])
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388, reslt[els])
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389, reslt[els])
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390, reslt[els])
+    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391, reslt[els])
   end
 end
 
@@ -992,7 +988,7 @@ end
 function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
-  EmptyState = CreateEmpty(fips, data05);
+  EmptyState = CreateEmpty(fi, di);
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
@@ -1059,13 +1055,15 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
     end
     fipst = 0; fidt = 0;
     for fips in pmarkets                                                                              # definitely a collection of fips codes
-      temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
-      EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
+    #  temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
+    #  EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
       EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
       for hos in EmptyState.mkts[fips].config                                                         # iterate over the market config, which is an array.
+#TODO: this assignment isn't working for some reason, but I don't know why.
         if hos.fid == Tex.mkts[fips].collection[currentfac[fips]].fid  #temph.fid                                                                       # check for equality in the fids
-          hos = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])
+          hos = Tex.mkts[fips].collection[currentfac[fips]]
+          println("hi") # it definitely gets inside here and prints this.  
       #    hos = Tex.mkts[fips].collection[currentfac[fips]]
         end
       end
@@ -1077,9 +1075,9 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
   return EmptyState
 end
 
-#TODO: fix this - there is no reason to have to return a stupid dictionary.
-# the above can be made to work, it is only a matter of figuring out what's wrong.
-outp = PSim(3, patients);
+# TODO: Psim not working again.  Damn it.
+
+outp = PSim(1, patients);
 
 
 function DemandCheck(Tex::EntireState)
@@ -1203,23 +1201,23 @@ end
 
 function TransitionGen(current::Int64, previous::Int64)
   transitions = zeros(Int64, 9)
-  if  previous == 1 & current == 2
+  if  (previous==1)&(current==2)
     transitions[1] += 1
-  elseif previous == 1 & current == 3
+  elseif (previous==1)&(current==3)
     transitions[2] += 1
-  elseif previous == 1 & current == -999
+  elseif (previous==1)&(current==-999)
     transitions[3] += 1
-  elseif previous == 2 & current == 1
+  elseif (previous==2)&(current==1)
     transitions[4] += 1
-  elseif previous == 2 & current == 3
+  elseif (previous==2)&(current==3)
     transitions[5] += 1
-  elseif previous == 2 & current == -999
+  elseif (previous==2)&(current==-999)
     transitions[6] += 1
-  elseif previous == 3 & current == 1
+  elseif (previous==3)&(current==1)
     transitions[7] += 1
-  elseif previous == 3 & current == 2
+  elseif (previous==3)&(current==2)
     transitions[8] += 1
-  elseif previous == 3 & current == -999
+  elseif (previous==3)&(current==-999)
     transitions[9] += 1
   else
     # do nothing.
