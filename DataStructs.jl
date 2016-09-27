@@ -1111,11 +1111,12 @@ end
 function CondSum(hos::hospital; DRG = 7)
   # For each DRG - need a conditional sum at each level.
   # times two types of patients.
+  len = size(hos.levelhistory, 1)
   private = zeros(Int64, DRG,3)
   medicaid = zeros(Int64, DRG,3)
-  outp = zeros(Float64, DRG, 3)  #TODO - to add the function below.  
+  outp = zeros(Float64, DRG, 3)
   transitions = zeros(Int64, 9) # record transitions
-  for el in 1:size(hos.pdemandhist.demand385,1)
+  for el in 1:len
     if hos.levelhistory[el] == 1
       private[1,1] += hos.pdemandhist.demand385[el]
       private[2,1] += hos.pdemandhist.demand386[el]
@@ -1132,6 +1133,14 @@ function CondSum(hos::hospital; DRG = 7)
       medicaid[5,1] += hos.mdemandhist.demand389[el]
       medicaid[6,1] += hos.mdemandhist.demand390[el]
       medicaid[7,1] += hos.mdemandhist.demand391[el]
+      ########### NB: WTP Section ###########
+      outp[1,1] += hos.wtphist.w385[el]
+      outp[2,1] += hos.wtphist.w386[el]
+      outp[3,1] += hos.wtphist.w387[el]
+      outp[4,1] += hos.wtphist.w388[el]
+      outp[5,1] += hos.wtphist.w389[el]
+      outp[6,1] += hos.wtphist.w390[el]
+      outp[7,1] += hos.wtphist.w391[el]
     elseif hos.levelhistory[el] == 2
       private[1,2] += hos.pdemandhist.demand385[el]
       private[2,2] += hos.pdemandhist.demand386[el]
@@ -1148,6 +1157,14 @@ function CondSum(hos::hospital; DRG = 7)
       medicaid[5,2] += hos.mdemandhist.demand389[el]
       medicaid[6,2] += hos.mdemandhist.demand390[el]
       medicaid[7,2] += hos.mdemandhist.demand391[el]
+      ########### NB: WTP Section ###########
+      outp[1,2] += hos.wtphist.w385[el]
+      outp[2,2] += hos.wtphist.w386[el]
+      outp[3,2] += hos.wtphist.w387[el]
+      outp[4,2] += hos.wtphist.w388[el]
+      outp[5,2] += hos.wtphist.w389[el]
+      outp[6,2] += hos.wtphist.w390[el]
+      outp[7,2] += hos.wtphist.w391[el]
     elseif hos.levelhistory[el] == 3
       private[1,3] += hos.pdemandhist.demand385[el]
       private[2,3] += hos.pdemandhist.demand386[el]
@@ -1164,56 +1181,50 @@ function CondSum(hos::hospital; DRG = 7)
       medicaid[5,3] += hos.mdemandhist.demand389[el]
       medicaid[6,3] += hos.mdemandhist.demand390[el]
       medicaid[7,3] += hos.mdemandhist.demand391[el]
+      ########### NB: WTP Section ###########
+      outp[1,3] += hos.wtphist.w385[el]
+      outp[2,3] += hos.wtphist.w386[el]
+      outp[3,3] += hos.wtphist.w387[el]
+      outp[4,3] += hos.wtphist.w388[el]
+      outp[5,3] += hos.wtphist.w389[el]
+      outp[6,3] += hos.wtphist.w390[el]
+      outp[7,3] += hos.wtphist.w391[el]
     else # -999 - exited.
       # skip
     end
-  end
-  return private, medicaid
-end
-
-function GetWTP(hos::hospital; DRG = 7)
-  len = size(hos.levelhistory, 1)
-  outp = zeros(Float64, DRG, 3)
-#TODO: combine this with the function above - no reason to loop through this repeatedly.
-  for i = 1:len
-    if hos.levelhistory[i] == 1
-      outp[1,1] += hos.wtphist.w385[i]
-      outp[2,1] += hos.wtphist.w386[i]
-      outp[3,1] += hos.wtphist.w387[i]
-      outp[4,1] += hos.wtphist.w388[i]
-      outp[5,1] += hos.wtphist.w389[i]
-      outp[6,1] += hos.wtphist.w390[i]
-      outp[7,1] += hos.wtphist.w391[i]
-    elseif hos.levelhistory[i] == 2
-      outp[1,2] += hos.wtphist.w385[i]
-      outp[2,2] += hos.wtphist.w386[i]
-      outp[3,2] += hos.wtphist.w387[i]
-      outp[4,2] += hos.wtphist.w388[i]
-      outp[5,2] += hos.wtphist.w389[i]
-      outp[6,2] += hos.wtphist.w390[i]
-      outp[7,2] += hos.wtphist.w391[i]
-    elseif hos.levelhistory[i] == 3
-      outp[1,3] += hos.wtphist.w385[i]
-      outp[2,3] += hos.wtphist.w386[i]
-      outp[3,3] += hos.wtphist.w387[i]
-      outp[4,3] += hos.wtphist.w388[i]
-      outp[5,3] += hos.wtphist.w389[i]
-      outp[6,3] += hos.wtphist.w390[i]
-      outp[7,3] += hos.wtphist.w391[i]
-    else #exited
-        # do nothing.
+    if el > 1
+      if hos.levelhistory[el-1] != hos.levelhistory[el]
+        transitions += TransitionGen(hos.levelhistory[el], hos.levelhistory[el])
+      end
     end
   end
-  return outp
+  return private, medicaid, outp, transitions
 end
 
 function TransitionGen(current::Int64, previous::Int64)
-  if current == 3 & previous == 1
-# TODO - do this but make it organized.
-  elseif current == 3 & previous == 2
-
-  elseif current == -999 & previous
-
+  transitions = zeros(Int64, 9)
+  if  previous == 1 & current == 2
+    transitions[1] += 1
+  elseif previous == 1 & current == 3
+    transitions[2] += 1
+  elseif previous == 1 & current == -999
+    transitions[3] += 1
+  elseif previous == 2 & current == 1
+    transitions[4] += 1
+  elseif previous == 2 & current == 3
+    transitions[5] += 1
+  elseif previous == 2 & current == -999
+    transitions[6] += 1
+  elseif previous == 3 & current == 1
+    transitions[7] += 1
+  elseif previous == 3 & current == 2
+    transitions[8] += 1
+  elseif previous == 3 & current == -999
+    transitions[9] += 1
+  else
+    # do nothing.
+  end
+  return transitions
 end
 
 
