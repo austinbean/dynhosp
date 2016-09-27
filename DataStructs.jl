@@ -1061,9 +1061,9 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
       for hos in EmptyState.mkts[fips].config                                                         # iterate over the market config, which is an array.
 #TODO: this assignment isn't working for some reason, but I don't know why.
+# It's probably doing something like for i = 1:0 i = 6 end - that's not assignment.
         if hos.fid == Tex.mkts[fips].collection[currentfac[fips]].fid  #temph.fid                                                                       # check for equality in the fids
           hos = Tex.mkts[fips].collection[currentfac[fips]]
-          println("hi") # it definitely gets inside here and prints this.  
       #    hos = Tex.mkts[fips].collection[currentfac[fips]]
         end
       end
@@ -1112,10 +1112,11 @@ function CondSum(hos::hospital; DRG = 7)
   len = size(hos.levelhistory, 1)
   private = zeros(Int64, DRG,3)
   medicaid = zeros(Int64, DRG,3)
-  outp = zeros(Float64, DRG, 3)
+  wtp_out = zeros(Float64, DRG, 3)
   transitions = zeros(Int64, 9) # record transitions
   for el in 1:len
     if hos.levelhistory[el] == 1
+      ##########  NB: Begin Private Section #######
       private[1,1] += hos.pdemandhist.demand385[el]
       private[2,1] += hos.pdemandhist.demand386[el]
       private[3,1] += hos.pdemandhist.demand387[el]
@@ -1132,14 +1133,15 @@ function CondSum(hos::hospital; DRG = 7)
       medicaid[6,1] += hos.mdemandhist.demand390[el]
       medicaid[7,1] += hos.mdemandhist.demand391[el]
       ########### NB: WTP Section ###########
-      outp[1,1] += hos.wtphist.w385[el]
-      outp[2,1] += hos.wtphist.w386[el]
-      outp[3,1] += hos.wtphist.w387[el]
-      outp[4,1] += hos.wtphist.w388[el]
-      outp[5,1] += hos.wtphist.w389[el]
-      outp[6,1] += hos.wtphist.w390[el]
-      outp[7,1] += hos.wtphist.w391[el]
+      wtp_out[1,1] += hos.wtphist.w385[el]
+      wtp_out[2,1] += hos.wtphist.w386[el]
+      wtp_out[3,1] += hos.wtphist.w387[el]
+      wtp_out[4,1] += hos.wtphist.w388[el]
+      wtp_out[5,1] += hos.wtphist.w389[el]
+      wtp_out[6,1] += hos.wtphist.w390[el]
+      wtp_out[7,1] += hos.wtphist.w391[el]
     elseif hos.levelhistory[el] == 2
+      ##########  NB: Begin Private Section #######
       private[1,2] += hos.pdemandhist.demand385[el]
       private[2,2] += hos.pdemandhist.demand386[el]
       private[3,2] += hos.pdemandhist.demand387[el]
@@ -1156,14 +1158,15 @@ function CondSum(hos::hospital; DRG = 7)
       medicaid[6,2] += hos.mdemandhist.demand390[el]
       medicaid[7,2] += hos.mdemandhist.demand391[el]
       ########### NB: WTP Section ###########
-      outp[1,2] += hos.wtphist.w385[el]
-      outp[2,2] += hos.wtphist.w386[el]
-      outp[3,2] += hos.wtphist.w387[el]
-      outp[4,2] += hos.wtphist.w388[el]
-      outp[5,2] += hos.wtphist.w389[el]
-      outp[6,2] += hos.wtphist.w390[el]
-      outp[7,2] += hos.wtphist.w391[el]
+      wtp_out[1,2] += hos.wtphist.w385[el]
+      wtp_out[2,2] += hos.wtphist.w386[el]
+      wtp_out[3,2] += hos.wtphist.w387[el]
+      wtp_out[4,2] += hos.wtphist.w388[el]
+      wtp_out[5,2] += hos.wtphist.w389[el]
+      wtp_out[6,2] += hos.wtphist.w390[el]
+      wtp_out[7,2] += hos.wtphist.w391[el]
     elseif hos.levelhistory[el] == 3
+      ##########  NB: Begin Private Section #######
       private[1,3] += hos.pdemandhist.demand385[el]
       private[2,3] += hos.pdemandhist.demand386[el]
       private[3,3] += hos.pdemandhist.demand387[el]
@@ -1180,26 +1183,30 @@ function CondSum(hos::hospital; DRG = 7)
       medicaid[6,3] += hos.mdemandhist.demand390[el]
       medicaid[7,3] += hos.mdemandhist.demand391[el]
       ########### NB: WTP Section ###########
-      outp[1,3] += hos.wtphist.w385[el]
-      outp[2,3] += hos.wtphist.w386[el]
-      outp[3,3] += hos.wtphist.w387[el]
-      outp[4,3] += hos.wtphist.w388[el]
-      outp[5,3] += hos.wtphist.w389[el]
-      outp[6,3] += hos.wtphist.w390[el]
-      outp[7,3] += hos.wtphist.w391[el]
+      wtp_out[1,3] += hos.wtphist.w385[el]
+      wtp_out[2,3] += hos.wtphist.w386[el]
+      wtp_out[3,3] += hos.wtphist.w387[el]
+      wtp_out[4,3] += hos.wtphist.w388[el]
+      wtp_out[5,3] += hos.wtphist.w389[el]
+      wtp_out[6,3] += hos.wtphist.w390[el]
+      wtp_out[7,3] += hos.wtphist.w391[el]
     else # -999 - exited.
       # skip
     end
+    ##########  NB: Begin Transition Record Section #######
     if el > 1
       if hos.levelhistory[el-1] != hos.levelhistory[el]
         transitions += TransitionGen(hos.levelhistory[el], hos.levelhistory[el])
       end
     end
   end
-  return private, medicaid, outp, transitions
+  # Reshape these before returning
+  # return private, medicaid, wtp_out, transitions
+  return reshape(private, 1, DRG*3), reshape(medicaid, 1, DRG*3), reshape(wtp_out, 1, DRG*3), transitions'
 end
 
 function TransitionGen(current::Int64, previous::Int64)
+  # Generates counts of transitions - checks current level against previous.
   transitions = zeros(Int64, 9)
   if  (previous==1)&(current==2)
     transitions[1] += 1
@@ -1225,6 +1232,8 @@ function TransitionGen(current::Int64, previous::Int64)
   return transitions
 end
 
+
+# TODO: fix this.
 
 function ResultsOut(Tex::EntireState, ptrbd::Dict; beta = 0.95, dim1::Int64 = size(fids,1), dim2::Int64 = 24)
   outp = Array{Float64,2}(dim1, dim2)
