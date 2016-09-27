@@ -1092,20 +1092,7 @@ function DemandCheck(Tex::EntireState)
 end
 
 
-function OuterSim(MCcount::Int; dim1::Int64 = size(fids,1), dim2::Int64 = 24)
-  # Runs the equilibrium and non-equilibrium simulations for MCcount times
-  # to get an approximation to the value function.
-  outp = Array{Float64, 2}(dim1, dim2)  # num hospitals X num parameters
-  @parallel (+) for j = 1:MCcount
-    Texas = MakeNew(fips, data05);      #very quick ≈ 0.1 seconds.
-# TODO: add something to reset the patients
-    NTex = NewSim(50, Texas, patients) # generates eq results.
-    PSim(50, EmpTex, patients)         # generates non-eq results
-    ResultsOut(NTex)                   # writes out the results.
 
-  end
-
-end
 
 function CondSum(hos::hospital; DRG = 7)
   # For each DRG - need a conditional sum at each level.
@@ -1201,7 +1188,7 @@ function CondSum(hos::hospital; DRG = 7)
       end
     end
   end
-  # Reshape these before returning
+  # Reshape these before returning - they are now vectors with 7 entries for each DRG times 3 levels.
   # return private, medicaid, wtp_out, transitions
   return reshape(private, 1, DRG*3), reshape(medicaid, 1, DRG*3), reshape(wtp_out, 1, DRG*3), transitions'
 end
@@ -1311,7 +1298,29 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
 end
 
 
-
+function OuterSim(MCcount::Int; T1::Int64 = 50, dim1::Int64 = 290, dim2::Int64 = 67)
+  # Runs the equilibrium and non-equilibrium simulations for MCcount times
+  # to get an approximation to the value function.
+  # TODO: get these fids from somewhere.
+  outp = Array{Float64,2}(dim1, dim2)
+  fids = [k for k in keys(Tex.fipsdirectory)]
+  for el in 1:size(fids,1)
+    outp[el,1] = fids[el]                                                           # Write out all of the fids as an ID in the first column.
+  end
+  @parallel (+) for j = 1:MCcount
+    Texas = MakeNew(fips, data05);                                                  #very quick ≈ 0.1 seconds.
+    patients =
+# TODO: add something to reset the patients
+    ETex = NewSim(T1, Texas, patients)                                               # generates eq results.
+    NTex = PSim(T1, patients)                                                        # generates non-eq results
+    tempresults = ResultsOut(ETex, NTex; T = T1)                                    # writes out the results.
+    for el in 1:size(tempresults[:,1],1)
+      index = findfirst(outp[:,1], tempresults[el,1] )
+      outp[index, 2:end] += tempresults[el, 2:end]
+    end
+  end
+  return outp
+end
 
 
 
