@@ -1061,17 +1061,11 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
     end
     fipst = 0; fidt = 0;
     for fips in pmarkets                                                                              # definitely a collection of fips codes
-    #  temph = deepcopy(Tex.mkts[fips].collection[currentfac[fips]])                                   # the record of the hospital which was perturbed in the market
-    #  EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = temph     # assign the hospital record copy to the dictionary item.
       EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
-      for hos in EmptyState.mkts[fips].config                                                         # iterate over the market config, which is an array.
-#TODO: this assignment isn't working for some reason, but I don't know why.
-# It's probably doing something like for i = 1:0 i = 6 end - that's not assignment.
-#TODO: I can call size(EmptyState.mkts[fips].config) - iterate over elements that way.  By index.  Assignment is easier.
-        if hos.fid == Tex.mkts[fips].collection[currentfac[fips]].fid  #temph.fid                                                                       # check for equality in the fids
-          hos = Tex.mkts[fips].collection[currentfac[fips]]
-      #    hos = Tex.mkts[fips].collection[currentfac[fips]]
+      for num in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
+        if EmptyState.mkts[fips].config[num].fid == Tex.mkts[fips].collection[currentfac[fips]].fid   # check for equality in the fids
+          EmptyState.mkts[fips].config[num] = Tex.mkts[fips].collection[currentfac[fips]]
         end
       end
     end
@@ -1082,7 +1076,6 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
   return EmptyState
 end
 
-# TODO: Psim not working again.  Damn it.
 
 outp = PSim(1, patients);
 
