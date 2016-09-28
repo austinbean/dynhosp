@@ -16,122 +16,122 @@ Platform Info:
 
 # Store the hospitals in data structures to reduce the complexity of writing out all of the values
 # to matrices and keeping track of all of the indices, etc.
-
-include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
+#addprocs(2)
+#include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
 
           ### NB: Supply-side Data Structures. ###
-type WTP
-  w385::Array{Float64, 1}
-  w386::Array{Float64, 1}
-  w387::Array{Float64, 1}
-  w388::Array{Float64, 1}
-  w389::Array{Float64, 1}
-  w390::Array{Float64, 1}
-  w391::Array{Float64, 1}
-end
-
-type DemandHistory
-  demand385::Array{Int64, 1}
-  demand386::Array{Int64, 1}
-  demand387::Array{Int64, 1}
-  demand388::Array{Int64, 1}
-  demand389::Array{Int64, 1}
-  demand390::Array{Int64, 1}
-  demand391::Array{Int64, 1}
-end
-
-
-type neighbors
-  level105::Int64
-  level205::Int64
-  level305::Int64
-  level1515::Int64
-  level2515::Int64
-  level3515::Int64
-  level11525::Int64
-  level21525::Int64
-  level31525::Int64
-end
-
-type hospital
-  fid::Int64
-  lat::Float64
-  long::Float64
-  name::AbstractString
-  fipscode::Int64
-  level::Int64
-  levelhistory::Array{Int64,1}
-  pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
-  mdemandhist::DemandHistory
-  wtphist::WTP
-  chprobability::WeightVec
-  probhistory::Array{Float64,1}
-  neigh::neighbors
-  hood::Array{Int64, 1}
-  bedcount::Float64
-  perturbed::Bool
-end
-
-
-type Market
-	config::Array{hospital, 1}
-  collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
-  fipscode::Int64
-  noneqrecord::Dict{Int64, Bool}
-end
-
-type EntireState
-  ms::Array{Market, 1}
-  mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
-  fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
-end
-
-        #### NB: Demand-side Data Structures ######
-
-type patientcount
- count385::Int64
- count386::Int64
- count387::Int64
- count388::Int64
- count389::Int64
- count390::Int64
- count391::Int64
-end
-
-import Base.+
-function +(x::patientcount, y::patientcount)
-  return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
-end
-
-type coefficients
-  distance::Float64
-  distsq::Float64
-  inten::Float64
-  inter::Float64
-  distbed::Float64
-  closest::Float64
-  # can add extras
-end
-
-type zip
- code::Int64
- phr::Int64 # may have coefficients differing by PHR
- facilities::Dict{Int64, hospital}
- fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
- pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
- mdetutils::Dict{Int64, Float64} # the same for medicare patients.
- lat::Float64
- long::Float64
- pcoeffs::coefficients
- mcoeffs::coefficients
- ppatients::patientcount
- mpatients::patientcount
-end
-
-type patientcollection
- zips::Dict{Int64, zip}
-end
-
+# type WTP
+#   w385::Array{Float64, 1}
+#   w386::Array{Float64, 1}
+#   w387::Array{Float64, 1}
+#   w388::Array{Float64, 1}
+#   w389::Array{Float64, 1}
+#   w390::Array{Float64, 1}
+#   w391::Array{Float64, 1}
+# end
+#
+# type DemandHistory
+#   demand385::Array{Int64, 1}
+#   demand386::Array{Int64, 1}
+#   demand387::Array{Int64, 1}
+#   demand388::Array{Int64, 1}
+#   demand389::Array{Int64, 1}
+#   demand390::Array{Int64, 1}
+#   demand391::Array{Int64, 1}
+# end
+#
+#
+# type neighbors
+#   level105::Int64
+#   level205::Int64
+#   level305::Int64
+#   level1515::Int64
+#   level2515::Int64
+#   level3515::Int64
+#   level11525::Int64
+#   level21525::Int64
+#   level31525::Int64
+# end
+#
+# type hospital
+#   fid::Int64
+#   lat::Float64
+#   long::Float64
+#   name::AbstractString
+#   fipscode::Int64
+#   level::Int64
+#   levelhistory::Array{Int64,1}
+#   pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
+#   mdemandhist::DemandHistory
+#   wtphist::WTP
+#   chprobability::WeightVec
+#   probhistory::Array{Float64,1}
+#   neigh::neighbors
+#   hood::Array{Int64, 1}
+#   bedcount::Float64
+#   perturbed::Bool
+# end
+#
+#
+# type Market
+# 	config::Array{hospital, 1}
+#   collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
+#   fipscode::Int64
+#   noneqrecord::Dict{Int64, Bool}
+# end
+#
+# type EntireState
+#   ms::Array{Market, 1}
+#   mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
+#   fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
+# end
+#
+#         #### NB: Demand-side Data Structures ######
+#
+# type patientcount
+#  count385::Int64
+#  count386::Int64
+#  count387::Int64
+#  count388::Int64
+#  count389::Int64
+#  count390::Int64
+#  count391::Int64
+# end
+#
+# import Base.+
+# function +(x::patientcount, y::patientcount)
+#   return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
+# end
+#
+# type coefficients
+#   distance::Float64
+#   distsq::Float64
+#   inten::Float64
+#   inter::Float64
+#   distbed::Float64
+#   closest::Float64
+#   # can add extras
+# end
+#
+# type zip
+#  code::Int64
+#  phr::Int64 # may have coefficients differing by PHR
+#  facilities::Dict{Int64, hospital}
+#  fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
+#  pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
+#  mdetutils::Dict{Int64, Float64} # the same for medicare patients.
+#  lat::Float64
+#  long::Float64
+#  pcoeffs::coefficients
+#  mcoeffs::coefficients
+#  ppatients::patientcount
+#  mpatients::patientcount
+# end
+#
+# type patientcollection
+#  zips::Dict{Int64, zip}
+# end
+#
 
 
         ##### NB: Supply-side Data Creation Functions ######
@@ -226,7 +226,7 @@ function CreateEmpty(fi::Vector, dat::Matrix)
 end
 
 #NB: Creates hospital datastructure
-Texas = MakeNew(fips, data05);
+#Texas = MakeNew(fips, data05);
 
       #### NB:  Supply-side  Printing Utilities to Display Simulation Outcomes
 function MarketPrint(mkt::Market)
@@ -655,7 +655,7 @@ function NewPatients(;fi = fips, da = data05, zi = zips, ch = choices, phrloc = 
   return patients
 end
 
-patients = NewPatients();
+#patients = NewPatients();
 
     ### NB: Zip code record printing utility.
 
@@ -938,7 +938,7 @@ end
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
   # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
-    println(i)
+    #println(i)
     WriteWTP(WTPMap(pats, Tex), Tex)
     PDemandMap(GenPChoices(pats, Tex), Tex)
     MDemandMap(GenMChoices(pats, Tex), Tex)
@@ -981,8 +981,8 @@ end
 
 #     Texas = MakeNew(fips, data05); # New state every time - this is kind of inefficient.
 
-Tex2 = NewSim(30, Texas, patients);
-EmpTex = CreateEmpty(fips, data05);
+#  Tex2 = NewSim(30, Texas, patients);
+#  EmpTex = CreateEmpty(fips, data05);
 
 function Termination(EmTex::EntireState)
   # Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
@@ -1080,7 +1080,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
 end
 
 
-Perturbed = PSim(1, patients);
+#  Perturbed = PSim(1, patients);
 
 
 function TransitionGen(current::Int64, previous::Int64)
@@ -1301,27 +1301,27 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
 end
 
 
-function OuterSim(MCcount::Int; T1::Int64 = 1, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
+function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
   # Runs the equilibrium and non-equilibrium simulations for MCcount times
   # to get an approximation to the value function.
   # trx = MakeNew(fi, da)
-   outp = Array{Float64,2}(dim1, dim2)
+  # outp = Array{Float64,2}(dim1, dim2)
   # fids = [k for k in keys(trx.fipsdirectory)]
   # for el in 1:size(fids,1)
-  #   outp[el,1] = fids[el]                                                            # Write out all of the fids as an ID in the first column.
+  #   outp[el,1] = fids[el]                                                                            # Write out all of the fids as an ID in the first column.
   # end
   # trx = 0;
-  @parallel (+) for j = 1:MCcount
+  outp = @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
-    Texas = MakeNew(fi, da);                                                         #very quick ≈ 0.1 seconds.
+    Texas = MakeNew(fi, da);                                                                            #very quick ≈ 0.1 seconds.
     patients = NewPatients()
-    ETex = NewSim(T1, Texas, patients)                                               # generates eq results.
-    NTex = PSim(T1, patients)                                                        # generates non-eq results
-    tempresults = ResultsOut(ETex, NTex; T = T1)                                     # writes out the results.
-    outp+=tempresults
-    println(tempresults[1,:])
+  #  ETex = NewSim(T1, Texas, patients)                                                                  # generates eq results.
+  #  NTex = PSim(T1, patients)                                                                           # generates non-eq results
+    ResultsOut(NewSim(T1, Texas, patients), PSim(T1, patients); T = T1)                   # writes out the results.
+    #outp+=tempresults
+#    println(tempresults[1,:])
   end
-  outp[:,1] = outp[:,1]/MCcount                                                     # Combined by (+) so reproduce the fids by dividing.
+  outp[:,1] = outp[:,1]/MCcount                                                                         # Combined by (+) so reproduce the fids by dividing.
   return outp
 end
 
