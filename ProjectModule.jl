@@ -1,5 +1,5 @@
 
-
+#lis = addprocs(1)
 
 module ProjectModule
   using DataFrames # this needs to be inside and outside the module?
@@ -22,28 +22,141 @@ module ProjectModule
   else
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
     println("Hey you're in the wrong directory!")
-    println("Error Messages on this are not super helpful.")
-    println("But you're in the wrong place.")
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   end
 
+  type WTP
+    w385::Array{Float64, 1}
+    w386::Array{Float64, 1}
+    w387::Array{Float64, 1}
+    w388::Array{Float64, 1}
+    w389::Array{Float64, 1}
+    w390::Array{Float64, 1}
+    w391::Array{Float64, 1}
+  end
 
-  include(pathprograms*"LogitEst.jl")
-  include(pathprograms*"Distance.jl")
-  #include(pathprograms*"Simulator.jl")
-  #include(pathprograms*"PerturbSimulation.jl")
-  #include(pathprograms*"DynamicValue.jl")
-  #include(pathprograms*"DemandModel.jl")
-  #include(pathprograms*"MainFunction.jl")
-  #include(pathprograms*"PerturbAction.jl")
-  #include(pathprograms*"ParallelFunctions.jl")
-  #include(pathprograms*"ParMainFun.jl")
-  #include(pathprograms*"WTP.jl")
+  type DemandHistory
+    demand385::Array{Int64, 1}
+    demand386::Array{Int64, 1}
+    demand387::Array{Int64, 1}
+    demand388::Array{Int64, 1}
+    demand389::Array{Int64, 1}
+    demand390::Array{Int64, 1}
+    demand391::Array{Int64, 1}
+  end
+
+
+  type neighbors
+    level105::Int64
+    level205::Int64
+    level305::Int64
+    level1515::Int64
+    level2515::Int64
+    level3515::Int64
+    level11525::Int64
+    level21525::Int64
+    level31525::Int64
+  end
+
+  type hospital
+    fid::Int64
+    lat::Float64
+    long::Float64
+    name::AbstractString
+    fipscode::Int64
+    level::Int64
+    levelhistory::Array{Int64,1}
+    pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
+    mdemandhist::DemandHistory
+    wtphist::WTP
+    chprobability::WeightVec
+    probhistory::Array{Float64,1}
+    neigh::neighbors
+    hood::Array{Int64, 1}
+    bedcount::Float64
+    perturbed::Bool
+  end
+
+
+  type Market
+  	config::Array{hospital, 1}
+    collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
+    fipscode::Int64
+    noneqrecord::Dict{Int64, Bool}
+  end
+
+  type EntireState
+    ms::Array{Market, 1}
+    mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
+    fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
+  end
+
+          #### NB: Demand-side Data Structures ######
+
+  type patientcount
+   count385::Int64
+   count386::Int64
+   count387::Int64
+   count388::Int64
+   count389::Int64
+   count390::Int64
+   count391::Int64
+  end
+
+  import Base.+
+  function +(x::patientcount, y::patientcount)
+    return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
+  end
+
+  type coefficients
+    distance::Float64
+    distsq::Float64
+    inten::Float64
+    inter::Float64
+    distbed::Float64
+    closest::Float64
+    # can add extras
+  end
+
+  type zip
+   code::Int64
+   phr::Int64 # may have coefficients differing by PHR
+   facilities::Dict{Int64, hospital}
+   fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
+   pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
+   mdetutils::Dict{Int64, Float64} # the same for medicare patients.
+   lat::Float64
+   long::Float64
+   pcoeffs::coefficients
+   mcoeffs::coefficients
+   ppatients::patientcount
+   mpatients::patientcount
+  end
+
+  type patientcollection
+   zips::Dict{Int64, zip}
+  end
 
 
 
-  export LogitEst, logitest, states1, states2, states3, poly, perturb, distance
+
+  include("LogitEst.jl")
+  include("Distance.jl")
+  include("DataStructs.jl")
+
+  #include("Reboot.jl")
+
+
+
+  export LogitEst, logitest, states1, states2, states3, poly, perturb, distance, MakeIt, TXSetup, ExpandDict, MakeNew, CreateEmpty, MarketPrint, NeighborsPrint, FacPrint, NewEntrantLocation, MktSize, ChoicesAvailable, LevelFunction, NeighborAppend, NeighborRemove, NeighborClean, NeighborFix, StrictCountyNeighborFix, HospFindFirst, FidFindFirst, MarketCleaner, HospUpdate, HospPerturb, CreateZips, FillPPatients, FillMPatients, FillPatients, NewPatients, PrintZip, ComputeDetUtil, WhichZips, CalcWTP, WTPMap, WriteWTP, UpdateDeterministic, GenPChoices, GenMChoices, PHistoryAdd, MHistoryAdd, PDemandMap, MDemandMap, HospitalClean, Restore, NewSim, Termination, PSim, TransitionGen, CondSum, DemandCheck, ResultsOut, OuterSim
+  export patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP
   println("Loaded Module")
+
+
+  include("Reboot.jl")
+
+
+
 end #end of module
 
 
