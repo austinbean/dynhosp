@@ -225,10 +225,6 @@ function CreateEmpty(fi::Vector, dat::Matrix)
   return Tex
 end
 
-# Data - should be moved to Reboot.jl eventually.
-fips = unique(data[:,78])
-data05 = data[(data[:,75].==2005), :] ;
-
 #NB: Creates hospital datastructure
 Texas = MakeNew(fips, data05);
 
@@ -590,7 +586,6 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
   return ppatients, unfound
 end
 
-patients, unf = CreateZips(zips, choices, Texas);
 
 function FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
   # Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
@@ -651,8 +646,16 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
 end
 
 
-patients = FillPatients(patients, pinsured, pmedicaid);
 
+function NewPatients(;fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)
+  # this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
+  newst = MakeNew(fi, da);
+  patients, unf = CreateZips(zi, ch, newst)
+  patients = FillPatients(patients, pins, pmed)
+  return patients
+end
+
+patients = NewPatients();
 
     ### NB: Zip code record printing utility.
 
@@ -1015,7 +1018,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
       end
     end
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
-    println("Remaining Markets ",  size(pmarkets))
+  #  println("Remaining Markets ",  size(pmarkets))
     for i = 1:T
       WriteWTP(WTPMap(pats, Tex), Tex)
       PDemandMap(GenPChoices(pats, Tex), Tex)
@@ -1077,7 +1080,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
 end
 
 
-outp = PSim(1, patients);
+Perturbed = PSim(1, patients);
 
 
 function TransitionGen(current::Int64, previous::Int64)
@@ -1298,27 +1301,28 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
 end
 
 
-function OuterSim(MCcount::Int; T1::Int64 = 50, dim1::Int64 = 290, dim2::Int64 = 67)
+function OuterSim(MCcount::Int; T1::Int64 = 1, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
   # Runs the equilibrium and non-equilibrium simulations for MCcount times
   # to get an approximation to the value function.
-  # TODO: get these fids from somewhere.
+  trx = MakeNew(fi, da)
   outp = Array{Float64,2}(dim1, dim2)
-  fids = [k for k in keys(Tex.fipsdirectory)]
+  fids = [k for k in keys(trx.fipsdirectory)]
   for el in 1:size(fids,1)
-    outp[el,1] = fids[el]                                                           # Write out all of the fids as an ID in the first column.
+    outp[el,1] = fids[el]                                                            # Write out all of the fids as an ID in the first column.
   end
+  trx = 0;
   @parallel (+) for j = 1:MCcount
-    Texas = MakeNew(fips, data05);                                                  #very quick ≈ 0.1 seconds.
-    patients =
-# TODO: add something to reset the patients
+    Texas = MakeNew(fi, da);                                                         #very quick ≈ 0.1 seconds.
+    patients = NewPatients()
     ETex = NewSim(T1, Texas, patients)                                               # generates eq results.
     NTex = PSim(T1, patients)                                                        # generates non-eq results
-    tempresults = ResultsOut(ETex, NTex; T = T1)                                    # writes out the results.
+    tempresults = ResultsOut(ETex, NTex; T = T1)                                     # writes out the results.
     for el in 1:size(tempresults[:,1],1)
       index = findfirst(outp[:,1], tempresults[el,1] )
       outp[index, 2:end] += tempresults[el, 2:end]
     end
   end
+  outp[:,1] = outp[:,1]/MCcount                                                     # Combined by (+) so reproduce the fids by dividing.
   return outp
 end
 
