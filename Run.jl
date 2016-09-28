@@ -6,8 +6,8 @@ loc = pwd()
 
 using ProjectModule
 
-res = OuterSim(4; T1 = 1)
+res = OuterSim(4; T1 = 2)
 
-res2 = convert(DataFrame, res)
+res2 = convert(DataFrames.DataFrame, res)
 
-writetable(loc*"simulationresults.csv", res2)
+DataFrames.writetable(loc*"simulationresults.csv", res2)
