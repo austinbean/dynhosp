@@ -1297,31 +1297,29 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     index = findfirst(outp[:,1], hosp.fid)                                             # find where the fid is in the list.
     outp[index, 35:end] = arr'
   end
-  return outp
+  return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
 end
 
 
 function OuterSim(MCcount::Int; T1::Int64 = 1, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
   # Runs the equilibrium and non-equilibrium simulations for MCcount times
   # to get an approximation to the value function.
-  trx = MakeNew(fi, da)
-  outp = Array{Float64,2}(dim1, dim2)
-  fids = [k for k in keys(trx.fipsdirectory)]
-  for el in 1:size(fids,1)
-    outp[el,1] = fids[el]                                                            # Write out all of the fids as an ID in the first column.
-  end
-  trx = 0;
+  # trx = MakeNew(fi, da)
+   outp = Array{Float64,2}(dim1, dim2)
+  # fids = [k for k in keys(trx.fipsdirectory)]
+  # for el in 1:size(fids,1)
+  #   outp[el,1] = fids[el]                                                            # Write out all of the fids as an ID in the first column.
+  # end
+  # trx = 0;
   @parallel (+) for j = 1:MCcount
-  println("Current iteration ", j)
+    println("Current iteration ", j)
     Texas = MakeNew(fi, da);                                                         #very quick ≈ 0.1 seconds.
     patients = NewPatients()
     ETex = NewSim(T1, Texas, patients)                                               # generates eq results.
     NTex = PSim(T1, patients)                                                        # generates non-eq results
     tempresults = ResultsOut(ETex, NTex; T = T1)                                     # writes out the results.
-    # for el in 1:size(tempresults[:,1],1)
-    #   index = findfirst(outp[:,1], tempresults[el,1] )
-    #   outp[index, 2:end] += tempresults[el, 2:end]
-    # end
+    outp+=tempresults
+    println(tempresults[1,:])
   end
   outp[:,1] = outp[:,1]/MCcount                                                     # Combined by (+) so reproduce the fids by dividing.
   return outp
