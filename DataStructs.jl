@@ -1312,15 +1312,16 @@ function OuterSim(MCcount::Int; T1::Int64 = 1, dim1::Int64 = 290, dim2::Int64 = 
   end
   trx = 0;
   @parallel (+) for j = 1:MCcount
+  println("Current iteration ", j)
     Texas = MakeNew(fi, da);                                                         #very quick ≈ 0.1 seconds.
     patients = NewPatients()
     ETex = NewSim(T1, Texas, patients)                                               # generates eq results.
     NTex = PSim(T1, patients)                                                        # generates non-eq results
     tempresults = ResultsOut(ETex, NTex; T = T1)                                     # writes out the results.
-    for el in 1:size(tempresults[:,1],1)
-      index = findfirst(outp[:,1], tempresults[el,1] )
-      outp[index, 2:end] += tempresults[el, 2:end]
-    end
+    # for el in 1:size(tempresults[:,1],1)
+    #   index = findfirst(outp[:,1], tempresults[el,1] )
+    #   outp[index, 2:end] += tempresults[el, 2:end]
+    # end
   end
   outp[:,1] = outp[:,1]/MCcount                                                     # Combined by (+) so reproduce the fids by dividing.
   return outp
