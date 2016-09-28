@@ -7,22 +7,23 @@
 #lis = addprocs(2)
 #lis = addprocs() # for the 32 core Amazon machine.
 
-
-
-push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
-push!(LOAD_PATH, "/dynhosp/dynhosp")
-push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
-push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
-
-
-using ProjectModule
-using DataFrames
-using Distributions
+#
+#
+# push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
+# push!(LOAD_PATH, "/dynhosp/dynhosp")
+# push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
+# push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
+#
+#
+# using ProjectModule
+# using DataFrames
+# using Distributions
 
 
 #@everywhere # it seems that the data objects do *not* need to be defined everywhere.  That's weird.
 begin
-  # Figure out which machine I'm on
+  println("hi")
+  ##  Figure out which machine I'm on
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
   if dir == "/Users/austinbean/Desktop/dynhosp"
@@ -42,7 +43,7 @@ begin
     global pathpeople = "/home1/04179/abean/dynhosp"
     global pathprograms = "/home1/04179/abean/dynhosp"
   end
-  # Import the hospital data and convert to a matrix -
+  ###### Import the hospital data and convert to a matrix -
   println("Importing Hosp Data")
     dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
     for i in names(dataf)
@@ -50,9 +51,9 @@ begin
             dataf[DataFrames.isna(dataf[i]), i] = 0
         elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
             dataf[DataFrames.isna(dataf[i]), i] = 0
-        elseif typeof(dataf[i]) == DataArrays.DataArray{ByteString,1}
+        elseif typeof(dataf[i]) == DataArrays.DataArray{String,1} #Changed for 0.5
             dataf[DataFrames.isna(dataf[i]), i] = "NONE"
-        elseif typeof(dataf[i]) == DataArrays.DataArray{UTF8String,1}
+        elseif typeof(dataf[i]) == DataArrays.DataArray{String,1}
               dataf[DataFrames.isna(dataf[i]), i] = "NONE"
       end
         if sum(size(dataf[DataFrames.isna(dataf[i]), i]))>0
@@ -88,14 +89,14 @@ begin
         medicaid[DataFrames.isna(medicaid[i]), i] = 0
       elseif (typeof(medicaid[i]) == DataArrays.DataArray{Int64,1})
         medicaid[DataFrames.isna(medicaid[i]), i] = 0
-      elseif typeof(medicaid[i]) == DataArrays.DataArray{ByteString,1}
+      elseif typeof(medicaid[i]) == DataArrays.DataArray{String,1}
         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
         # with opposite signs of the corresponding coefficients from modelparameters.
         # This does that by looking at missing NAMES, not fids.
         medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(medicaidneoint_c)*99
         medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(medicaidsoloint_c)*99
         medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
-      elseif typeof(medicaid[i]) == DataArrays.DataArray{UTF8String,1}
+      elseif typeof(medicaid[i]) == DataArrays.DataArray{String,1}
         medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+2] = -sign(medicaidneoint_c)*99
         medicaid[DataFrames.isna(medicaid[i]), medicaid.colindex.lookup[i]+8] = -sign(medicaidsoloint_c)*99
         medicaid[DataFrames.isna(medicaid[i]), i] = "NONE"
@@ -107,7 +108,7 @@ begin
     pmedicaid = convert(Matrix, medicaid);
     medicaid = 0; # DataFrame not used - set to 0 and clear out.
     for i =1:size(pmedicaid, 2)
-      if (typeof(pmedicaid[2,i])==UTF8String) | (typeof(pmedicaid[2,i])==ASCIIString)
+      if (typeof(pmedicaid[2,i])==String) | (typeof(pmedicaid[2,i])==String)
         #      print(i, "\n")
         pmedicaid[:,i] = "0"
         pmedicaid[:,i] = map(x->parse(Float64, x), pmedicaid[:,i])
@@ -124,14 +125,14 @@ begin
         pinsure[DataFrames.isna(pinsure[i]), i] = 0
       elseif (typeof(pinsure[i]) == DataArrays.DataArray{Int64,1})
         pinsure[DataFrames.isna(pinsure[i]), i] = 0
-      elseif typeof(pinsure[i]) == DataArrays.DataArray{ByteString,1}
+      elseif typeof(pinsure[i]) == DataArrays.DataArray{String,1}
         # A dumb way to make sure no one chooses a missing facility: set covariate values to large numbers
         # with opposite signs of the corresponding coefficients from modelparameters.
         # This does that by looking at missing NAMES, not fids.
         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
         pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
-      elseif typeof(pinsure[i]) == DataArrays.DataArray{UTF8String,1}
+      elseif typeof(pinsure[i]) == DataArrays.DataArray{String,1}
         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+2] = -sign(privateneoint_c)*99
         pinsure[DataFrames.isna(pinsure[i]), pinsure.colindex.lookup[i]+8] = -sign(privatesoloint_c)*99
         pinsure[DataFrames.isna(pinsure[i]), i] = "NONE"
@@ -143,7 +144,7 @@ begin
      pinsured = convert(Matrix,pinsure);
      pinsure= 0; # DataFrame not used - set to 0 and clear out.
     for i =1:size(pinsured, 2)
-      if (typeof(pinsured[2,i])==UTF8String) | (typeof(pinsured[2,i])==ASCIIString)
+      if (typeof(pinsured[2,i])==String) | (typeof(pinsured[2,i])==String)
   #      print(i, "\n")
         pinsured[:,i] = "0"
         pinsured[:,i] = map(x->parse(Float64, x), pinsured[:,i])
@@ -180,14 +181,14 @@ begin
     #println(typeof(choices[el]), "  ", el)
     if (typeof(choices[el]) == DataArrays.DataArray{Int64,1})|(typeof(choices[el]) == DataArrays.DataArray{Float64,1})
       choices[isna(choices[:,el]) , el] = 0
-    elseif (typeof(choices[el]) == DataArrays.DataArray{UTF8String,1})
+    elseif (typeof(choices[el]) == DataArrays.DataArray{String,1})
       choices[isna(choices[:,el]), el] = "Missing"
     end
   end
 
   choices = convert(Array{Any, 2}, choices);
 
-  # Data 
+  # Data
   fips = unique(data[:,78])
   data05 = data[(data[:,75].==2005), :] ;
 
