@@ -187,6 +187,10 @@ begin
 
   choices = convert(Array{Any, 2}, choices);
 
+  # Data 
+  fips = unique(data[:,78])
+  data05 = data[(data[:,75].==2005), :] ;
+
 
 end # of "begin" block
 
