@@ -1201,7 +1201,7 @@ function CondSum(hos::hospital; DRG = 7)
     ##########  NB: Begin Transition Record Section #######
     if el > 1
       if hos.levelhistory[el-1] != hos.levelhistory[el]
-        transitions += TransitionGen(hos.levelhistory[el], hos.levelhistory[el])
+        transitions += TransitionGen(hos.levelhistory[el], hos.levelhistory[el-1])
       end
     end
   end
@@ -1224,7 +1224,7 @@ end
 
 
 
-function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 67) #dim2 - 33 paramsx2 + one identifying FID
+function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
@@ -1235,7 +1235,7 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     hosp = Tex.mkts[Tex.fipsdirectory[el]].collection[el]
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
-    arr = zeros(1, 33)
+    arr = zeros(1, 40)
     arr[1] = (alph1 = (beta^T)*outprob*dot(wtp_out[1:7], private[1:7])  )           # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
     arr[2] = (alph2 = (beta^T)*outprob*dot(wtp_out[8:14], private[8:14])   )        # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
     arr[3] = (alph3 = (beta^T)*outprob*dot(wtp_out[15:21], private[15:21]) )        # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
@@ -1260,15 +1260,22 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     arr[22] = (gamma_1_391 = (beta^T)*outprob*(private[7]+medicaid[7]) )
     arr[23] = (gamma_2_391 = (beta^T)*outprob*(private[14]+medicaid[14]) )
     arr[24] = (gamma_3_391 = (beta^T)*outprob*(private[21]+medicaid[21]) )
-    arr[25:end] = (alltrans = (beta^T)*outprob*transitions)
+    arr[25] = (patients385 = (beta^T)*outprob*(medicaid[1]+medicaid[8]+medicaid[15]))    # Count of patients at DRG 385
+    arr[26] = (patients386 = (beta^T)*outprob*(medicaid[2]+medicaid[9]+medicaid[16]))
+    arr[27] = (patients387 = (beta^T)*outprob*(medicaid[3]+medicaid[10]+medicaid[17]))
+    arr[28] = (patients388 = (beta^T)*outprob*(medicaid[4]+medicaid[11]+medicaid[18]))
+    arr[29] = (patients389 = (beta^T)*outprob*(medicaid[5]+medicaid[12]+medicaid[19]))
+    arr[30] = (patients390 = (beta^T)*outprob*(medicaid[6]+medicaid[13]+medicaid[20]))
+    arr[31] = (patients391 = (beta^T)*outprob*(medicaid[7]+medicaid[14]+medicaid[21]))
+    arr[32:end] = (alltrans = (beta^T)*outprob*transitions)
     index = findfirst(outp[:,1], hosp.fid)                                          # find where the fid is in the list.
-    outp[index, 2:34] = arr'
+    outp[index, 2:41] = arr
   end
   for el in keys(OtherTex.fipsdirectory)
     hosp = Tex.mkts[Tex.fipsdirectory[el]].collection[el]
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
-    arr = zeros(1, 33)
+    arr = zeros(1, 40)
     arr[1] = (alph1 = (beta^T)*outprob*dot(wtp_out[1:7], private[1:7])  )           # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
     arr[2] = (alph2 = (beta^T)*outprob*dot(wtp_out[8:14], private[8:14])   )        # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
     arr[3] = (alph3 = (beta^T)*outprob*dot(wtp_out[15:21], private[15:21]) )        # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
@@ -1293,33 +1300,30 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     arr[22] = (gamma_1_391 = (beta^T)*outprob*(private[7]+medicaid[7]) )
     arr[23] = (gamma_2_391 = (beta^T)*outprob*(private[14]+medicaid[14]) )
     arr[24] = (gamma_3_391 = (beta^T)*outprob*(private[21]+medicaid[21]) )
-    arr[25:end] = (alltrans = (beta^T)*outprob*transitions)
+    arr[25] = (patients385 = (beta^T)*outprob*(medicaid[1]+medicaid[8]+medicaid[15]))
+    arr[26] = (patients386 = (beta^T)*outprob*(medicaid[2]+medicaid[9]+medicaid[16]))
+    arr[27] = (patients387 = (beta^T)*outprob*(medicaid[3]+medicaid[10]+medicaid[17]))
+    arr[28] = (patients388 = (beta^T)*outprob*(medicaid[4]+medicaid[11]+medicaid[18]))
+    arr[29] = (patients389 = (beta^T)*outprob*(medicaid[5]+medicaid[12]+medicaid[19]))
+    arr[30] = (patients390 = (beta^T)*outprob*(medicaid[6]+medicaid[13]+medicaid[20]))
+    arr[31] = (patients391 = (beta^T)*outprob*(medicaid[7]+medicaid[14]+medicaid[21]))
+    arr[32:end] = (alltrans = (beta^T)*outprob*transitions)
     index = findfirst(outp[:,1], hosp.fid)                                             # find where the fid is in the list.
-    outp[index, 35:end] = arr'
+    outp[index, 42:end] = arr
   end
   return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
 end
 
 
 function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
-  # Runs the equilibrium and non-equilibrium simulations for MCcount times
-  # to get an approximation to the value function.
-  # trx = MakeNew(fi, da)
-  # outp = Array{Float64,2}(dim1, dim2)
-  # fids = [k for k in keys(trx.fipsdirectory)]
-  # for el in 1:size(fids,1)
-  #   outp[el,1] = fids[el]                                                                            # Write out all of the fids as an ID in the first column.
-  # end
-  # trx = 0;
+  # Runs the Monte Carlo - Equilibrium and Non-equilibrium simulations for each market MCcount times.
+  # Note that the reduction is (+), but that includes adding the fids, so this must be divided by MCcount
+  # to return correct results.  I think it gives an error if there are no other workers.  
   outp = @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
     Texas = MakeNew(fi, da);                                                                            #very quick ≈ 0.1 seconds.
     patients = NewPatients()
-  #  ETex = NewSim(T1, Texas, patients)                                                                  # generates eq results.
-  #  NTex = PSim(T1, patients)                                                                           # generates non-eq results
-    ResultsOut(NewSim(T1, Texas, patients), PSim(T1, patients); T = T1)                   # writes out the results.
-    #outp+=tempresults
-#    println(tempresults[1,:])
+    ResultsOut(NewSim(T1, Texas, patients), PSim(T1, patients); T = T1)                                 # simulates and writes out the results.
   end
   outp[:,1] = outp[:,1]/MCcount                                                                         # Combined by (+) so reproduce the fids by dividing.
   return outp
