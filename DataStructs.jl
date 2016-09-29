@@ -1318,10 +1318,10 @@ end
 function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
   # Runs the Monte Carlo - Equilibrium and Non-equilibrium simulations for each market MCcount times.
   # Note that the reduction is (+), but that includes adding the fids, so this must be divided by MCcount
-  # to return correct results.  I think it gives an error if there are no other workers.  
+  # to return correct results.  I think it gives an error if there are no other workers.
   outp = @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
-    Texas = MakeNew(fi, da);                                                                            #very quick ≈ 0.1 seconds.
+    Texas = MakeNew(fi, da);                                                                            # very quick ≈ 0.1 seconds.
     patients = NewPatients()
     ResultsOut(NewSim(T1, Texas, patients), PSim(T1, patients); T = T1)                                 # simulates and writes out the results.
   end
