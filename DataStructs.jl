@@ -732,7 +732,8 @@ function CalcWTP(zipc::zip)
     #NB: computed utility of exited firm will be zero by ComputeDetUtil assigning it to -999, so exp(-999) = 0
     interim +=  (outp[el] = exp(zipc.pdetutils[el]) ) #NB: This is a nice trick - simultaneously assigning and adding.
   end
-  return [ j => outp[j]/interim for j in keys(outp)]
+  return Dict( j=> outp[j]/interim for j in keys(outp))
+  #return [ j => outp[j]/interim for j in keys(outp)] #this is pre 0.5 generator syntax.
 end
 
 
@@ -1235,11 +1236,11 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
     arr = zeros(1, 40)
-    arr[1] = (beta^T)*outprob*dot(wtp_out[1:7], private[1:7])            # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
-    arr[2] = (beta^T)*outprob*dot(wtp_out[8:14], private[8:14])           # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
-    arr[3] = (beta^T)*outprob*dot(wtp_out[15:21], private[15:21])         # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
-    arr[4] = (beta^T)*outprob*(private[1]+medicaid[1])              # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
-    arr[5] = (beta^T)*outprob*(private[8]+medicaid[8])              # I don't use any of the named terms - they just keep track.
+    arr[1] = (beta^T)*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
+    arr[2] = (beta^T)*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
+    arr[3] = (beta^T)*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
+    arr[4] = (beta^T)*outprob*(private[1]+medicaid[1])                               # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
+    arr[5] = (beta^T)*outprob*(private[8]+medicaid[8])
     arr[6] = (beta^T)*outprob*(private[15]+medicaid[15])
     arr[7] = (beta^T)*outprob*(private[2]+medicaid[2])
     arr[8] = (beta^T)*outprob*(private[9]+medicaid[9])
@@ -1322,7 +1323,7 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
     Texas = MakeNew(fi, da);                                                                            # very quick ≈ 0.1 seconds.
     eq_patients = NewPatients()                                                                         # Separate patients.
     neq_patients = NewPatients()                                                                        # These need separate patient groups
-    ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1, neq_patients); T = T1)                                 # simulates and writes out the results.
+    ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1, neq_patients); T = T1)                          # simulates and writes out the results.
   end
   outp[:,1] = outp[:,1]/MCcount                                                                         # Combined by (+) so reproduce the fids by dividing.
   return outp
