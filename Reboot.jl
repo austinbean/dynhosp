@@ -22,7 +22,6 @@
 
 #@everywhere # it seems that the data objects do *not* need to be defined everywhere.  That's weird.
 begin
-  println("hi")
   ##  Figure out which machine I'm on
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
