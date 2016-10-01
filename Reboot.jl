@@ -115,7 +115,7 @@ begin
     end
     # Note this change - I don't think there's anything that requires 64 bits.
     pmedicaid = convert(Array{Float32, 2}, pmedicaid)
-    println("Size of Medicaid, ", size(pmedicaid))
+  #  println("Size of Medicaid, ", size(pmedicaid))
 
     println("Importing Privately Insured Patients") #use the infants only.
     pinsure = DataFrames.readtable(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
@@ -151,7 +151,7 @@ begin
     end
     # Note this change - I don't think there's anything that requires 64 bits.
      pinsured= convert(Array{Float32, 2}, pinsured)
-     println("Size of Privately Insured, ", size(pinsured))
+  #   println("Size of Privately Insured, ", size(pinsured))
      # TX zip codes:
      TXzps = DataFrames.readtable(pathprograms*"TXzipsonly.csv", header = false);
      TXzips = convert(Vector, TXzps[:x1]);
