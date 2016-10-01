@@ -1,12 +1,12 @@
 
 
-addprocs()
+#addprocs()
 
 loc = pwd()
 
 using ProjectModule
 
-res = OuterSim(4; T1 = 2)
+res = OuterSim(500; T1 = 50)
 
 res2 = convert(DataFrames.DataFrame, res)
 
