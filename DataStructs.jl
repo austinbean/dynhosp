@@ -1318,11 +1318,12 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
   # Note that the reduction is (+), but that includes adding the fids, so this must be divided by MCcount
   # to return correct results.
   #outp = Array{Float64,2}()
-  outp = @parallel (+) for j = 1:MCcount
+  outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
     Texas = MakeNew(fi, da);                                                                            # very quick ≈ 0.1 seconds.
     eq_patients = NewPatients()                                                                         # Separate patients.
     neq_patients = NewPatients()                                                                        # These need separate patient groups
+    # TODO: this definitely isn't working.  Is ResultsOut not sending any neq results to outp?  Why not?  
     ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1, neq_patients); T = T1)                          # simulates and writes out the results.
   end
   outp[:,1] = outp[:,1]/MCcount                                                                         # Combined by (+) so reproduce the fids by dividing.
