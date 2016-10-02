@@ -116,6 +116,7 @@ function MakeNew(fi::Vector, dat::Matrix)
   return Texas
 end
 
+# TODO: How are these functions different?
 function CreateEmpty(fi::Vector, dat::Matrix)
   # This creates an empty entire state record for the perturbed simulation.
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
@@ -456,27 +457,29 @@ end
 
 
 function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
+  # Creates a collection of zip codes containing facilities, utilities, fixed effects, location, coefficients, and a count of patients.
+  # Will also return a list of unfound facilities, but there aren't any more of those.  The argument "ch" is for the file from "Zip Code Choice Sets.csv"
+  # When this is called on the EntireState correctly, the hospital records are linked - the zipcode and EntireState collections point to the same underlying hospital entries.
   ppatients = patientcollection( Dict{Int64, zip}() )
   unfound = Array{Int64,1}()
   for el in zipcodes
-    ppatients.zips[el] = zip(el, 0, Dict{Int64,hospital}(), Dict{Int64,Float64}(), # zipcode, public health region, facilities, hospital FE's.
-                             Dict{Int64,Float64}(), Dict{Int64, Float64}(), # private det utilities, medicaid det utilities.
+    # Creates an empty zip code record, numbered "el"
+    ppatients.zips[el] = zip(el, 0, Dict{Int64,hospital}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
+                             Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
                              0.0, 0.0, coefficients(privatedistance_c, privatedistsq_c, privateneoint_c, privatesoloint_c, privatedistbed_c, privateclosest_c),
-                             coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),  #lat, long, private coefficients, medicaid coefficients
-                             patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0)) # private and medicaid patients
+                             coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),     # lat, long, private coefficients, medicaid coefficients
+                             patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0))                                                                          # private and medicaid patients
   end
-  for i = 1:size(ch, 1) #rows
+  for i = 1:size(ch, 1)                                                                                                                                         # rows in the set of choices
     ppatients.zips[ch[i,1]].lat = ch[i,7]
     ppatients.zips[ch[i,1]].long = ch[i,8]
-    for j = 11:17:size(ch,2)
+    for j = 11:17:size(ch,2)                                                                                                                                    # Columns in the set of choices
       try
-        Tex.fipsdirectory[ch[i,j]]
-        # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
-        # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
-        # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
-        fipscode = Tex.fipsdirectory[ch[i,j]]
-        ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]
-        Tex.mkts[ fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]
+        #NB: This shouuld link the hospital records between the EntireState and the patientcollection - they should refer to the same underlying objects.
+        Tex.fipsdirectory[ch[i,j]]                                                                                                                              # look for the hosp in the EntireState
+        fipscode = Tex.fipsdirectory[ch[i,j]]                                                                                                                   # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
+        ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]                                                                    # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
+        Tex.mkts[fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]                                                                                           # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
       catch y
         if isa(y, KeyError)
           push!(unfound,ch[i, j])
@@ -578,9 +581,9 @@ end
 
 function UpdateDeterministic(collect::patientcollection)
   # Computes the deterministic component of the utility - updates every firm every time it is called.
+  # Is called during the Eq and Non-eq simulations.
   for el in keys(collect.zips) #iterates over zips
     for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
-      # TODO - this isn't doing what I want - it's updating using the hospitals in patient collection, but those don't change.
       collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
       collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
     end
@@ -589,15 +592,17 @@ end
 
 
 
-function NewPatients(Tex::EntireState;fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)
+function NewPatients(Tex::EntireState; fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)
   # this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
+  # It must take an existing EntireState record to link the hospitals.
   patients, unf = CreateZips(zi, ch, Tex) #NB: This needs to take the whole state so that the hosps in zips point to the same underlying record.
   patients = FillPatients(patients, pins, pmed)
   UpdateDeterministic(patients)
   return patients
 end
 
-#patients = NewPatients();
+# Texas = MakeNew(fips, data05);
+# patients = NewPatients(Texas);
 
     ### NB: Zip code record printing utility.
 
@@ -638,6 +643,7 @@ end
 
 function CalcWTP(zipc::zip)
   # Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
+  # Output is sent to WTPMap
   outp = Dict(j=> 0.0 for j in keys(zipc.pdetutils))
 #  outp = [j => 0.0 for j in keys(zipc.pdetutils)] # this is the pre0.5 generator syntax
   interim = 0.0
@@ -654,6 +660,8 @@ end
 function WTPMap(pats::patientcollection, Tex::EntireState)
   # Takes a patient collection and an entire state and returns a dict{fid, WTP}
   # computed by calling CalcWTP.  Right now it ignores Inf and NaN.
+  # Input is from CalcWTP.  Output is sent to WriteWTP
+  # TODO - I am not sure this is updating the state values correctly.
   outp = Dict(j=>0.0 for j in keys(Tex.fipsdirectory))
 #  outp = [ j=> 0.0 for j in keys(Tex.fipsdirectory) ] # this is the pre0.5 generator syntax.
   for zipc in keys(pats.zips)
@@ -676,6 +684,7 @@ end
 
 function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)
   # Takes a dict of {fid, WTP} and writes it out by DRG.
+  # Works on the output of WTPMap
   for els in keys(reslt)
     push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
     push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
@@ -809,21 +818,20 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
     for el in Tex.ms
       entrant = sample(entrants, WeightVec(entryprobs))
       if entrant != 0
-        entloc = NewEntrantLocation(el) # called on the market
-        newfid = -floor(rand()*1e6) # all entrant fids negative to facilitate their removal later.
+        entloc = NewEntrantLocation(el)                                                        # called on the market
+        newfid = -floor(rand()*1e6)                                                            # all entrant fids negative to facilitate their removal later.
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
-        push!(el.config, entr) # need to create a new record for this hospital in the market
-        # need to add it to the dictionary too:
+        push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
         el.collection[newfid] = entr
-        for elm in el.config
+        for elm in el.config                                                                   # need to add it to the dictionary too:
           NeighborAppend(elm, entr)
           NeighborAppend(entr, elm)
         end
-         HospUpdate(entr, entrant) #entrant is the level
+         HospUpdate(entr, entrant)                                                             #"entrant" is the level
       end
       for elm in el.config
         action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
@@ -834,19 +842,13 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
         push!(elm.levelhistory, newchoice)
       end
     end
-    # This updates after all of the facilities have been changed.
-    #TODO - the reason this isn't working: this is surely updating Deterministic using the hospital records in "patients", which are different from those in Texas.
-    # Either do UpdateDeterministic differently or rewrite the way the data is loaded.
-    UpdateDeterministic(pats)                                                                # Updates deterministic component of utility
-    for zipc in keys(pats.zips)
-      # TODO: Why is CalcWTP the right thing to do here?
-      pats.zips[zipc].pdetutils = CalcWTP(pats.zips[zipc])                                                   # Calculates WTP from deterministic utility, now updated.
-    end
+    UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
   end
-  return Tex # Returns the whole state so the results can be written out.
+  return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
 
-#     Texas = MakeNew(fips, data05); # New state every time - this is kind of inefficient.
+# Texas = MakeNew(fips, data05);
+# patients = NewPatients(Texas);
 
 #  Tex2 = NewSim(3, Texas, patients);
 #  EmpTex = CreateEmpty(fips, data05);
@@ -861,16 +863,16 @@ function Termination(EmTex::EntireState)
 end
 
 
-function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
+function PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
   # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
   # The results are stored in EmptyState, which is an EntireState record instance.
-  EmptyState = CreateEmpty(fi, di);
+  EmptyState = CreateEmpty(fi, di);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
-    Tex = MakeNew(fips, data05);                                                                        # New state every time - this is kind of inefficient.
-#TODO: I may need to make more new patients here, but linked to Tex above.  
+    Tex = MakeNew(fi, di);                                                                              # NB: New state every time - this is kind of inefficient.
+    pats = NewPatients(Tex);                                                                            # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
     for el in keys(EmptyState.mkts)
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)])
         pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1)
@@ -931,7 +933,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     fipst = 0; fidt = 0;
-    for fips in pmarkets                                                                              # definitely a collection of fips codes
+    for fips in pmarkets                                                                              # a collection of fips codes
       EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
       for num in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
@@ -946,9 +948,8 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
   return EmptyState
 end
 
-# patients = NewPatients(xxxxTEXASxxxxx);
 
-#  Perturbed = PSim(1, patients);
+#  Perturbed = PSim(10);
 
 
 function TransitionGen(current::Int64, previous::Int64)
@@ -1188,13 +1189,13 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
   #outp = Array{Float64,2}()
   outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
-    TexasEq = MakeNew(fi, da);                                                                          # very quick ≈ 0.1 seconds.
-    TexasNeq = MakeNew(fi, da);                                                                         # try creating two?  But linked to the state.
-    eq_patients = NewPatients(TexasEq)                                                                  # Separate patients.
-    neq_patients = NewPatients(TexasNeq)                                                                # These need separate patient groups
-    ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1, neq_patients); T = T1)                          # simulates and writes out the results.
+    TexasEq = MakeNew(fi, da);                                                                           # Returns an EntireState.  very quick ≈ 0.1 seconds.
+    #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
+    eq_patients = NewPatients(TexasEq)                                                                   # Separate patients - these linked to Eq Entire State.
+    #neq_patients = NewPatients(TexasNeq)                                                                # Separate patients - these linked to Neq Entire State.
+    ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1); T = T1)                                         # simulates and writes out the results.
   end
-  outp[:,1] = outp[:,1]/MCcount                                                                         # Combined by (+) so reproduce the fids by dividing.
+  outp[:,1] = outp[:,1]/MCcount                                                                          # Combined by (+) so reproduce the fids by dividing.
   return outp
 end
 
