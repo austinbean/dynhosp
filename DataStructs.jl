@@ -1,4 +1,6 @@
 #=
+
+Works on this version if you change the dictionary generation syntax:
 Julia Version 0.4.5
 Commit 2ac304d (2016-03-18 00:58 UTC)
 Platform Info:
@@ -10,6 +12,18 @@ Platform Info:
   LIBM: libopenlibm
   LLVM: libLLVM-3.3
 
+Also works on:
+Julia Version 0.5.1-pre+2
+Commit f0d40ec (2016-09-20 03:34 UTC)
+Platform Info:
+  System: Darwin (x86_64-apple-darwin15.6.0)
+  CPU: Intel(R) Core(TM) i7-5557U CPU @ 3.10GHz
+  WORD_SIZE: 64
+  BLAS: libopenblas (USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell)
+  LAPACK: libopenblas64_
+  LIBM: libopenlibm
+  LLVM: libLLVM-3.7.1 (ORCJIT, broadwell)
+
 =#
 
 
@@ -18,120 +32,6 @@ Platform Info:
 # to matrices and keeping track of all of the indices, etc.
 #addprocs(2)
 #include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
-
-          ### NB: Supply-side Data Structures. ###
-# type WTP
-#   w385::Array{Float64, 1}
-#   w386::Array{Float64, 1}
-#   w387::Array{Float64, 1}
-#   w388::Array{Float64, 1}
-#   w389::Array{Float64, 1}
-#   w390::Array{Float64, 1}
-#   w391::Array{Float64, 1}
-# end
-#
-# type DemandHistory
-#   demand385::Array{Int64, 1}
-#   demand386::Array{Int64, 1}
-#   demand387::Array{Int64, 1}
-#   demand388::Array{Int64, 1}
-#   demand389::Array{Int64, 1}
-#   demand390::Array{Int64, 1}
-#   demand391::Array{Int64, 1}
-# end
-#
-#
-# type neighbors
-#   level105::Int64
-#   level205::Int64
-#   level305::Int64
-#   level1515::Int64
-#   level2515::Int64
-#   level3515::Int64
-#   level11525::Int64
-#   level21525::Int64
-#   level31525::Int64
-# end
-#
-# type hospital
-#   fid::Int64
-#   lat::Float64
-#   long::Float64
-#   name::AbstractString
-#   fipscode::Int64
-#   level::Int64
-#   levelhistory::Array{Int64,1}
-#   pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
-#   mdemandhist::DemandHistory
-#   wtphist::WTP
-#   chprobability::WeightVec
-#   probhistory::Array{Float64,1}
-#   neigh::neighbors
-#   hood::Array{Int64, 1}
-#   bedcount::Float64
-#   perturbed::Bool
-# end
-#
-#
-# type Market
-# 	config::Array{hospital, 1}
-#   collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
-#   fipscode::Int64
-#   noneqrecord::Dict{Int64, Bool}
-# end
-#
-# type EntireState
-#   ms::Array{Market, 1}
-#   mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
-#   fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
-# end
-#
-#         #### NB: Demand-side Data Structures ######
-#
-# type patientcount
-#  count385::Int64
-#  count386::Int64
-#  count387::Int64
-#  count388::Int64
-#  count389::Int64
-#  count390::Int64
-#  count391::Int64
-# end
-#
-# import Base.+
-# function +(x::patientcount, y::patientcount)
-#   return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
-# end
-#
-# type coefficients
-#   distance::Float64
-#   distsq::Float64
-#   inten::Float64
-#   inter::Float64
-#   distbed::Float64
-#   closest::Float64
-#   # can add extras
-# end
-#
-# type zip
-#  code::Int64
-#  phr::Int64 # may have coefficients differing by PHR
-#  facilities::Dict{Int64, hospital}
-#  fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
-#  pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
-#  mdetutils::Dict{Int64, Float64} # the same for medicare patients.
-#  lat::Float64
-#  long::Float64
-#  pcoeffs::coefficients
-#  mcoeffs::coefficients
-#  ppatients::patientcount
-#  mpatients::patientcount
-# end
-#
-# type patientcollection
-#  zips::Dict{Int64, zip}
-# end
-#
 
 
         ##### NB: Supply-side Data Creation Functions ######
@@ -529,6 +429,7 @@ end
 function HospPerturb(hosp::hospital, choice::Int, eps::Float64)
   # Takes a hospital record and updates the probabilities of the choices.
   # and then perturbs them using the perturb function.
+  # TODO: Is there a change which needs to be made when other firms do something weird?  Does that make sense?
   levl = (-1, -1)
  if (hosp.level!=choice) # want to be able to force this to rerun when the data is cleaned again.
    if choice != -999
@@ -646,38 +547,6 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
 end
 
 
-
-function NewPatients(;fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)
-  # this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
-  newst = MakeNew(fi, da);
-  patients, unf = CreateZips(zi, ch, newst)
-  patients = FillPatients(patients, pins, pmed)
-  return patients
-end
-
-#patients = NewPatients();
-
-    ### NB: Zip code record printing utility.
-
-function PrintZip(zi::zip)
-  # Prints the fid and the name of the facilities attached to the zips.
-  for el in keys(zi.facilities)
-    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
-    println(el, "  ", zi.facilities[el].name)
-  end
-    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
-    println("385 ", zi.ppatients.count385, " ", zi.mpatients.count385)
-    println("386 ", zi.ppatients.count386, " ", zi.mpatients.count386)
-    println("387 ", zi.ppatients.count387, " ", zi.mpatients.count387)
-    println("388 ", zi.ppatients.count388, " ", zi.mpatients.count388)
-    println("389 ", zi.ppatients.count389, " ", zi.mpatients.count389)
-    println("390 ", zi.ppatients.count390, " ", zi.mpatients.count390)
-    println("391 ", zi.ppatients.count391, " ", zi.mpatients.count391)
-end
-
-  ### NB: Substantive Demand-side Functions.
-
-
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   # Computes the deterministic component of utility for each hospital in the zip "zipc".
   # Maps exited facilites to have deterministic utility -999
@@ -706,6 +575,50 @@ function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
     end
   end
 end
+
+function UpdateDeterministic(collect::patientcollection)
+  # Computes the deterministic component of the utility - updates every firm every time it is called.
+  for el in keys(collect.zips) #iterates over zips
+    for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
+      # TODO - this isn't doing what I want - it's updating using the hospitals in patient collection, but those don't change.
+      collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
+      collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
+    end
+  end
+end
+
+
+
+function NewPatients(Tex::EntireState;fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)
+  # this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
+  patients, unf = CreateZips(zi, ch, Tex) #NB: This needs to take the whole state so that the hosps in zips point to the same underlying record.
+  patients = FillPatients(patients, pins, pmed)
+  UpdateDeterministic(patients)
+  return patients
+end
+
+#patients = NewPatients();
+
+    ### NB: Zip code record printing utility.
+
+function PrintZip(zi::zip)
+  # Prints the fid and the name of the facilities attached to the zips.
+  for el in keys(zi.facilities)
+    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
+    println(el, "  ", zi.facilities[el].name)
+  end
+    println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
+    println("385 ", zi.ppatients.count385, " ", zi.mpatients.count385)
+    println("386 ", zi.ppatients.count386, " ", zi.mpatients.count386)
+    println("387 ", zi.ppatients.count387, " ", zi.mpatients.count387)
+    println("388 ", zi.ppatients.count388, " ", zi.mpatients.count388)
+    println("389 ", zi.ppatients.count389, " ", zi.mpatients.count389)
+    println("390 ", zi.ppatients.count390, " ", zi.mpatients.count390)
+    println("391 ", zi.ppatients.count391, " ", zi.mpatients.count391)
+end
+
+  ### NB: Substantive Demand-side Functions.
+
 
 function WhichZips(pats::patientcollection, fid::Int64)
   # Takes a patientcollection and tells me which zips have the hospital fid
@@ -774,15 +687,7 @@ function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)
   end
 end
 
-function UpdateDeterministic(collect::patientcollection)
-  # Computes the deterministic component of the utility - updates every firm every time it is called.
-  for el in keys(collect.zips) #iterates over zips
-    for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
-      collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
-      collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
-    end
-  end
-end
+
 
 
 function GenPChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
@@ -891,47 +796,6 @@ function MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
   end
 end
 
-
-
-function HospitalClean(hos::hospital)
-  # resets the hospital to the initial state after a run of the simulation.
-  # some fields don't change: fid, lat, long, name, fips, bedcount,
-  # eventually perturbed will probably change.
-  hos.level = hos.levelhistory[1]                  #Reset level history to initial value
-  hos.levelhistory = [hos.levelhistory[1]]           #Set record length back to zero.
-  hos.mdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
-  hos.pdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
-  hos.wtphist = WTP(Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ) #empty WTP
-  hos.chprobability = WeightVec([0])               #TODO: this one is complicated!
-  hos.probhistory = Array{Float64,1}()             #Empty history of choices.
-  hos.neigh = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0) #TODO: reset this in Restore()
-  hos.hood = Array{Int64,1}()                      #TODO: reset in Restore()
-  hos.perturbed = false                            #For now this is always false.
-end
-
-function Restore(Tex::EntireState)
-  # This function needs to set all hospital states back to zero.
-  # Then it re-computes the set of neighbors using NeighborFix, fixing hosp.neigh and hosp.hood.
-  # Finally it recomputes the initial choice probabilities.
-  #TODO - there are entrants in this group too.
-  for mkt in Tex.ms
-    for hos in mkt.config
-      HospitalClean(hos)
-    end
-  end
-#TODO: this isn't quite working yet.  But it isn't crucial at the moment.
-
-  NeighborFix(Tex) # Restores all neighbors to both hosp.neigh and hosp.hood.
-  for mkt in Tex.ms
-    for hos in mkt.config
-      HospUpdate(hos, hos.level; update = true) # HospUpdate should now fix these.
-    end
-  end
-  return Tex
-end
-
-
-
     ### NB: The business of the simulation.
 
 
@@ -939,7 +803,6 @@ end
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
   # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
-    #println(i)
     WriteWTP(WTPMap(pats, Tex), Tex)
     PDemandMap(GenPChoices(pats, Tex), Tex)
     MDemandMap(GenMChoices(pats, Tex), Tex)
@@ -972,9 +835,12 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
       end
     end
     # This updates after all of the facilities have been changed.
+    #TODO - the reason this isn't working: this is surely updating Deterministic using the hospital records in "patients", which are different from those in Texas.
+    # Either do UpdateDeterministic differently or rewrite the way the data is loaded.
     UpdateDeterministic(pats)                                                                # Updates deterministic component of utility
     for zipc in keys(pats.zips)
-      pdetutils = CalcWTP(pats.zips[zipc])                                                   # Calculates WTP from deterministic utility, now updated.
+      # TODO: Why is CalcWTP the right thing to do here?
+      pats.zips[zipc].pdetutils = CalcWTP(pats.zips[zipc])                                                   # Calculates WTP from deterministic utility, now updated.
     end
   end
   return Tex # Returns the whole state so the results can be written out.
@@ -1004,6 +870,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
     Tex = MakeNew(fips, data05);                                                                        # New state every time - this is kind of inefficient.
+#TODO: I may need to make more new patients here, but linked to Tex above.  
     for el in keys(EmptyState.mkts)
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)])
         pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1)
@@ -1019,13 +886,12 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
       end
     end
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
-  #  println("Remaining Markets ",  size(pmarkets))
     for i = 1:T
       WriteWTP(WTPMap(pats, Tex), Tex)
       PDemandMap(GenPChoices(pats, Tex), Tex)
       MDemandMap(GenMChoices(pats, Tex), Tex)
       for el in Tex.ms
-        if in(pmarkets, el.fipscode)
+        if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
           entrant = sample(entrants, WeightVec(entryprobs))
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
@@ -1062,6 +928,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
           end
         end
       end
+      UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     fipst = 0; fidt = 0;
     for fips in pmarkets                                                                              # definitely a collection of fips codes
@@ -1079,6 +946,7 @@ function PSim(T::Int, pats::patientcollection; di = data05, fi = fips, entrants 
   return EmptyState
 end
 
+# patients = NewPatients(xxxxTEXASxxxxx);
 
 #  Perturbed = PSim(1, patients);
 
@@ -1320,14 +1188,56 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
   #outp = Array{Float64,2}()
   outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
-    Texas = MakeNew(fi, da);                                                                            # very quick ≈ 0.1 seconds.
-    eq_patients = NewPatients()                                                                         # Separate patients.
-    neq_patients = NewPatients()                                                                        # These need separate patient groups
-    # TODO: this definitely isn't working.  Is ResultsOut not sending any neq results to outp?  Why not?  
+    TexasEq = MakeNew(fi, da);                                                                          # very quick ≈ 0.1 seconds.
+    TexasNeq = MakeNew(fi, da);                                                                         # try creating two?  But linked to the state.
+    eq_patients = NewPatients(TexasEq)                                                                  # Separate patients.
+    neq_patients = NewPatients(TexasNeq)                                                                # These need separate patient groups
     ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1, neq_patients); T = T1)                          # simulates and writes out the results.
   end
   outp[:,1] = outp[:,1]/MCcount                                                                         # Combined by (+) so reproduce the fids by dividing.
   return outp
+end
+
+
+
+## NB: To clean up - but these aren't debugged or used.
+
+
+function HospitalClean(hos::hospital)
+  # resets the hospital to the initial state after a run of the simulation.
+  # some fields don't change: fid, lat, long, name, fips, bedcount,
+  # eventually perturbed will probably change.
+  hos.level = hos.levelhistory[1]                  #Reset level history to initial value
+  hos.levelhistory = [hos.levelhistory[1]]           #Set record length back to zero.
+  hos.mdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
+  hos.pdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
+  hos.wtphist = WTP(Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ) #empty WTP
+  hos.chprobability = WeightVec([0])               #TODO: this one is complicated!
+  hos.probhistory = Array{Float64,1}()             #Empty history of choices.
+  hos.neigh = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0) #TODO: reset this in Restore()
+  hos.hood = Array{Int64,1}()                      #TODO: reset in Restore()
+  hos.perturbed = false                            #For now this is always false.
+end
+
+function Restore(Tex::EntireState)
+  # This function needs to set all hospital states back to zero.
+  # Then it re-computes the set of neighbors using NeighborFix, fixing hosp.neigh and hosp.hood.
+  # Finally it recomputes the initial choice probabilities.
+  #TODO - there are entrants in this group too.
+  for mkt in Tex.ms
+    for hos in mkt.config
+      HospitalClean(hos)
+    end
+  end
+#TODO: this isn't quite working yet.  But it isn't crucial at the moment.
+
+  NeighborFix(Tex) # Restores all neighbors to both hosp.neigh and hosp.hood.
+  for mkt in Tex.ms
+    for hos in mkt.config
+      HospUpdate(hos, hos.level; update = true) # HospUpdate should now fix these.
+    end
+  end
+  return Tex
 end
 
 
