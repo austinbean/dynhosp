@@ -1193,7 +1193,7 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
     #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
     eq_patients = NewPatients(TexasEq)                                                                   # Separate patients - these linked to Eq Entire State.
     #neq_patients = NewPatients(TexasNeq)                                                                # Separate patients - these linked to Neq Entire State.
-    ResultsOut(NewSim(T1, Texas, eq_patients), PSim(T1); T = T1)                                         # simulates and writes out the results.
+    ResultsOut(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)                                         # simulates and writes out the results.
   end
   outp[:,1] = outp[:,1]/MCcount                                                                          # Combined by (+) so reproduce the fids by dividing.
   return outp
