@@ -1,12 +1,13 @@
 
 
-#addprocs()
+#addprocs(30) # will work on Amazon.
+#addprocs() # will work on home machine.
 
 loc = pwd()
 
 using ProjectModule
 
-res = OuterSim(5; T1 = 10)
+res = OuterSim(500; T1 = 50)
 
 res2 = convert(DataFrames.DataFrame, res)
 
