@@ -819,7 +819,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
       entrant = sample(entrants, WeightVec(entryprobs))
       if entrant != 0
         entloc = NewEntrantLocation(el)                                                        # called on the market
-        newfid = -floor(rand()*1e6)                                                            # all entrant fids negative to facilitate their removal later.
+        newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
@@ -897,7 +897,7 @@ function PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryp
           entrant = sample(entrants, WeightVec(entryprobs))
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
-            newfid = -floor(rand()*1e6)                                                                # all entrant fids negative to facilitate their removal.
+            newfid = -floor(rand()*1e6)-1000000                                                        # all entrant fids negative to facilitate their removal.
             entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
                              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
@@ -933,6 +933,7 @@ function PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryp
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     fipst = 0; fidt = 0;
+    # TODO - debug this again to be sure.  I want to check that this gets copied and maintained.
     for fips in pmarkets                                                                              # a collection of fips codes
       EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
