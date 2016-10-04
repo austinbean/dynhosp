@@ -3,10 +3,13 @@
 using DataFrames
 using Distributions
 using StatsBase
-using Gadfly  # probably should be switched out for Plots
-
+using Plots  # probably should be switched out for Plots
+plotlyjs()   # call PlotljJS backend to Plots.  
 
 dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
+# This is just for testing purposes.  Not a real set of results.
+dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv");
+
 dat = convert(Array{Float64,2}, dat)
 
 eq_opt = dat[:, 2:41];
@@ -151,6 +154,7 @@ function MetropolisHastings(initialpr::Vector,
   end
 end # of MetropolisHastings()
 const nsims = 1000 #_000
+const paramsize = 40
 sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(1000*ones(paramsize), nsims)
 
 # Results to return:
@@ -158,10 +162,7 @@ println("Fraction Accepted ", accept/nsims)
 println("Count of Numerical Overflow ", overcounter)
 println("Count of Underflow ", undercounter)
 
-# remove latter two when not tracing results.
-return sim_vals, tr, param_accept, allvals
 
-end # of LTE function
 
 
 
