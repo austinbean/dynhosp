@@ -3,14 +3,17 @@
 using DataFrames
 using Distributions
 using StatsBase
-using Plots  # probably should be switched out for Plots
-plotlyjs()   # call PlotljJS backend to Plots.  
+using Plots  
+plotlyjs()   # call PlotljJS backend to Plots.
 
-dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
+#dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
 # This is just for testing purposes.  Not a real set of results.
-dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv");
+#dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv");
+dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 10 03 2016 717pm.csv");
 
 dat = convert(Array{Float64,2}, dat)
+
+# TODO - right now this is not getting the constant revenue which is added by the medicaid patients.  
 
 eq_opt = dat[:, 2:41];
 neq_opt = dat[:,42:end];
