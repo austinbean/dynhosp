@@ -1094,7 +1094,7 @@ end
 
 
 
-function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
+function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81, drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
@@ -1130,13 +1130,13 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     arr[22] = (beta^T)*outprob*(private[7]+medicaid[7])
     arr[23] = (beta^T)*outprob*(private[14]+medicaid[14])
     arr[24] = (beta^T)*outprob*(private[21]+medicaid[21])
-    arr[25] = (beta^T)*outprob*(medicaid[1]+medicaid[8]+medicaid[15])         # Count of patients at DRG 385
-    arr[26] = (beta^T)*outprob*(medicaid[2]+medicaid[9]+medicaid[16])
-    arr[27] = (beta^T)*outprob*(medicaid[3]+medicaid[10]+medicaid[17])
-    arr[28] = (beta^T)*outprob*(medicaid[4]+medicaid[11]+medicaid[18])
-    arr[29] = (beta^T)*outprob*(medicaid[5]+medicaid[12]+medicaid[19])
-    arr[30] = (beta^T)*outprob*(medicaid[6]+medicaid[13]+medicaid[20])
-    arr[31] = (beta^T)*outprob*(medicaid[7]+medicaid[14]+medicaid[21])
+    arr[25] = (beta^T)*outprob*(medicaid[1]+medicaid[8]+medicaid[15])*drgamt[1]    # Patients*revenue avg. at DRG 385
+    arr[26] = (beta^T)*outprob*(medicaid[2]+medicaid[9]+medicaid[16])*drgamt[2]
+    arr[27] = (beta^T)*outprob*(medicaid[3]+medicaid[10]+medicaid[17])*drgamt[3]
+    arr[28] = (beta^T)*outprob*(medicaid[4]+medicaid[11]+medicaid[18])*drgamt[4]
+    arr[29] = (beta^T)*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]
+    arr[30] = (beta^T)*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]
+    arr[31] = (beta^T)*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]
     arr[32:end] = (alltrans = (beta^T)*outprob*transitions)
     index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
     outp[index, 2:41] = arr
@@ -1169,13 +1169,13 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     narr[22] = (beta^T)*outprobn*(privaten[7]+medicaidn[7])
     narr[23] = (beta^T)*outprobn*(privaten[14]+medicaidn[14])
     narr[24] = (beta^T)*outprobn*(privaten[21]+medicaidn[21])
-    narr[25] = (beta^T)*outprobn*(medicaidn[1]+medicaidn[8]+medicaidn[15])
-    narr[26] = (beta^T)*outprobn*(medicaidn[2]+medicaidn[9]+medicaidn[16])
-    narr[27] = (beta^T)*outprobn*(medicaidn[3]+medicaidn[10]+medicaidn[17])
-    narr[28] = (beta^T)*outprobn*(medicaidn[4]+medicaidn[11]+medicaidn[18])
-    narr[29] = (beta^T)*outprobn*(medicaidn[5]+medicaidn[12]+medicaidn[19])
-    narr[30] = (beta^T)*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])
-    narr[31] = (beta^T)*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])
+    narr[25] = (beta^T)*outprobn*(medicaidn[1]+medicaidn[8]+medicaidn[15])*drgamt[1]
+    narr[26] = (beta^T)*outprobn*(medicaidn[2]+medicaidn[9]+medicaidn[16])*drgamt[2]
+    narr[27] = (beta^T)*outprobn*(medicaidn[3]+medicaidn[10]+medicaidn[17])*drgamt[3]
+    narr[28] = (beta^T)*outprobn*(medicaidn[4]+medicaidn[11]+medicaidn[18])*drgamt[4]
+    narr[29] = (beta^T)*outprobn*(medicaidn[5]+medicaidn[12]+medicaidn[19])*drgamt[5]
+    narr[30] = (beta^T)*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6]
+    narr[31] = (beta^T)*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7]
     narr[32:end] = (beta^T)*outprobn*transitionsn
     outp[index, 42:end] = narr
   end
@@ -1194,11 +1194,28 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
     #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
     eq_patients = NewPatients(TexasEq)                                                                   # Separate patients - these linked to Eq Entire State.
     #neq_patients = NewPatients(TexasNeq)                                                                # Separate patients - these linked to Neq Entire State.
-    ResultsOut(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)                                         # simulates and writes out the results.
+    ResultsOut(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)                                       # simulates and writes out the results.
   end
   outp[:,1] = outp[:,1]/MCcount                                                                          # Combined by (+) so reproduce the fids by dividing.
   return outp
 end
+
+
+function ZeroFind(mat::Array{Float64,2})
+  # looks for hospitals which were never demanded - there are some which have rows of zeros
+  # will want to pop those out of the results matrix.  
+  zers = zeros(size(mat,1)) # vector of zeros for output 
+  for i = 1:size(mat,1)
+    zercnt = 0
+    for j = 1:size(mat, 2) # don't want to count all of them - fix this.  
+      if mat[i,j] == 0.0 
+        zercnt += 1
+      end 
+    end 
+    zers[i] = zercnt
+  end 
+  return zers 
+end 
 
 
 
