@@ -9,7 +9,7 @@ plotlyjs()   # call PlotljJS backend to Plots.
 #dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
 #dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
 
-dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 10 03 2016 717pm.csv");
+dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 100516 243 pm.csv");
 
 dat = convert(Array{Float64,2}, dat)
 
@@ -122,6 +122,8 @@ function MetropolisHastings(initialpr::Vector,
         end
         # The probability under the proposal is symmetric - q(next_x|curr_x) = q(curr_x|next_x) - I can drop it.
         # Next line is log of Hastings ratio.
+    # TODO - this can't be working right.  there are always well-defined minima in the functions, at least graphed variable at a time.
+    # Something is wrong with this.
         logrho = minimum([val_diff+next_prior-curr_prior,0.0])
         if debug
           tr[counter, 1] = logrho
