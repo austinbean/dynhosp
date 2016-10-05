@@ -1,26 +1,6 @@
-# reboot:
-# include("/Users/austinbean/Desktop/dynhosp/Reboot.jl")
-# include("/home/ubuntu/dynhosp/Reboot.jl")
-# include("/home1/04179/abean/dynhosp/Reboot.jl")
 
 
-#lis = addprocs(2)
-#lis = addprocs() # for the 32 core Amazon machine.
 
-#
-#
-# push!(LOAD_PATH, "/Users/austinbean/Desktop/dynhosp")
-# push!(LOAD_PATH, "/dynhosp/dynhosp")
-# push!(LOAD_PATH, "/home/ubuntu/dynhosp/")
-# push!(LOAD_PATH, "/home1/04179/abean/dynhosp")
-#
-#
-# using ProjectModule
-# using DataFrames
-# using Distributions
-
-
-#@everywhere # it seems that the data objects do *not* need to be defined everywhere.  That's weird.
 begin
   ##  Figure out which machine I'm on
   dir = pwd()
