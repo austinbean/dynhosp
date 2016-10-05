@@ -933,7 +933,6 @@ function PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryp
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     fipst = 0; fidt = 0;
-    # TODO - debug this again to be sure.  I want to check that this gets copied and maintained.
     for fips in pmarkets                                                                              # a collection of fips codes
       EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
@@ -1203,19 +1202,19 @@ end
 
 function ZeroFind(mat::Array{Float64,2})
   # looks for hospitals which were never demanded - there are some which have rows of zeros
-  # will want to pop those out of the results matrix.  
-  zers = zeros(size(mat,1)) # vector of zeros for output 
+  # will want to pop those out of the results matrix.
+  zers = zeros(size(mat,1)) # vector of zeros for output
   for i = 1:size(mat,1)
     zercnt = 0
-    for j = 1:size(mat, 2) # don't want to count all of them - fix this.  
-      if mat[i,j] == 0.0 
+    for j = 1:size(mat, 2) # don't want to count all of them - fix this.
+      if mat[i,j] == 0.0
         zercnt += 1
-      end 
-    end 
+      end
+    end
     zers[i] = zercnt
-  end 
-  return zers 
-end 
+  end
+  return zers
+end
 
 
 
