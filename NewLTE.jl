@@ -7,20 +7,29 @@ using Plots
 plotlyjs()   # call PlotljJS backend to Plots.
 
 #dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
-# This is just for testing purposes.  Not a real set of results.
-#dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv");
+#dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
+
 dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 10 03 2016 717pm.csv");
 
 dat = convert(Array{Float64,2}, dat)
 
-# TODO - right now this is not getting the constant revenue which is added by the medicaid patients.  
+# Equilibrium and non-equilibrium Medicaid patient revenue:
+eq_const = sum( dat[:, 26:31], 2);  
+neq_const = sum( dat[:,66:72], 2);
 
-eq_opt = dat[:, 2:41];
-neq_opt = dat[:,42:end];
+# Equilibrium and non-equilibrium WTP, DRG costs, per-patient values:
+interimeq_opt = hcat(dat[:, 2:25], dat[:, 33:41]);
+interimneq_opt = hcat(dat[:,42:65], dat[:,73:81]);
 
 
-function objfun(x::Vector; scale_fact = 1/10, inp1::Array{Float64,2}=scale_fact*eq_opt, inp2::Array{Float64,2}=scale_fact*neq_opt, diffmat::Array{Float64,2}=inp1-inp2)
-  sum(min(diffmat*x, 0).^2)
+function objfun(x::Vector; 
+                scale_fact = 1, 
+                inp1::Array{Float64,2}=scale_fact*interimeq_opt, 
+                inp2::Array{Float64,2}=scale_fact*interimneq_opt, 
+                cons1::Array{Float64,2}=scale_fact*eq_const, 
+                cons2::Array{Float64,2}=scale_fact*neq_const, 
+                diffmat::Array{Float64,2}=inp1-inp2)
+  return sum(min(diffmat*x+eq_const - neq_const, 0).^2)
 end
 
 function MetropolisHastings(initialpr::Vector,
@@ -30,12 +39,11 @@ function MetropolisHastings(initialpr::Vector,
                             pro_σ_scale::Float64 = 100.0,
                             pro_σ = pro_σ_scale*eye(param_dim),
                             proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                            prior_μ_scale::Float64 = 1000.0, # note that this should match the starting point, else the prob under the prior becomes 0
-                            prior_μ = prior_μ_scale*ones(param_dim),
+                            prior_μ::Array{Float64,1} = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ],
                             prior_σ_scale::Float64 = 100.0,
                             prior_σ = prior_σ_scale*eye(param_dim),
                             prior = Distributions.MvNormal(prior_μ, prior_σ),
-                            debug::Bool = true)
+                            debug::Bool = false)
   # Basics
   curr_it = 2
   overflowcount = 0
@@ -53,7 +61,9 @@ function MetropolisHastings(initialpr::Vector,
   path = zeros(max_iterations, param_dim) # 10 allocations / 50 MB
   for j = 1:param_dim
     path[1,j] = initialpr[j] #record initial guess
-    allvals[1,j] = initialpr[j]
+    if debug
+      allvals[1,j] = initialpr[j]
+    end 
   end
 
   # initial guess:
@@ -139,34 +149,73 @@ function MetropolisHastings(initialpr::Vector,
             end
           end
         end
-        counter += 1
+        if debug 
+          counter += 1
+        end 
     end # of iteration over state elements.
-
       # Record the current parameter values whether they changed or not.
       # This is OUTSIDE the loop over parameter elements.
-     for el = 1:param_dim
-       # When proposal rejected, this should write out the old value.
-       @inbounds path[curr_it, el] = curr_x[el] # 4 allocations.
-     end
-     curr_it += 1
+    for el = 1:param_dim
+      @inbounds path[curr_it, el] = curr_x[el] # When proposal rejected, this should write out the old value.
+    end
+    curr_it += 1
   end
+  # Path - the accepted values from one complete round of proposals to all parameters 
+  # Overflowcount - number of times the function overflowed
+  # Underflowcount - number of times the function underflowed
+  # Accepted - Counts the number of times the proposal was accepted (one parameter at a time)
+  # tr - a trace for debugging, including log of the function, the difference, the probability of the proposed val under the prior, the values, etc.
+  # param_accept - Fraction of acceptances per parameter.  
+  # allvals - records the complete state at every round, so only one variable should change at any time.  
   if debug
     return  path, overflowcount, underflowcount, accepted, tr, param_accept, allvals
   else
     return path, overflowcount, underflowcount, accepted
   end
 end # of MetropolisHastings()
-const nsims = 1000 #_000
-const paramsize = 40
-sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(1000*ones(paramsize), nsims)
+
+const nsims = 10000 #_000
+
+#drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
+guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ];
+# sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(guess, nsims; debug = true) # for debugging
+
+sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims; debug = false) # no debugging output.
+
+# Compute the mode of the values:  
+function GetModes(x::Array{Float64,2})
+  # Round these values and get the modes of the round values 
+  outp = zeros(size(x,2))
+  for i = 1:size(x,2)
+    outp[i] = mode(round(x[:,i], 4)) # round to four digits and take the mode.
+  end 
+  return outp 
+end 
 
 # Results to return:
 println("Fraction Accepted ", accept/nsims)
 println("Count of Numerical Overflow ", overcounter)
 println("Count of Underflow ", undercounter)
 
+function ResultsPrint(x::Array{Float64,1}, start::Array{Float64,1})
+  # Take the initial guess and the final value and print them next to the parameter name.
+  syms = [:α₁, :α₂, :α₃, :γ¹₅, :γ₅², :γ₅³, :γ₆¹, :γ₆², :γ₆³, :γ₇¹, :γ₇², :γ₇³, :γ₈¹, :γ₈², :γ₈³, :γ₉¹, :γ₉², :γ₉³, :γ₀¹, :γ₀², :γ₀³, :γ₁¹, :γ₁², :γ₁³, :ϕ12, :ϕ13, :ϕ1EX, :ϕ21, :ϕ23, :ϕ2EX, :ϕ31, :ϕ32, :ϕ3EX]
+  for el in 1:size(x,1)
+    println( syms[el], "  Initial: ", start[el], "  Final:  ", round(x[el], 2))
+  end 
+end 
 
 
+# Plotting Results:
+
+histogram(allvals[:,1], nbins=50)
+histogram(allvals[:,2], nbins=50)
+
+
+# Sim Annealing:
+guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ];
+
+res1 =  optimize(objfun, guess, method = SimulatedAnnealing(), iterations = 10_000_000, show_trace = true, show_every = 500_000)
 
 
 
