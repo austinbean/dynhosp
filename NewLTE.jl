@@ -29,8 +29,10 @@ function objfun(x::Vector;
                 cons1::Array{Float64,2}=scale_fact*eq_const,
                 cons2::Array{Float64,2}=scale_fact*neq_const,
                 diffmat::Array{Float64,2}=inp1-inp2)
+  # this is the BBL objective function
   return sum(min(diffmat*x+eq_const - neq_const, 0).^2)
 end
+
 
 function MetropolisHastings(initialpr::Vector,
                             max_iterations::Int64;
