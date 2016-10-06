@@ -58,7 +58,10 @@ module ProjectModule
     level31525::Int64
   end
 
-  type hospital
+  abstract Fac
+
+
+  type hospital <: Fac
     fid::Int64
     lat::Float64
     long::Float64
@@ -77,13 +80,29 @@ module ProjectModule
     perturbed::Bool
   end
 
+# this hospital type is for the counterfactual only.
+  type chospital <: Fac
+    fid::Int64
+    lat::Float64
+    long::Float64
+    name::AbstractString
+    fipscode::Int64
+    level::Int64
+    totalv::Array{Int64}
+    mortality::Array{Int64,1}
+    ppayoff::Array{Float64,1}
+    mpayoff::Array{Float64,1}
+    bedcount::Float64
+  end
 
-  type Market
-  	config::Array{hospital, 1}
-    collection::Dict{Int64, hospital} # create the dict with a comprehension to initialize
+
+  type Market{T<:Fac}
+    config::Array{T, 1}
+    collection::Dict{Int64, T} # create the dict with a comprehension to initialize
     fipscode::Int64
     noneqrecord::Dict{Int64, Bool}
   end
+
 
   type EntireState
     ms::Array{Market, 1}
@@ -118,10 +137,10 @@ module ProjectModule
     # can add extras
   end
 
-  type zip
+  type zip{T<:Fac}
    code::Int64
    phr::Int64 # may have coefficients differing by PHR
-   facilities::Dict{Int64, hospital}
+   facilities::Dict{Int64, T}
    fes::Dict{Int64, Float64} # keep a dict of hospital FE's at the zip around
    pdetutils::Dict{Int64, Float64} # keep the deterministic utilities
    mdetutils::Dict{Int64, Float64} # the same for medicare patients.
