@@ -22,20 +22,31 @@ include("DataStructs.jl")
 # well, think about what I need first.
 # I can define a larger abstract type and then hospital and chospital as subtypes?
 
+
+
+"""
+`FillState(Tex::EntireState)`
+fills the entire state record with elements of the chospital type
+for the counterfactual only.
+"""
 function FillState(Tex::EntireState)
-  # fills the entire state record with elements of the chospital type
 
 end
 
-
-
+"""
+`Mortality(mkt::Market)`
+Computes the mortality rate at the market level.
+"""
 function Mortality(mkt::Market)
-  # Computes the mortality rate at the market level.
 
 
 end
 
-function Payoff(hos::hospital; ) # params
+"""
+`Payoff(hos::hospital; params = [])`
+Computes the actual firm payoffs.
+"""
+function Payoff(hos::hospital; params = [] ) # params
 
 
 end
