@@ -36,8 +36,14 @@ Platform Info:
 
         ##### NB: Supply-side Data Creation Functions ######
 
+
+
+
+"""
+`MakeIt(Tex::EntireState, fip::Vector)`
+Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
+"""
 function MakeIt(Tex::EntireState, fip::Vector)
-  # Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
   for el in fip
     if el != 0
       el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}(), $el, Dict{Int64, Bool}())"))
@@ -49,9 +55,14 @@ function MakeIt(Tex::EntireState, fip::Vector)
 end
 
 
+
+
+"""
+`TXSetup(Tex::EntireState, data::Matrix; ...)`
+ Takes an entire state and adds data from the imported choices returns a record with
+ fipscodes containing hospitals with mostly empty field values
+"""
 function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
-  # Takes an entire state and adds data from the imported choices returns a record with
-  # fipscodes containing hospitals with mostly empty field values.
   for i = 1:size(data,1)
     fips = data[i, 78]
     if fips != 0
@@ -88,8 +99,13 @@ function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98,
 end
 
 
+
+
+"""
+`ExpandDict(Tex::EntireState)`
+ Expand the market dictionaries so that they are filled with the hospitals
+"""
 function ExpandDict(Tex::EntireState)
-  # Expand the market dictionaries so that they are filled with the hospitals
   for el in Tex.ms
     el.collection = Dict(i.fid => i for i in el.config)
     #    el.collection = [ i.fid => i for i in el.config ] # this is the pre0.5 generator syntax
@@ -107,8 +123,13 @@ function ExpandDict(Tex::EntireState)
 end
 
 
+
+"""
+`MakeNew(fi::Vector, dat::Matrix)`
+Call this and the whole state with all markets should be created.
+Should be called on "fips" or ProjectModule.fips and data05 or ProjectModule.data05
+"""
 function MakeNew(fi::Vector, dat::Matrix)
-  # Call this and the whole state with all markets should be created.
   Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
   MakeIt(Texas, fi)
   TXSetup(Texas, dat)
@@ -116,9 +137,14 @@ function MakeNew(fi::Vector, dat::Matrix)
   return Texas
 end
 
+
+
 # TODO: How are these functions different?
+"""
+`CreateEmpty(fi::Vector, dat::Matrix)`
+ This creates an empty entire state record for the perturbed simulation.
+"""
 function CreateEmpty(fi::Vector, dat::Matrix)
-  # This creates an empty entire state record for the perturbed simulation.
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   MakeIt(Tex, fi)
   TXSetup(Tex, dat)
@@ -130,6 +156,15 @@ end
 #Texas = MakeNew(fips, data05);
 
       #### NB:  Supply-side  Printing Utilities to Display Simulation Outcomes
+
+
+
+
+"""
+`MarketPrint(mkt::Market)`
+Prints the elements of the market record: name, neighbors, choice probabilities.
+For debugging purposes to make sure things look right.
+"""
 function MarketPrint(mkt::Market)
   println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   println(mkt.fipscode)
@@ -142,12 +177,26 @@ function MarketPrint(mkt::Market)
   end
 end
 
+
+
+
+"""
+`NeighborsPrint(mkt::Market)`
+Prints the name and neighbors of every hospital in the market `mkt`
+"""
 function NeighborsPrint(mkt::Market)
   for el in mkt.config
     println(el.name, " ", el.neigh)
   end
 end
 
+
+
+
+"""
+`FacPrint(hosp::hospital)`
+Prints out a hospital facility record: name, fid, fips, level, neighbors.
+"""
 function FacPrint(hosp::hospital)
   println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   println(hosp.name)
@@ -160,8 +209,14 @@ end
 
   ### NB: Substantive Supply-side Functions.
 
+
+
+
+"""
+`NewEntrantLocation(mkt::Market)`
+Takes the market, takes the mean location of all hospitals, adds normal noise to it.  ≈ 6 miles perturbation from mean.
+"""
 function NewEntrantLocation(mkt::Market)
-  # Takes the market, takes the mean location of all hospitals, adds normal noise to it.  ≈ 6 miles perturbation from mean.
   meanlat = 0
   meanlong = 0
   for el in mkt.config # over hospitals
@@ -172,6 +227,11 @@ function NewEntrantLocation(mkt::Market)
 end
 
 
+
+"""
+`MktSize(n::Neighbors)`
+Operates on a type `n` set of neighbors - returns the number of hospitals at levels 1, 2 and 3 across the distance categories
+"""
 function MktSize(n::neighbors)
   # takes a set of neighbors and returns the sum of levels 1, 2, 3 at the various distances.
   sum1 = n.level105 + n.level1515 + n.level11525
@@ -180,8 +240,15 @@ function MktSize(n::neighbors)
   return sum1, sum2, sum3
 end
 
+
+
+
+"""
+`ChoicesAvailable(h::hospital)`
+Takes a hospital, returns the choices available at that level as vectors.
+e.g., returns the numbered choices available to it.
+"""
 function ChoicesAvailable(h::hospital)
-  # Takes a hospital, returns the choices available at that level as vectors.
   if h.level == 1
     return [10 2 1 11]
   elseif h.level == 2
@@ -193,8 +260,15 @@ function ChoicesAvailable(h::hospital)
   end
 end
 
+
+
+
+"""
+`LevelFunction(h::hospital, choice::Int64)`
+Takes a hospital record and a choice and returns the corresponding level.
+That is, what will the level be next period.
+"""
 function LevelFunction(h::hospital, choice::Int64)
-  # Takes a hospital record and a choice and returns the corresponding level.
   if h.level == 1
     if choice == 10
       return 1
@@ -231,12 +305,15 @@ function LevelFunction(h::hospital, choice::Int64)
 end
 
 
+
+
+"""
+`NeighborAppend(elm::hospital, entrant::hospital)`
+Takes two hospital records, computes the distance between them and adds a 1 to the relevant record in the neighborhood type.
+Appends it to the hood of elm, which is a list of fids.  So this adds to both elm.neigh and elm.hood.
+It is not symmetric - it appends entrant to elm, not vice versa.
+"""
 function NeighborAppend(elm::hospital, entrant::hospital)
-  #=
-  Takes two hospital records, computes the distance between them and adds a 1 to the relevant record in the neighborhood type.
-  Appends it to the hood of elm, which is a list of fids.  So this adds to both elm.neigh and elm.hood.
-  It is not symmetric - it appends entrant to elm, not vice versa.
-  =#
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
     if (dist < 25)&(entrant.level != -999)
@@ -271,11 +348,14 @@ function NeighborAppend(elm::hospital, entrant::hospital)
 end
 
 
+
+
+"""
+`NeighborRemove(elm::hospital, entrant::hospital)`
+takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
+It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
+"""
 function NeighborRemove(elm::hospital, entrant::hospital)
-  #=
-  takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
-  It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
-  =#
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
     if dist < 25
@@ -310,8 +390,15 @@ function NeighborRemove(elm::hospital, entrant::hospital)
   end
 end
 
+
+
+
+"""
+`NeighborClean(state::EntireState)`
+Takes every hospital in every market and sets all neighbors to 0
+Also sets the distance/category "neighbors" to a vector of zeros.
+"""
 function NeighborClean(state::EntireState)
-  # This will set every value in the neighbors category of every hospital in the state to zero.
   for mkt in state.ms
     for hosp in mkt.config
       hosp.neigh = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -321,8 +408,14 @@ function NeighborClean(state::EntireState)
 end
 
 
+
+
+"""
+`NeighborFix(state::EntireState)`
+For every hospital in the state, append all other hospitals within 25 miles, ignoring county boundaries.
+Compare to StrictCountyNeighborFix which respects county boundaries.
+"""
 function NeighborFix(state::EntireState)
-  # For every hospital in the state, append all other hospitals within 25 miles, ignoring county boundaries
   for mkt1 in state.ms
     for mkt2 in state.ms
       if mkt1.fipscode != mkt2.fipscode
@@ -340,9 +433,15 @@ function NeighborFix(state::EntireState)
 end
 
 
+
+
+
+"""
+`StrictCountyNeighborFix(state::EntireState)`
+ For every hospital in the state, append all other hospitals within 25 miles AND in the same county.
+ More restrictive than NeighborFix.
+"""
 function StrictCountyNeighborFix(state::EntireState)
-  # For every hospital in the state, append all other hospitals within 25 miles AND in the same county.
-  # More restrictive than NeighborFix
   for mkt1 in state.ms
     for hos1 in mkt1.config
       for hos2 in mkt1.config
@@ -357,8 +456,15 @@ function StrictCountyNeighborFix(state::EntireState)
   end
 end
 
+
+
+
+"""
+`HospFindFirst(mkt::Market, hosp::hospital)`
+looks for a hospital given by hosp in the market mkt, by searching for the fid and returning the index.
+This is to search for the index of the hosp record in the mkt.config array.
+"""
 function HospFindFirst(mkt::Market, hosp::hospital)
-  # looks for a hospital given by hosp in the market mkt, by searching for the fid and returning the index.
   found = 0
   for el in 1:size(mkt.config,1)
     if mkt.config[el].fid == hosp.fid
@@ -368,8 +474,14 @@ function HospFindFirst(mkt::Market, hosp::hospital)
   return found
 end
 
+
+
+
+"""
+`FidFindFirst(mkt::Market, fid::Int64)`
+looks for a fid in the market, then returns the index of the fid in the mkt.config array
+"""
 function FidFindFirst(mkt::Market, fid::Int64)
-  # looks for a fid in the market, then returns the index of the fid.
   found = 0
   for el in 1:size(mkt.config,1)
     if mkt.config[el].fid == fid
@@ -379,8 +491,14 @@ function FidFindFirst(mkt::Market, fid::Int64)
   return found
 end
 
+
+
+
+"""
+`MarketCleaner(mkt::Market)`
+Takes a whole market and then removes the records of any entrants.
+"""
 function MarketCleaner(mkt::Market)
-  # Takes a whole market and then removes the records of any entrants.
   entlist = Array{Int64,1}()
   for el in mkt.config
     if el.fid < 0 # all entrants are tagged with negative fids.
@@ -403,8 +521,13 @@ function MarketCleaner(mkt::Market)
 end
 
 
+
+
+"""
+`HospUpdate(hosp::hospital, choice::Int; update = false)`
+Takes a hospital record and updates the probabilities of the choices.
+"""
 function HospUpdate(hosp::hospital, choice::Int; update = false)
-  # Takes a hospital record and updates the probabilities of the choices.
   levl = (-1, -1)
  if (hosp.level!=choice)|update # want to be able to force this to rerun when the data is cleaned again.
    if choice != -999
@@ -427,9 +550,15 @@ function HospUpdate(hosp::hospital, choice::Int; update = false)
   end
 end
 
+
+
+
+"""
+`HospPerturb(hosp::hospital, choice::Int, eps::Float64)`
+Takes a hospital record and updates the probabilities of the choices.
+and then perturbs them using the perturb function.
+"""
 function HospPerturb(hosp::hospital, choice::Int, eps::Float64)
-  # Takes a hospital record and updates the probabilities of the choices.
-  # and then perturbs them using the perturb function.
   # TODO: Is there a change which needs to be made when other firms do something weird?  Does that make sense?
   levl = (-1, -1)
  if (hosp.level!=choice) # want to be able to force this to rerun when the data is cleaned again.
@@ -456,10 +585,14 @@ end
       ##### NB: Demand-side Data Structure Creation.
 
 
+
+"""
+`CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)`
+Creates a collection of zip codes containing facilities, utilities, fixed effects, location, coefficients, and a count of patients.
+Will also return a list of unfound facilities, but there aren't any more of those.  The argument "ch" is for the file from "Zip Code Choice Sets.csv"
+When this is called on the EntireState correctly, the hospital records are linked - the zipcode and EntireState collections point to the same underlying hospital entries.
+"""
 function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
-  # Creates a collection of zip codes containing facilities, utilities, fixed effects, location, coefficients, and a count of patients.
-  # Will also return a list of unfound facilities, but there aren't any more of those.  The argument "ch" is for the file from "Zip Code Choice Sets.csv"
-  # When this is called on the EntireState correctly, the hospital records are linked - the zipcode and EntireState collections point to the same underlying hospital entries.
   ppatients = patientcollection( Dict{Int64, zip}() )
   unfound = Array{Int64,1}()
   for el in zipcodes
@@ -491,9 +624,14 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
 end
 
 
+
+
+"""
+`FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
+Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
+There is a separate function for the Medicaid patients.
+"""
 function FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
-  # Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
-  # There is a separate function for the Medicaid patients.
   notfound = Array{Int64,1}()
   for row in 1:size(imported, 1)
     if imported[row, drgloc ] == 385
@@ -517,9 +655,15 @@ function FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, 
   return pats;
 end
 
+
+
+
+"""
+`FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
+Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
+There is a separate function for the privately-insured patients.
+"""
 function FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
-  # Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
-  # There is a separate function for the privately-insured patients.
   notfound = Array{Int64,1}()
   for row in 1:size(imported, 1)
     if imported[row, drgloc ] == 385
@@ -543,18 +687,30 @@ function FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, 
   return pats;
 end
 
+
+
+
+"""
+`FillPPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)`
+ Adds the privately insured and medicaid patients to the zip records.
+"""
 function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)
-  # Adds the privately insured and medicaid patients to the zip records.
   pats = FillPPatients(pats, private)
   pats = FillMPatients(pats, medicaid)
 end
 
 
+
+
+
+"""
+`ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)`
+Computes the deterministic component of utility for each hospital in the zip "zipc".
+Maps exited facilites to have deterministic utility -999
+Works on private and medicaid patients by setting p_or_m to true or false, respectively.
+Has been written to accomodate hospital FE's when available.
+"""
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
-  # Computes the deterministic component of utility for each hospital in the zip "zipc".
-  # Maps exited facilites to have deterministic utility -999
-  # Works on private and medicaid patients by setting p_or_m to true or false, respectively.
-  # Has been written to accomodate hospital FE's when available.
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
   if p_or_m #if TRUE private
     if zipc.facilities[fid].level == 1
@@ -579,9 +735,16 @@ function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   end
 end
 
+
+
+
+
+"""
+`UpdateDeterministic(collect::patientcollection)`
+Computes the deterministic component of the utility - updates every firm every time it is called.
+Is called during the Eq and Non-eq simulations.
+"""
 function UpdateDeterministic(collect::patientcollection)
-  # Computes the deterministic component of the utility - updates every firm every time it is called.
-  # Is called during the Eq and Non-eq simulations.
   for el in keys(collect.zips) #iterates over zips
     for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
       collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
@@ -592,9 +755,13 @@ end
 
 
 
+
+"""
+`NewPatients(Tex::EntireState; fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)`
+this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
+It must take an existing EntireState record to link the hospitals.
+"""
 function NewPatients(Tex::EntireState; fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)
-  # this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
-  # It must take an existing EntireState record to link the hospitals.
   patients, unf = CreateZips(zi, ch, Tex) #NB: This needs to take the whole state so that the hosps in zips point to the same underlying record.
   patients = FillPatients(patients, pins, pmed)
   UpdateDeterministic(patients)
@@ -606,8 +773,14 @@ end
 
     ### NB: Zip code record printing utility.
 
+
+
+
+"""
+`PrintZip(zi::zip)`
+Prints the fid and the name of the facilities attached to the zips.
+"""
 function PrintZip(zi::zip)
-  # Prints the fid and the name of the facilities attached to the zips.
   for el in keys(zi.facilities)
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
     println(el, "  ", zi.facilities[el].name)
@@ -625,8 +798,13 @@ end
   ### NB: Substantive Demand-side Functions.
 
 
+
+
+"""
+`WhichZips(pats::patientcollection, fid::Int64)`
+Takes a patientcollection and tells me which zips have the hospital fid
+"""
 function WhichZips(pats::patientcollection, fid::Int64)
-  # Takes a patientcollection and tells me which zips have the hospital fid
   for zi in keys(pats.zips)
     try
       pats.zips[zi].facilities[fid]
@@ -641,9 +819,12 @@ end
 
 
 
+"""
+`CalcWTP(zipc::zip)`
+Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
+Output is sent to WTPMap
+"""
 function CalcWTP(zipc::zip)
-  # Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
-  # Output is sent to WTPMap
   outp = Dict(j=> 0.0 for j in keys(zipc.pdetutils))
 #  outp = [j => 0.0 for j in keys(zipc.pdetutils)] # this is the pre0.5 generator syntax
   interim = 0.0
@@ -657,10 +838,13 @@ end
 
 
 
+"""
+`WTPMap(pats::patientcollection, Tex::EntireState)`
+Takes a patient collection and an entire state and returns a dict{fid, WTP}
+computed by calling CalcWTP.  Right now it ignores Inf and NaN.
+Input is from CalcWTP.  Output is sent to WriteWTP
+"""
 function WTPMap(pats::patientcollection, Tex::EntireState)
-  # Takes a patient collection and an entire state and returns a dict{fid, WTP}
-  # computed by calling CalcWTP.  Right now it ignores Inf and NaN.
-  # Input is from CalcWTP.  Output is sent to WriteWTP
   # TODO - I am not sure this is updating the state values correctly.
   outp = Dict(j=>0.0 for j in keys(Tex.fipsdirectory))
 #  outp = [ j=> 0.0 for j in keys(Tex.fipsdirectory) ] # this is the pre0.5 generator syntax.
@@ -682,9 +866,15 @@ function WTPMap(pats::patientcollection, Tex::EntireState)
   return outp # gives a dict{fid, WTP} back
 end
 
+
+
+
+"""
+`WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)`
+Takes a dict of {fid, WTP} and writes it out by DRG.
+Works on the output of WTPMap
+"""
 function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)
-  # Takes a dict of {fid, WTP} and writes it out by DRG.
-  # Works on the output of WTPMap
   for els in keys(reslt)
     push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
     push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
@@ -698,11 +888,13 @@ end
 
 
 
-
+"""
+`GenPChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))`
+The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
+the privately insured category from FillPPatients.  This returns a dict of fids and patient counts, where patient counts are
+generated by repeatedly finding max i = 1, ..., N \bar{U}_i + ϵ_i.  Note the corresponding GenMChoices below.
+"""
 function GenPChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  # The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
-  # the privately insured category from FillPPatients.  This returns a dict of fids and patient counts, where patient counts are
-  # generated by repeatedly finding max i = 1, ..., N \bar{U}_i + ϵ_i.  Note the corresponding GenMChoices below.
   outp = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
   # outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory)] # output is a {FID, patientcount} dictionary. This is pre 0.5 syntax.
   for zipcode in keys(pats.zips)
@@ -735,10 +927,16 @@ function GenPChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dis
   return outp
 end
 
+
+
+
+"""
+`GenMChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))`
+The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
+the Medicaid category from FillMPatients.  This returns a dict of fids and patient counts, where patient counts are
+generated by repeatedly finding max i = 1, ..., N \bar{U}_i + ϵ_i.  Note the corresponding GenPChoices above.
+"""
 function GenMChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  # The patient choice is max \bar{U} + ϵ, but we have \bar{U} from Compute Det Util and we know how many patients there are in
-  # the Medicaid category from FillMPatients.  This returns a dict of fids and patient counts, where patient counts are
-  # generated by repeatedly finding max i = 1, ..., N \bar{U}_i + ϵ_i.  Note the corresponding GenPChoices above.
    outp = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
   #  outp = [ j => patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory)] # output is a {FID, patientcount} dictionary.  This is the pre0.5 syntax
   for zipcode in keys(pats.zips)
@@ -771,8 +969,14 @@ function GenMChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dis
   return outp
 end
 
+
+
+
+"""
+`PHistoryAdd(hos::hospital, cnt::patientcount)`
+Maps patientcount to the private demand history
+"""
 function PHistoryAdd(hos::hospital, cnt::patientcount)
-  # Maps patientcount to the private demand history
   push!(hos.pdemandhist.demand385, cnt.count385)
   push!(hos.pdemandhist.demand386, cnt.count386)
   push!(hos.pdemandhist.demand387, cnt.count387)
@@ -782,8 +986,14 @@ function PHistoryAdd(hos::hospital, cnt::patientcount)
   push!(hos.pdemandhist.demand391, cnt.count391)
 end
 
+
+
+
+"""
+`MHistoryAdd(hos::hospital, cnt::patientcount)`
+Maps patientcount to the Medicaid demand history.
+"""
 function MHistoryAdd(hos::hospital, cnt::patientcount)
-  # Maps patientcount to the Medicaid demand history.
   push!(hos.mdemandhist.demand385, cnt.count385)
   push!(hos.mdemandhist.demand386, cnt.count386)
   push!(hos.mdemandhist.demand387, cnt.count387)
@@ -793,12 +1003,26 @@ function MHistoryAdd(hos::hospital, cnt::patientcount)
   push!(hos.mdemandhist.demand391, cnt.count391)
 end
 
+
+
+
+"""
+`PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)`
+Maps Private patient demand out to the state record.
+"""
 function PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
   for el in keys(patd)
     PHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el])
   end
 end
 
+
+
+
+"""
+`MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)`
+Maps Medicaid Patient demand out to the state record.
+"""
 function MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
   for el in keys(patd)
     MHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el])
@@ -809,8 +1033,12 @@ end
 
 
 
+
+"""
+`NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )`
+Runs a T period simulation using the whole state and whole collection of patient records.
+"""
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
-  # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
     WriteWTP(WTPMap(pats, Tex), Tex)
     PDemandMap(GenPChoices(pats, Tex), Tex)
@@ -853,8 +1081,14 @@ end
 #  Tex2 = NewSim(3, Texas, patients);
 #  EmpTex = CreateEmpty(fips, data05);
 
+
+
+
+"""
+`Termination(EmTex::EntireState)`
+Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
+"""
 function Termination(EmTex::EntireState)
-  # Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
   isdone = true
   for mark in keys(EmTex.mkts) # iterates over markets
     isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].noneqrecord[i] for i in keys(EmTex.mkts[mark].noneqrecord) ] ))
@@ -863,9 +1097,14 @@ function Termination(EmTex::EntireState)
 end
 
 
+
+
+"""
+`PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])`
+Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
+The results are stored in EmptyState, which is an EntireState record instance.
+"""
 function PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
-  # Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
-  # The results are stored in EmptyState, which is an EntireState record instance.
   EmptyState = CreateEmpty(fi, di);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
@@ -952,8 +1191,13 @@ end
 #  Perturbed = PSim(10);
 
 
+
+
+"""
+`TransitionGen(current::Int64, previous::Int64)`
+Generates counts of transitions - checks current level against previous.
+"""
 function TransitionGen(current::Int64, previous::Int64)
-  # Generates counts of transitions - checks current level against previous.
   transitions = zeros(Int64, 9)
   if  (previous==1)&(current==2)
     transitions[1] += 1
@@ -980,9 +1224,14 @@ function TransitionGen(current::Int64, previous::Int64)
 end
 
 
+
+
+"""
+`CondSum(hos::hospital; DRG = 7)`
+For each DRG - need a conditional sum at each level.
+times two types of patients.
+"""
 function CondSum(hos::hospital; DRG = 7)
-  # For each DRG - need a conditional sum at each level.
-  # times two types of patients.
   len = size(hos.levelhistory, 1)
   private = zeros(Int64, DRG,3)
   medicaid = zeros(Int64, DRG,3)
@@ -1080,8 +1329,12 @@ function CondSum(hos::hospital; DRG = 7)
 end
 
 
+
+"""
+`DemandCheck(Tex::EntireState)`
+Not so useful - just prints everyone's history of demand and the sum
+"""
 function DemandCheck(Tex::EntireState)
-  # Not so useful - just prints everyone's history of demand at DRG 385
   for el in Tex.ms
     for hos in keys(el.collection)
       println(el.collection[hos].pdemandhist)
@@ -1093,6 +1346,11 @@ end
 
 
 
+
+"""
+`ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81, drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04])`
+Maps all of the hospital results out to a big matrix, sorted in the first column by the fid.
+"""
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81, drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
@@ -1182,11 +1440,16 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
 end
 
 
+
+
+
+"""
+`OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)`
+Runs the Monte Carlo - Equilibrium and Non-equilibrium simulations for each market MCcount times.
+Note that the reduction is (+), but that includes adding the fids, so this must be divided by MCcount
+to return correct results.
+"""
 function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
-  # Runs the Monte Carlo - Equilibrium and Non-equilibrium simulations for each market MCcount times.
-  # Note that the reduction is (+), but that includes adding the fids, so this must be divided by MCcount
-  # to return correct results.
-  #outp = Array{Float64,2}()
   outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
     TexasEq = MakeNew(fi, da);                                                                           # Returns an EntireState.  very quick ≈ 0.1 seconds.
@@ -1200,9 +1463,14 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 
 end
 
 
+
+
+"""
+`ZeroFind(mat::Array{Float64,2})`
+looks for hospitals which were never demanded - there are some which have rows of zeros
+will want to pop those out of the results matrix.
+"""
 function ZeroFind(mat::Array{Float64,2})
-  # looks for hospitals which were never demanded - there are some which have rows of zeros
-  # will want to pop those out of the results matrix.
   zers = zeros(size(mat,1)) # vector of zeros for output
   for i = 1:size(mat,1)
     zercnt = 0
@@ -1221,10 +1489,15 @@ end
 ## NB: To clean up - but these aren't debugged or used.
 
 
+
+
+"""
+`HospitalClean(hos::hospital)`
+resets the hospital to the initial state after a run of the simulation.
+some fields don't change: fid, lat, long, name, fips, bedcount,
+eventually perturbed will probably change.
+"""
 function HospitalClean(hos::hospital)
-  # resets the hospital to the initial state after a run of the simulation.
-  # some fields don't change: fid, lat, long, name, fips, bedcount,
-  # eventually perturbed will probably change.
   hos.level = hos.levelhistory[1]                  #Reset level history to initial value
   hos.levelhistory = [hos.levelhistory[1]]           #Set record length back to zero.
   hos.mdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
@@ -1237,18 +1510,23 @@ function HospitalClean(hos::hospital)
   hos.perturbed = false                            #For now this is always false.
 end
 
+
+
+
+"""
+`Restore(Tex::EntireState)`
+This function needs to set all hospital states back to zero.
+Then it re-computes the set of neighbors using NeighborFix, fixing hosp.neigh and hosp.hood.
+Finally it recomputes the initial choice probabilities.
+This does not work yet.
+"""
 function Restore(Tex::EntireState)
-  # This function needs to set all hospital states back to zero.
-  # Then it re-computes the set of neighbors using NeighborFix, fixing hosp.neigh and hosp.hood.
-  # Finally it recomputes the initial choice probabilities.
-  #TODO - there are entrants in this group too.
   for mkt in Tex.ms
     for hos in mkt.config
       HospitalClean(hos)
     end
   end
 #TODO: this isn't quite working yet.  But it isn't crucial at the moment.
-
   NeighborFix(Tex) # Restores all neighbors to both hosp.neigh and hosp.hood.
   for mkt in Tex.ms
     for hos in mkt.config
