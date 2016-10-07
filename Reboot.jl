@@ -171,6 +171,21 @@ begin
   fips = unique(data[:,78])
   data05 = data[(data[:,75].==2005), :] ;
 
+  bwprobs = DataFrames.readtable(pathdata*"2005 Birth Weight Probabilities.csv", header = true);
+  naprobs = DataFrames.readtable(pathdata*"2005 NICU Admission Probabilities.csv", header = true);
+
+  weightprobs = zeros(size(bwprobs,1), 2)
+  nicuprobs = zeros(size(naprobs,1), 2)
+  for el = 1:size(bwprobs,1)
+    weightprobs[el, 1] = el
+    nicuprobs[el,1] = el
+    weightprobs[el, 2] = bwprobs[el,2]
+    nicuprobs[el,2] = naprobs[el,2]
+  end
+
+  bwprobs = 0;
+  naprobs = 0;
+
 
 end # of "begin" block
 
