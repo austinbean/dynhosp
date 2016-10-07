@@ -15,6 +15,9 @@ None of 391
 
 include("DataStructs.jl")
 
+# Probabilities of birthweight and admission to NICU by birthweight.
+
+
 
 # Define an object which is a fid, total volume and total mortality.
 # why shouldn't I just add these to datastructs?
@@ -73,7 +76,7 @@ function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 9
                 Array{Float64,1}(), #ppayoff
                 Array{Float64,1}(), #mpayoff
                   0    , # beds added later.
-                LBW(Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) # LBW Infants.  
+                LBW(Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) # LBW Infants.
                 false ) )
       Tex.mkts[fips].collection[data[i,74]] = ProjectModule.chospital( data[i, 74],
                 data[i,94],
@@ -100,13 +103,66 @@ end
 
 
 """
-`Mortality(mkt::Market)`
-Computes the mortality rate at the market level.
+`SetLevel(mkt::Market, fid::Int64)`
+This function should set all of the facility levels in a given market to 1, except for that specified by fid.
 """
-function Mortality(mkt::Market; prob)
-
-
+function SetLevel(mkt::Market, sfid::Int64)
+  for el in mkt.config
+    if el.fid != sfid
+      el.level = 1
+    end
+  end
 end
+
+#NB:  Remember to update the deterministic utilities once this part has been changed.
+
+
+
+
+
+
+"""
+`CategoryReminder(v::Int64)`
+Reminds me what weight category the integers refer to
+takes an integer and returns the weight interval.
+"""
+function CategoryReminder(v::Int64)
+  if v ==1
+    return "<= 499 grams"
+  elseif  v ==2
+    return "500-749 grams"
+  elseif  v ==3
+    return "750-999 grams"
+  elseif  v ==4
+    return "1000-1249 grams"
+  elseif  v ==5
+    return "1250-1499 grams"
+  elseif  v ==6
+    return "1500-1999 grams"
+  elseif  v ==7
+    return "2000-2499 grams"
+  elseif  v ==8
+    return "2500-2999 grams"
+  elseif  v ==9
+    return "3000-3499 grams"
+  elseif  v ==10
+    return "3500-3999 grams"
+  elseif  v ==11
+    return "4000-4499 grams"
+  elseif  v ==12
+    return "4500-4999 grams"
+  elseif v ==13
+    return "5000-8165 grams"
+  else
+    return "Not a valid option: 1-13 only"
+  end
+end
+
+
+
+
+
+
 
 """
 `Payoff(hos::hospital; params = [])`
@@ -122,6 +178,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
   # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
     WriteWTP(WTPMap(pats, Tex), Tex)
+    # TODO: Do I care about this?  Yes.  
     PDemandMap(GenPChoices(pats, Tex), Tex)
     MDemandMap(GenMChoices(pats, Tex), Tex)
     for el in Tex.ms
