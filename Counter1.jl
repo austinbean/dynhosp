@@ -25,19 +25,85 @@ include("DataStructs.jl")
 
 
 """
+`CMakeIt(Tex::EntireState, fip::Vector)`
+Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
+"""
+function CMakeIt(Tex::EntireState, fip::Vector)
+  for el in fip
+    if el != 0
+      el = eval(parse("m$el = Market( Array{chospital,1}(), Dict{Int64, chospital}(), $el, Dict{Int64, Bool}())"))
+      push!(Tex.ms, el)
+    end
+  end
+  Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
+  # Tex.mkts = [ m.fipscode => m for m in Tex.ms] # this is the pre0.5 generator syntax
+end
+
+
+
+"""
 `FillState(Tex::EntireState)`
 fills the entire state record with elements of the chospital type
 for the counterfactual only.
+Note that this needs to be called AFTER the function `CMakeIt(Tex::EntireState, fip::Vector)` is called
+on an empty state record.
+This version also adds all of the `chospitals` directly to the `Market.collection` dictionary.
 """
-function FillState(Tex::EntireState)
-
+function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
+  for i = 1:size(data,1)
+    fips = data[i, 78]
+    if fips != 0
+      level = 0
+      if (data[i, 79] == 1)&(data[i,80]==0)
+        level = 3
+      elseif (data[i, 79] == 0)&(data[i,80]==1)
+        level = 2
+      else
+        level = 1
+      end
+      push!(Tex.mkts[fips].config,
+      ProjectModule.chospital( data[i, 74],
+                data[i,94],
+                data[i, 95],
+                data[i, 82],
+                fips,
+                level,
+                Array{Int64,1}(), #volume
+                Array{Int64, 1}(), #mortality
+                Array{Float64,1}(), #ppayoff
+                Array{Float64,1}(), #mpayoff
+                  0    , # beds added later.
+                LBW(Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) # LBW Infants.  
+                false ) )
+      Tex.mkts[fips].collection[data[i,74]] = ProjectModule.chospital( data[i, 74],
+                data[i,94],
+                data[i, 95],
+                data[i, 82],
+                fips,
+                level,
+                Array{Int64,1}(), #volume
+                Array{Int64, 1}(), #mortality
+                Array{Float64,1}(), #ppayoff
+                Array{Float64,1}(), #mpayoff
+                  0    , # beds added later.
+                false )
+    end
+    # push all hospital fid/ fips pairs into the directory.
+    Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+  end
+  return Tex
 end
+
+# Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+# CMakeIt(Tex, ProjectModule.fips);
+# FillState(Tex, ProjectModule.data05)
+
 
 """
 `Mortality(mkt::Market)`
 Computes the mortality rate at the market level.
 """
-function Mortality(mkt::Market)
+function Mortality(mkt::Market; prob)
 
 
 end
