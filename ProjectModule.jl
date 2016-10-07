@@ -45,6 +45,14 @@ module ProjectModule
     demand391::Array{Int64, 1}
   end
 
+  type LBW
+    bt05::Array{Int64,1}
+    bt510::Array{Int64,1}
+    bt1015::Array{Int64,1}
+    bt1520::Array{Int64,1}
+    bt2025::Array{Int64,1}
+  end
+
 
   type neighbors
     level105::Int64
@@ -93,6 +101,8 @@ module ProjectModule
     ppayoff::Array{Float64,1}
     mpayoff::Array{Float64,1}
     bedcount::Float64
+    lbinf::LBW
+    hasint::Bool
   end
 
 
