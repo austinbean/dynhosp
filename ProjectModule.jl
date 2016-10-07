@@ -46,11 +46,17 @@ module ProjectModule
   end
 
   type LBW
-    bt05::Array{Int64,1}
-    bt510::Array{Int64,1}
-    bt1015::Array{Int64,1}
-    bt1520::Array{Int64,1}
-    bt2025::Array{Int64,1}
+    bt05::Int64
+    bt510::Int64
+    bt1015::Int64
+    bt1520::Int64
+    bt2025::Int64
+    bt2580::Int64
+  end
+
+  import Base.sum
+  function sum(x::LBW)
+    return x.bt05 + x.bt510 + x.bt1015 + x.bt1520 + x.bt2025 + x.bt2580 
   end
 
 
@@ -137,10 +143,9 @@ module ProjectModule
     return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
   end
 
-  import Base.sum
   function sum(x::patientcount)
     return x.count385 + x.count386 + x.count387 + x.count388 + x.count389 + x.count390 + x.count391
-  end 
+  end
 
   type coefficients
     distance::Float64
