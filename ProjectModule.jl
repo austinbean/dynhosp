@@ -137,6 +137,11 @@ module ProjectModule
     return patientcount(x.count385 + y.count385, x.count386 + y.count386, x.count387 + y.count387, x.count388 + y.count388, x.count389 + y.count389, x.count390 + y.count390, x.count391 + y.count391)
   end
 
+  import Base.sum
+  function sum(x::patientcount)
+    return x.count385 + x.count386 + x.count387 + x.count388 + x.count389 + x.count390 + x.count391
+  end 
+
   type coefficients
     distance::Float64
     distsq::Float64
