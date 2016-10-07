@@ -1029,6 +1029,122 @@ function MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
   end
 end
 
+
+"""
+`PatientDraw(ppat::Dict, mpat::Dict; bins = collect(1:13), weightprobs = bwprobs, admitprobs = nicuprobs)`
+Takes two dictionaries - one of medicaid and the other of private patients, adds all the patients together,
+then for each patient draws a weight.  Those LBW are assumed to be admitted.  At higher weights admission
+probs are drawn from the empirical distribution from NCHS birth certificate data.  The return type is a
+`Dict{Int64, LBW}` dictionary of fid's and low birth weight types.
+This assumes all LBW patients get admitted and then draws admit probs for those in higher categories.  Note
+that not all are born in hospitals with NICU's, so this is a bit problematic.
+"""
+function PatientDraw(ppat::Dict, mpat::Dict;
+                     bins = collect(1:13),
+                     weightpr = weightprobs[:,2],
+                     admitprobs = nicuprobs[:,2],
+                     w1 = WeightVec([1-admitprobs[1],admitprobs[1]]), # next few lines unused.
+                     w2 = WeightVec([1-admitprobs[2],admitprobs[2]]),
+                     w3 = WeightVec([1-admitprobs[3],admitprobs[3]]),
+                     w4 = WeightVec([1-admitprobs[4],admitprobs[4]]),
+                     w5 = WeightVec([1-admitprobs[5],admitprobs[5]]),
+                     w6 = WeightVec([1-admitprobs[6],admitprobs[6]]),
+                     w7 = WeightVec([1-admitprobs[7],admitprobs[7]]), # here and below all used.
+                     w8 = WeightVec([1-admitprobs[8],admitprobs[8]]),
+                     w9 = WeightVec([1-admitprobs[9],admitprobs[9]]),
+                     w10 = WeightVec([1-admitprobs[10],admitprobs[10]]),
+                     w11 = WeightVec([1-admitprobs[11],admitprobs[11]]),
+                     w12 = WeightVec([1-admitprobs[12],admitprobs[12]]),
+                     w13 = WeightVec([1-admitprobs[13],admitprobs[13]]))
+  outp = Dict{Int64, LBW}() # empty dictionary of fids/LBW record types
+  for el in keys(ppat)
+    totl = sum(ppat[el] + mpat[el])
+    patients = LBW(0,0,0,0,0,0)
+    for i = 1:totl
+      bwt = sample(bins, WeightVec(weightpr)) # sample from the distribution of birthweights.
+      if bwt == 1                                                               # all at this weight are being admitted
+        patients.bt05 += 1
+      elseif bwt == 2                                                           # all at this weight are being admitted
+        patients.bt510 += 1
+      elseif bwt == 3                                                           # all at this weight are being admitted
+        patients.bt510 += 1
+      elseif bwt == 4                                                           # all at this weight are being admitted
+        patients.bt1015 += 1
+      elseif bwt == 5                                                           # all at this weight are being admitted
+        patients.bt1015 += 1
+      elseif bwt == 6                                                           # all at this weight are being admitted
+        patients.bt1520 += 1
+      elseif bwt == 7                                                           # all at this weight are being admitted
+        nicuadmit = sample([0,1], w7)
+        if nicuadmit == 1
+          patients.bt2025 += 1                                                  # at this weight admissions are stochastic
+        end
+      elseif bwt == 8
+        nicuadmit = sample([0,1], w8)
+        if nicuadmit == 1
+          patients.bt2580 += 1                                                  # at this weight admissions are stochastic
+        end
+      elseif bwt == 9
+        nicuadmit = sample([0,1], w9)
+        if nicuadmit == 1
+          patients.bt2580 += 1                                                  # at this weight admissions are stochastic
+        end
+      elseif bwt == 10
+        nicuadmit = sample([0,1], w10)
+        if nicuadmit == 1
+          patients.bt2580 += 1                                                  # at this weight admissions are stochastic
+        end
+      elseif bwt == 11
+        nicuadmit = sample([0,1], w11)
+        if nicuadmit == 1
+          patients.bt2580 += 1                                                  # at this weight admissions are stochastic
+        end
+      elseif bwt == 12
+        nicuadmit = sample([0,1], w12)
+        if nicuadmit == 1
+          patients.bt2580 += 1                                                  # at this weight admissions are stochastic
+        end
+      else #bwt == 13
+        nicuadmit = sample([0,1], w13)
+        if nicuadmit == 1
+          patients.bt2580 += 1                                                  # at this weight admissions are stochastic
+        end
+      end
+    end
+    outp[el] = patients
+  end
+  return outp
+end
+
+
+
+
+"""
+`Mortality(d::Dict{Int64, LBW})`
+The return of `PatientDraw` is a dictionary of {fid, LBW}.  Take that volume and convert it to a mortality
+rate.  Then apply the mortality rate to the LBW record.  The elements keys(d) will be fids.  
+"""
+function AllMortality(d::Dict{Int64, LBW}; prob)
+  outp = Dict(j => 0 for j in keys(d))
+  for el in keys(d)
+    outp[el] = floor(sum(d[el])*VolMortality(sum(d[el])))                        # compute the number of deaths implied by the rate.
+  end
+  return outp
+end
+
+
+
+"""
+`VolMortality(v::Int64)`
+This function needs to return a mortality rate for the volume.  That is, take the number of patients and return the mortality
+rate as a function of the patient volume.  This data needs to come from Baker/Phibbs NEJM 2003
+"""
+function VolMortality(v::Int64)
+
+
+end
+
+
     ### NB: The business of the simulation.
 
 
