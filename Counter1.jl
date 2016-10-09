@@ -177,8 +177,12 @@ end
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1], entryprobs = [0.9895, 0.0105] )
   # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
+    # There isn't going to be a period thing for this.  But I should put different hospitals in the place to have
+    # the facility.  So I need to check one at a time.  
+
+
     WriteWTP(WTPMap(pats, Tex), Tex)
-    # TODO: Do I care about this?  Yes.  
+    # TODO: Do I care about this?  Yes.
     PDemandMap(GenPChoices(pats, Tex), Tex)
     MDemandMap(GenMChoices(pats, Tex), Tex)
     for el in Tex.ms
