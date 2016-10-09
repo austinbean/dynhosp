@@ -19,9 +19,10 @@ for row in drgdata:
 
 #drgs = 385, 386, 387, 388, 389, 390, 391
 #drgs = 789, 790, 791, 792, 793, 794, 795
+# TODO - add the DRG's for the mothers as well.  Figure out how much extra the hospital is getting there.  
 
 pats2008 =[0, 0, 0, 0, 0, 0, 0]
-chrg2008 =[0, 0, 0, 0, 0, 0, 0] 
+chrg2008 =[0, 0, 0, 0, 0, 0, 0]
 pats2009 = [0, 0, 0, 0, 0, 0, 0]
 chrg2009 = [0, 0, 0, 0, 0, 0, 0]
 pats2010 = [0, 0, 0, 0, 0, 0, 0]
@@ -55,7 +56,7 @@ for row in drgdata:
 				chrg2011[0] += eval(row[14].replace(',','').strip())*eval(row[15].replace('$','').replace(',','').strip())
 			elif '2012' in row[8]:
 				pats2012[0] += eval(row[14].replace(',','').strip())
-				chrg2012[0] += eval(row[14].replace(',','').strip())*eval(row[15].replace('$','').replace(',','').strip())				
+				chrg2012[0] += eval(row[14].replace(',','').strip())*eval(row[15].replace('$','').replace(',','').strip())
 		elif eval(row[9]) == 790:
 			if '2008' in row[8]:
 				pats2008[1] += eval(row[14].replace(',','').strip())
