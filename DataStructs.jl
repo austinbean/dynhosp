@@ -1124,10 +1124,10 @@ end
 The return of `PatientDraw` is a dictionary of {fid, LBW}.  Take that volume and convert it to a mortality
 rate.  Then apply the mortality rate to the LBW record.  The elements keys(d) will be fids.
 """
-function AllMortality(d::Dict{Int64, LBW}; prob)
+function AllMortality(d::Dict{Int64, LBW}, Tex::EntireState)
   outp = Dict(j => 0 for j in keys(d))
   for el in keys(d)
-    outp[el] = floor(sum(d[el])*VolMortality(sum(d[el])))                        # compute the number of deaths implied by the rate.
+    outp[el] = floor(sum(d[el])*VolMortality(sum(d[el]), Tex.mkts[ Tex.fipsdirectory[el] ].collection[el].level))         # Function calls the level too
   end
   return outp
 end
