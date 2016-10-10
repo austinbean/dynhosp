@@ -177,20 +177,26 @@ end
 
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1], entryprobs = [0.9895, 0.0105] )
   # Runs a T period simulation using the whole state and whole collection of patient records.
-  for i = 1:T
-    # There isn't going to be a period thing for this.  But I should put different hospitals in the place to have
-    # the facility.  So I need to check one at a time.
+  # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
+  # Probably should make a new data structure for that.
+  # TODO: something like Market-fips, total quantity of deaths, deaths at each hospital, hospital level, etc.
+  res = counterhistory(Dict(Int64, mkthistory))                                               # the output - a counterfactual history
+  for el in Tex.ms                                                                            # NB: switch the order here - do 20 years of each market, but maybe a subset of markets only.
+    mkh = markethistory(el.fipscode, Dict{Int64, marketyear})
+    for i = 1:T # T is now the sim periods, not sequential decisionmaking.
+      WriteWTP(WTPMap(pats, Tex), Tex)
+      # TODO: Do I care about this?  Yes.
+      PDemandMap(GenPChoices(pats, Tex), Tex)
+      MDemandMap(GenMChoices(pats, Tex), Tex)
+      # TODO: I probably don't need all of the markets.
+      #TODO: create a new empty market year.
+      myr = mktyear(el.fipscode, Dict{Int64, Array{Int64, 1}()})                               # Create an empty market-year record.
 
-
-    WriteWTP(WTPMap(pats, Tex), Tex)
-    # TODO: Do I care about this?  Yes.
-    PDemandMap(GenPChoices(pats, Tex), Tex)
-    MDemandMap(GenMChoices(pats, Tex), Tex)
-    for el in Tex.ms
       entrant = sample(entrants, WeightVec(entryprobs))
       if entrant != 0
         entloc = NewEntrantLocation(el)                                                        # called on the market
         newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
+        # TODO:Needs to change to chospital Type
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                          DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
@@ -199,14 +205,18 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
         push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
         el.collection[newfid] = entr
         for elm in el.config                                                                   # need to add it to the dictionary too:
+          # TODO - here we are looping over the elements in the market.
           NeighborAppend(elm, entr)
           NeighborAppend(entr, elm)
         end
          HospUpdate(entr, entrant)                                                             #"entrant" is the level
       end
-
+      #TODO: update the records here.
     end
+    #TODO - this isn't going to be changed except when facilities update.
     UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
+
+
   end
   return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
