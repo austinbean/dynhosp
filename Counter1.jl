@@ -76,7 +76,7 @@ function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 9
                 Array{Float64,1}(), #ppayoff
                 Array{Float64,1}(), #mpayoff
                   0    , # beds added later.
-                LBW(Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) # LBW Infants.
+                LBW(0,0,0,0,0,0), # LBW Infants.
                 false ) )
       Tex.mkts[fips].collection[data[i,74]] = ProjectModule.chospital( data[i, 74],
                 data[i,94],
@@ -88,7 +88,8 @@ function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 9
                 Array{Int64, 1}(), #mortality
                 Array{Float64,1}(), #ppayoff
                 Array{Float64,1}(), #mpayoff
-                  0    , # beds added later.
+                  0, # beds added later.
+                  LBW(0,0,0,0,0,0), # LBW Infants.
                 false )
     end
     # push all hospital fid/ fips pairs into the directory.
@@ -178,7 +179,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
   # Runs a T period simulation using the whole state and whole collection of patient records.
   for i = 1:T
     # There isn't going to be a period thing for this.  But I should put different hospitals in the place to have
-    # the facility.  So I need to check one at a time.  
+    # the facility.  So I need to check one at a time.
 
 
     WriteWTP(WTPMap(pats, Tex), Tex)
