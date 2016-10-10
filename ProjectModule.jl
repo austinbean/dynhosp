@@ -109,6 +109,7 @@ module ProjectModule
     bedcount::Float64
     lbinf::LBW
     hasint::Bool
+    finished::Bool
   end
 
 
@@ -176,11 +177,17 @@ module ProjectModule
    zips::Dict{Int64, zip}
   end
 
+  type hyrec # quantities of interest within a hospital-year.
+    fid::Int64 # hosp ID.
+    totbr::Int64  #births
+    totlbw::Int64  #lbw births
+    totvlbw::Int64  #vlbw births
+    deaths::Int64   # deaths
+  end
 
   type mktyear
-    # TODO: something like Market-fips, total quantity of deaths, deaths at each hospital, hospital level, etc.
     fips::Int64
-    hosprecord::Dict{Int64, Array{Int64, 1}} # track patient volumes and deaths.
+    hosprecord::Dict{Int64, hyrec} # track patient volumes and deaths.
     yeartot::Int64
   end
 
