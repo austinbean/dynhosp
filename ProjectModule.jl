@@ -177,6 +177,22 @@ module ProjectModule
   end
 
 
+  type mktyear
+    # TODO: something like Market-fips, total quantity of deaths, deaths at each hospital, hospital level, etc.
+    fips::Int64
+    hosprecord::Dict{Int64, Array{Int64, 1}} # track patient volumes and deaths.
+    yeartot::Int64
+  end
+
+  type mkthistory
+    fips::Int64
+    history::Dict{Int64, mktyear}
+  end
+
+  type counterhistory
+    hist::Dict{Int64, mkthistory}
+  end
+
 
 
   include("LogitEst.jl")
