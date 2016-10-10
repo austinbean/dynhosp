@@ -1039,7 +1039,10 @@ probs are drawn from the empirical distribution from NCHS birth certificate data
 This assumes all LBW patients get admitted and then draws admit probs for those in higher categories.  Note
 that not all are born in hospitals with NICU's, so this is a bit problematic.
 """
-function PatientDraw(ppat::Dict, mpat::Dict;
+
+#TODO - this may not be checking correctly if some people can't be admitted in the facility where they are.  Should take
+# some kind of state record too.    This is also not handling the transfer procedure.  How will that work?
+function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
                      bins = collect(1:13),
                      weightpr = weightprobs[:,2],
                      admitprobs = nicuprobs[:,2],
@@ -1058,6 +1061,11 @@ function PatientDraw(ppat::Dict, mpat::Dict;
                      w13 = WeightVec([1-admitprobs[13],admitprobs[13]]))
   outp = Dict{Int64, LBW}() # empty dictionary of fids/LBW record types
   for el in keys(ppat)
+#TODO: the state argument has been added.  Now I should think about the transferring procedure.
+# Two aspects: in the baseline, there is no transferring.  Second: in the counterfactual, I need to assume
+# that these guys get transferred, so the EntireState record needs to be searched for the hospital in the Market
+# which has the facility.  That volume is then "transferred" to the relevant facility.  
+
     totl = sum(ppat[el] + mpat[el])
     patients = LBW(0,0,0,0,0,0)
     for i = 1:totl
