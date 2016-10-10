@@ -56,7 +56,7 @@ module ProjectModule
 
   import Base.sum
   function sum(x::LBW)
-    return x.bt05 + x.bt510 + x.bt1015 + x.bt1520 + x.bt2025 + x.bt2580 
+    return x.bt05 + x.bt510 + x.bt1015 + x.bt1520 + x.bt2025 + x.bt2580
   end
 
 
@@ -187,8 +187,8 @@ module ProjectModule
 
 
 
-  export LogitEst, logitest, states1, states2, states3, poly, perturb, distance, MakeIt, TXSetup, ExpandDict, MakeNew, CreateEmpty, MarketPrint, NeighborsPrint, FacPrint, NewEntrantLocation, MktSize, ChoicesAvailable, LevelFunction, NeighborAppend, NeighborRemove, NeighborClean, NeighborFix, StrictCountyNeighborFix, HospFindFirst, FidFindFirst, MarketCleaner, HospUpdate, HospPerturb, CreateZips, FillPPatients, FillMPatients, FillPatients, NewPatients, PrintZip, ComputeDetUtil, WhichZips, CalcWTP, WTPMap, WriteWTP, UpdateDeterministic, GenPChoices, GenMChoices, PHistoryAdd, MHistoryAdd, PDemandMap, MDemandMap, HospitalClean, Restore, NewSim, Termination, PSim, TransitionGen, CondSum, DemandCheck, ResultsOut, OuterSim
-  export patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP
+  export PatientDraw, AllMortality, VolMortality, LogitEst, logitest, states1, states2, states3, poly, perturb, distance, MakeIt, TXSetup, ExpandDict, MakeNew, CreateEmpty, MarketPrint, NeighborsPrint, FacPrint, NewEntrantLocation, MktSize, ChoicesAvailable, LevelFunction, NeighborAppend, NeighborRemove, NeighborClean, NeighborFix, StrictCountyNeighborFix, HospFindFirst, FidFindFirst, MarketCleaner, HospUpdate, HospPerturb, CreateZips, FillPPatients, FillMPatients, FillPatients, NewPatients, PrintZip, ComputeDetUtil, WhichZips, CalcWTP, WTPMap, WriteWTP, UpdateDeterministic, GenPChoices, GenMChoices, PHistoryAdd, MHistoryAdd, PDemandMap, MDemandMap, HospitalClean, Restore, NewSim, Termination, PSim, TransitionGen, CondSum, DemandCheck, ResultsOut, OuterSim
+  export EntireState, chospital, LBW, patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP
   println("Loaded Module")
 
 
