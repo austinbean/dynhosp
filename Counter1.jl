@@ -2,111 +2,20 @@
 
 
 
-"""
-`CMakeIt(Tex::EntireState, fip::Vector)`
-Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
-"""
-function CMakeIt(Tex::EntireState, fip::Vector)
-  for el in fip
-    if el != 0
-      el = eval(parse("m$el = Market( Array{chospital,1}(), Dict{Int64, chospital}(), $el, Dict{Int64, Bool}())"))
-      push!(Tex.ms, el)
-    end
-  end
-  Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
-  # Tex.mkts = [ m.fipscode => m for m in Tex.ms] # this is the pre0.5 generator syntax
-end
 
 
-
-"""
-`FillState(Tex::EntireState)`
-fills the entire state record with elements of the chospital type
-for the counterfactual only.
-Note that this needs to be called AFTER the function `CMakeIt(Tex::EntireState, fip::Vector)` is called
-on an empty state record.
-This version also adds all of the `chospitals` directly to the `Market.collection` dictionary.
-"""
-function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
-  for i = 1:size(data,1)
-    fips = data[i, 78]
-    if fips != 0
-      level = 0
-      if (data[i, 79] == 1)&(data[i,80]==0)
-        level = 3
-      elseif (data[i, 79] == 0)&(data[i,80]==1)
-        level = 2
-      else
-        level = 1
-      end
-      push!(Tex.mkts[fips].config,
-      ProjectModule.chospital( data[i, 74],
-                data[i,94],
-                data[i, 95],
-                data[i, 82],
-                fips,
-                level,
-                Array{Int64,1}(), #volume
-                Array{Int64, 1}(), #mortality
-                Array{Float64,1}(), #ppayoff
-                Array{Float64,1}(), #mpayoff
-                  0    , # beds added later.
-                LBW(0,0,0,0,0,0), # LBW Infants.
-                false, # has intensive
-                false ) ) #finished.
-      Tex.mkts[fips].collection[data[i,74]] = ProjectModule.chospital( data[i, 74],
-                data[i,94],
-                data[i, 95],
-                data[i, 82],
-                fips,
-                level,
-                Array{Int64,1}(), #volume
-                Array{Int64, 1}(), #mortality
-                Array{Float64,1}(), #ppayoff
-                Array{Float64,1}(), #mpayoff
-                  0, # beds added later.
-                  LBW(0,0,0,0,0,0), # LBW Infants.
-                false, # has intensive
-                false ) # finished.
-    end
-    # push all hospital fid/ fips pairs into the directory.
-    Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
-  end
-  return Tex
-end
-#
+# Create and fill state:
 # Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 # CMakeIt(Tex, ProjectModule.fips);
-# FillState(Tex, ProjectModule.data05)
+# FillState(Tex, ProjectModule.data05);
 
 
-"""
-`SetLevel(mkt::Market, fid::Int64)`
-This function should set all of the facility levels in a given market to 1, except for that specified by fid.
-"""
-function SetLevel(mkt::Market, sfid::Int64)
-  for el in mkt.config
-    if el.fid != sfid
-      el.level = 1
-    end
-  end
-end
+# Patient collection:
+# patients = NewPatients(Tex);
+
+
 
 #NB:  Remember to update the deterministic utilities once this part has been changed.
-
-"""
-`FindUndone(mkt::Market)`
-Takes a market, returns a vector of the fids which do not have "finished" set to true.
-"""
-function FindUndone(mkt::Market)
-  outp = Array{Int64,1}()
-  for el in mkt.config
-    if !el.finished
-        push!(outp, el.fid)
-    end
-  end
-  return outp
-end
 
 
 
@@ -167,19 +76,21 @@ end
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1], entryprobs = [0.9895, 0.0105] )
   # Runs a T period simulation using the whole state and whole collection of patient records.
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
-  res = counterhistory(Dict(Int64, mkthistory))                                               # the output - a counterfactual history
+  res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
   # NB: switch the order here - do 20 years of each market, but maybe a subset of markets only.
   for el in Tex.ms
+    #TODO: make some arrangement to make sure there is one equilibrium simulation here
     if size(el.config,1)>1 # NB: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
-      mkh = markethistory(el.fipscode, Dict{Int64, mktyear})  #NB: The dict is indexed by fids.
+      mkh = mkthistory(el.fipscode, Dict{Int64, mktyear}())  #NB: The dict is indexed by fids.
       unf = FindUndone(el) # NB: collection of unfinished fids.
       if size(unf,1)>1
         ufid = unf[1] # Pick the first undone fid
-        SetLevel(Tex, ufid)
+        SetLevel(el, ufid)
         for i = 1:T # T is now the sim periods, not sequential choices.
-          myr = mktyear(el.fipscode, Dict{Int64, hyrec})           # Create an empty market-year record. Dict contains fid/patient volumes.
+          myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)           # Create an empty market-year record. Dict contains fid/patient volumes.
           UpdateDeterministic(pats)
-          mappeddemand = PatientDraw(PDemandMap(GenPChoices(pats, Tex), Tex), MDemandMap(GenMChoices(pats, Tex), Tex), Tex ) #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+          #TODO: PDemandMap and MDemandMap are trying to map to fields which chospital doesn't have.
+          mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex ) #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
           for k in keys(mappeddemand)
             myr.hosprecord[k] = hyrec(k,
                                       sum(mappeddemand[k]),
@@ -205,7 +116,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
                         0    , # TODO: beds added later.
                       LBW(0,0,0,0,0,0), # LBW Infants.
                       false, # has intensive
-                      false ) )
+                      false )
             push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
             el.collection[newfid] = entr
             for elm in el.config                                                                   # need to add it to the dictionary too:
@@ -216,7 +127,6 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
              mkh.history[i] = mktyear                                                          #"entrant" is the level
           end
         end
-        #TODO - this isn't going to be changed except when facilities update.
       end
     end                                                                 # Updates deterministic component of utility
   end
