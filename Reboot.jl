@@ -1,7 +1,7 @@
 
 
 
-begin
+#begin
   ##  Figure out which machine I'm on
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
@@ -187,7 +187,7 @@ begin
   naprobs = 0;
 
 
-end # of "begin" block
+#end # of "begin" block
 
 
 
