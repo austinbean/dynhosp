@@ -591,13 +591,14 @@ end
 Creates a collection of zip codes containing facilities, utilities, fixed effects, location, coefficients, and a count of patients.
 Will also return a list of unfound facilities, but there aren't any more of those.  The argument "ch" is for the file from "Zip Code Choice Sets.csv"
 When this is called on the EntireState correctly, the hospital records are linked - the zipcode and EntireState collections point to the same underlying hospital entries.
+Zips are now created with a dictionary of type `Dict{Int64, ProjectModule.Fac}` which can contain hospitals or chospitals.
 """
 function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
   ppatients = patientcollection( Dict{Int64, zip}() )
   unfound = Array{Int64,1}()
   for el in zipcodes
     # Creates an empty zip code record, numbered "el"
-    ppatients.zips[el] = zip(el, 0, Dict{Int64,hospital}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
+    ppatients.zips[el] = zip(el, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
                              Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
                              0.0, 0.0, coefficients(privatedistance_c, privatedistsq_c, privateneoint_c, privatesoloint_c, privatedistbed_c, privateclosest_c),
                              coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),     # lat, long, private coefficients, medicaid coefficients
@@ -609,6 +610,7 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
     for j = 11:17:size(ch,2)                                                                                                                                    # Columns in the set of choices
       try
         #NB: This shouuld link the hospital records between the EntireState and the patientcollection - they should refer to the same underlying objects.
+        # FIXME: right now this catches the MethodError trying to append a chospital to the hospital dictionary.
         Tex.fipsdirectory[ch[i,j]]                                                                                                                              # look for the hosp in the EntireState
         fipscode = Tex.fipsdirectory[ch[i,j]]                                                                                                                   # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
         ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]                                                                    # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
@@ -770,6 +772,112 @@ end
 
 # Texas = MakeNew(fips, data05);
 # patients = NewPatients(Texas);
+
+
+
+"""
+`FillState(Tex::EntireState)`
+fills the entire state record with elements of the chospital type
+for the counterfactual only.
+Note that this needs to be called AFTER the function `CMakeIt(Tex::EntireState, fip::Vector)` is called
+on an empty state record.
+This version also adds all of the `chospitals` directly to the `Market.collection` dictionary.
+"""
+function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
+  for i = 1:size(data,1)
+    fips = data[i, 78]
+    if fips != 0
+      level = 0
+      if (data[i, 79] == 1)&(data[i,80]==0)
+        level = 3
+      elseif (data[i, 79] == 0)&(data[i,80]==1)
+        level = 2
+      else
+        level = 1
+      end
+      push!(Tex.mkts[fips].config,
+      ProjectModule.chospital( data[i, 74],
+                data[i,94],
+                data[i, 95],
+                data[i, 82],
+                fips,
+                level,
+                Array{Int64,1}(), #volume
+                Array{Int64, 1}(), #mortality
+                Array{Float64,1}(), #ppayoff
+                Array{Float64,1}(), #mpayoff
+                  0    , # beds added later.
+                LBW(0,0,0,0,0,0), # LBW Infants.
+                false, # has intensive
+                false ) ) #finished.
+      Tex.mkts[fips].collection[data[i,74]] = ProjectModule.chospital( data[i, 74],
+                data[i,94],
+                data[i, 95],
+                data[i, 82],
+                fips,
+                level,
+                Array{Int64,1}(), #volume
+                Array{Int64, 1}(), #mortality
+                Array{Float64,1}(), #ppayoff
+                Array{Float64,1}(), #mpayoff
+                  0, # beds added later.
+                  LBW(0,0,0,0,0,0), # LBW Infants.
+                false, # has intensive
+                false ) # finished.
+    end
+    # push all hospital fid/ fips pairs into the directory.
+    Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+  end
+  return Tex
+end
+
+
+
+"""
+`CMakeIt(Tex::EntireState, fip::Vector)`
+Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
+"""
+function CMakeIt(Tex::EntireState, fip::Vector)
+  for el in fip
+    if el != 0
+      el = eval(parse("m$el = Market( Array{chospital,1}(), Dict{Int64, chospital}(), $el, Dict{Int64, Bool}())"))
+      push!(Tex.ms, el)
+    end
+  end
+  Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
+  # Tex.mkts = [ m.fipscode => m for m in Tex.ms] # this is the pre0.5 generator syntax
+end
+
+
+"""
+`SetLevel(mkt::Market, fid::Int64)`
+This function should set all of the facility levels in a given market to 1, except for that specified by fid.
+"""
+function SetLevel(mkt::Market, sfid::Int64)
+  for el in mkt.config
+    if el.fid != sfid
+      el.level = 1
+    end
+  end
+end
+
+
+
+"""
+`FindUndone(mkt::Market)`
+Takes a market, returns a vector of the fids which do not have "finished" set to true.
+"""
+function FindUndone(mkt::Market)
+  outp = Array{Int64,1}()
+  for el in mkt.config
+    if !el.finished
+        push!(outp, el.fid)
+    end
+  end
+  return outp
+end
+
+
 
     ### NB: Zip code record printing utility.
 
@@ -1064,7 +1172,7 @@ function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
 #TODO: the state argument has been added.  Now I should think about the transferring procedure.
 # Two aspects: in the baseline, there is no transferring.  Second: in the counterfactual, I need to assume
 # that these guys get transferred, so the EntireState record needs to be searched for the hospital in the Market
-# which has the facility.  That volume is then "transferred" to the relevant facility.  
+# which has the facility.  That volume is then "transferred" to the relevant facility.
 
     totl = sum(ppat[el] + mpat[el])
     patients = LBW(0,0,0,0,0,0)
