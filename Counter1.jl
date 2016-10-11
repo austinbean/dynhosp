@@ -94,7 +94,19 @@ end
 
 #NB:  Remember to update the deterministic utilities once this part has been changed.
 
-
+"""
+`FindUndone(mkt::Market)`
+Takes a market, returns a vector of the fids which do not have "finished" set to true.
+"""
+function FindUndone(mkt::Market)
+  outp = Array{Int64,1}()
+  for el in mkt.config
+    if !el.finished
+        push!(outp, el.fid)
+    end
+  end
+  return outp
+end
 
 
 
@@ -155,57 +167,60 @@ end
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1], entryprobs = [0.9895, 0.0105] )
   # Runs a T period simulation using the whole state and whole collection of patient records.
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
-  # Probably should make a new data structure for that.
-  # TODO: something like Market-fips, total quantity of deaths, deaths at each hospital, hospital level, etc.
   res = counterhistory(Dict(Int64, mkthistory))                                               # the output - a counterfactual history
   # NB: switch the order here - do 20 years of each market, but maybe a subset of markets only.
-  for el in Tex.ms         #TODO: I probably don't need all of the markets.
-    mkh = markethistory(el.fipscode, Dict{Int64, mktyear})  #NB: The dict is indexed by fids.
-    for i = 1:T # T is now the sim periods, not sequential choices.
-      myr = mktyear(el.fipscode, Dict{Int64, hyrec})           # Create an empty market-year record. Dict contains fid/patient volumes.
-      WriteWTP(WTPMap(pats, Tex), Tex)
-      #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-      mappeddemand = PatientDraw(PDemandMap(GenPChoices(pats, Tex), Tex), MDemandMap(GenMChoices(pats, Tex), Tex), Tex )
-      for k in keys(mappeddemand)
-        myr.hosprecord[k] = hyrec(k,
-                                  sum(mappeddemand[k]),
-                                  mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                  mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                  floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, el.collection[k])*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
-      end
-      entrant = sample(entrants, WeightVec(entryprobs))
-      if entrant != 0
-        entloc = NewEntrantLocation(el)                                                        # called on the market
-        newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
-        entr = ProjectModule.chospital( data[i, 74],
-                  data[i,94],
-                  data[i, 95],
-                  data[i, 82],
-                  fips,
-                  level,
-                  Array{Int64,1}(), #volume
-                  Array{Int64, 1}(), #mortality
-                  Array{Float64,1}(), #ppayoff
-                  Array{Float64,1}(), #mpayoff
-                    0    , # TODO: beds added later.
-                  LBW(0,0,0,0,0,0), # LBW Infants.
-                  false, # has intensive
-                  false ) )
-        push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
-        el.collection[newfid] = entr
-        for elm in el.config                                                                   # need to add it to the dictionary too:
-          NeighborAppend(elm, entr)
-          NeighborAppend(entr, elm)
+  for el in Tex.ms
+    if size(el.config,1)>1 # NB: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
+      mkh = markethistory(el.fipscode, Dict{Int64, mktyear})  #NB: The dict is indexed by fids.
+      unf = FindUndone(el) # NB: collection of unfinished fids.
+      if size(unf,1)>1
+        ufid = unf[1] # Pick the first undone fid
+        SetLevel(Tex, ufid)
+        for i = 1:T # T is now the sim periods, not sequential choices.
+          myr = mktyear(el.fipscode, Dict{Int64, hyrec})           # Create an empty market-year record. Dict contains fid/patient volumes.
+          UpdateDeterministic(pats)
+          mappeddemand = PatientDraw(PDemandMap(GenPChoices(pats, Tex), Tex), MDemandMap(GenMChoices(pats, Tex), Tex), Tex ) #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+          for k in keys(mappeddemand)
+            myr.hosprecord[k] = hyrec(k,
+                                      sum(mappeddemand[k]),
+                                      mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
+                                      mappeddemand[k].bt1015 + mappeddemand[k].bt510,
+                                      floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, el.collection[k])*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
+          end
+          entrant = sample(entrants, WeightVec(entryprobs))
+          #TODO: the entrants have to be removed this time.
+          if entrant != 0
+            entloc = NewEntrantLocation(el)                                                        # called on the market
+            newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
+            entr = ProjectModule.chospital( data[i, 74],
+                      data[i,94],
+                      data[i, 95],
+                      data[i, 82],
+                      fips,
+                      level,
+                      Array{Int64,1}(), #volume
+                      Array{Int64, 1}(), #mortality
+                      Array{Float64,1}(), #ppayoff
+                      Array{Float64,1}(), #mpayoff
+                        0    , # TODO: beds added later.
+                      LBW(0,0,0,0,0,0), # LBW Infants.
+                      false, # has intensive
+                      false ) )
+            push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
+            el.collection[newfid] = entr
+            for elm in el.config                                                                   # need to add it to the dictionary too:
+              NeighborAppend(elm, entr)
+              NeighborAppend(entr, elm)
+            end
+             HospUpdate(entr, entrant)
+             mkh.history[i] = mktyear                                                          #"entrant" is the level
+          end
         end
-         HospUpdate(entr, entrant)
-         mkh.history[i] = mktyear                                                          #"entrant" is the level
+        #TODO - this isn't going to be changed except when facilities update.
       end
-      #TODO: update the records here. Change the hospital which is being done.
-    end
-    #TODO - this isn't going to be changed except when facilities update.
-    UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
+    end                                                                 # Updates deterministic component of utility
   end
-  return res                                                                                  # Returns the collection of year results.  
+  return res                                                                                  # Returns the collection of year results.
 end
 
 α₁  29182.967
