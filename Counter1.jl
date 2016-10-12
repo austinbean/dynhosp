@@ -73,24 +73,45 @@ function Payoff(hos::hospital; params = [] ) # params
 end
 
 
-function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1], entryprobs = [0.9895, 0.0105] )
+
+"""
+`TermFlag(EmTex::EntireState)`
+Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
+"""
+function TermFlag(EmTex::EntireState)
+  isdone = true
+  for mark in keys(EmTex.mkts) # iterates over markets
+    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].  for i in keys(EmTex.mkts[mark].non...?) ] ))
+  end
+  return isdone
+end
+
+
+function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
   # Runs a T period simulation using the whole state and whole collection of patient records.
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
+  # TODO: make some arrangement to make sure there is one equilibrium simulation here
+  # NB: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-  # NB: switch the order here - do 20 years of each market, but maybe a subset of markets only.
+
+  #TODO: need a while condition and a test for completion like in the PSim.
   for el in Tex.ms
-    #TODO: make some arrangement to make sure there is one equilibrium simulation here
-    if size(el.config,1)>1 # NB: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
-      mkh = mkthistory(el.fipscode, Dict{Int64, mktyear}())  #NB: The dict is indexed by fids.
-      unf = FindUndone(el) # NB: collection of unfinished fids.
+    mkt_fids = Array{Int64,1}()
+
+
+    if size(el.config,1)>1
+      # Change the order of things here -
+      mkh = mkthistory(el.fipscode, Dict{Int64, mktyear}())                                     # NB: The dict is indexed by fids.
+      unf = FindUndone(el)                                                                      # NB: collection of unfinished fids.
       if size(unf,1)>1
-        ufid = unf[1] # Pick the first undone fid
+        ufid = unf[1]                                                                           # Pick the first undone fid
         SetLevel(el, ufid)
-        for i = 1:T # T is now the sim periods, not sequential choices.
-          println(i, "   ", el.fipscode)
-          myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)           # Create an empty market-year record. Dict contains fid/patient volumes.
-          UpdateDeterministic(pats)
-          mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex ) #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+        UpdateDeterministic(pats)                                                               # NB: The update does not need to happen every period.
+        for i = 1:T                                                                             # T is now the sim periods, not sequential choices.
+          myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)                                   # Create an empty market-year record. Dict contains fid/patient volumes.
+          # TODO: this is the wrong part of the loop to run this - it is computing for all of the markets.
+          # TODO: put this outside.  keep a list of the active markets.  Update those records only.
+          mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )    # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
           for k in keys(el.collection)
             myr.hosprecord[k] = hyrec(k,
                                       sum(mappeddemand[k]),
@@ -98,42 +119,13 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
                                       mappeddemand[k].bt1015 + mappeddemand[k].bt510,
                                       floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, el.collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
           end
-          println("Outside")
-          entrant = sample(entrants, WeightVec(entryprobs))
-          #TODO: the entrants have to be removed this time.
-          if entrant != 0
-            println("Ent?")
-            entloc = NewEntrantLocation(el)                                                        # called on the market
-            newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
-            entr = ProjectModule.chospital( newfid,
-                      entloc[1],
-                      entloc[2],
-                      "Entrant $newfid ",
-                      el.fipscode,
-                      1,
-                      Array{Int64,1}(), #volume
-                      Array{Int64, 1}(), #mortality
-                      Array{Float64,1}(), #ppayoff
-                      Array{Float64,1}(), #mpayoff
-                        0    , # TODO: beds added later.
-                      LBW(0,0,0,0,0,0), # LBW Infants.
-                      false, # has intensive
-                      false )
-            push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
-            el.collection[newfid] = entr
-            for elm in el.config                                                                   # need to add it to the dictionary too:
-              #TODO: fix this to take arguments of chospital type.  
-              NeighborAppend(elm, entr)
-              NeighborAppend(entr, elm)
-            end
-             HospUpdate(entr, entrant)
-             mkh.history[i] = mktyear                                                          #"entrant" is the level
-          end
+          mkh.history[i] = myr
         end
       end
-    end                                                                 # Updates deterministic component of utility
+      res.hist[el.fipscode] = mkh
+    end
   end
-  return res                                                                                  # Returns the collection of year results.
+  return res
 end
 
 α₁  29182.967
