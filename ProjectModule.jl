@@ -20,9 +20,9 @@ module ProjectModule
     global pathpeople = "/home/ubuntu/dynhosp/"
     global pathprograms = "/home/ubuntu/dynhosp/"
   elseif (dir == "/home1/04179/abean/dynhosp")
-    global pathdata = "/home1/04179/abean/dynhosp"
-    global pathpeople = "/home1/04179/abean/dynhosp"
-    global pathprograms = "/home1/04179/abean/dynhosp"
+    global pathdata = "/home1/04179/abean/dynhosp/"
+    global pathpeople = "/home1/04179/abean/dynhosp/"
+    global pathprograms = "/home1/04179/abean/dynhosp/"
   else
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
     println("Hey you're in the wrong directory!")
