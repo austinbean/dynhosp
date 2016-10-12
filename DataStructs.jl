@@ -308,12 +308,13 @@ end
 
 
 """
-`NeighborAppend(elm::hospital, entrant::hospital)`
+`NeighborAppend{T<:Fac}(elm::T, entrant::T)`
 Takes two hospital records, computes the distance between them and adds a 1 to the relevant record in the neighborhood type.
 Appends it to the hood of elm, which is a list of fids.  So this adds to both elm.neigh and elm.hood.
-It is not symmetric - it appends entrant to elm, not vice versa.
+It is not symmetric - it appends entrant to elm, not vice versa.  Extended to include arguments of `chospital` type for
+the counterfactual simulation.
 """
-function NeighborAppend(elm::hospital, entrant::hospital)
+function NeighborAppend{T<:Fac}(elm::T, entrant::T)
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
     if (dist < 25)&(entrant.level != -999)
@@ -351,11 +352,11 @@ end
 
 
 """
-`NeighborRemove(elm::hospital, entrant::hospital)`
+`NeighborRemove{T<:Fac}(elm::T, entrant::T)`
 takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
 It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
 """
-function NeighborRemove(elm::hospital, entrant::hospital)
+function NeighborRemove{T<:Fac}(elm::T, entrant::T)
   dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
     if dist < 25
