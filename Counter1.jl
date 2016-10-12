@@ -87,17 +87,18 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
         ufid = unf[1] # Pick the first undone fid
         SetLevel(el, ufid)
         for i = 1:T # T is now the sim periods, not sequential choices.
+          println(i, "   ", el.fipscode)
           myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)           # Create an empty market-year record. Dict contains fid/patient volumes.
           UpdateDeterministic(pats)
-          #TODO: PDemandMap and MDemandMap are trying to map to fields which chospital doesn't have.
           mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex ) #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-          for k in keys(mappeddemand)
+          for k in keys(el.collection) 
             myr.hosprecord[k] = hyrec(k,
                                       sum(mappeddemand[k]),
                                       mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
                                       mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                      floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, el.collection[k])*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
+                                      floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, el.collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
           end
+          println("Outside")
           entrant = sample(entrants, WeightVec(entryprobs))
           #TODO: the entrants have to be removed this time.
           if entrant != 0
