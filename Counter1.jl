@@ -91,7 +91,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
           myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)           # Create an empty market-year record. Dict contains fid/patient volumes.
           UpdateDeterministic(pats)
           mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex ) #NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-          for k in keys(el.collection) 
+          for k in keys(el.collection)
             myr.hosprecord[k] = hyrec(k,
                                       sum(mappeddemand[k]),
                                       mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
@@ -102,14 +102,15 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
           entrant = sample(entrants, WeightVec(entryprobs))
           #TODO: the entrants have to be removed this time.
           if entrant != 0
+            println("Ent?")
             entloc = NewEntrantLocation(el)                                                        # called on the market
             newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
-            entr = ProjectModule.chospital( data[i, 74],
-                      data[i,94],
-                      data[i, 95],
-                      data[i, 82],
-                      fips,
-                      level,
+            entr = ProjectModule.chospital( newfid,
+                      entloc[1],
+                      entloc[2],
+                      "Entrant $newfid ",
+                      el.fipscode,
+                      1,
                       Array{Int64,1}(), #volume
                       Array{Int64, 1}(), #mortality
                       Array{Float64,1}(), #ppayoff
@@ -121,6 +122,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; entrants 
             push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
             el.collection[newfid] = entr
             for elm in el.config                                                                   # need to add it to the dictionary too:
+              #TODO: fix this to take arguments of chospital type.  
               NeighborAppend(elm, entr)
               NeighborAppend(entr, elm)
             end
