@@ -76,12 +76,13 @@ end
 
 """
 `TermFlag(EmTex::EntireState)`
-Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
+Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been assigned
+the facility for some period.  If everyone has been finished, returns true.
 """
-function TermFlag(EmTex::EntireState)
+function TermFl(EmTex::EntireState)
   isdone = true
   for mark in keys(EmTex.mkts) # iterates over markets
-    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].  for i in keys(EmTex.mkts[mark].non...?) ] ))
+    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].collection[i].finished  for i in keys(EmTex.mkts[mark].collection) ] ))
   end
   return isdone
 end
@@ -90,23 +91,31 @@ end
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
   # Runs a T period simulation using the whole state and whole collection of patient records.
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
-  # TODO: make some arrangement to make sure there is one equilibrium simulation here
-  # NB: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
+  # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-
-  #TODO: need a while condition and a test for completion like in the PSim.
-  for el in Tex.ms
+  termflag = true
+  while termflag
+    currentfac = Dict{Int64, Int64}()
     mkt_fids = Array{Int64,1}()
-
-
-    if size(el.config,1)>1
-      # Change the order of things here -
+    for el in keys(Tex.mkts)
+      if !reduce(&, [Tex.mkts[el].collection[i].finished for i in keys(Tex.mkts[el].collection)])
+        pfids = prod(hcat( [ [i, !Tex.mkts[el].finished] for i in keys(Tex.mkts[el].collection) ]...) , 1)
+        pfid = pfids[findfirst(pfids)]                                                                  # takes the first non-zero element of the above and returns the element.
+        currentfac[Tex.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
+        for hos in Tex.mkts[el].config
+          if hos.fid == pfid
+            SetLevel(Tex.mkts[el], pfid) 
+            hos.finished = true
+          else
+            hos.finished = false
+          end
+        end
+      end
+    end
+    for el in Tex.ms
+      UpdateDeterministic(pats)                                                                 # NB: The update does not need to happen every period.
       mkh = mkthistory(el.fipscode, Dict{Int64, mktyear}())                                     # NB: The dict is indexed by fids.
-      unf = FindUndone(el)                                                                      # NB: collection of unfinished fids.
       if size(unf,1)>1
-        ufid = unf[1]                                                                           # Pick the first undone fid
-        SetLevel(el, ufid)
-        UpdateDeterministic(pats)                                                               # NB: The update does not need to happen every period.
         for i = 1:T                                                                             # T is now the sim periods, not sequential choices.
           myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)                                   # Create an empty market-year record. Dict contains fid/patient volumes.
           # TODO: this is the wrong part of the loop to run this - it is computing for all of the markets.
@@ -121,9 +130,10 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
           end
           mkh.history[i] = myr
         end
+        res.hist[el.fipscode] = mkh
       end
-      res.hist[el.fipscode] = mkh
     end
+    termflag = !TermFl(termflag)                                                                    # Will only return "true" when everyone is finished.
   end
   return res
 end
