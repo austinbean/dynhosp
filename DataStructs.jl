@@ -796,8 +796,8 @@ function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 9
       else
         level = 1
       end
-      push!(Tex.mkts[fips].config,
-      ProjectModule.chospital( data[i, 74],
+      # Create the new record.
+      newh = ProjectModule.chospital( data[i, 74],
                 data[i,94],
                 data[i, 95],
                 data[i, 82],
@@ -810,21 +810,9 @@ function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 9
                   0    , # beds added later.
                 LBW(0,0,0,0,0,0), # LBW Infants.
                 false, # has intensive
-                false ) ) #finished.
-      Tex.mkts[fips].collection[data[i,74]] = ProjectModule.chospital( data[i, 74],
-                data[i,94],
-                data[i, 95],
-                data[i, 82],
-                fips,
-                level,
-                Array{Int64,1}(), #volume
-                Array{Int64, 1}(), #mortality
-                Array{Float64,1}(), #ppayoff
-                Array{Float64,1}(), #mpayoff
-                  0, # beds added later.
-                  LBW(0,0,0,0,0,0), # LBW Infants.
-                false, # has intensive
-                false ) # finished.
+                false ) 
+      push!(Tex.mkts[fips].config,newh)
+      Tex.mkts[fips].collection[data[i,74]] = newh # finished.
     end
     # push all hospital fid/ fips pairs into the directory.
     Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
