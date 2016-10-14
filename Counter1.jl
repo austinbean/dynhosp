@@ -93,7 +93,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
   # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-  res.hist = Dict(k => mkthistory(k, Dict{Int64,mktyear}()) for k in keys(Tex.mkts))            # Fill the dictionary with the fids via a comprehension.
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,Array{mktyear,1}()}()) for k in keys(Tex.mkts))            # Fill the dictionary with the fids via a comprehension.
   termflag = true                                                                               # Start the termination flag.
   while termflag
     currentfac = Dict{Int64, Int64}()                                                           # this will be filled with {fipscode, fid} entries for unfinished facilities.
@@ -115,7 +115,6 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
         end
       end
     end
-    # TODO - how am I tracking which hospital was done at which time?
     println(mkt_fips)
     UpdateDeterministic(pats)                                                                   # NB: The update happens every time we do a new set of facilities.
     for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
@@ -131,8 +130,9 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
           myr.hosprecord[k].deaths = floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
           if Tex.mkts[el].collection[k].hasint  # test that hospital is the one w/ fac.
             myr.hasfac = k
-          end 
+          end
         end
+        #TODO - I think dictionary elements are getting overwritten here.  We are not recording the complete history for each hospital.
         res.hist[el].history[i] = myr                                                           # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
         #TODO: add a field to mktyear so I know who's being done.    Record here.
       end
