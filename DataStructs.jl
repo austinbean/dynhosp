@@ -810,7 +810,7 @@ function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 9
                   0    , # beds added later.
                 LBW(0,0,0,0,0,0), # LBW Infants.
                 false, # has intensive
-                false ) 
+                false )
       push!(Tex.mkts[fips].config,newh)
       Tex.mkts[fips].collection[data[i,74]] = newh # finished.
     end
@@ -841,11 +841,14 @@ end
 """
 `SetLevel(mkt::Market, fid::Int64)`
 This function should set all of the facility levels in a given market to 1, except for that specified by fid.
+That one is set to 3.  
 """
 function SetLevel(mkt::Market, sfid::Int64)
   for el in mkt.config
     if el.fid != sfid
       el.level = 1
+    elseif el.fid == sfid
+      el.level = 3
     end
   end
 end
