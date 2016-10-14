@@ -93,50 +93,56 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
   # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-  termflag = true
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,mktyear}()) for k in keys(Tex.mkts))            # Fill the dictionary with the fids via a comprehension.
+  termflag = true                                                                               # Start the termination flag.
   while termflag
-    currentfac = Dict{Int64, Int64}()
-    mkt_fids = Array{Int64,1}()
+    currentfac = Dict{Int64, Int64}()                                                           # this will be filled with {fipscode, fid} entries for unfinished facilities.
+    mkt_fips = Array{Int64,1}()                                                                 # Tracks the fipscodes which still need to be done.
     for el in keys(Tex.mkts)
       if !reduce(&, [Tex.mkts[el].collection[i].finished for i in keys(Tex.mkts[el].collection)])
-        pfids = prod(hcat( [ [i, !Tex.mkts[el].finished] for i in keys(Tex.mkts[el].collection) ]...) , 1)
-        pfid = pfids[findfirst(pfids)]                                                                  # takes the first non-zero element of the above and returns the element.
+        pfids = prod(hcat( [ [i, !Tex.mkts[el].collection[i].finished] for i in keys(Tex.mkts[el].collection) ]...) , 1)
+        pfid = pfids[findfirst(pfids)]                                                           # takes the first non-zero element of the above and returns the element.
         currentfac[Tex.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
+        push!(mkt_fips, el)                                                                  # Want to do this collection of markets which still have uncompleted hospitals.
         for hos in Tex.mkts[el].config
           if hos.fid == pfid
-            SetLevel(Tex.mkts[el], pfid) 
+            SetLevel(Tex.mkts[el], pfid)                                                         # Set the level of everyone else in the market to 1, and pfid to 3.
             hos.finished = true
+            hos.hasint = true
           else
-            hos.finished = false
+            hos.hasint = false
           end
         end
       end
     end
-    for el in Tex.ms
-      UpdateDeterministic(pats)                                                                 # NB: The update does not need to happen every period.
-      mkh = mkthistory(el.fipscode, Dict{Int64, mktyear}())                                     # NB: The dict is indexed by fids.
-      if size(unf,1)>1
-        for i = 1:T                                                                             # T is now the sim periods, not sequential choices.
-          myr = mktyear(el.fipscode, Dict{Int64, hyrec}(), 0)                                   # Create an empty market-year record. Dict contains fid/patient volumes.
-          # TODO: this is the wrong part of the loop to run this - it is computing for all of the markets.
-          # TODO: put this outside.  keep a list of the active markets.  Update those records only.
-          mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )    # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-          for k in keys(el.collection)
-            myr.hosprecord[k] = hyrec(k,
-                                      sum(mappeddemand[k]),
-                                      mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                      mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                      floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, el.collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
-          end
-          mkh.history[i] = myr
+    # TODO - how am I tracking which hospital was done at which time?
+    println(mkt_fips)
+    UpdateDeterministic(pats)                                                                   # NB: The update happens every time we do a new set of facilities.
+    for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
+      mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+      for el in mkt_fips
+        myr = mktyear(el, Dict{Int64, hyrec}(), 0, 0)                                              # Create an empty market-year record. Dict contains hosp fid/patient volumes.
+        myr.hosprecord = Dict(k=>hyrec(0,0,0,0,0) for k in keys(Tex.mkts[el].collection))
+        for k in keys(Tex.mkts[el].collection)
+          myr.hosprecord[k].fid = k
+          myr.hosprecord[k].totbr = sum(mappeddemand[k])
+          myr.hosprecord[k].totlbw = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
+          myr.hosprecord[k].totvlbw = mappeddemand[k].bt1015 + mappeddemand[k].bt510
+          myr.hosprecord[k].deaths = floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+          if Tex.mkts[el].collection[k].hasint  # test that hospital is the one w/ fac.
+            myr.hasfac = k
+          end 
         end
-        res.hist[el.fipscode] = mkh
+        res.hist[el].history[i] = myr                                                           # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
+        #TODO: add a field to mktyear so I know who's being done.    Record here.
       end
     end
-    termflag = !TermFl(termflag)                                                                    # Will only return "true" when everyone is finished.
+    termflag = !TermFl(Tex)                                                                    # Will only return "true" when everyone is finished.
   end
   return res
 end
+
+
 
 α₁  29182.967
 α₂  22167.6375
