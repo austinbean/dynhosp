@@ -193,11 +193,15 @@ module ProjectModule
     fips::Int64
     hosprecord::Dict{Int64, hyrec} # track patient volumes and deaths.
     yeartot::Int64
+    hasfac::Int64
   end
+
+  #TODO- something like this: take an *array* of market years.  I can extend the mkthistory type by having the dict be
+  # Dict{Int64, Array{mktyear, 1}}
 
   type mkthistory
     fips::Int64
-    history::Dict{Int64, mktyear}
+    history::Dict{Int64, Array{mktyear,1}} # note this change.  
   end
 
   type counterhistory
