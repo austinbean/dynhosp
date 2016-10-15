@@ -187,6 +187,7 @@ module ProjectModule
     totlbw::Int64  #lbw births
     totvlbw::Int64  #vlbw births
     deaths::Float64   # deaths
+    profit::Float64 # hospital revenue.
   end
 
   type mktyear
