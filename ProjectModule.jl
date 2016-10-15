@@ -186,7 +186,7 @@ module ProjectModule
     totbr::Int64  #births
     totlbw::Int64  #lbw births
     totvlbw::Int64  #vlbw births
-    deaths::Int64   # deaths
+    deaths::Float64   # deaths
   end
 
   type mktyear
