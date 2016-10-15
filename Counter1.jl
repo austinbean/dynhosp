@@ -4,14 +4,14 @@
 
 
 
-# Create and fill state:
-# Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
-# CMakeIt(Tex, ProjectModule.fips);
-# FillState(Tex, ProjectModule.data05);
+# Create and fill state and Patient collection:
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.data05);
+patients = NewPatients(Tex);
 
 
-# Patient collection:
-# patients = NewPatients(Tex);
+
 
 
 
@@ -93,7 +93,10 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
   # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
   # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-  res.hist = Dict(k => mkthistory(k, Dict{Int64,Array{mktyear,1}()}()) for k in keys(Tex.mkts))            # Fill the dictionary with the fids via a comprehension.
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,Array{mktyear,1}}()) for k in keys(Tex.mkts))   # Fill the dictionary with the fids via a comprehension.
+  for mk in keys(Tex.mkts)
+    res.hist[mk].history = Dict( k=>Array{mktyear,1}() for k in keys(Tex.mkts[mk].collection))
+  end
   termflag = true                                                                               # Start the termination flag.
   while termflag
     currentfac = Dict{Int64, Int64}()                                                           # this will be filled with {fipscode, fid} entries for unfinished facilities.
@@ -120,27 +123,59 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection)
     for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
       mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       for el in mkt_fips
-        myr = mktyear(el, Dict{Int64, hyrec}(), 0, 0)                                              # Create an empty market-year record. Dict contains hosp fid/patient volumes.
-        myr.hosprecord = Dict(k=>hyrec(0,0,0,0,0) for k in keys(Tex.mkts[el].collection))
+        fac = currentfac[el]
+        myr = mktyear(el, Dict{Int64, hyrec}(), 0, fac)
         for k in keys(Tex.mkts[el].collection)
-          myr.hosprecord[k].fid = k
-          myr.hosprecord[k].totbr = sum(mappeddemand[k])
-          myr.hosprecord[k].totlbw = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
-          myr.hosprecord[k].totvlbw = mappeddemand[k].bt1015 + mappeddemand[k].bt510
-          myr.hosprecord[k].deaths = floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+          myr.hosprecord[k] = hyrec(k,
+                                    sum(mappeddemand[k]),
+                                    mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
+                                    mappeddemand[k].bt1015 + mappeddemand[k].bt510,
+                                    floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
           if Tex.mkts[el].collection[k].hasint  # test that hospital is the one w/ fac.
             myr.hasfac = k
           end
         end
-        #TODO - I think dictionary elements are getting overwritten here.  We are not recording the complete history for each hospital.
-        res.hist[el].history[i] = myr                                                           # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
-        #TODO: add a field to mktyear so I know who's being done.    Record here.
+        push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
       end
     end
     termflag = !TermFl(Tex)                                                                    # Will only return "true" when everyone is finished.
   end
   return res
 end
+
+"""
+`Baseline(T::Int, Tex::EntireState, pats::patientcollection)`
+This function runs a baseline simulation of mortality rates in each market.  It simulates for T periods in Order
+to reduce the impact that the random component of the choice model has.  It should return a counterhistory for which
+a mortality baseline can be determined.
+"""
+#TODO: check this against some mortality data from NCHS.
+function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
+  res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,Array{mktyear,1}}()) for k in keys(Tex.mkts))   # Fill the dictionary with the fids via a comprehension.
+# #TODO: get rid of this - there are not N sims for the N hospitals anymore.
+  for mk in keys(Tex.mkts)
+    res.hist[mk].history = Dict( 0=>Array{mktyear,1}())                                       # 0 records that this is the equilibrium.
+  end
+  UpdateDeterministic(pats)                                                                   # NB: The update happens every time we do a new set of facilities.
+  for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
+    mappeddemand = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+    for el in keys(Tex.mkts)
+      fac = 0 # this has to be changed!
+      myr = mktyear(el, Dict{Int64, hyrec}(), 0, fac)
+      for k in keys(Tex.mkts[el].collection)
+        myr.hosprecord[k] = hyrec(k,
+                                  sum(mappeddemand[k]),
+                                  mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
+                                  mappeddemand[k].bt1015 + mappeddemand[k].bt510,
+                                  floor(VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)))
+      end
+      push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
+    end
+  end
+  return res
+end
+
 
 
 
