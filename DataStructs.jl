@@ -839,14 +839,14 @@ end
 
 
 """
-`SetLevel(mkt::Market, fid::Int64)`
-This function should set all of the facility levels in a given market to 1, except for that specified by fid.
-That one is set to 3.  
+`SetLevel(mkt::Market, fid::Int64, level::Int64)`
+This function should set all of the facility levels in a given market to `level`, except for that specified by fid.
+That one is set to 3.
 """
-function SetLevel(mkt::Market, sfid::Int64)
+function SetLevel(mkt::Market, sfid::Int64, level::Int64)
   for el in mkt.config
     if el.fid != sfid
-      el.level = 1
+      el.level = level
     elseif el.fid == sfid
       el.level = 3
     end
@@ -1138,6 +1138,7 @@ probs are drawn from the empirical distribution from NCHS birth certificate data
 `Dict{Int64, LBW}` dictionary of fid's and low birth weight types.
 This assumes all LBW patients get admitted and then draws admit probs for those in higher categories.  Note
 that not all are born in hospitals with NICU's, so this is a bit problematic.
+This function also returns the two arguments ppat and mpat.  These are needed later.  
 """
 
 #TODO - this may not be checking correctly if some people can't be admitted in the facility where they are.  Should take
@@ -1221,7 +1222,7 @@ function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
     end
     outp[el] = patients
   end
-  return outp
+  return outp, ppat, mpat
 end
 
 
