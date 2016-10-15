@@ -66,16 +66,39 @@ end
 `Payoff(hos::hospital; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
 """
-function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState ;
-                params = [] ) # params
+function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} ;
+                alf1::Float64 = 29182.967,
+                alf2::Float64 = 22167.6375,
+                alf3::Float64 = 23074.8403,
+                gamma_1_385::Float64 = 34628.8402,
+                gamma_2_385::Float64 = 14921.003,
+                gamma_3_385::Float64 = 12822.723,
+                gamma_1_386::Float64 = 104578.867,
+                gamma_2_386::Float64 = 95366.0004,
+                gamma_3_386::Float64 = 69353.471,
+                gamma_1_387::Float64 = 34498.5261,
+                gamma_2_387::Float64 = 48900.8396,
+                gamma_3_387::Float64 = 24639.0552,
+                gamma_1_388::Float64 = 26561.8688,
+                gamma_2_388::Float64 = 20895.5001,
+                gamma_3_388::Float64 = 29775.8381,
+                gamma_1_389::Float64 = 20653.5821,
+                gamma_2_389::Float64 = 20102.2097,
+                gamma_3_389::Float64 = 8279.774,
+                gamma_1_390::Float64 = 7372.3301,
+                gamma_2_390::Float64 = 2514.8717,
+                gamma_3_390::Float64 = 26113.4462,
+                gamma_1_391::Float64 = 27018.9915,
+                gamma_2_391::Float64 = 15079.2889,
+                gamma_3_391::Float64 = 1912.7285 ) # params
   outp = Dict(k => 0.0 for k in keys(ppats))
-  for k in keys(ppats)
+  for k in keys(ppats) # multiplied by patient volumes or not?
     if Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 1
-      # recall that this will be a function of WTP.
+      outp[k] = alf1*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_1_385*ppats[k].count385 - gamma_1_385*mpats[k].count385 - gamma_1_386*ppats[k].count386 - gamma_1_386*mpats[k].count386 - gamma_1_387*ppats[k].count387 - gamma_1_387*mpats[k].count387 - gamma_1_388*mpats[k].count388 - gamma_1_388*ppats[k].count388 - gamma_1_389*mpats[k].count389 - gamma_1_389*ppats[k].count389 - gamma_1_390*ppats[k].count390 - gamma_1_390*mpats[k].count390 - gamma_1_391*ppats[k].count391 - gamma_1_391*mpats[k].count391
     elseif Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 2
-
+      outp[k] = alf2*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_2_385*ppats[k].count385 - gamma_2_385*mpats[k].count385 - gamma_2_386*ppats[k].count386 - gamma_2_386*mpats[k].count386 - gamma_2_387*ppats[k].count387 - gamma_2_387*mpats[k].count387 - gamma_2_388*mpats[k].count388 - gamma_2_388*ppats[k].count388 - gamma_2_389*mpats[k].count389 - gamma_2_389*ppats[k].count389 - gamma_2_390*ppats[k].count390 - gamma_2_390*mpats[k].count390 - gamma_2_391*ppats[k].count391 - gamma_2_391*mpats[k].count391
     else # level is 3
-
+      outp[k] = alf3*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_3_385*ppats[k].count385 - gamma_3_385*mpats[k].count385 - gamma_3_386*ppats[k].count386 - gamma_3_386*mpats[k].count386 - gamma_3_387*ppats[k].count387 - gamma_3_387*mpats[k].count387 - gamma_3_388*mpats[k].count388 - gamma_3_388*ppats[k].count388 - gamma_3_389*mpats[k].count389 - gamma_3_389*ppats[k].count389 - gamma_3_390*ppats[k].count390 - gamma_3_390*mpats[k].count390 - gamma_3_391*ppats[k].count391 - gamma_3_391*mpats[k].count391
     end
   end
   return outp
@@ -140,10 +163,11 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     wtpc = WTPMap(patients, Tex)                                                                # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
       mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-      pdict = Payoff(drgp, drgm, Tex)
+      pdict = Payoff(drgp, drgm, Tex, wtpc)
       for el in mkt_fips
         fac = currentfac[el]
         myr = mktyear(el, Dict{Int64, hyrec}(), 0, fac)
+        mortcount = 0.0
         for k in keys(Tex.mkts[el].collection)
           myr.hosprecord[k] = hyrec(k,
                                     sum(mappeddemand[k]),
@@ -151,10 +175,12 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
                                     mappeddemand[k].bt1015 + mappeddemand[k].bt510,
                                     VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510),
                                     pdict[k])
+          mortcount += myr.hosprecord[k].deaths
           if Tex.mkts[el].collection[k].hasint  # test that hospital is the one w/ fac.
             myr.hasfac = k
           end
         end
+        myr.yeartot = mortcount
         push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
       end
     end
@@ -182,10 +208,11 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
   wtpc = WTPMap(patients, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
   for i = 1:T                                                                                            # T is now the sim periods, not sequential choices.
     mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-    pdict = Payoff(drgp, drgm, Tex)
+    pdict = Payoff(drgp, drgm, Tex, wtpc)
     for el in keys(Tex.mkts)
       fac = 0 # this has to be changed!
       myr = mktyear(el, Dict{Int64, hyrec}(), 0, fac)
+      mortcount = 0.0
       for k in keys(Tex.mkts[el].collection)
         myr.hosprecord[k] = hyrec(k,
                                   sum(mappeddemand[k]),
@@ -193,7 +220,9 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
                                   mappeddemand[k].bt1015 + mappeddemand[k].bt510,
                                   VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510),
                                   pdict[k])
+        mortcount += myr.hosprecord[k].deaths
       end
+      myr.yeartot = mortcount 
       push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
     end
   end
@@ -202,6 +231,20 @@ end
 
 
 
+"""
+`MortalityCompare(baseline::counterhistory, sim::counterhistory)`
+This function takes the outputs of `Baseline` and `CounterSim` and does the following:
+- Computes the mortality within markets and in the whole state for each of the two sims.
+- Compares the mortality rates the hospital assigned, also computes the variance
+
+"""
+
+
+
+
+
+
+# NB: these numbers give magnitudes which are way too big.
 
 α₁  29182.967
 α₂  22167.6375
