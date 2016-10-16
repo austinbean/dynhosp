@@ -166,7 +166,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
       pdict = Payoff(drgp, drgm, Tex, wtpc)
       for el in mkt_fips
         fac = currentfac[el]
-        myr = mktyear(el, Dict{Int64, hyrec}(), 0, fac)
+        myr = mktyear(el, Dict{Int64, hyrec}(), 0.0, fac)
         mortcount = 0.0
         for k in keys(Tex.mkts[el].collection)
           myr.hosprecord[k] = hyrec(k,
@@ -211,7 +211,7 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
     pdict = Payoff(drgp, drgm, Tex, wtpc)
     for el in keys(Tex.mkts)
       fac = 0 # this has to be changed!
-      myr = mktyear(el, Dict{Int64, hyrec}(), 0, fac)
+      myr = mktyear(el, Dict{Int64, hyrec}(), 0.0, fac)
       mortcount = 0.0
       for k in keys(Tex.mkts[el].collection)
         myr.hosprecord[k] = hyrec(k,
@@ -222,7 +222,7 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
                                   pdict[k])
         mortcount += myr.hosprecord[k].deaths
       end
-      myr.yeartot = mortcount 
+      myr.yeartot = mortcount
       push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
     end
   end
@@ -232,13 +232,47 @@ end
 
 
 """
-`MortalityCompare(baseline::counterhistory, sim::counterhistory)`
-This function takes the outputs of `Baseline` and `CounterSim` and does the following:
+`MortalityGet(baseline::counterhistory)`
 - Computes the mortality within markets and in the whole state for each of the two sims.
-- Compares the mortality rates the hospital assigned, also computes the variance
+- What do I want this to return?
+- For each market, a list of the unique keys.  That's a simulation run.
+- Also for each market, how many hospitals are there?
+- Return the average number of deaths in the market.
 
 """
+#TODO - this is going to require some kind of record type, I'll bet.  The potential dimension of the return is really variable
+# especially if I start selecting 2 or 3 or however many hospitals to have level 3.
+function MortalityGet(sim::counterhistory; simlen = 20)
+  outp =
+  for k1 in keys(sim.hist)
+    for k2 in keys(sim.hist[k1].history)
 
+    end
+  end
+
+end
+
+type HResults
+  bmean::Float64
+  bstd::Float64
+  lbwm::Float64
+  lbwstd::Float64
+  vlbwm::Float64
+  vlbwstd::Float64
+  pm::Float64
+  pstd::Float64
+  fid::Int64
+  level::Int64
+  baseline::Bool 
+end
+
+
+type MktResultsReport
+  fips::Int64
+  hadinten::Array{Float64,1}
+  deaths::Float64
+  res::Dict{Int64, HResults}
+end
 
 
 
