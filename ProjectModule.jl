@@ -193,7 +193,7 @@ module ProjectModule
   type mktyear
     fips::Int64
     hosprecord::Dict{Int64, hyrec} # track patient volumes and deaths.
-    yeartot::Int64
+    yeartot::Float64
     hasfac::Int64
   end
 
