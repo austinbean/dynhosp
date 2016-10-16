@@ -181,16 +181,19 @@ module ProjectModule
    zips::Dict{Int64, zip}
   end
 
+  # Counterfactual-related items:
+
   type hyrec # quantities of interest within a hospital-year.
     fid::Int64 # hosp ID.
-    totbr::Int64  #births
-    totlbw::Int64  #lbw births
-    totvlbw::Int64  #vlbw births
-    deaths::Float64   # deaths
-    profit::Float64 # hospital revenue.
+    totbr::Array{Int64,1}  #births
+    totlbw::Array{Int64,1}  #lbw births
+    totvlbw::Array{Int64,1}  #vlbw births
+    deaths::Array{Float64,1}   # deaths
+    profit::Array{Float64,1} # hospital revenue.
   end
 
-  type mktyear
+  type simrun
+    # contains the results of some T period sim.
     fips::Int64
     hosprecord::Dict{Int64, hyrec} # track patient volumes and deaths.
     yeartot::Float64
@@ -199,10 +202,12 @@ module ProjectModule
 
   type mkthistory
     fips::Int64
-    history::Dict{Int64, Array{mktyear,1}} # note this change.
+    # for each FID in the fips, one of these
+    values::Dict{Int64, simrun} # note this change.
   end
 
   type counterhistory
+    # One of these for each fips code
     hist::Dict{Int64, mkthistory}
   end
 
@@ -217,7 +222,7 @@ module ProjectModule
 
 
   export FindUndone, CMakeIt, SetLevel, FillState, PatientDraw, AllMortality, VolMortality, LogitEst, logitest, states1, states2, states3, poly, perturb, distance, MakeIt, TXSetup, ExpandDict, MakeNew, CreateEmpty, MarketPrint, NeighborsPrint, FacPrint, NewEntrantLocation, MktSize, ChoicesAvailable, LevelFunction, NeighborAppend, NeighborRemove, NeighborClean, NeighborFix, StrictCountyNeighborFix, HospFindFirst, FidFindFirst, MarketCleaner, HospUpdate, HospPerturb, CreateZips, FillPPatients, FillMPatients, FillPatients, NewPatients, PrintZip, ComputeDetUtil, WhichZips, CalcWTP, WTPMap, WriteWTP, UpdateDeterministic, GenPChoices, GenMChoices, PHistoryAdd, MHistoryAdd, PDemandMap, MDemandMap, HospitalClean, Restore, NewSim, Termination, PSim, TransitionGen, CondSum, DemandCheck, ResultsOut, OuterSim
-  export EntireState, chospital, LBW, patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP, counterhistory, mkthistory, mktyear, hyrec
+  export EntireState, chospital, LBW, patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP, counterhistory, mkthistory, simrun, hyrec
   println("Loaded Module")
 
 
