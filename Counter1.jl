@@ -239,7 +239,7 @@ end
 """
 #TODO - this is going to require some kind of record type, I'll bet.  The potential dimension of the return is really variable
 # especially if I start selecting 2 or 3 or however many hospitals to have level 3.
-function MortalityGet(sim::counterhistory; simlen = 20)
+function MortalityGet(sim::counterhistory; bas::Bool = false)
   outp =
   for k1 in keys(sim.hist)
     for k2 in keys(sim.hist[k1].history)
