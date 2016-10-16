@@ -133,9 +133,12 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
   # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   # TODO: and the main counterfactual can be varied where the one special hosp has level 3 and everyone else has level 1, vs. the same where everyone else has level 2.
   res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-  res.hist = Dict(k => mkthistory(k, Dict{Int64,Array{mktyear,1}}()) for k in keys(Tex.mkts))   # Fill the dictionary with the fids via a comprehension.
-  for mk in keys(Tex.mkts)
-    res.hist[mk].history = Dict( k=>Array{mktyear,1}() for k in keys(Tex.mkts[mk].collection))
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))             # Fill the dictionary with the fids via a comprehension.
+  for mk in keys(Tex.mkts) #these are fipscodes
+    res.hist[mk].values = Dict( k=>simrun(mk, Dict{Int64,hyrec}(), 0.0, k) for k in keys(Tex.mkts[mk].collection)) # for each FID in the market, a simrun record element.
+    for k1 in keys(Tex.mkts[mk].collection)
+      res.hist[mk].values[k1].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}(), Array{Float64,1}()) for k2 in keys(Tex.mkts[mk].collection))
+    end
   end
   termflag = true                                                                               # Start the termination flag.
   while termflag
@@ -160,28 +163,22 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     end
     println(mkt_fips)
     UpdateDeterministic(pats)                                                                   # NB: The update happens every time we do a new set of facilities.
-    wtpc = WTPMap(patients, Tex)                                                                # Facilities are unchanging, so WTP will remain constant.
+    wtpc = WTPMap(pats, Tex)                                                                    # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
       mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       pdict = Payoff(drgp, drgm, Tex, wtpc)
       for el in mkt_fips
         fac = currentfac[el]
-        myr = mktyear(el, Dict{Int64, hyrec}(), 0.0, fac)
         mortcount = 0.0
         for k in keys(Tex.mkts[el].collection)
-          myr.hosprecord[k] = hyrec(k,
-                                    sum(mappeddemand[k]),
-                                    mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                    mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                    VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510),
-                                    pdict[k])
-          mortcount += myr.hosprecord[k].deaths
-          if Tex.mkts[el].collection[k].hasint  # test that hospital is the one w/ fac.
-            myr.hasfac = k
-          end
+          push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
+          push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+          push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+          push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+          push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+          mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]  # this is confusing - has this behavior changed since 0.4?
         end
-        myr.yeartot = mortcount
-        push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
+        res.hist[el].values[currentfac[el]].yeartot = mortcount
       end
     end
     termflag = !TermFl(Tex)                                                                    # Will only return "true" when everyone is finished.
@@ -200,9 +197,12 @@ a mortality baseline can be determined.
 #TODO: check this against some mortality data from NCHS.
 function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
   res = counterhistory(Dict{Int64, mkthistory}())                                                        # the output - a counterfactual history
-  res.hist = Dict(k => mkthistory(k, Dict{Int64,Array{mktyear,1}}()) for k in keys(Tex.mkts))            # Fill the dictionary with the fids via a comprehension.
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))             # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts)
-    res.hist[mk].history = Dict( 0=>Array{mktyear,1}())                                                  # 0 records that this is the equilibrium.
+    res.hist[mk].values = Dict( 0=>simrun(mk, Dict{Int64,hyrec}(), 0.0, 0))                                                  # 0 records that this is the equilibrium.
+    for k1 in keys(Tex.mkts[mk].collection)
+      res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}(), Array{Float64,1}()) for k2 in keys(Tex.mkts[mk].collection))
+    end
   end
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
   wtpc = WTPMap(patients, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
@@ -210,20 +210,17 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
     mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
     pdict = Payoff(drgp, drgm, Tex, wtpc)
     for el in keys(Tex.mkts)
-      fac = 0 # this has to be changed!
-      myr = mktyear(el, Dict{Int64, hyrec}(), 0.0, fac)
+      fac = 0
       mortcount = 0.0
       for k in keys(Tex.mkts[el].collection)
-        myr.hosprecord[k] = hyrec(k,
-                                  sum(mappeddemand[k]),
-                                  mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                  mappeddemand[k].bt1015 + mappeddemand[k].bt510,
-                                  VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510),
-                                  pdict[k])
-        mortcount += myr.hosprecord[k].deaths
+        push!(res.hist[el].values[0].hosprecord[k].totbr, sum(mappeddemand[k]))
+        push!(res.hist[el].values[0].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+        push!(res.hist[el].values[0].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+        push!(res.hist[el].values[0].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+        push!(res.hist[el].values[0].hosprecord[k].profit, pdict[k])
+        mortcount += res.hist[el].values[0].hosprecord[k].deaths[end]
       end
-      myr.yeartot = mortcount
-      push!(res.hist[el].history[fac], myr)                                                              # NB: at this point, we have a market-year record with each hospital recorded.  Add it to the market history within the counterhistory
+      res.hist[el].values[0].yeartot = mortcount
     end
   end
   return res
@@ -263,7 +260,7 @@ type HResults
   pstd::Float64
   fid::Int64
   level::Int64
-  baseline::Bool 
+  baseline::Bool
 end
 
 
