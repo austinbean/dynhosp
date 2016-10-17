@@ -239,36 +239,52 @@ end
 """
 #TODO - this is going to require some kind of record type, I'll bet.  The potential dimension of the return is really variable
 # especially if I start selecting 2 or 3 or however many hospitals to have level 3.
-function MortalityGet(sim::counterhistory; bas::Bool = false)
-  outp =
-  for k1 in keys(sim.hist)
-    for k2 in keys(sim.hist[k1].history)
-
-    end
+# The way this gets filled up is going to change depending on exactly what counterfactual is being run here.
+function MortalityGet(sim::counterhistory, base::counterhistory)
+  outp = StateResults(Dict{Int64,MktResultsReport}(), Dict{Int64, MktResultsReport}())
+  outp.mkts = Dict(k=>MktResultsReport(k, Array{Int64,1}(), 0.0, Dict{Int64, HResults}() ) for k in keys(sim.hist))
+  for k in keys(outp.mkts)
+    outp.mkts[k].simres = Dict(k1=> HResults(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,k1,0,false) for k1 in keys(sim.hist[k].values))
   end
+  outp.baseln = Dict(k=>MktResultsReport(k, Array{Int64, 1}(), 0.0, Dict{Int64, HResults}() ) for k in keys(base.hist))
+  for k in keys(base.history)
+    outp.baseln[k].simres = Dict(k1=>HResults(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,k1,0,false) for k1 in keys(base.hist[k].values))
+  end
+  for
 
+  end
+  return outp
 end
 
+
+
 type HResults
-  bmean::Float64
-  bstd::Float64
+  brmean::Float64
+  brstd::Float64
   lbwm::Float64
   lbwstd::Float64
   vlbwm::Float64
   vlbwstd::Float64
-  pm::Float64
-  pstd::Float64
+  prm::Float64
+  prstd::Float64
   fid::Int64
   level::Int64
   baseline::Bool
 end
 
 
+
+
 type MktResultsReport
   fips::Int64
   hadinten::Array{Float64,1}
   deaths::Float64
-  res::Dict{Int64, HResults}
+  simres::Dict{Int64, HResults}
+end
+
+type StateResults
+  mkts::Dict{Int64, MktResultsReport}
+  baseln::Dict{Int64, MktResultsReport}
 end
 
 
