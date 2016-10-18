@@ -119,6 +119,29 @@ function TermFl(EmTex::EntireState)
   return isdone
 end
 
+
+"""
+`FindVLBW(demand::Dict, Tex::EntireState, fids::Array{Int64,1})`
+This function should take the demand, a state and find every VLBW infant in the market and reassign it
+so it will return a Dict with an int for the fid as the key and with the count of VLBW as the value.
+We suppose that redistributed VLBW volume is divided equally among the hospitals with high level facilities,
+however many there are.
+"""
+function FindVLBW(demand::Dict{Int64,ProjectModule.LBW}, Tex::EntireState, fids::Array{Int64,1})
+  numfac::Int64 = size(fids,1)
+  totvlbw::Int64 = 0
+  for k1 in keys(Tex.mkts[Tex.fipsdirectory[fids[1]]].collection) # The facilities are always in the same market, so it's ok to take fids[1]
+    totvlbw += demand[k1].bt510
+    demand[k1].bt510 = 0                                          # Reassign the value here to 0.
+    totvlbw += demand[k1].bt1015
+    demand[k1].bt1015 = 0
+  end
+  return outp::Dict{Int64,Float64} = Dict(k => totvlbw/numfac for k in fids)
+end
+
+
+
+
 """
 `CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1)`
 Runs a counterfactual in the following way: for every hospital in every market, it assigns that hospital a level 3, and assigns every other
@@ -127,32 +150,31 @@ The result is a `counterhistory`, which contains for each market a collection of
 fid and a vector of `mktyear` - these contain the distribution of births and the results LBW, VLBW, deaths, etc in the form of a `hyrec`
 for each hospital.
 """
-function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1)
-  # Runs a T period simulation using the whole state and whole collection of patient records.
-  # It's easy enough to run the sim 20 times for each hospital as the one with the NICU.
+function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1, reassign::Bool = true)
   # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
   # TODO: and the main counterfactual can be varied where the one special hosp has level 3 and everyone else has level 1, vs. the same where everyone else has level 2.
-  res = counterhistory(Dict{Int64, mkthistory}())                                               # the output - a counterfactual history
-  res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))             # Fill the dictionary with the fids via a comprehension.
+  res = counterhistory(Dict{Int64, mkthistory}())                                                            # the output - a counterfactual history
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))                          # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts) #these are fipscodes
     res.hist[mk].values = Dict( k=>simrun(mk, Dict{Int64,hyrec}(), 0.0, k) for k in keys(Tex.mkts[mk].collection)) # for each FID in the market, a simrun record element.
     for k1 in keys(Tex.mkts[mk].collection)
       res.hist[mk].values[k1].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}(), Array{Float64,1}()) for k2 in keys(Tex.mkts[mk].collection))
     end
   end
-  termflag = true                                                                               # Start the termination flag.
+  termflag = true                                                                                           # Start the termination flag.
   while termflag
-    currentfac = Dict{Int64, Int64}()                                                           # this will be filled with {fipscode, fid} entries for unfinished facilities.
-    mkt_fips = Array{Int64,1}()                                                                 # Tracks the fipscodes which still need to be done.
+    #TODO - it may make sense to hive this all off and make it a separate function choosing subsets of size n from the hospitals.
+    currentfac = Dict{Int64, Int64}()                                                                       # this will be filled with {fipscode, fid} entries for unfinished facilities.
+    mkt_fips = Array{Int64,1}()                                                                             # Tracks the fipscodes which still need to be done.
     for el in keys(Tex.mkts)
       if !reduce(&, [Tex.mkts[el].collection[i].finished for i in keys(Tex.mkts[el].collection)])
         pfids = prod(hcat( [ [i, !Tex.mkts[el].collection[i].finished] for i in keys(Tex.mkts[el].collection) ]...) , 1)
-        pfid = pfids[findfirst(pfids)]                                                           # takes the first non-zero element of the above and returns the element.
-        currentfac[Tex.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
-        push!(mkt_fips, el)                                                                  # Want to do this collection of markets which still have uncompleted hospitals.
+        pfid = pfids[findfirst(pfids)]                                                                      # takes the first non-zero element of the above and returns the element.
+        currentfac[Tex.fipsdirectory[pfid]] = pfid                                                          # Now the Key is the fipscode and the value is the fid.
+        push!(mkt_fips, el)                                                                                 # Want to do this collection of markets which still have uncompleted hospitals.
         for hos in Tex.mkts[el].config
           if hos.fid == pfid
-            SetLevel(Tex.mkts[el], pfid, lev)                                                         # Set the level of everyone else in the market to lev, and pfid to 3.
+            SetLevel(Tex.mkts[el], pfid, lev)                                                               # Set the level of everyone else in the market to lev, and pfid to 3.
             hos.finished = true
             hos.hasint = true
           else
@@ -161,27 +183,58 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
         end
       end
     end
+    # TODO: stop here - think about cutting off the section above this line below the while termflag component.  
     println(mkt_fips)
-    UpdateDeterministic(pats)                                                                   # NB: The update happens every time we do a new set of facilities.
-    wtpc = WTPMap(pats, Tex)                                                                    # Facilities are unchanging, so WTP will remain constant.
-    for i = 1:T                                                                                 # T is now the sim periods, not sequential choices.
+    UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
+    wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
+    for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
       mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       pdict = Payoff(drgp, drgm, Tex, wtpc)
       for el in mkt_fips
         fac = currentfac[el]
         mortcount = 0.0
         for k in keys(Tex.mkts[el].collection)
-          push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
-          push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-          push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-          push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
-          push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
-          mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]  # this is confusing - has this behavior changed since 0.4?
+          if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+            mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]                        # this is confusing - has this behavior changed since 0.4?
+          else                                                                                                #NB: Under this counterfactual, I am restricting investment and *transferring* the VLBW only
+            nofac = Array{Int64,1}()
+            hasfac = Array{Int64,1}()
+            for fid in keys(Tex.mkts[k].collection)
+              if Tex.mkts[k].collection[fid].level == 1
+                push!(nofac, fid)
+              else
+                 push!(hasfac, fid)
+              end
+            end
+            for k in nofac
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520)
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
+              #FIXME - this is definitely wrong.  Some of these patients are not showing up.  Subtract some amount of the profit.
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+              mortcount += 0
+            end
+            for k in hasfac
+              sharedvlbw = FindVLBW(mappeddemand, Tex, hasfac)
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+              mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
+            end
+          end
         end
         res.hist[el].values[currentfac[el]].yeartot = mortcount
       end
     end
-    termflag = !TermFl(Tex)                                                                    # Will only return "true" when everyone is finished.
+    termflag = !TermFl(Tex)                                                                                      # Will only return "true" when everyone is finished.
   end
   return res
 end
