@@ -1162,7 +1162,7 @@ function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
                      w13 = WeightVec([1-admitprobs[13],admitprobs[13]]))
   outp = Dict{Int64, LBW}() # empty dictionary of fids/LBW record types
   for el in keys(ppat)
-#TODO: The logical sum is over DRGs which are potentially problematic - NOT 391 But all the others.  
+#TODO: The logical sum is over DRGs which are potentially problematic - NOT 391 But all the others.
 
     totl = sum(ppat[el] + mpat[el])
     patients = LBW(0,0,0,0,0,0)
@@ -1246,7 +1246,7 @@ This function needs to return a mortality rate for the volume.  That is, take th
 rate as a function of the patient volume.  This data comes from Chung, Phibbs, Boscardin, et al Medical Care 2010
 "The Effect of Neonatal Intensive Care Level and Hospital Volume on Mortality of Very Low Birth Weigh Infants"
 """
-function VolMortality(v::Int64, lev::Int64)
+function VolMortality(v::Float64, lev::Int64)
   if lev == 1
     if (v>=0)&(v<10)
       return (-0.72*v + 19.9)/1000
