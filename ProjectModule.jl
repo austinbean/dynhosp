@@ -99,6 +99,7 @@ module ProjectModule
   end
 
 # this hospital type is for the counterfactual only.
+#TODO - add a field for the actual level, so it can be reset.  
   type chospital <: Fac
     fid::Int64
     lat::Float64
@@ -200,7 +201,7 @@ module ProjectModule
     hasfac::Int64
   end
 
-#TODO - think about changing values to Dict{Array{Int64,1}, simrun} - this will more easily account for the assignment of pairs to have high level facs.  
+#TODO - think about changing values to Dict{Array{Int64,1}, simrun} - this will more easily account for the assignment of pairs to have high level facs.
 
   type mkthistory
     fips::Int64
