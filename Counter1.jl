@@ -136,7 +136,7 @@ function FindVLBW(demand::Dict{Int64,ProjectModule.LBW}, Tex::EntireState, fids:
     totvlbw += demand[k1].bt1015
     demand[k1].bt1015 = 0
   end
-  return outp::Dict{Int64,Float64} = Dict(k => totvlbw/numfac for k in fids)
+  return outp::Dict{Int64,Int64} = Dict(k => totvlbw/numfac for k in fids)
 end
 
 
@@ -183,55 +183,60 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
         end
       end
     end
-    # TODO: stop here - think about cutting off the section above this line below the while termflag component.  
+    # TODO: stop here - think about cutting off the section above this line below the while termflag component.
     println(mkt_fips)
     UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
     wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
       mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       pdict = Payoff(drgp, drgm, Tex, wtpc)
-      for el in mkt_fips
-        fac = currentfac[el]
-        mortcount = 0.0
-        for k in keys(Tex.mkts[el].collection)
-          if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
-            mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]                        # this is confusing - has this behavior changed since 0.4?
-          else                                                                                                #NB: Under this counterfactual, I am restricting investment and *transferring* the VLBW only
-            nofac = Array{Int64,1}()
-            hasfac = Array{Int64,1}()
-            for fid in keys(Tex.mkts[k].collection)
-              if Tex.mkts[k].collection[fid].level == 1
-                push!(nofac, fid)
-              else
-                 push!(hasfac, fid)
-              end
-            end
-            for k in nofac
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
-              #FIXME - this is definitely wrong.  Some of these patients are not showing up.  Subtract some amount of the profit.
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
-              mortcount += 0
-            end
-            for k in hasfac
-              sharedvlbw = FindVLBW(mappeddemand, Tex, hasfac)
+      if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
+        for el in mkt_fips
+          fac = currentfac[el]
+          mortcount = 0.0
+          for k in keys(Tex.mkts[el].collection)
               push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
               push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
               push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
-              mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
+              mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]                        # this is confusing - has this behavior changed since 0.4?
+          end
+          res.hist[el].values[currentfac[el]].yeartot = mortcount
+        end
+      else     #reassign true                                                                                 #NB: Under this counterfactual, I am restricting investment and *transferring* the VLBW only
+        for el in mkt_fips
+          fac = currentfac[el]
+          mortcount = 0.0
+          nofac = Array{Int64,1}()
+          hasfac = Array{Int64,1}()
+          for fid in keys(Tex.mkts[el].collection)
+            if Tex.mkts[el].collection[fid].level == 1
+              push!(nofac, fid)
+            else
+               push!(hasfac, fid)
             end
           end
+          for k in nofac
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520)
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
+            #FIXME - this is definitely wrong.  Some of these patients are not showing up.  Subtract some amount of the profit.
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+            mortcount += 0
+          end
+          for k in hasfac
+            sharedvlbw = FindVLBW(mappeddemand, Tex, hasfac)
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+            mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
+          end
+          res.hist[el].values[currentfac[el]].yeartot = mortcount
         end
-        res.hist[el].values[currentfac[el]].yeartot = mortcount
       end
     end
     termflag = !TermFl(Tex)                                                                                      # Will only return "true" when everyone is finished.
