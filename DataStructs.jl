@@ -1246,7 +1246,7 @@ This function needs to return a mortality rate for the volume.  That is, take th
 rate as a function of the patient volume.  This data comes from Chung, Phibbs, Boscardin, et al Medical Care 2010
 "The Effect of Neonatal Intensive Care Level and Hospital Volume on Mortality of Very Low Birth Weigh Infants"
 """
-function VolMortality(v::Float64, lev::Int64)
+function VolMortality{T<:Real}(v::T, lev::Int64)
   if lev == 1
     if (v>=0)&(v<10)
       return (-0.72*v + 19.9)/1000
