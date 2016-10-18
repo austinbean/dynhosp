@@ -200,6 +200,8 @@ module ProjectModule
     hasfac::Int64
   end
 
+#TODO - think about changing values to Dict{Array{Int64,1}, simrun} - this will more easily account for the assignment of pairs to have high level facs.  
+
   type mkthistory
     fips::Int64
     # for each FID in the fips, one of these
