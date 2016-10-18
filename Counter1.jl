@@ -240,6 +240,11 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
       end
     end
     termflag = !TermFl(Tex)                                                                                      # Will only return "true" when everyone is finished.
+  end # of While loop.
+  for el in keys(Tex.mkts)
+    for k in keys(Tex.mkts[el].collection)
+      Tex.mkts[el].collection[k].finished = false                                                                 # Resets all "finished" flags to false.
+    end
   end
   return res
 end
@@ -293,7 +298,7 @@ end
 - For each market, a list of the unique keys.  That's a simulation run.
 - Also for each market, how many hospitals are there?
 - Return the average number of deaths in the market.
-
+- Really I only care about the best one.
 """
 #TODO - this is going to require some kind of record type, I'll bet.  The potential dimension of the return is really variable
 # especially if I start selecting 2 or 3 or however many hospitals to have level 3.
@@ -312,6 +317,50 @@ function MortalityGet(sim::counterhistory, base::counterhistory)
 
   end
   return outp
+end
+
+
+
+"""
+`BestOutcome(sim::counterhistory, basesim::counterhistory)`
+This function looks through all the simulations and finds the one with the lowest
+number of deaths relative to the baseline.  The results are a dict with the form
+fips => [ Base Deaths, Best Deaths, FID], where FID is the ID of the facility for which
+this is best.
+"""
+function BestOutcome(sim::counterhistory, basesim::counterhistory)
+  res = Dict( k=> [0.0, 0.0, 0.0] for k in keys(basesim.hist)) #basedeaths, bestsimdeaths, bestfid.
+  for el in keys(basesim.hist)
+    res[el][1] = basesim.hist[el].values[0].yeartot
+    res[el][2] = basesim.hist[el].values[0].yeartot # Assign this to be the same - see if improvement is possible.
+    for k2 in keys(sim.hist[el].values)
+      if sim.hist[el].values[k2].yeartot <= res[el][2]
+        res[el][2] = sim.hist[el].values[k2].yeartot
+        res[el][3] = k2
+      end
+    end
+  end
+  return res
+end
+
+
+
+"""
+`SimpleResultsPrint(inp1::Dict{Int64, Array{Float64,1}})`
+This doesn't do much - takes the simple version of the results and figures out
+how many lives are saved overall in the simple counterfactual.
+"""
+function SimpleResultsPrint(inp1::Dict{Int64, Array{Float64,1}})
+  totsaved::Float64 = 0.0
+  noimp = 0
+  for k in keys(inp1)
+    if inp1[k][3] != 0.0
+      totsaved += (inp1[k][1] - inp1[k][2])
+    else
+      noimp += 1
+    end
+  end
+  return totsaved, noimp 
 end
 
 
