@@ -249,6 +249,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
       Tex.mkts[el].collection[k].level = Tex.mkts[el].collection[k].actuallev                                     # Reassigns to actual level.
     end
   end
+  UpdateDeterministic(pats)                                                                                       # Resets the deterministic utility component
   return res
 end
 
@@ -353,15 +354,30 @@ end
 Per fips code, how many deaths are there among VLBW infants?
 This is a check on the validity of the Baseline simulation function.
 """
-function DeathCheck(sim::counterhistory; check = false)
+function DeathCheck(sim::counterhistory; check::Bool = false, houston::Bool = false)
   outp = Dict(k=>0.0 for k in keys(sim.hist))
   for el in keys(sim.hist)
     for k1 in keys(sim.hist[el].values[0].hosprecord)
       outp[el] += mean(sim.hist[el].values[0].hosprecord[k1].deaths)
     end
   end
+  if houston #just for debugging print the results of this market.
+    vlbw = 0.0
+    for k1 in keys(sim.hist[48201].values[0].hosprecord)
+      println("---------------------------------------")
+      println("Facility ", sim.hist[48201].values[0].hosprecord[k1].fid)
+      println("VLBW ", mean(sim.hist[48201].values[0].hosprecord[k1].totvlbw) )
+      vlbw += mean(sim.hist[48201].values[0].hosprecord[k1].totvlbw)
+      println("Deaths ", mean(sim.hist[48201].values[0].hosprecord[k1].deaths))
+      println("Fraction ", mean(sim.hist[48201].values[0].hosprecord[k1].deaths)/mean(sim.hist[48201].values[0].hosprecord[k1].totvlbw))
+    end
+    println("**********************")
+    println("Houston Total: ", outp[48201])
+    println("Houston VLBW Total: ", vlbw)
+    println("Houston Mortality Rate: ", outp[48201]/vlbw)
+  end
   if check
-    for k in keys(outp)
+    for k in [48201, 48113, 48453] #keys(outp) # check just the subset.
       println(k, "   Deaths: ", outp[k])
     end
   end
