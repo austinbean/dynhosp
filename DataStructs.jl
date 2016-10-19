@@ -1221,7 +1221,7 @@ end
 
 
 """
-`Mortality(d::Dict{Int64, LBW})`
+`AllMortality(d::Dict{Int64, LBW})`
 The return of `PatientDraw` is a dictionary of {fid, LBW}.  Take that volume and convert it to a mortality
 rate.  Then apply the mortality rate to the LBW record.  The elements keys(d) will be fids.
 """
@@ -1240,6 +1240,7 @@ end
 This function needs to return a mortality rate for the volume.  That is, take the number of patients and return the mortality
 rate as a function of the patient volume.  This data comes from Chung, Phibbs, Boscardin, et al Medical Care 2010
 "The Effect of Neonatal Intensive Care Level and Hospital Volume on Mortality of Very Low Birth Weigh Infants"
+NB: This one is giving answers which are too low.  This is the priority.
 """
 function VolMortality{T<:Real}(v::T, lev::Int64)
   if lev == 1
