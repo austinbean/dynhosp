@@ -297,34 +297,6 @@ end
 
 
 """
-`MortalityGet(baseline::counterhistory)`
-- Computes the mortality within markets and in the whole state for each of the two sims.
-- What do I want this to return?
-- For each market, a list of the unique keys.  That's a simulation run.
-- Also for each market, how many hospitals are there?
-- Return the average number of deaths in the market.
-- Really I only care about the best one.
-"""
-#TODO - this is going to require some kind of record type, I'll bet.  The potential dimension of the return is really variable
-# especially if I start selecting 2 or 3 or however many hospitals to have level 3.
-# The way this gets filled up is going to change depending on exactly what counterfactual is being run here.
-function MortalityGet(sim::counterhistory, base::counterhistory)
-  outp = StateResults(Dict{Int64,MktResultsReport}(), Dict{Int64, MktResultsReport}())
-  outp.mkts = Dict(k=>MktResultsReport(k, Array{Int64,1}(), 0.0, Dict{Int64, HResults}() ) for k in keys(sim.hist))
-  for k in keys(outp.mkts)
-    outp.mkts[k].simres = Dict(k1=> HResults(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,k1,0,false) for k1 in keys(sim.hist[k].values))
-  end
-  outp.baseln = Dict(k=>MktResultsReport(k, Array{Int64, 1}(), 0.0, Dict{Int64, HResults}() ) for k in keys(base.hist))
-  for k in keys(base.history)
-    outp.baseln[k].simres = Dict(k1=>HResults(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,k1,0,false) for k1 in keys(base.hist[k].values))
-  end
-  for
-
-  end
-  return outp
-end
-
-"""
 `BaselineCheck(sim::counterhistory)`
 This will check the number of VLBW births by market under the baseline simulation.
 Care needs to be taken for the counterfactual history due to the different key system in use
@@ -434,6 +406,69 @@ function SimpleResultsPrint(inp1::Dict{Int64, Array{Float64,1}})
     end
   end
   return totsaved, noimp
+end
+
+
+
+
+"""
+`DemandChangeATX(sim::counterhistory, basel::counterhistory, Tex::EntireState)`
+Simple function to print some of the outcomes of the equilibrium and non-eq simulations for the
+Austin Market - means, stds, etc.
+"""
+function DemandChangeATX(sim::counterhistory, basel::counterhistory, Tex::EntireState)
+  for k in keys(Tex.mkts[48453].collection)
+    println("**********************")
+    println(Tex.mkts[48453].collection[k].name)
+    println("Baseline Mean Admissions: ", mean(basel.hist[48453].values[0].hosprecord[k].totbr))
+    println("One NICU Mean Admissions: ", mean(sim.hist[48453].values[k].hosprecord[k].totbr))
+    preothermeans = 0.0
+    postothermeans = 0.0
+    println("Other Firms")
+    for k2 in keys(Tex.mkts[48453].collection)
+      if k != k2
+        println(Tex.mkts[48453].collection[k2].name)
+        println("Admissions Pre: ", mean(basel.hist[48453].values[0].hosprecord[k2].totbr))
+        println("Admissions Post: ", mean(sim.hist[48453].values[k].hosprecord[k2].totbr))
+        preothermeans += mean(basel.hist[48453].values[0].hosprecord[k2].totbr)
+        postothermeans += mean(sim.hist[48453].values[k].hosprecord[k2].totbr)
+      end
+    end
+    println("Means of Others PRE: ", preothermeans/6)
+    println("Means of Others POST: ", postothermeans/6)
+  end
+end
+
+
+
+
+
+"""
+`MortalityGet(baseline::counterhistory)`
+- Computes the mortality within markets and in the whole state for each of the two sims.
+- What do I want this to return?
+- For each market, a list of the unique keys.  That's a simulation run.
+- Also for each market, how many hospitals are there?
+- Return the average number of deaths in the market.
+- Really I only care about the best one.
+"""
+#TODO - this is going to require some kind of record type, I'll bet.  The potential dimension of the return is really variable
+# especially if I start selecting 2 or 3 or however many hospitals to have level 3.
+# The way this gets filled up is going to change depending on exactly what counterfactual is being run here.
+function MortalityGet(sim::counterhistory, base::counterhistory)
+  outp = StateResults(Dict{Int64,MktResultsReport}(), Dict{Int64, MktResultsReport}())
+  outp.mkts = Dict(k=>MktResultsReport(k, Array{Int64,1}(), 0.0, Dict{Int64, HResults}() ) for k in keys(sim.hist))
+  for k in keys(outp.mkts)
+    outp.mkts[k].simres = Dict(k1=> HResults(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,k1,0,false) for k1 in keys(sim.hist[k].values))
+  end
+  outp.baseln = Dict(k=>MktResultsReport(k, Array{Int64, 1}(), 0.0, Dict{Int64, HResults}() ) for k in keys(base.hist))
+  for k in keys(base.history)
+    outp.baseln[k].simres = Dict(k1=>HResults(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,k1,0,false) for k1 in keys(base.hist[k].values))
+  end
+  for
+
+  end
+  return outp
 end
 
 
