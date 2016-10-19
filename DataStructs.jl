@@ -1240,36 +1240,35 @@ end
 This function needs to return a mortality rate for the volume.  That is, take the number of patients and return the mortality
 rate as a function of the patient volume.  This data comes from Chung, Phibbs, Boscardin, et al Medical Care 2010
 "The Effect of Neonatal Intensive Care Level and Hospital Volume on Mortality of Very Low Birth Weigh Infants"
-NB: This one is giving answers which are too low.  This is the priority.
 """
 function VolMortality{T<:Real}(v::T, lev::Int64)
   if lev == 1
     if (v>=0)&(v<10)
-      return (-0.72*v + 19.9)/1000
+      return (-0.72*v + 19.9)/100
     elseif (v>=10)&(v<26)
-       return (-0.72*v + 19.9)/1000
+       return (-0.72*v + 19.9)/100
     else  # This is potentially a problem.
       return 0
     end
   elseif lev == 2
     if (v>=0)&(v<10)
-      return (-0.46*v + 19.16)/1000
+      return (-0.46*v + 19.16)/100
     elseif (v>=10)&(v<25)
-      return (-0.053*v + 15.03)/1000
+      return (-0.053*v + 15.03)/100
     elseif (v>=25)&(v<283)
-      return (-0.053*v+15.03)/1000
+      return (-0.053*v+15.03)/100
     else
       return 0 # NB: this level probably can't be reached
     end
   else lev == 3
     if (v>= 0)&(v<25)
-      return (-0.052*v + 16.95)/1000
+      return (-0.052*v + 16.95)/100
     elseif (v>=25)&(v<50)
-      return (-0.034*v + 16.5)/1000
+      return (-0.034*v + 16.5)/100
     elseif (v>=50)&(v<100)
-      return (-0.046*v + 17.1)/1000
+      return (-0.046*v + 17.1)/100
     elseif (v>=100)&(v<371)
-      return (-0.046*v + 17.1)/1000
+      return (-0.046*v + 17.1)/100
     else
       return 0  # ???  #NB: this level probably can't be reached
     end
