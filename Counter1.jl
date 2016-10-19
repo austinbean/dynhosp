@@ -195,7 +195,8 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
           fac = currentfac[el]
           mortcount = 0.0
           for k in keys(Tex.mkts[el].collection)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
+            #TODO - this is wrong.  Mappeddemand is NICU admits, NOT all of the demand.
+              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
               push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
               push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
               push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
@@ -218,7 +219,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             end
           end
           for k in nofac
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510))
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520)
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
@@ -228,7 +229,8 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
           end
           for k in hasfac
             sharedvlbw = FindVLBW(mappeddemand, Tex, hasfac)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(mappeddemand[k]))
+            #TODO - this is wrong.  Mappeddemand is NICU admits, NOT all of the demand.
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
@@ -244,6 +246,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
   for el in keys(Tex.mkts)
     for k in keys(Tex.mkts[el].collection)
       Tex.mkts[el].collection[k].finished = false                                                                 # Resets all "finished" flags to false.
+      Tex.mkts[el].collection[k].level = Tex.mkts[el].collection[k].actuallev                                     # Reassigns to actual level.
     end
   end
   return res
@@ -256,13 +259,14 @@ end
 This function runs a baseline simulation of mortality rates in each market.  It simulates for T periods in Order
 to reduce the impact that the random component of the choice model has.  It should return a counterhistory for which
 a mortality baseline can be determined.
+Note: run this on a NEW state record unless the levels have been set back to what they were in reality.
 """
 #TODO: check this against some mortality data from NCHS.
 function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
   res = counterhistory(Dict{Int64, mkthistory}())                                                        # the output - a counterfactual history
-  res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))             # Fill the dictionary with the fids via a comprehension.
+  res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))                      # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts)
-    res.hist[mk].values = Dict( 0=>simrun(mk, Dict{Int64,hyrec}(), 0.0, 0))                                                  # 0 records that this is the equilibrium.
+    res.hist[mk].values = Dict( 0=>simrun(mk, Dict{Int64,hyrec}(), 0.0, 0))                              # 0 records that this is the equilibrium.
     for k1 in keys(Tex.mkts[mk].collection)
       res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}(), Array{Float64,1}()) for k2 in keys(Tex.mkts[mk].collection))
     end
@@ -276,7 +280,7 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
       fac = 0
       mortcount = 0.0
       for k in keys(Tex.mkts[el].collection)
-        push!(res.hist[el].values[0].hosprecord[k].totbr, sum(mappeddemand[k]))
+        push!(res.hist[el].values[0].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
         push!(res.hist[el].values[0].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
         push!(res.hist[el].values[0].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
         push!(res.hist[el].values[0].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
@@ -319,6 +323,59 @@ function MortalityGet(sim::counterhistory, base::counterhistory)
   return outp
 end
 
+"""
+`BaselineCheck(sim::counterhistory)`
+This will check the number of VLBW births by market under the baseline simulation.
+Care needs to be taken for the counterfactual history due to the different key system in use
+in the way the data is recorded.
+"""
+function BaselineCheck(sim::counterhistory; check = false)
+  outp = Dict(k => [0.0, 0.0] for k in keys(sim.hist))
+  for el in keys(sim.hist)
+    for k1 in keys(sim.hist[el].values[0].hosprecord)
+      outp[el][1] += mean(sim.hist[el].values[0].hosprecord[k1].totvlbw)
+      outp[el][2] += mean(sim.hist[el].values[0].hosprecord[k1].totbr)
+    end
+  end
+  if check
+    for k in keys(outp)
+      println(k, "  Fraction VLBW ",  outp[k][1]/outp[k][2])
+    end
+  end
+  return outp
+end
+
+
+
+
+"""
+`DeathCheck(sim::counterhistory; check = false)`
+Per fips code, how many deaths are there among VLBW infants?
+This is a check on the validity of the Baseline simulation function.
+"""
+function DeathCheck(sim::counterhistory; check = false)
+  outp = Dict(k=>0.0 for k in keys(sim.hist))
+  for el in keys(sim.hist)
+    for k1 in keys(sim.hist[el].values[0].hosprecord)
+      outp[el] += mean(sim.hist[el].values[0].hosprecord[k1].deaths)
+    end
+  end
+  if check
+    for k in keys(outp)
+      println(k, "   Deaths: ", outp[k])
+    end
+  end
+  return outp
+end
+
+
+
+#=
+TODO - This points the path forward.  Fix the best hospital here, but then also add a second one in each market
+and choose the best one there.  Compare to the case where everyone has level 3 vs. everyone has level 2 or level 1.
+This is coming together I think.
+
+=#
 
 
 """
@@ -360,7 +417,7 @@ function SimpleResultsPrint(inp1::Dict{Int64, Array{Float64,1}})
       noimp += 1
     end
   end
-  return totsaved, noimp 
+  return totsaved, noimp
 end
 
 
