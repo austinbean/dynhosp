@@ -99,7 +99,7 @@ module ProjectModule
   end
 
 # this hospital type is for the counterfactual only.
-#TODO - add a field for the actual level, so it can be reset.  
+#TODO - add a field for the actual level, so it can be reset.
   type chospital <: Fac
     fid::Int64
     lat::Float64
@@ -107,6 +107,7 @@ module ProjectModule
     name::AbstractString
     fipscode::Int64
     level::Int64
+    actuallev::Int64 
     totalv::Array{Int64}
     mortality::Array{Int64,1}
     ppayoff::Array{Float64,1}
