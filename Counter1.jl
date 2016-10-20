@@ -506,32 +506,46 @@ end
 
 
 
-# NB: these numbers give magnitudes which are way too big.
-
+# These may be too big - or they may be fine.  Check them against the means and variances of the medicaid reimbursements for the same years.  
 α₁  29182.967
 α₂  22167.6375
 α₃  23074.8403
+
+# 385: Neonates - died or transferred to another facility.  -> 789: Neonates died or transferred.
 γ¹₅  34628.8402
 γ₅²  14921.003
 γ₅³  12822.723
+
+# 386: Extreme immaturity or resp. distress syndrome -> 790: Extreme immaturity or resp. distress syndrome.
 γ₆¹  104578.867
 γ₆²  95366.0004
 γ₆³  69353.471
+
+# 387: Prematurity w/ major problems -> 791: Prematurity w/ major problems.
 γ₇¹  34498.5261
 γ₇²  48900.8396
 γ₇³  24639.0552
+
+# 388: Prematurity w/out major problems -> 792: Prematurity w/out major problems.
 γ₈¹  26561.8688
 γ₈²  20895.5001
 γ₈³  29775.8381
+
+# 389: Full Term Neonate w/ major problems -> 793: Full Term Neonate w/ significant Problems
 γ₉¹  20653.5821
 γ₉²  20102.2097
 γ₉³  8279.774
+
+# 390: Neonate Significant Problems -> 794: Neonate w/ other significant problems.
 γ₀¹  7372.3301
 γ₀²  2514.8717
 γ₀³  26113.4462
+
+# 391: Normal Newborn.  -> 795: Normal neonate, bwt > 2499 g.
 γ₁¹  27018.9915
 γ₁²  15079.2889
 γ₁³  1912.7285
+
 ϕ12  115855.8434
 ϕ13  216801.3608
 ϕ1EX  -6509.848
