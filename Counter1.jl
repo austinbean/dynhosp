@@ -140,6 +140,52 @@ function FindVLBW(demand::Dict{Int64,ProjectModule.LBW}, Tex::EntireState, fids:
 end
 
 
+"""
+`MeanCost{T<:Real}(count::T, level::Int; parameters...)`
+Should take a patient count T (of transferred patients) and return some quantity of revenue to
+be subtracted from the profit of the function.  This will weight these costs according to the
+conditional distribution of DRG's in 2005 between 385 and 390 (not 391).  Other assumptions could
+be made but this is a start.
+"""
+function MeanCost{T<:Real}(count::T, level::Int ; alf1::Float64 = 29182.967,
+                                                  alf2::Float64 = 22167.6375,
+                                                  alf3::Float64 = 23074.8403,
+                                                  gamma_1_385::Float64 = 34628.8402,
+                                                  gamma_2_385::Float64 = 14921.003,
+                                                  gamma_3_385::Float64 = 12822.723,
+                                                  gamma_1_386::Float64 = 104578.867,
+                                                  gamma_2_386::Float64 = 95366.0004,
+                                                  gamma_3_386::Float64 = 69353.471,
+                                                  gamma_1_387::Float64 = 34498.5261,
+                                                  gamma_2_387::Float64 = 48900.8396,
+                                                  gamma_3_387::Float64 = 24639.0552,
+                                                  gamma_1_388::Float64 = 26561.8688,
+                                                  gamma_2_388::Float64 = 20895.5001,
+                                                  gamma_3_388::Float64 = 29775.8381,
+                                                  gamma_1_389::Float64 = 20653.5821,
+                                                  gamma_2_389::Float64 = 20102.2097,
+                                                  gamma_3_389::Float64 = 8279.774,
+                                                  gamma_1_390::Float64 = 7372.3301,
+                                                  gamma_2_390::Float64 = 2514.8717,
+                                                  gamma_3_390::Float64 = 26113.4462,
+                                                  gamma_1_391::Float64 = 27018.9915,
+                                                  gamma_2_391::Float64 = 15079.2889,
+                                                  gamma_3_391::Float64 = 1912.7285,
+                                                  weight385::Float64 = 0.065,
+                                                  weight386::Float64 = 0.089,
+                                                  weight387::Float64 = 0.073,
+                                                  weight388::Float64 = 0.161,
+                                                  weight389::Float64 = 0.16,
+                                                  weight390::Float64 = 0.45)
+  if level == 1
+    #TODO - this is incomplete - no revenue is being subtracted yet.  
+    return count*(weight385*gamma_1_385 + weight386*gamma_1_386 + weight387*gamma_1_387 + weight388*gamma_1_388 + weight389*gamma_1_389 + weight390*gamma_1_390)
+  elseif level == 2
+     return count*(weight385*gamma_2_385 + weight386*gamma_2_386 + weight387*gamma_2_387 + weight388*gamma_2_388 + weight389*gamma_2_389 + weight390*gamma_2_390)
+  else level == 3
+    return count*(weight385*gamma_3_385 + weight386*gamma_3_386 + weight387*gamma_3_387 + weight388*gamma_3_388 + weight389*gamma_3_389 + weight390*gamma_3_390)
+  end
+end
 
 
 """
@@ -222,19 +268,19 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510))
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520)
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
+            # TODO: compute the death rate among higher weight babies for fairness, perhaps?
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
-            #FIXME - this is definitely wrong.  Some of these patients are not showing up.  Subtract some amount of the profit.
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] - MeanCost(mappeddemand[k].bt1015 + mappeddemand[k].bt510,1))
             mortcount += 0
           end
           for k in hasfac
             sharedvlbw = FindVLBW(mappeddemand, Tex, hasfac)
-            #TODO - this is wrong.  Mappeddemand is NICU admits, NOT all of the demand.
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+            # TODO: add the extra profit here.
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] + )
             mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
           end
           res.hist[el].values[currentfac[el]].yeartot = mortcount
@@ -506,7 +552,7 @@ end
 
 
 
-# These may be too big - or they may be fine.  Check them against the means and variances of the medicaid reimbursements for the same years.  
+# These may be too big - or they may be fine.  Check them against the means and variances of the medicaid reimbursements for the same years.
 α₁  29182.967
 α₂  22167.6375
 α₃  23074.8403
