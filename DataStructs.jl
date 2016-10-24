@@ -248,7 +248,7 @@ end
 Takes a hospital, returns the choices available at that level as vectors.
 e.g., returns the numbered choices available to it.
 """
-function ChoicesAvailable(h::hospital)
+function ChoicesAvailable{T<:Fac}(h::T)
   if h.level == 1
     return [10 2 1 11]
   elseif h.level == 2
