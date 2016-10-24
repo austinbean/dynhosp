@@ -76,6 +76,14 @@ module ProjectModule
     level31525::Int64
   end
 
+  function Base.isequal(n1::neighbors, n2::neighbors)::Bool
+    n1.level105 == n2.level105 && n1.level205 == n2.level205 && n1.level305 == n2.level305 && n1.level1515 == n2.level1515 && n1.level2515 == n2.level2515 && n1.level3515 == n2.level3515 && n1.level11525 == n2.level11525 && n1.level21525 == n2.level21525 && n1.level31525 == n2.level31525
+  end
+
+  function Base.hash(n1::neighbors)
+    hash((n1.level105, n1.level205, n1.level305, n1.level1515, n1.level2515, n1.level3515, n1.level11525, n1.level21525, n1.level31525) )
+  end
+
   abstract Fac
 
 
@@ -107,7 +115,7 @@ module ProjectModule
     name::AbstractString
     fipscode::Int64
     level::Int64
-    actuallev::Int64 
+    actuallev::Int64
     totalv::Array{Int64}
     mortality::Array{Int64,1}
     ppayoff::Array{Float64,1}
