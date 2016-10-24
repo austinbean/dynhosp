@@ -67,6 +67,7 @@ TexasEq = MakeNew(ProjectModule.fips, ProjectModule.data05)
 function DynStateCreate( Tex::EntireState )
   outp = DynState(Array{simh,1}())
   for k1 in keys(Tex.mkts)
+    println(k1)
     for hk in keys(Tex.mkts[k1].collection)
       newsimh = simh(Tex.mkts[k1].collection[hk].fid,
                      Tex.mkts[k1].collection[hk].level,
@@ -74,18 +75,25 @@ function DynStateCreate( Tex::EntireState )
                      Dict{neighbors,hstate}(),
                      Array{shortrec,1}(),
                      false)
-      for hk2 in keys(Tex.mkts[k1].collection)
-        if hk2 != hk
-          push!(newsimh.ns, shortrec(Tex.mkts[k1].collection[hk2].fid,
-                                     Tex.mkts[k1].collection[hk2].lat,
-                                     Tex.mkts[k1].collection[hk2].long,
-                                     Tex.mkts[k1].collection[hk2].level,
-                                     Tex.mkts[k1].collection[hk2].level,
-                                     neighbors(0,0,0,0,0,0,0,0,0),
-                                     ChoicesAvailable(Tex.mkts[k1].collection[hk2]),
-                                     Tex.mkts[k1].collection[hk2].chprobability))
+      println("Bef  ", Tex.mkts[k1].collection[hk].fid, "   ", size(newsimh.ns))
+      # TODO - here fix the fact that this is ONLY within county.  That's the issue.
+      for k2 in keys(Tex.mkts)
+        for hk2 in keys(Tex.mkts[k2].collection)
+          if hk2 != hk
+            if distance(Tex.mkts[k1].collection[hk].lat, Tex.mkts[k1].collection[hk].long , Tex.mkts[k2].collection[hk2].lat , Tex.mkts[k2].collection[hk2].long) < 25 #check distance
+              push!(newsimh.ns, shortrec(Tex.mkts[k2].collection[hk2].fid,
+                                         Tex.mkts[k2].collection[hk2].lat,
+                                         Tex.mkts[k2].collection[hk2].long,
+                                         Tex.mkts[k2].collection[hk2].level,
+                                         Tex.mkts[k2].collection[hk2].level,
+                                         neighbors(0,0,0,0,0,0,0,0,0),
+                                         ChoicesAvailable(Tex.mkts[k2].collection[hk2]),
+                                         Tex.mkts[k2].collection[hk2].chprobability))
+            end
+          end
         end
       end
+      println("Aft  ",Tex.mkts[k1].collection[hk].fid, "   ", size(newsimh.ns))
       # NB: Here iterate over newsimh to append records of neighbors.
       for el in newsimh.ns
         for el2 in newsimh.ns
