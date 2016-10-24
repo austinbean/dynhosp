@@ -63,7 +63,7 @@ end
 
 
 """
-`Payoff(hos::hospital; params = [])`
+`Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64}; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
 """
 function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} ;
