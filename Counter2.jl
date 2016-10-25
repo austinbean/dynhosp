@@ -184,24 +184,15 @@ Take the simh hospital record, get some action choice by the other firms, update
 Return the state, probably.
 """
 function GetProb(s::simh)
-# Think about HospUpdate for this one.
   for el in s.ns
     action = sample( ChoicesAvailable(el), el.chprobs )                            # Take the action
     di = distance(el.lat, el.long, s.lat, s.long)
-    levl = (-1,-1)
-    if el.level == 1
-      levl = (0,0)
-    elseif el.level == 2
-      levl = (1,0)
-    else # == 3
-      levl = (0,1)
-    end
     if action == 1
       el.level = 3
       el.choices = ChoicesAvailable(el)
       levels = MktSize(el.ns)
-      # will surely need a conversion here.
-      el.chprobs = WeightVec(logitest(levl, levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ]))
+      # NB: this is not working exactly correctly since some of these levels are negative!
+      el.chprobs = WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
       if (di>0)&(di<5)
         s.cns.level305 += 1
         s.cns.level105 -= 1
@@ -218,7 +209,7 @@ function GetProb(s::simh)
       el.level = 2
       el.choices = ChoicesAvailable(el)
       levels = MktSize(el.ns)
-      el.chprobs =WeightVec(logitest(levl, levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ]))
+      el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
       if (di>0)&(di<5)
         s.cns.level205 += 1
         s.cns.level105 -= 1
@@ -235,7 +226,7 @@ function GetProb(s::simh)
       el.level = 2
       el.choices = ChoicesAvailable(el)
       levels = MktSize(el.ns)
-      el.chprobs =WeightVec(logitest(levl, levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ]))
+      el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
       if (di>0)&(di<5)
         s.cns.level205 += 1
         s.cns.level305 -= 1
@@ -252,7 +243,7 @@ function GetProb(s::simh)
       el.level = 1
       el.choices = ChoicesAvailable(el)
       levels = MktSize(el.ns)
-      el.chprobs =WeightVec(logitest(levl, levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ]))
+      el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
       if (di>0)&(di<5)
         s.cns.level105 += 1
         s.cns.level305 -= 1
@@ -269,7 +260,7 @@ function GetProb(s::simh)
       el.level = 1
       el.choices = ChoicesAvailable(el)
       levels = MktSize(el.ns)
-      el.chprobs =WeightVec(logitest(levl, levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ]))
+      el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
       if (di>0)&(di<5)
         s.cns.level105 += 1
         s.cns.level205 -= 1
@@ -286,7 +277,7 @@ function GetProb(s::simh)
       el.level = 3
       el.choices = ChoicesAvailable(el)
       levels = MktSize(el.ns)
-      el.chprobs =WeightVec(logitest(levl, levels[1], levels[2], levels[3], [el.cns.level105; el.cns.level205; el.cns.level305; el.cns.level1515; el.cns.level2515; el.cns.level3515; el.cns.level11525; el.cns.level21525; el.cns.level31525 ]))
+      el.chprobs =WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.cns.level105; el.cns.level205; el.cns.level305; el.cns.level1515; el.cns.level2515; el.cns.level3515; el.cns.level11525; el.cns.level21525; el.cns.level31525 ])))
       if (di>0)&(di<5)
         s.cns.level305 += 1
         s.cns.level205 -= 1
@@ -336,6 +327,41 @@ function GetProb(s::simh)
     end
   end
 end
+
+
+
+
+
+
+"""
+`GetProbCheck(d::DynState)`
+Just simulates the function `GetProb` and tries to figure out whether it's working.
+I'd like to know whether the ns actually changes and whether the neighbors get updated...
+How am I going to do that?
+"""
+function GetProbCheck(d::DynState; nsim = 50, fi = ProjectModule.fips, da = ProjectModule.data05)
+  d2 = DynStateCreate(MakeNew(fi, da))
+  for i = 1:nsim
+    for el in d.all
+      GetProb(el)
+    end
+  end
+  for el2 in d2.all
+    for el in d.all
+      if el.fid == el2.fid
+        println("********")
+        println(typeof(el))
+        println(typeof(el2))
+        println(el.cns)
+        println(el2.cns)
+      end
+    end
+  end
+end
+
+
+
+
 
 
 """
