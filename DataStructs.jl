@@ -528,7 +528,7 @@ end
 `HospUpdate(hosp::hospital, choice::Int; update = false)`
 Takes a hospital record and updates the probabilities of the choices.
 """
-function HospUpdate(hosp::hospital, choice::Int; update = false)
+function HospUpdate{T<:Fac}(hosp::T, choice::Int; update = false)
   levl = (-1, -1)
  if (hosp.level!=choice)|update # want to be able to force this to rerun when the data is cleaned again.
    if choice != -999
