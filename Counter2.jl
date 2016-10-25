@@ -75,12 +75,11 @@ function DynStateCreate( Tex::EntireState )
                      Dict{neighbors,hstate}(),
                      Array{shortrec,1}(),
                      false)
-      println("Bef  ", Tex.mkts[k1].collection[hk].fid, "   ", size(newsimh.ns))
-      # TODO - here fix the fact that this is ONLY within county.  That's the issue.
       for k2 in keys(Tex.mkts)
         for hk2 in keys(Tex.mkts[k2].collection)
           if hk2 != hk
-            if distance(Tex.mkts[k1].collection[hk].lat, Tex.mkts[k1].collection[hk].long , Tex.mkts[k2].collection[hk2].lat , Tex.mkts[k2].collection[hk2].long) < 25 #check distance
+            d1 = distance(Tex.mkts[k1].collection[hk].lat, Tex.mkts[k1].collection[hk].long , Tex.mkts[k2].collection[hk2].lat , Tex.mkts[k2].collection[hk2].long)
+            if d1 < 25 #check distance
               push!(newsimh.ns, shortrec(Tex.mkts[k2].collection[hk2].fid,
                                          Tex.mkts[k2].collection[hk2].lat,
                                          Tex.mkts[k2].collection[hk2].long,
@@ -93,8 +92,6 @@ function DynStateCreate( Tex::EntireState )
           end
         end
       end
-      println("Aft  ",Tex.mkts[k1].collection[hk].fid, "   ", size(newsimh.ns))
-      # NB: Here iterate over newsimh to append records of neighbors.
       for el in newsimh.ns
         for el2 in newsimh.ns
           if el.fid != el2.fid
@@ -131,6 +128,49 @@ function DynStateCreate( Tex::EntireState )
   end
   return outp
 end
+
+
+
+# Function to check the facilities with no neighbors:
+"""
+`NCheck(d::DynState, e::EntireState)`
+This function just prints out the records of hospitals which have one or two neighbors to check them against
+the same record for the same hospital in the EntireState record type.    Solely for debugging purposes.
+"""
+function NCheck(d::DynState, e::EntireState)
+  for el in d.all
+    if size(el.ns,1)<2
+      println("*************************")
+      println(el.fid)
+      println(el.ns)
+      println(e.mkts[e.fipsdirectory[el.fid]].collection[el.fid].hood)
+    end
+  end
+end
+
+
+"""
+`GetProb`
+
+"""
+
+
+"""
+`Simulate(d::DynState)`
+This should take a dynamic state, as generated above in `DynStateCreate` and do a simulation.
+What does that mean?
+- Start in some state for each firm
+- Choose actions by the other firms in the simh.ns
+- Compute the demand and the return for the simulating hospital
+- Write out the return to this, updating the estimate of the return at that state.
+"""
+function Simulate(d::DynState)
+
+
+
+end
+
+
 
 
 # The "Payoff" function in counter 1 gets the profit
