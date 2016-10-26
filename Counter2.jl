@@ -27,6 +27,8 @@ type hstate
   actprobs::Array{Float64,1}
 end
 
+
+#NB: here include a bool for "update" - that will track that some facility should be updated among the patients.
 type shortrec<:ProjectModule.Fac
   # needs to take location.  must measure distances.  need to update all of these every time, probably.
   fid::Int64
@@ -37,9 +39,10 @@ type shortrec<:ProjectModule.Fac
   ns::neighbors
   choices::Array{Int64, 2}
   chprobs::WeightVec
+  tbu::Bool
 end
 
-
+#NB: here include a boolean that some facility should be updated among the patients.
 type simh<:ProjectModule.Fac
   fid::Int64
   lat::Float64
@@ -50,6 +53,7 @@ type simh<:ProjectModule.Fac
   visited::Dict{neighbors, hstate} #possible given "isequal" and "hash" extended for "neighbors"
   ns::Array{shortrec, 1}
   exit::Bool
+  tbu::Bool
 end
 
 
@@ -58,13 +62,22 @@ type DynState # this should hold a collection of ALL of the hospitals, for the a
 end
 
 
+#NB: It may be easiest eventually to put this collection directly in the simh.
 
-#=
-NB: a different way to do demand is necessary.  How about this: for each simh hospital, pick any zip code for which it is
-part of the choice set.  Write those guys out to a collection of patients corresponding to that hospital.  For each hospital
-in DynState, simulate those choices.  Their utilities can be updated with what's in simh.ns.
+type cpats
+  zp::Int64
+  lat::Float64
+  long::Float64
+  putils::Array{Float64,2}
+  mutils::Array{Float64,2}
+  pcounts::patientcount
+  mcounts::patientcount
+end
 
-=#
+type cmkt
+  fid::Int64
+  m::Array{cpats,1}
+end
 
 
 """
@@ -88,6 +101,7 @@ function DynStateCreate( Tex::EntireState )
                      neighbors(0,0,0,0,0,0,0,0,0),
                      Dict{neighbors,hstate}(),
                      Array{shortrec,1}(),
+                     false,
                      false)
       for k2 in keys(Tex.mkts)
         for hk2 in keys(Tex.mkts[k2].collection)
@@ -101,7 +115,8 @@ function DynStateCreate( Tex::EntireState )
                                          Tex.mkts[k2].collection[hk2].level,
                                          neighbors(0,0,0,0,0,0,0,0,0),
                                          ChoicesAvailable(Tex.mkts[k2].collection[hk2]),
-                                         Tex.mkts[k2].collection[hk2].chprobability))
+                                         Tex.mkts[k2].collection[hk2].chprobability,
+                                         false))
               if (d1>0)&(d1<5)
                 if Tex.mkts[k2].collection[hk2].level == 1
                   newsimh.cns.level105 += 1
@@ -170,6 +185,30 @@ function DynStateCreate( Tex::EntireState )
 end
 
 
+"""
+`DynPatients(p::patientcollection, f::fid)`
+This will take a collection of patients and create a cmkt, which is a vector of
+cpats.  That is, it will take every zip for which `f` is an option, then create
+the collection of patients for those zips.
+"""
+function DynPatients(p::patientcollection, f::Int64 )
+  outp = cmkt(f, Array{cpats,1}())
+  zpc = PatientFind(p, f)
+  for el in zipc
+    push!(outp.m, cpats(el,
+                  p.zips[el].lat,
+                  p.zips[el].long,
+                  DetUtils(p.zips[el]), # write this - use hcat
+                  DetUtils(p.zips[el]),
+                  patients...,
+                  patients... )
+  end
+  return outp
+end
+
+
+
+
 
 """
 `NCheck(d::DynState, e::EntireState)`
@@ -218,6 +257,7 @@ function GetProb(s::simh)
         else #nothing here
           #nothing
         end
+        el.tbu = true
       elseif action == 2
         el.level = 2
         el.choices = ChoicesAvailable(el)
@@ -235,6 +275,7 @@ function GetProb(s::simh)
         else #nothing here
           #nothing
         end
+        el.tbu = true
       elseif action == 3
         el.level = 2
         el.choices = ChoicesAvailable(el)
@@ -252,6 +293,7 @@ function GetProb(s::simh)
         else #nothing here
           #nothing
         end
+        el.tbu = true
       elseif action == 4
         el.level = 1
         el.choices = ChoicesAvailable(el)
@@ -269,6 +311,7 @@ function GetProb(s::simh)
         else #nothing here
           #nothing
         end
+        el.tbu = true
       elseif action == 5
         el.level = 1
         el.choices = ChoicesAvailable(el)
@@ -286,6 +329,7 @@ function GetProb(s::simh)
         else #nothing here
           #nothing
         end
+        el.tbu = true
       elseif action == 6
         el.level = 3
         el.choices = ChoicesAvailable(el)
@@ -303,6 +347,7 @@ function GetProb(s::simh)
         else #nothing here
           #nothing
         end
+        el.tbu = true
       elseif action == 11
         if el.level == 1
           if (di>0)&(di<5)
@@ -336,6 +381,7 @@ function GetProb(s::simh)
           end
         end
         el.level = -999
+        el.tbu = true
       else # action == 10 - "do nothing" (recall that 7,8,9 were entry actions)
         #nothing.
       end
@@ -414,6 +460,10 @@ function PatientFind(s::patientcollection, f::Int64)
   end
   return outp
 end
+
+
+
+
 
 
 
