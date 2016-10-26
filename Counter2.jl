@@ -74,6 +74,7 @@ And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
 TexasEq = MakeNew(ProjectModule.fips, ProjectModule.data05);
+dyn = DynStateCreate(TexasEq);
 """
 function DynStateCreate( Tex::EntireState )
   outp = DynState(Array{simh,1}())
@@ -130,6 +131,7 @@ function DynStateCreate( Tex::EntireState )
           end
         end
       end
+      # This functionality now duplicated by FixNN(s::simh) below.
       for el in newsimh.ns
         for el2 in newsimh.ns
           if el.fid != el2.fid
@@ -190,152 +192,228 @@ end
 `GetProb(s::simh)`
 Take the simh hospital record, get some action choice by the other firms, update their choices and records.
 Return the state, probably.
+NB: this does not include the possibility of entry so far.
 """
 function GetProb(s::simh)
+  #TODO - eventually this should allow entry too.
   for el in s.ns
-    action = sample( ChoicesAvailable(el), el.chprobs )                            # Take the action
-    di = distance(el.lat, el.long, s.lat, s.long)
-    if action == 1
-      el.level = 3
-      el.choices = ChoicesAvailable(el)
-      levels = MktSize(el.ns)
-      # NB: this is not working exactly correctly since some of these levels are negative!
-      el.chprobs = WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-      if (di>0)&(di<5)
-        s.cns.level305 += 1
-        s.cns.level105 -= 1
-      elseif (di>=5)&(di<15)
-        s.cns.level3515 += 1
-        s.cns.level1515 -= 1
-      elseif (di>=15)&(di<25)
-        s.cns.level31525 += 1
-        s.cns.level11525 -= 1
-      else #nothing here
-        #nothing
-      end
-    elseif action == 2
-      el.level = 2
-      el.choices = ChoicesAvailable(el)
-      levels = MktSize(el.ns)
-      el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-      if (di>0)&(di<5)
-        s.cns.level205 += 1
-        s.cns.level105 -= 1
-      elseif (di>=5)&(di<15)
-        s.cns.level2515 += 1
-        s.cns.level1515 -= 1
-      elseif (di>=15)&(di<25)
-        s.cns.level21525 += 1
-        s.cns.level11525 -= 1
-      else #nothing here
-        #nothing
-      end
-    elseif action == 3
-      el.level = 2
-      el.choices = ChoicesAvailable(el)
-      levels = MktSize(el.ns)
-      el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-      if (di>0)&(di<5)
-        s.cns.level205 += 1
-        s.cns.level305 -= 1
-      elseif (di>=5)&(di<15)
-        s.cns.level2515 += 1
-        s.cns.level3515 -= 1
-      elseif (di>=15)&(di<25)
-        s.cns.level21525 += 1
-        s.cns.level31525 -= 1
-      else #nothing here
-        #nothing
-      end
-    elseif action == 4
-      el.level = 1
-      el.choices = ChoicesAvailable(el)
-      levels = MktSize(el.ns)
-      el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-      if (di>0)&(di<5)
-        s.cns.level105 += 1
-        s.cns.level305 -= 1
-      elseif (di>=5)&(di<15)
-        s.cns.level1515 += 1
-        s.cns.level3515 -= 1
-      elseif (di>=15)&(di<25)
-        s.cns.level11525 += 1
-        s.cns.level31525 -= 1
-      else #nothing here
-        #nothing
-      end
-    elseif action == 5
-      el.level = 1
-      el.choices = ChoicesAvailable(el)
-      levels = MktSize(el.ns)
-      el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-      if (di>0)&(di<5)
-        s.cns.level105 += 1
-        s.cns.level205 -= 1
-      elseif (di>=5)&(di<15)
-        s.cns.level1515 += 1
-        s.cns.level2515 -= 1
-      elseif (di>=15)&(di<25)
-        s.cns.level11525 += 1
-        s.cns.level21525 -= 1
-      else #nothing here
-        #nothing
-      end
-    elseif action == 6
-      el.level = 3
-      el.choices = ChoicesAvailable(el)
-      levels = MktSize(el.ns)
-      el.chprobs =WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.cns.level105; el.cns.level205; el.cns.level305; el.cns.level1515; el.cns.level2515; el.cns.level3515; el.cns.level11525; el.cns.level21525; el.cns.level31525 ])))
-      if (di>0)&(di<5)
-        s.cns.level305 += 1
-        s.cns.level205 -= 1
-      elseif (di>=5)&(di<15)
-        s.cns.level3515 += 1
-        s.cns.level2515 -= 1
-      elseif (di>=15)&(di<25)
-        s.cns.level31525 += 1
-        s.cns.level21525 -= 1
-      else #nothing here
-        #nothing
-      end
-    elseif action == 11
-      if el.level == 1
+    if el.level != -999
+      action = sample(ChoicesAvailable(el), el.chprobs )                            # Take the action
+      di = distance(el.lat, el.long, s.lat, s.long)
+      if action == 1
+        el.level = 3
+        el.choices = ChoicesAvailable(el)
+        levels = MktSize(el.ns)
+        # NB: this is not working exactly correctly since some of these levels are negative!
+        el.chprobs = WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         if (di>0)&(di<5)
+          s.cns.level305 += 1
           s.cns.level105 -= 1
-        elseif (di>=5)&&(di<15)
+        elseif (di>=5)&(di<15)
+          s.cns.level3515 += 1
           s.cns.level1515 -= 1
-        elseif (di>=15)&&(di<25)
+        elseif (di>=15)&(di<25)
+          s.cns.level31525 += 1
           s.cns.level11525 -= 1
-        else #nothing
+        else #nothing here
           #nothing
         end
-      elseif el.level == 2
+      elseif action == 2
+        el.level = 2
+        el.choices = ChoicesAvailable(el)
+        levels = MktSize(el.ns)
+        el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         if (di>0)&(di<5)
-          s.cns.level205 -= 1
-        elseif (di>=5)&&(di<15)
-          s.cns.level2515 -= 1
-        elseif (di>=15)&&(di<25)
-          s.cns.level21525 -= 1
-        else #nothing
+          s.cns.level205 += 1
+          s.cns.level105 -= 1
+        elseif (di>=5)&(di<15)
+          s.cns.level2515 += 1
+          s.cns.level1515 -= 1
+        elseif (di>=15)&(di<25)
+          s.cns.level21525 += 1
+          s.cns.level11525 -= 1
+        else #nothing here
           #nothing
         end
-      else # level is 3
+      elseif action == 3
+        el.level = 2
+        el.choices = ChoicesAvailable(el)
+        levels = MktSize(el.ns)
+        el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         if (di>0)&(di<5)
+          s.cns.level205 += 1
           s.cns.level305 -= 1
-        elseif (di>=5)&&(di<15)
+        elseif (di>=5)&(di<15)
+          s.cns.level2515 += 1
           s.cns.level3515 -= 1
-        elseif (di>=15)&&(di<25)
+        elseif (di>=15)&(di<25)
+          s.cns.level21525 += 1
           s.cns.level31525 -= 1
-        else #nothing
+        else #nothing here
           #nothing
+        end
+      elseif action == 4
+        el.level = 1
+        el.choices = ChoicesAvailable(el)
+        levels = MktSize(el.ns)
+        el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        if (di>0)&(di<5)
+          s.cns.level105 += 1
+          s.cns.level305 -= 1
+        elseif (di>=5)&(di<15)
+          s.cns.level1515 += 1
+          s.cns.level3515 -= 1
+        elseif (di>=15)&(di<25)
+          s.cns.level11525 += 1
+          s.cns.level31525 -= 1
+        else #nothing here
+          #nothing
+        end
+      elseif action == 5
+        el.level = 1
+        el.choices = ChoicesAvailable(el)
+        levels = MktSize(el.ns)
+        el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        if (di>0)&(di<5)
+          s.cns.level105 += 1
+          s.cns.level205 -= 1
+        elseif (di>=5)&(di<15)
+          s.cns.level1515 += 1
+          s.cns.level2515 -= 1
+        elseif (di>=15)&(di<25)
+          s.cns.level11525 += 1
+          s.cns.level21525 -= 1
+        else #nothing here
+          #nothing
+        end
+      elseif action == 6
+        el.level = 3
+        el.choices = ChoicesAvailable(el)
+        levels = MktSize(el.ns)
+        el.chprobs =WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        if (di>0)&(di<5)
+          s.cns.level305 += 1
+          s.cns.level205 -= 1
+        elseif (di>=5)&(di<15)
+          s.cns.level3515 += 1
+          s.cns.level2515 -= 1
+        elseif (di>=15)&(di<25)
+          s.cns.level31525 += 1
+          s.cns.level21525 -= 1
+        else #nothing here
+          #nothing
+        end
+      elseif action == 11
+        if el.level == 1
+          if (di>0)&(di<5)
+            s.cns.level105 -= 1
+          elseif (di>=5)&&(di<15)
+            s.cns.level1515 -= 1
+          elseif (di>=15)&&(di<25)
+            s.cns.level11525 -= 1
+          else #nothing
+            #nothing
+          end
+        elseif el.level == 2
+          if (di>0)&(di<5)
+            s.cns.level205 -= 1
+          elseif (di>=5)&&(di<15)
+            s.cns.level2515 -= 1
+          elseif (di>=15)&&(di<25)
+            s.cns.level21525 -= 1
+          else #nothing
+            #nothing
+          end
+        else # level is 3
+          if (di>0)&(di<5)
+            s.cns.level305 -= 1
+          elseif (di>=5)&&(di<15)
+            s.cns.level3515 -= 1
+          elseif (di>=15)&&(di<25)
+            s.cns.level31525 -= 1
+          else #nothing
+            #nothing
+          end
+        end
+        el.level = -999
+      else # action == 10 - "do nothing" (recall that 7,8,9 were entry actions)
+        #nothing.
+      end
+    end
+    FixNN(s)   # this will correct the "neighbors of the neighbors"
+  end
+end
+
+
+
+"""
+`FixNN(s::simh)`
+For the neighbors in the array for s, make sure their `neighbors` type is correctly
+counted.
+"""
+function FixNN(s::simh)
+  for el1 in s.ns
+    el1.ns = neighbors(0,0,0,0,0,0,0,0,0)
+    for el2 in s.ns
+      if el1.fid != el2.fid
+        dd = distance(el1.lat, el1.long, el2.lat, el2.long)
+        if dd < 25 # should always be true
+          if  (dd>0)&&(dd<5)
+            if el2.level == 1
+              el1.ns.level105 += 1
+            elseif el2.level == 2
+              el1.ns.level205 += 1
+            elseif el2.level == 3
+              el1.ns.level305 += 1
+            else #level == -999 (exited)
+              #nothing.
+            end
+          elseif (dd>=5)&&(dd<15)
+            if el2.level == 1
+              el1.ns.level1515 += 1
+            elseif el2.level == 2
+              el1.ns.level2515 += 1
+            elseif el2.level == 3
+              el1.ns.level3515 += 1
+            else #level == -999 (exited)
+              #nothing.
+            end
+          else (dd>=15)&&(dd<25)
+            if el2.level == 1
+              el1.ns.level11525 += 1
+            elseif el2.level == 2
+              el1.ns.level21525 += 1
+            elseif el2.level == 3
+              el1.ns.level31525 += 1
+            else #level == -999 (exited)
+              #nothing.
+            end
+          end
         end
       end
-    else # action == 10 - "do nothing" (recall that 7,8,9 were entry actions)
-      #nothing.
     end
   end
 end
 
+
+
+"""
+`PatientFind(s::patientcollection, f::fid)`
+Take an entire state type and figure out which zips have that as an option.
+Returns a vector of the zips in which it is possible to choose that one hospital
+denoted by f.
+"""
+function PatientFind(s::patientcollection, f::Int64)
+  outp = Array{Int64,1}()
+  for zipc in keys(s.zips)
+    for fid in keys(s.zips[zipc].facilities)
+      if (fid == f)&(!in(zipc,outp))
+        push!(outp, zipc)
+      end
+    end
+  end
+  return outp
+end
 
 
 
