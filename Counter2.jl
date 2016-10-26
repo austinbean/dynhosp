@@ -59,6 +59,14 @@ end
 
 
 
+#=
+NB: a different way to do demand is necessary.  How about this: for each simh hospital, pick any zip code for which it is
+part of the choice set.  Write those guys out to a collection of patients corresponding to that hospital.  For each hospital
+in DynState, simulate those choices.  Their utilities can be updated with what's in simh.ns.
+
+=#
+
+
 """
 `DynStateCreate(Tex::EntireState)`
 Create the dynamic records from the existing state, don't bother doing it from scratch.
