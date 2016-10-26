@@ -28,7 +28,6 @@ type hstate
 end
 
 
-#NB: here include a bool for "update" - that will track that some facility should be updated among the patients.
 type shortrec<:ProjectModule.Fac
   # needs to take location.  must measure distances.  need to update all of these every time, probably.
   fid::Int64
@@ -42,7 +41,24 @@ type shortrec<:ProjectModule.Fac
   tbu::Bool
 end
 
-#NB: here include a boolean that some facility should be updated among the patients.
+#NB:  this array needs to include the WTP for each facility too!
+type cpats
+  zp::Int64
+  lat::Float64
+  long::Float64
+  putils::Array{Float64,2}
+  mutils::Array{Float64,2}
+  pwtp::Array{Float64,2}
+  pcounts::patientcount
+  mcounts::patientcount
+end
+
+type cmkt
+  fid::Int64
+  m::Array{cpats,1}
+end
+
+
 #NB: When the firm exits, can probably restart from the beginning, but keeping the elements in "visited".  We can keep approximating them.
 type simh<:ProjectModule.Fac
   fid::Int64
@@ -64,24 +80,7 @@ type DynState # this should hold a collection of ALL of the hospitals, for the a
 end
 
 
-#NB: It may be easiest eventually to put this collection directly in the simh.
-#NB:  this array needs to include the WTP for each facility too!
-type cpats
-  zp::Int64
-  lat::Float64
-  long::Float64
-  putils::Array{Float64,2}
-  mutils::Array{Float64,2}
-  pwtp::Array{Float64,2}
-  mwtp::Array{Float64,2}
-  pcounts::patientcount
-  mcounts::patientcount
-end
 
-type cmkt
-  fid::Int64
-  m::Array{cpats,1}
-end
 
 
 """
@@ -91,7 +90,7 @@ And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
 TexasEq = MakeNew(ProjectModule.fips, ProjectModule.data05);
-dyn = DynStateCreate(TexasEq);
+dyn = DynStateCreate(TexasEq, patients);
 """
 function DynStateCreate( Tex::EntireState, p::patientcollection )
   outp = DynState(Array{simh,1}())
@@ -205,8 +204,7 @@ function DynPatients(p::patientcollection, f::Int64 )
                   p.zips[el].long,
                   DetUtils(p.zips[el]; switch = false),
                   DetUtils(p.zips[el]; switch = true),
-                  CounterWTP( ; switch = false), #NB: write this function.
-                  CounterWTP( ; switch = true),
+                  CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]), #NB: bottom row only.
                   p.zips[el].ppatients,
                   p.zips[el].mpatients ) ) #note - this is *not* a copy
   end
@@ -228,10 +226,24 @@ function DetUtils(z::zip; switch::Bool = false)
   end
 end
 
+
+
 """
 `CounterWTP(ar::Array{Float64,2})`
 Will take the output of `DetUtils(z::zipc; switch)` and compute the WTP.
+This only needs to be done for the private patients!
 """
+#FIXME - 1/1-x for x in arr.
+function CounterWTP(ar::Array{Float64,2})
+  denom::Float64 = 0.0
+  for i =1:size(ar,2)
+    denom += (ar[i] = exp(ar[i]))
+  end
+  return log(map(x->(1/(1-x)), ar./denom))
+end
+
+
+
 
 
 """
@@ -334,7 +346,7 @@ function UpdateDUtil(h::simh)
       # Update here!
       # Strategy: look for the fid in each zip record.
       # update if necessary.
-      # call WTP update.  
+      # call WTP update.
     end
   end
 end
