@@ -43,6 +43,7 @@ type shortrec<:ProjectModule.Fac
 end
 
 #NB: here include a boolean that some facility should be updated among the patients.
+#NB: When the firm exits, can probably restart from the beginning, but keeping the elements in "visited".  We can keep approximating them.
 type simh<:ProjectModule.Fac
   fid::Int64
   lat::Float64
@@ -52,6 +53,7 @@ type simh<:ProjectModule.Fac
   cns::neighbors # must know what current neighbors look like.
   visited::Dict{neighbors, hstate} #possible given "isequal" and "hash" extended for "neighbors"
   ns::Array{shortrec, 1}
+  mk::cmkt # putting the cmkt into the simh record itself.
   exit::Bool
   tbu::Bool
 end
@@ -63,13 +65,15 @@ end
 
 
 #NB: It may be easiest eventually to put this collection directly in the simh.
-
+#NB:  this array needs to include the WTP for each facility too!
 type cpats
   zp::Int64
   lat::Float64
   long::Float64
   putils::Array{Float64,2}
   mutils::Array{Float64,2}
+  pwtp::Array{Float64,2}
+  mwtp::Array{Float64,2}
   pcounts::patientcount
   mcounts::patientcount
 end
@@ -89,7 +93,7 @@ Make using
 TexasEq = MakeNew(ProjectModule.fips, ProjectModule.data05);
 dyn = DynStateCreate(TexasEq);
 """
-function DynStateCreate( Tex::EntireState )
+function DynStateCreate( Tex::EntireState, p::patientcollection )
   outp = DynState(Array{simh,1}())
   for k1 in keys(Tex.mkts)
     for hk in keys(Tex.mkts[k1].collection)
@@ -101,6 +105,7 @@ function DynStateCreate( Tex::EntireState )
                      neighbors(0,0,0,0,0,0,0,0,0),
                      Dict{neighbors,hstate}(),
                      Array{shortrec,1}(),
+                     DynPatients(p, Tex.mkts[k1].collection[hk].fid), # should create the patient collection as a subelement of the hospital record.
                      false,
                      false)
       for k2 in keys(Tex.mkts)
@@ -192,7 +197,7 @@ cpats.  That is, it will take every zip for which `f` is an option, then create
 the collection of patients for those zips.  Note that `f` is a FID for a hospital.
 """
 function DynPatients(p::patientcollection, f::Int64 )
-  outp = cmkt(f, Array{cpats,1}())
+  outp::cmkt = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f)
   for el in zpc
     push!(outp.m, cpats(el,
@@ -200,6 +205,8 @@ function DynPatients(p::patientcollection, f::Int64 )
                   p.zips[el].long,
                   DetUtils(p.zips[el]; switch = false),
                   DetUtils(p.zips[el]; switch = true),
+                  CounterWTP( ; switch = false), #NB: write this function.
+                  CounterWTP( ; switch = true),
                   p.zips[el].ppatients,
                   p.zips[el].mpatients ) ) #note - this is *not* a copy
   end
@@ -213,7 +220,7 @@ Returns a 2 x N array of the (fid, utility) pairs from the zipcode z
 Top row will be
 and the bottom row will be
 """
-function DetUtils(z::zip; switch = false)
+function DetUtils(z::zip; switch::Bool = false)
   if switch
     return  hcat([[k, z.pdetutils[k]] for k in keys(z.pdetutils)]...)
   else
@@ -221,85 +228,92 @@ function DetUtils(z::zip; switch = false)
   end
 end
 
+"""
+`CounterWTP(ar::Array{Float64,2})`
+Will take the output of `DetUtils(z::zipc; switch)` and compute the WTP.
+"""
+
 
 """
 `DSim(c::cmkt, f::Int64)`
 This is going to take the collection of patients and the fid and figure out
-how many people choose it.  It's ok fast, but not really fast.  
+how many people choose it.  It's ok fast, but not really fast.
 """
 function DSim(c::cmkt, f::Int64; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   pcount::patientcount = patientcount(0,0,0,0,0,0,0)
   mcount::patientcount = patientcount(0,0,0,0,0,0,0)
   for el in c.m
     # NB: here is a parallel opportunity, maybe?  Sum across the zip codes across cores?  Or a threading opportunity?
+    siz1 = size(el.putils[2,:],1) #siz1 and siz2 should always be the same.
+    siz2 = size(el.mutils[2,:],1)
     for i = 1:el.pcounts.count385
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count385 += 1
       end
     end
     for i = 1:el.pcounts.count386
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count386 += 1
       end
     end
     for i = 1:el.pcounts.count387
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count387 += 1
       end
     end
     for i = 1:el.pcounts.count388
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count388 += 1
       end
     end
     for i = 1:el.pcounts.count389
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count389 += 1
       end
     end
     for i = 1:el.pcounts.count390
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count390 += 1
       end
     end
     for i = 1:el.pcounts.count391
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
         pcount.count391 += 1
       end
     end
     #NB: Medicaid patients here:
     for i = 1:el.mcounts.count385
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count385 += 1
       end
     end
     for i = 1:el.mcounts.count386
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count386 += 1
       end
     end
     for i = 1:el.mcounts.count387
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count387 += 1
       end
     end
     for i = 1:el.mcounts.count388
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count388 += 1
       end
     end
     for i = 1:el.mcounts.count389
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count389 += 1
       end
     end
     for i = 1:el.mcounts.count390
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count390 += 1
       end
     end
     for i = 1:el.mcounts.count391
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
         mcount.count391 += 1
       end
     end
@@ -307,6 +321,29 @@ function DSim(c::cmkt, f::Int64; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Dist
   return pcount, mcount
 end
 
+
+
+"""
+`UpdateDUtil()`
+When something in the market changes, the utility must be updated in all zip codes
+for which it can be chosen.
+"""
+function UpdateDUtil(h::simh)
+  for el in h.ns
+    if el.tbu # if this is true
+      # Update here!
+      # Strategy: look for the fid in each zip record.
+      # update if necessary.
+      # call WTP update.  
+    end
+  end
+end
+
+
+
+
+
+#NB: NOTE THAT I will also need WTP at some point.
 
 
 """
