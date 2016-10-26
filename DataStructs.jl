@@ -955,7 +955,7 @@ function WTPMap(pats::patientcollection, Tex::EntireState)
       try
         outp[el]
         if (vals[el]!=1)&!isnan(vals[el])
-          outp[el]+= (1/(1-vals[el]))
+          outp[el]+= log((1/(1-vals[el])))
         end
       catch y # here the issue was that this was catching an "InexactError" but there was no test for it.
         if isa(y, KeyError)
