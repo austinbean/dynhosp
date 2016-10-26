@@ -189,24 +189,123 @@ end
 `DynPatients(p::patientcollection, f::fid)`
 This will take a collection of patients and create a cmkt, which is a vector of
 cpats.  That is, it will take every zip for which `f` is an option, then create
-the collection of patients for those zips.
+the collection of patients for those zips.  Note that `f` is a FID for a hospital.
 """
 function DynPatients(p::patientcollection, f::Int64 )
   outp = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f)
-  for el in zipc
+  for el in zpc
     push!(outp.m, cpats(el,
                   p.zips[el].lat,
                   p.zips[el].long,
-                  DetUtils(p.zips[el]), # write this - use hcat
-                  DetUtils(p.zips[el]),
-                  patients...,
-                  patients... )
+                  DetUtils(p.zips[el]; switch = false),
+                  DetUtils(p.zips[el]; switch = true),
+                  p.zips[el].ppatients,
+                  p.zips[el].mpatients ) ) #note - this is *not* a copy
   end
   return outp
 end
 
 
+"""
+`DetUtils(z::zip)`
+Returns a 2 x N array of the (fid, utility) pairs from the zipcode z
+Top row will be
+and the bottom row will be
+"""
+function DetUtils(z::zip; switch = false)
+  if switch
+    return  hcat([[k, z.pdetutils[k]] for k in keys(z.pdetutils)]...)
+  else
+    return hcat([[k, z.mdetutils[k]] for k in keys(z.mdetutils)]...)
+  end
+end
+
+
+"""
+`DSim(c::cmkt, f::Int64)`
+This is going to take the collection of patients and the fid and figure out
+how many people choose it.  It's ok fast, but not really fast.  
+"""
+function DSim(c::cmkt, f::Int64; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+  pcount::patientcount = patientcount(0,0,0,0,0,0,0)
+  mcount::patientcount = patientcount(0,0,0,0,0,0,0)
+  for el in c.m
+    # NB: here is a parallel opportunity, maybe?  Sum across the zip codes across cores?  Or a threading opportunity?
+    for i = 1:el.pcounts.count385
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count385 += 1
+      end
+    end
+    for i = 1:el.pcounts.count386
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count386 += 1
+      end
+    end
+    for i = 1:el.pcounts.count387
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count387 += 1
+      end
+    end
+    for i = 1:el.pcounts.count388
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count388 += 1
+      end
+    end
+    for i = 1:el.pcounts.count389
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count389 += 1
+      end
+    end
+    for i = 1:el.pcounts.count390
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count390 += 1
+      end
+    end
+    for i = 1:el.pcounts.count391
+      if el.putils[1,indmax( el.putils[2,:] +rand(d, size(el.putils[2,:], 1)) )] == f
+        pcount.count391 += 1
+      end
+    end
+    #NB: Medicaid patients here:
+    for i = 1:el.mcounts.count385
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count385 += 1
+      end
+    end
+    for i = 1:el.mcounts.count386
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count386 += 1
+      end
+    end
+    for i = 1:el.mcounts.count387
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count387 += 1
+      end
+    end
+    for i = 1:el.mcounts.count388
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count388 += 1
+      end
+    end
+    for i = 1:el.mcounts.count389
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count389 += 1
+      end
+    end
+    for i = 1:el.mcounts.count390
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count390 += 1
+      end
+    end
+    for i = 1:el.mcounts.count391
+      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, size(el.mutils[2,:], 1)) )] == f
+        mcount.count391 += 1
+      end
+    end
+  end
+  return pcount, mcount
+end
 
 
 
