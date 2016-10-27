@@ -49,6 +49,7 @@ type cpats
   putils::Array{Float64,2}
   mutils::Array{Float64,2}
   pwtp::Array{Float64,2}
+  facs::Array{shortrec,1}
   pcounts::patientcount
   mcounts::patientcount
 end
@@ -90,6 +91,11 @@ And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
 TexasEq = MakeNew(ProjectModule.fips, ProjectModule.data05);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.data05);
+patients = NewPatients(Tex);
+
 dyn = DynStateCreate(TexasEq, patients);
 """
 function DynStateCreate( Tex::EntireState, p::patientcollection )
@@ -182,6 +188,13 @@ function DynStateCreate( Tex::EntireState, p::patientcollection )
           end
         end
       end
+      for el in newsimh.ns       # these are shortrecs
+        for zp in newsimh.mk.m # these are cpats
+          if in(el.fid, zp.putils[1,:])
+            push!(zp.facs, el) # This should push all of the shortrec types
+          end
+        end
+      end
       push!(outp.all, newsimh)
     end
   end
@@ -204,7 +217,8 @@ function DynPatients(p::patientcollection, f::Int64 )
                   p.zips[el].long,
                   DetUtils(p.zips[el]; switch = false),
                   DetUtils(p.zips[el]; switch = true),
-                  CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]), #NB: bottom row only.
+                  CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]'), #NB: bottom row only.
+                  Array{shortrec,1}(),
                   p.zips[el].ppatients,
                   p.zips[el].mpatients ) ) #note - this is *not* a copy
   end
@@ -233,7 +247,6 @@ end
 Will take the output of `DetUtils(z::zipc; switch)` and compute the WTP.
 This only needs to be done for the private patients!
 """
-#FIXME - 1/1-x for x in arr.
 function CounterWTP(ar::Array{Float64,2})
   denom::Float64 = 0.0
   for i =1:size(ar,2)
@@ -336,17 +349,56 @@ end
 
 
 """
-`UpdateDUtil()`
+`UpdateDUtil(h::simh)`
 When something in the market changes, the utility must be updated in all zip codes
 for which it can be chosen.
+
+At some point call DetUtils to update this.
 """
 function UpdateDUtil(h::simh)
-  for el in h.ns
-    if el.tbu # if this is true
-      # Update here!
-      # Strategy: look for the fid in each zip record.
-      # update if necessary.
-      # call WTP update.
+  for el in h.mk.m
+    for sr in el.facs
+      if sr.tbu # if this is true, the hospital needs updating
+        el.putils[2, findin(el.putils[1,:], sr.fid)] = HUtil(el, sr, true)
+        el.mutils[2, findin(el.mutils[1,:], sr.fid)] = HUtil(el, sr, false)
+      end
+      sr.tbu = false # reset.
+    end
+    if h.tbu # if this is true, the main hosp needs updating
+      el.putils[2, findin(el.putils[1,:], h.fid)] = HUtil(el, h, true)
+      el.mutils[2, findin(el.mutils[1,:], h.fid)] = HUtil(el, h, false)
+    end
+  end
+  h.tbu = false # reset the main hospital.
+end
+
+
+
+"""
+`HUtil{T<:Fac}( c::cpats, sr::T, p_or_m::Bool; pparameters::ProjectModule.coefficients = , mparameters::ProjectModule.coefficients  = )`
+zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0)
+"""
+
+ #NB: START HERE - note that I need to include the fucking beds in the stupid shortrec.  And probably the simh too.  Damn it.
+function HUtil{T<:Fac}(c::cpats, sr::T, p_or_m::Bool;
+               mcoeffs::ProjectModule.coefficients =  coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c),
+               pcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),)
+  d::Float64 = distance(c.lat, c.long, sr.lat, sr.long)
+  if p_or_m # if TRUE private
+    if sr.level == 1
+      return pcoeffs.distance*d + pcoeffs.distsq*(d^2) +
+    elseif sr.level == 2
+      return pcoeffs.distance*d + pcoeffs.distsq*(d^2) +
+    else #sr.level == 3
+      return pcoeffs.distance*d + pcoeffs.distsq*(d^2) +
+    end
+  else
+    if sr.level == 1
+      return mcoeffs.distance*d + mcoeffs.distsq*(d^2) +
+    elseif sr.level == 2
+      return mcoeffs.distance*d + mcoeffs.distsq*(d^2) +
+    else #sr.level == 3
+      return mcoeffs.distance*d + mcoeffs.distsq*(d^2) +
     end
   end
 end
@@ -354,8 +406,6 @@ end
 
 
 
-
-#NB: NOTE THAT I will also need WTP at some point.
 
 
 """
