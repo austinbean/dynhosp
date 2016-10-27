@@ -35,6 +35,7 @@ type shortrec<:ProjectModule.Fac
   long::Float64
   level::Int64
   truelevel::Int64
+  beds::Int64
   ns::neighbors
   choices::Array{Int64, 2}
   chprobs::WeightVec
@@ -67,6 +68,7 @@ type simh<:ProjectModule.Fac
   long::Float64
   level::Int64
   actual::Int64
+  beds::Int64
   cns::neighbors # must know what current neighbors look like.
   visited::Dict{neighbors, hstate} #possible given "isequal" and "hash" extended for "neighbors"
   ns::Array{shortrec, 1}
@@ -85,7 +87,7 @@ end
 
 
 """
-`DynStateCreate(Tex::EntireState)`
+`DynStateCreate(Tex::EntireState, Tex2::EntireState, p::patientcollection )`
 Create the dynamic records from the existing state, don't bother doing it from scratch.
 And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
@@ -97,8 +99,11 @@ FillState(Tex, ProjectModule.data05);
 patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, patients);
+
+Note that the function takes TWO EntireState arguments.  This is super dumb, but
+only one of them (containing hospital types) has the bed counts.
 """
-function DynStateCreate( Tex::EntireState, p::patientcollection )
+function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollection )
   outp = DynState(Array{simh,1}())
   for k1 in keys(Tex.mkts)
     for hk in keys(Tex.mkts[k1].collection)
@@ -107,6 +112,7 @@ function DynStateCreate( Tex::EntireState, p::patientcollection )
                      Tex.mkts[k1].collection[hk].long,
                      Tex.mkts[k1].collection[hk].level,
                      Tex.mkts[k1].collection[hk].level,
+                     convert(Int64, Tex2.mkts[k1].collection[hk].bedcount),
                      neighbors(0,0,0,0,0,0,0,0,0),
                      Dict{neighbors,hstate}(),
                      Array{shortrec,1}(),
@@ -123,6 +129,7 @@ function DynStateCreate( Tex::EntireState, p::patientcollection )
                                          Tex.mkts[k2].collection[hk2].long,
                                          Tex.mkts[k2].collection[hk2].level,
                                          Tex.mkts[k2].collection[hk2].level,
+                                         convert(Int64, Tex2.mkts[k2].collection[hk2].bedcount),
                                          neighbors(0,0,0,0,0,0,0,0,0),
                                          ChoicesAvailable(Tex.mkts[k2].collection[hk2]),
                                          Tex.mkts[k2].collection[hk2].chprobability,
@@ -351,9 +358,8 @@ end
 """
 `UpdateDUtil(h::simh)`
 When something in the market changes, the utility must be updated in all zip codes
-for which it can be chosen.
+for which it can be chosen.  This calls the function HUtil to do the actual update.
 
-At some point call DetUtils to update this.
 """
 function UpdateDUtil(h::simh)
   for el in h.mk.m
@@ -369,40 +375,60 @@ function UpdateDUtil(h::simh)
       el.mutils[2, findin(el.mutils[1,:], h.fid)] = HUtil(el, h, false)
     end
   end
-  h.tbu = false # reset the main hospital.
+  h.tbu = false; # reset the main hospital.
 end
 
 
 
 """
-`HUtil{T<:Fac}( c::cpats, sr::T, p_or_m::Bool; pparameters::ProjectModule.coefficients = , mparameters::ProjectModule.coefficients  = )`
-zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0)
+`HUtil{T<:Fac}( c::cpats, sr::T, p_or_m::Bool; pparameters::ProjectModule.coefficients = ..., mparameters::ProjectModule.coefficients  = ...)`
+Computes the deterministic component of the utility for a hospital - the goal is for this to update the entire cpat list of facilities.
+And I want to do both - I don't want to update either private or medicaid.
 """
 
- #NB: START HERE - note that I need to include the fucking beds in the stupid shortrec.  And probably the simh too.  Damn it.
-function HUtil{T<:Fac}(c::cpats, sr::T, p_or_m::Bool;
+function HUtil{T<:ProjectModule.Fac}(c::cpats, sr::T, p_or_m::Bool;
                mcoeffs::ProjectModule.coefficients =  coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c),
                pcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),)
   d::Float64 = distance(c.lat, c.long, sr.lat, sr.long)
   if p_or_m # if TRUE private
     if sr.level == 1
-      return pcoeffs.distance*d + pcoeffs.distsq*(d^2) +
+      return pcoeffs.distance*d+pcoeffs.distsq*(d^2)+pcoeffs.distbed*(sr.beds*d/100)+pcoeffs.closest*(0)
     elseif sr.level == 2
-      return pcoeffs.distance*d + pcoeffs.distsq*(d^2) +
+      return pcoeffs.distance*d+pcoeffs.distsq*(d^2)+pcoeffs.distbed*(sr.beds*d/100)+pcoeffs.closest*(0)+pcoeffs.inter
     else #sr.level == 3
-      return pcoeffs.distance*d + pcoeffs.distsq*(d^2) +
+      return pcoeffs.distance*d+pcoeffs.distsq*(d^2)+pcoeffs.distbed*(sr.beds*d/100)+pcoeffs.closest*(0)+pcoeffs.inten
     end
   else
     if sr.level == 1
-      return mcoeffs.distance*d + mcoeffs.distsq*(d^2) +
+      return mcoeffs.distance*d+mcoeffs.distsq*(d^2)+mcoeffs.distbed*(sr.beds*d/100)+mcoeffs.closest*(0)
     elseif sr.level == 2
-      return mcoeffs.distance*d + mcoeffs.distsq*(d^2) +
+      return mcoeffs.distance*d+mcoeffs.distsq*(d^2)+mcoeffs.distbed*(sr.beds*d/100)+mcoeffs.closest*(0)+mcoeffs.inter
     else #sr.level == 3
-      return mcoeffs.distance*d + mcoeffs.distsq*(d^2) +
+      return mcoeffs.distance*d+mcoeffs.distsq*(d^2)+mcoeffs.distbed*(sr.beds*d/100)+mcoeffs.closest*(0)+mcoeffs.inten
     end
   end
 end
 
+
+
+"""
+`UpdateCheck(h::simh)`
+Takes a simh record `h` and checks to see whether anyfacility needs updating.
+Note that doing it this way seems to work and is much faster than the function
+`reduce(&, [el.tbu for el in h.ns])` which allocates the array.  
+"""
+function UpdateCheck(h::simh)
+  b::Bool = h.tbu
+  if !b
+    for el in h.ns
+      if el.tbu
+        b = true
+        break
+      end
+    end
+  end
+  return b
+end
 
 
 
