@@ -9,7 +9,7 @@ plotlyjs()   # call PlotljJS backend to Plots.
 #dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
 #dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
 
-dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 100516 243 pm.csv");
+dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 102716 330pm.csv");
 
 dat = convert(Array{Float64,2}, dat)
 
@@ -178,7 +178,7 @@ function MetropolisHastings(initialpr::Vector,
   end
 end # of MetropolisHastings()
 
-const nsims = 10000 #_000
+const nsims = 100_000 #_000
 
 #drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
 guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ];
@@ -199,7 +199,7 @@ end
 # ans1 = GetModes(sim_vals)
 
 # Results to return:
-println("Fraction Accepted ", accept/nsims)
+println("Fraction Accepted ", accepted/nsims)
 println("Count of Numerical Overflow ", overcounter)
 println("Count of Underflow ", undercounter)
 
@@ -207,11 +207,11 @@ function ResultsPrint(x::Array{Float64,1}, start::Array{Float64,1})
   # Take the initial guess and the final value and print them next to the parameter name.
   syms = [:α₁, :α₂, :α₃, :γ¹₅, :γ₅², :γ₅³, :γ₆¹, :γ₆², :γ₆³, :γ₇¹, :γ₇², :γ₇³, :γ₈¹, :γ₈², :γ₈³, :γ₉¹, :γ₉², :γ₉³, :γ₀¹, :γ₀², :γ₀³, :γ₁¹, :γ₁², :γ₁³, :ϕ12, :ϕ13, :ϕ1EX, :ϕ21, :ϕ23, :ϕ2EX, :ϕ31, :ϕ32, :ϕ3EX]
   for el in 1:size(x,1)
-    println( syms[el], "  Initial: ", start[el], "  Final:  ", round(x[el], 2))
+    println( syms[el], "  Initial: ", round(start[el],2), "  Final:  ", round(x[el], 2))
   end
 end
 
-# Re-enter "Guess"
+# NB!! Re-enter "Guess"
 # ResultsPrint(ans1, guess)
 
 
