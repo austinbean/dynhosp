@@ -98,7 +98,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.data05);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients);
 
 Note that the function takes TWO EntireState arguments.  This is super dumb, but
 only one of them (containing hospital types) has the bed counts.
@@ -236,8 +236,8 @@ end
 """
 `DetUtils(z::zip)`
 Returns a 2 x N array of the (fid, utility) pairs from the zipcode z
-Top row will be
-and the bottom row will be
+Top row will be the collection of fids
+and the bottom row will be the utilities themselves.
 """
 function DetUtils(z::zip; switch::Bool = false)
   if switch
@@ -276,6 +276,7 @@ function DSim(c::cmkt, f::Int64; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Dist
   mcount::patientcount = patientcount(0,0,0,0,0,0,0)
   for el in c.m
     # NB: here is a parallel opportunity, maybe?  Sum across the zip codes across cores?  Or a threading opportunity?
+    # Threading possible *per loop* perhaps possible using the Threads.@threads annotation on each one?
     siz1 = size(el.putils[2,:],1) #siz1 and siz2 should always be the same.
     siz2 = size(el.mutils[2,:],1)
     for i = 1:el.pcounts.count385
@@ -415,7 +416,7 @@ end
 `UpdateCheck(h::simh)`
 Takes a simh record `h` and checks to see whether anyfacility needs updating.
 Note that doing it this way seems to work and is much faster than the function
-`reduce(&, [el.tbu for el in h.ns])` which allocates the array.  
+`reduce(&, [el.tbu for el in h.ns])` which allocates the array.
 """
 function UpdateCheck(h::simh)
   b::Bool = h.tbu
