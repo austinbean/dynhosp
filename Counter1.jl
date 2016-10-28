@@ -5,10 +5,10 @@
 
 
 # Create and fill state and Patient collection:
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.data05);
-patients = NewPatients(Tex);
+# Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+# CMakeIt(Tex, ProjectModule.fips);
+# FillState(Tex, ProjectModule.data05);
+# patients = NewPatients(Tex);
 
 
 
@@ -184,6 +184,9 @@ function MeanCost{T<:Real}(count::T, level::Int ; alf1::Float64 = 29182.967,
 end
 
 
+
+
+
 """
 `CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1, reassign::Bool = true)`
 Runs a counterfactual in the following way: for every hospital in every market, it assigns that hospital a level 3, and assigns every other
@@ -267,7 +270,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
             # TODO: compute the death rate among higher weight babies for fairness, perhaps?
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] - MeanCost(mappeddemand[k].bt1015 + mappeddemand[k].bt510,1))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] - MeanCost(mappeddemand[k].bt1015 + mappeddemand[k].bt510,lev))
             mortcount += 0
           end
           for k in hasfac
@@ -276,7 +279,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
             push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] + MeanCost(sharedvlbw[k]))
+            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] + MeanCost(sharedvlbw[k],3) )
             mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
           end
           res.hist[el].values[currentfac[el]].yeartot = mortcount
@@ -486,7 +489,47 @@ end
 
 
 
+"""
+`RunCounter1()`
+Run the first counterfactual and get the results.
+"""
 
+function RunCounter1()
+  Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  CMakeIt(Tex, ProjectModule.fips);
+  FillState(Tex, ProjectModule.data05);
+  patients = NewPatients(Tex);
+  # Run the baseline then run the counter where each county gets a single level 1 and there *are* transfers.
+  bl = Baseline(20, Tex, patients)
+  c1 = CounterSim(20, Tex, patients)
+  outc1 = BestOutcome(c1, bl)
+  SimpleResultsPrint(outc1)
+  # Run the counterfactual where everyone has level 2
+  Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  CMakeIt(Tex, ProjectModule.fips);
+  FillState(Tex, ProjectModule.data05);
+  patients = NewPatients(Tex);
+  c2 = CounterSim(20, Tex, patients; lev = 2)
+  outc2 = BestOutcome(c2, bl)
+
+  return outc1, outc2
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### NB: UNCOMPLETED .... Below this line.
 
 """
 `MortalityGet(baseline::counterhistory)`
