@@ -125,7 +125,8 @@ end
 This function should take the demand, a state and find every VLBW infant in the market and reassign it
 so it will return a Dict with an int for the fid as the key and with the count of VLBW as the value.
 We suppose that redistributed VLBW volume is divided equally among the hospitals with high level facilities,
-however many there are.
+however many there are.  Rounds the volume down to the nearest integer for cases with more than one
+facility.
 """
 function FindVLBW(demand::Dict{Int64,ProjectModule.LBW}, Tex::EntireState, fids::Array{Int64,1})
   numfac::Int64 = size(fids,1)
@@ -136,7 +137,7 @@ function FindVLBW(demand::Dict{Int64,ProjectModule.LBW}, Tex::EntireState, fids:
     totvlbw += demand[k1].bt1015
     demand[k1].bt1015 = 0
   end
-  return outp::Dict{Int64,Int64} = Dict(k => totvlbw/numfac for k in fids)
+  return outp::Dict{Int64,Float64} = Dict(k => round(Int64,totvlbw/numfac) for k in fids)
 end
 
 
@@ -258,7 +259,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
           nofac = Array{Int64,1}()
           hasfac = Array{Int64,1}()
           for fid in keys(Tex.mkts[el].collection)
-            if Tex.mkts[el].collection[fid].level == 1
+            if (Tex.mkts[el].collection[fid].level == 1)||(Tex.mkts[el].collection[fid].level == 2) # track which facilities have what?
               push!(nofac, fid)
             else
                push!(hasfac, fid)
@@ -495,24 +496,54 @@ Run the first counterfactual and get the results.
 """
 
 function RunCounter1()
+  println("Setting up")
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
   # Run the baseline then run the counter where each county gets a single level 1 and there *are* transfers.
+  println("Running Baseline")
   bl = Baseline(20, Tex, patients)
+  println("Running Single Level 3 w/ transfers")
   c1 = CounterSim(20, Tex, patients)
   outc1 = BestOutcome(c1, bl)
   SimpleResultsPrint(outc1)
-  # Run the counterfactual where everyone has level 2
+  # Run the counterfactual where there are no transfers
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
-  c2 = CounterSim(20, Tex, patients; lev = 2)
+  println("Running Single level 3 w/ out transfers")
+  c1nr = CounterSim(20, Tex, patients; reassign = false)
+  outc1nr = BestOutcome(bl, c1nr)
+  # Run the counterfactual where everyone has level 3
+  #TODO - check this that it is working!
+  println("Assigning everyone to level 3")
+  Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  CMakeIt(Tex, ProjectModule.fips);
+  FillState(Tex, ProjectModule.data05);
+  patients = NewPatients(Tex);
+  c3 = CounterSim(10, Tex, patients; lev = 3)
+  outc3all = BestOutcome(bl, c3)
+  # Run the counterfactual where everyone but the special guy has level 2
+  println("assigning everyone except the special fac to level 2")
+  Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  CMakeIt(Tex, ProjectModule.fips);
+  FillState(Tex, ProjectModule.data05);
+  patients = NewPatients(Tex);
+  c2 = CounterSim(10, Tex, patients; lev = 2)
   outc2 = BestOutcome(c2, bl)
+  SimpleResultsPrint(outc2)
+  # Run a counterfactual with everyone at level 1
+  println("Assigning everyone to level 1")
+  #TODO - fix this to make it run.
+  Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  CMakeIt(Tex, ProjectModule.fips);
+  FillState(Tex, ProjectModule.data05);
+  patients = NewPatients(Tex);
 
-  return outc1, outc2
+
+  return outc1, outc1nr, outc3all, outc2, #TODO - one more to add.
 end
 
 
