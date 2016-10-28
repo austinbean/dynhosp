@@ -499,11 +499,17 @@ end
 
 
 """
-`RunCounter1()`
+`RunCounter1(T::Int64)`
 Run the first counterfactual and get the results.
+Specifically - runs a Baseline for T periods.  Then compares to the following scenarios:
+- Forcing single level 3 with transfers
+- Forcing single level 3 w/ out transfers
+ BELOW THIS LINE NOT DONE YET: these require adjusted mortality rates.  Fix `VolMortality` in DataStructs.jl
+- Assigning everyone to level 3
+- Assigning everyone to level 2
+- Assigning everyone to level 1
 """
-
-function RunCounter1()
+function RunCounter1(T::Int64)
   println("Setting up")
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
@@ -511,9 +517,9 @@ function RunCounter1()
   patients = NewPatients(Tex);
   # Run the baseline then run the counter where each county gets a single level 1 and there *are* transfers.
   println("Running Baseline")
-  bl = Baseline(20, Tex, patients)
+  bl = Baseline(T, Tex, patients)
   println("Running Single Level 3 w/ transfers")
-  c1 = CounterSim(20, Tex, patients)
+  c1 = CounterSim(T, Tex, patients)
   outc1 = BestOutcome(c1, bl)
   SimpleResultsPrint(outc1)
   # Run the counterfactual where there are no transfers
@@ -522,8 +528,8 @@ function RunCounter1()
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
   println("Running Single level 3 w/ out transfers")
-  c1nr = CounterSim(20, Tex, patients; reassign = false)
-  outc1nr = BestOutcome(bl, c1nr)
+  c1nr = CounterSim(T, Tex, patients; reassign = false)
+  outc1nr = BestOutcome(c1nr, bl)
   # Run the counterfactual where everyone has level 3 (SetLevel fixes the level.)
   println("*********")
   println("Do not trust these results until the adjusted mortality rate is in use!")
@@ -532,41 +538,39 @@ function RunCounter1()
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
-  c3 = CounterSim(10, Tex, patients; lev = 3)
-  outc3all = BestOutcome(bl, c3)
+  c3 = CounterSim(T, Tex, patients; lev = 3)
+  outc3all = BestOutcome(c3, bl)
   # Run the counterfactual where everyone but the special guy has level 2
   println("assigning everyone except the special fac to level 2")
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
-  c2 = CounterSim(10, Tex, patients; lev = 2)
+  c2 = CounterSim(T, Tex, patients; lev = 2)
   outc2 = BestOutcome(c2, bl)
   SimpleResultsPrint(outc2)
   # Run a counterfactual with everyone at level 1
   println("Assigning everyone to level 1")
-  #TODO - fix this to make it run.
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
-  c2 = CounterSim(10, Tex, patients; lev = 1)
-
-  return outc1, outc1nr, outc3all, outc2, #TODO - one more to add.
+  c2 = CounterSim(T, Tex, patients; lev = 1)
+  outc1all = BestOutcome(c1all, bl)
+  SimpleResultsPrint(outc1all)
+  return outc1, outc1nr, outc3all, outc2, outc1all
 end
 
 
 
+#   RunCounter1()
 
 
 
 
 
 
-
-
-
-
+#=
 
 
 ### NB: UNCOMPLETED .... Below this line.
@@ -704,3 +708,4 @@ end
 ϕ31  85109.5513
 ϕ32  189956.7601
 ϕ3EX  -38939.4797
+=#
