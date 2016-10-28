@@ -307,9 +307,12 @@ This function runs a baseline simulation of mortality rates in each market.  It 
 to reduce the impact that the random component of the choice model has.  It should return a counterhistory for which
 a mortality baseline can be determined.
 Note: run this on a NEW state record unless the levels have been set back to what they were in reality.
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.data05);
 """
 #TODO: check this against some mortality data from NCHS.
-function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
+function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange::Bool = false, level::Int64 = 3)
   res = counterhistory(Dict{Int64, mkthistory}())                                                        # the output - a counterfactual history
   res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))                      # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts)
@@ -323,6 +326,11 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection)
   for i = 1:T                                                                                            # T is now the sim periods, not sequential choices.
     mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
     pdict = Payoff(drgp, drgm, Tex, wtpc)
+    if levelchange                                                                                       # NB: this should permit changing the level of every hospital.
+      for k1 in keys(Tex.mkts)
+        SetLevel(Tex.mkts[k1], 0, level)                                                                 # NB: this will set the level of *everyone* to "level"
+      end
+    end
     for el in keys(Tex.mkts)
       fac = 0
       mortcount = 0.0
@@ -516,8 +524,9 @@ function RunCounter1()
   println("Running Single level 3 w/ out transfers")
   c1nr = CounterSim(20, Tex, patients; reassign = false)
   outc1nr = BestOutcome(bl, c1nr)
-  # Run the counterfactual where everyone has level 3
-  #TODO - check this that it is working!
+  # Run the counterfactual where everyone has level 3 (SetLevel fixes the level.)
+  println("*********")
+  println("Do not trust these results until the adjusted mortality rate is in use!")
   println("Assigning everyone to level 3")
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
@@ -541,7 +550,7 @@ function RunCounter1()
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.data05);
   patients = NewPatients(Tex);
-
+  c2 = CounterSim(10, Tex, patients; lev = 1)
 
   return outc1, outc1nr, outc3all, outc2, #TODO - one more to add.
 end
