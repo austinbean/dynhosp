@@ -224,7 +224,7 @@ function DynPatients(p::patientcollection, f::Int64 )
                   p.zips[el].long,
                   DetUtils(p.zips[el]; switch = false),
                   DetUtils(p.zips[el]; switch = true),
-                  CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]'), #NB: bottom row only.
+                  vcat(transpose(DetUtils(p.zips[el]; switch = false)[1,:]), transpose(CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]))), #NB: bottom row only.
                   Array{shortrec,1}(),
                   p.zips[el].ppatients,
                   p.zips[el].mpatients ) ) #note - this is *not* a copy
@@ -254,12 +254,37 @@ end
 Will take the output of `DetUtils(z::zipc; switch)` and compute the WTP.
 This only needs to be done for the private patients!
 """
-function CounterWTP(ar::Array{Float64,2})
+function CounterWTP(ar::Array{Float64})
   denom::Float64 = 0.0
-  for i =1:size(ar,2)
+  for i =1:maximum(size(ar)) #might be a problem for one choice.
+    # try exp(ar[i])
+    # catch y
+    #   println(y)
+    #   if y == DomainError
+    #     println(ar[i])
+    #   end
+    # end
     denom += (ar[i] = exp(ar[i]))
   end
   return log(map(x->(1/(1-x)), ar./denom))
+end
+
+#TODO - this needs to be fixed so that it returns the FID too.
+
+
+"""
+`StartingVals(h::simh)`
+This will generate a set of starting values for the hospitals in the market.
+Idea - just take the PDV of one period's profit.
+"""
+function StartingVals(h::simh)
+  dmp, dmm = DSim(h.mk, h.fid)
+  #TODO - need to compute WTP for the hospital in these markets!
+  SinglePay(h, dmp, dmm)
+  # TODO - need to cmpute the same for other facilities.  Probably is worth it to update the
+  # utilities, recompute demand, etc.  Then reset.
+  # Value of exit can be initialized to 0, which is fine.
+
 end
 
 
@@ -742,6 +767,48 @@ end
 
 
 
+"""
+`SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
+Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
+"""
+function SinglePay(s::simh,
+                    mpats::ProjectModule.patientcount,
+                    ppats::ProjectModule.patientcount;
+                    alf1::Float64 = 29182.967,
+                    alf2::Float64 = 22167.6375,
+                    alf3::Float64 = 23074.8403,
+                    gamma_1_385::Float64 = 34628.8402,
+                    gamma_2_385::Float64 = 14921.003,
+                    gamma_3_385::Float64 = 12822.723,
+                    gamma_1_386::Float64 = 104578.867,
+                    gamma_2_386::Float64 = 95366.0004,
+                    gamma_3_386::Float64 = 69353.471,
+                    gamma_1_387::Float64 = 34498.5261,
+                    gamma_2_387::Float64 = 48900.8396,
+                    gamma_3_387::Float64 = 24639.0552,
+                    gamma_1_388::Float64 = 26561.8688,
+                    gamma_2_388::Float64 = 20895.5001,
+                    gamma_3_388::Float64 = 29775.8381,
+                    gamma_1_389::Float64 = 20653.5821,
+                    gamma_2_389::Float64 = 20102.2097,
+                    gamma_3_389::Float64 = 8279.774,
+                    gamma_1_390::Float64 = 7372.3301,
+                    gamma_2_390::Float64 = 2514.8717,
+                    gamma_3_390::Float64 = 26113.4462,
+                    gamma_1_391::Float64 = 27018.9915,
+                    gamma_2_391::Float64 = 15079.2889,
+                    gamma_3_391::Float64 = 1912.7285 ) # params
+    outp::Float64 = 0.0
+    if s.level == 1
+      outp = alf1*wtp[k]*(sum(ppats)+sum(mpats)) - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
+    elseif s.level == 2
+      outp = alf2*wtp[k]*(sum(ppats)+sum(mpats)) - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
+    else # level is 3
+      outp = alf3*wtp[k]*(sum(ppats)+sum(mpats)) - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
+    end
+    return
+end
+
 
 # The "Payoff" function in counter 1 gets the profit
 
@@ -750,9 +817,8 @@ end
 Computes the return (current profit + expected continuation) for each hospital in the state.
 """
 function ComputeR(hosp::simh,
-                  ppats::Dict{Int64, ProjectModule.patientcount},
-                  mpats::Dict{Int64, ProjectModule.patientcount},
-                  Tex::EntireState,
+                  ppats::patientcount,
+                  mpats::patientcount,
                   wtp::Dict{Int64,Float64} ;
                   disc::Float64 = 0.95)
   #NB: all of this can be updated in place, I think.
