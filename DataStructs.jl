@@ -840,16 +840,16 @@ end
 
 
 """
-`SetLevel(mkt::Market, fid::Int64, level::Int64)`
+`SetLevel(mkt::Market, fid::Int64, level::Int64; special::Int64 = 3)`
 This function should set all of the facility levels in a given market to `level`, except for that specified by fid.
-That one is set to 3.
+That one is set to the optional argument `special`, which by default is 3.  
 """
-function SetLevel(mkt::Market, sfid::Int64, level::Int64)
+function SetLevel(mkt::Market, sfid::Int64, level::Int64; special::Int64 = 3)
   for el in mkt.config
     if el.fid != sfid
       el.level = level
     elseif el.fid == sfid
-      el.level = 3
+      el.level = special
     end
   end
 end
