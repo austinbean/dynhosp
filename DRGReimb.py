@@ -3,6 +3,9 @@
 import csv
 import numpy as np
 
+# TODO - the reported values are averages: is this getting that right?  Double check!
+
+
 drgdata = []
 with open('/Users/austinbean/Desktop/justreimb.csv', encoding = "ISO-8859-1") as f:
     a = csv.reader(f, delimiter=',')
@@ -88,8 +91,8 @@ for row in drgdata:
                 row[14] = row[14].replace('<', '').strip()
         if eval(row[9]) == 789:
             if '2008' in row[8]:
-                pats2008[0] += eval(row[14].replace(',','').strip())
-                chrg2008[0] += eval(row[14].replace(',','').strip())*eval(row[15].replace('$','').replace(',','').strip())
+                pats2008[0] += eval(row[14].replace(',','').strip()) # number of patients
+                chrg2008[0] += eval(row[14].replace(',','').strip())*eval(row[15].replace('$','').replace(',','').strip()) # AVERAGE charge for that number 
                 yr2008d789.append(eval(row[14].replace(',','').strip())*eval(row[15].replace('$','').replace(',','').strip())/eval(row[14].replace(',','').strip()))
             elif '2009' in row[8]:
                 pats2009[0] += eval(row[14].replace(',','').strip())
@@ -416,11 +419,11 @@ for i in range(0,7) :
 
 
 for i in range(0,7):
-    print(labelsc[i], avg2008[i])
-    print(labelsc[i], avg2009[i])
-    print(labelsc[i], avg2010[i])
-    print(labelsc[i], avg2011[i])
-    print(labelsc[i], avg2012[i])
+    print(2008, labelsc[i], avg2008[i])
+    print(2009, labelsc[i], avg2009[i])
+    print(2010, labelsc[i], avg2010[i])
+    print(2011, labelsc[i], avg2011[i])
+    print(2012, labelsc[i], avg2012[i])
 
 
 
@@ -443,11 +446,11 @@ for i in range(0,6) :
     mavg2012[i] = mchrg2012[i]/moms2012[i]
 
 for i in range(0,6):
-    print(labels[i], mavg2008[i])
-    print(labels[i], mavg2009[i])
-    print(labels[i], mavg2010[i])
-    print(labels[i], mavg2011[i])
-    print(labels[i], mavg2012[i])
+    print(2008, labels[i], mavg2008[i])
+    print(2009, labels[i], mavg2009[i])
+    print(2010, labels[i], mavg2010[i])
+    print(2011, labels[i], mavg2011[i])
+    print(2012, labels[i], mavg2012[i])
 
 
 
