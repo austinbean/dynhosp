@@ -9,6 +9,20 @@ using Distributions
 using DataFrames
 
 """
+`type nlrec`
+- aw::Dict{Int64,Float64}
+- psi::Array{Float64,2}
+- counter::Dict{Int64, Int64}
+First element stores {Action, Continuation Value Approximations}.  Second stores probabilities.  Third is an {Action, Hits} counter.
+Stored in a dictionary under a (neighbors, level) tuple-type key.
+"""
+type nlrec
+  aw::Dict{Int64,Float64}
+  psi::Array{Float64,2}
+  counter::Dict{Int64, Int64}
+end
+
+"""
 `type hitcount`
 - conf::neighbors
 - visits::Dict{Int64, Int64}
@@ -29,20 +43,6 @@ type history
   totalcount::Int64 # records total number of iterations
 end
 
-
-# Initialize empty:  hithist = history(Dict{neighbors, hitcount}(), 0)
-"""
-`type hstate`
--  conf::neighbors
--  wvalues::Array{Float64,1}
--  actprobs::Array{Float64,1}
-"""
-type hstate
-  #NB: track these for the level !
-  conf::neighbors
-  wvalues::Array{Float64,1}
-  actprobs::Array{Float64,1}
-end
 
 """
 `type shortrec<:ProjectModule.Fac`
@@ -118,7 +118,7 @@ end
 -  actual::Int64
 -  beds::Int64
 -  cns::neighbors # must know what current neighbors look like.
--  visited::Dict{neighbors, hstate} #possible given "isequal" and "hash" extended for "neighbors"
+-  visited::Dict{nl, nlrec} #possible given "isequal" and "hash" extended for "neighbors"
 -  ns::Array{shortrec, 1}
 -  mk::cmkt # putting the cmkt into the simh record itself.
 -  exit::Bool
@@ -132,7 +132,7 @@ type simh<:ProjectModule.Fac
   actual::Int64
   beds::Int64
   cns::neighbors # must know what current neighbors look like.
-  visited::Dict{neighbors, hstate} #possible given "isequal" and "hash" extended for "neighbors"
+  visited::Dict{Tuple{ProjectModule.neighbors, Int64}, nlrec} #possible given "isequal" and "hash" extended for "neighbors"
   ns::Array{shortrec, 1}
   mk::cmkt # putting the cmkt into the simh record itself.
   exit::Bool
@@ -179,7 +179,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      Tex.mkts[k1].collection[hk].level,
                      convert(Int64, Tex2.mkts[k1].collection[hk].bedcount),
                      neighbors(0,0,0,0,0,0,0,0,0),
-                     Dict{neighbors,hstate}(),
+                     Dict{Tuple{ProjectModule.neighbors, Int64}, nlrec}(),
                      Array{shortrec,1}(),
                      DynPatients(p, Tex.mkts[k1].collection[hk].fid), # should create the patient collection as a subelement of the hospital record.
                      false,
@@ -888,16 +888,22 @@ Computes the return (current profit + expected continuation) for each hospital i
 function ComputeR(hosp::simh,
                   ppats::patientcount,
                   mpats::patientcount,
-                  wtp::Dict{Int64,Float64} ;
+                  action::Int64,
+                  iterations::Int64;
                   disc::Float64 = 0.95)
-  try hosp.visited[hosp.cns] # look up the state
-    # This can't update all of the values at the state.
-    # I need to track the actions more carefully.
-    hosp.visited[hosp.cns].wvalues = (WEIGHT)*(SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))) + (1-WEIGHT)*(hosp.visited[hosp.cns].wvalues)
-    hosp.visited[hosp.cns].actprobs = PolicyUpdate(hosp.visited[hosp.cns].wvalues)
+  try hosp.visited[(hosp.cns, hosp.level)]
+    wt::Float64 = 1.0
+    if iterations <= 20_000_000
+      wt = 1/sqrt(hosp.visited[(hosp.cns, hosp.level)].counter[action])
+    else
+      wt = 1/hosp.visited[(hosp.cns, hosp.level)].counter[action]
+    end
+    hosp.visited[(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))) + (1-wt)*(hosp.visited[hosp.cns].wvalues)
+    hosp.visited[(hosp.cns, hosp.level)].psi = PolicyUpdate(hosp.visited[hosp.cns].wvalues)
   catch y
     if isa(y, KeyError)
-      hosp.visited[hosp.cns]=hstate(hosp.cns, StartingVals(hosp, ppats, mpats), PolicyUpdate(StartingVals(hosp, ppats, mpats)))
+      hosp.visited[(hosp.cns, hosp.level)]=nlrec(  MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+      hosp.visited[(hosp.cns, hosp.level)].counter[action] += 1
     end
   end
 end
@@ -911,7 +917,13 @@ function PolicyUpdate(neww::Array{Float64,1})
 end
 
 
-
+function MD(a1::Array{Int64,2}, a2::Array{Float64,1})
+  d = Dict{Int64,Float64}()
+  for el in 1:size(a1,2)
+    d[a1[el]] = a2[el]
+  end
+  return d
+end
 
 
 function CheckConvergence()
