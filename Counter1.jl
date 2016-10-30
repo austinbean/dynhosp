@@ -322,7 +322,7 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
     end
   end
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
-  wtpc = WTPMap(patients, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
+  wtpc = WTPMap(pats, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
   for i = 1:T                                                                                            # T is now the sim periods, not sequential choices.
     mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
     pdict = Payoff(drgp, drgm, Tex, wtpc)
@@ -360,19 +360,26 @@ Care needs to be taken for the counterfactual history due to the different key s
 in the way the data is recorded.
 """
 function BaselineCheck(sim::counterhistory; check = false)
-  outp = Dict(k => [0.0, 0.0] for k in keys(sim.hist))
+  outp::Dict{Int64, Array{Float64, 1}} = Dict(k => [0.0, 0.0] for k in keys(sim.hist))
+  totl::Float64 = 0.0
+  var::Float64 = 0.0
+  mvars::Array{Float64,1} = Array{Float64,1}()
   for el in keys(sim.hist)
+    dvar::Array{Float64,1} = zeros(Float64, size(sim.hist[48453].values[0].hosprecord[4530190].deaths,1))
     for k1 in keys(sim.hist[el].values[0].hosprecord)
       outp[el][1] += mean(sim.hist[el].values[0].hosprecord[k1].totvlbw)
       outp[el][2] += mean(sim.hist[el].values[0].hosprecord[k1].totbr)
+      dvar += sim.hist[el].values[0].hosprecord[k1].deaths
+      totl += mean(sim.hist[el].values[0].hosprecord[k1].deaths)
     end
+    push!(mvars, std(dvar))
   end
   if check
     for k in keys(outp)
       println(k, "  Fraction VLBW ",  outp[k][1]/outp[k][2])
     end
   end
-  return outp
+  return outp, totl, mvars
 end
 
 
@@ -414,13 +421,6 @@ function DeathCheck(sim::counterhistory; check::Bool = false, houston::Bool = fa
 end
 
 
-
-#=
-TODO - This points the path forward.  Fix the best hospital here, but then also add a second one in each market
-and choose the best one there.  Compare to the case where everyone has level 3 vs. everyone has level 2 or level 1.
-This is coming together I think.
-
-=#
 
 
 """
@@ -521,6 +521,7 @@ function RunCounter1(T::Int64)
     println("Running Single Level 3 w/ transfers")
     c1 = CounterSim(T, Tex, patients)
     outc1 = BestOutcome(c1, bl)
+    SimpleResultsPrint(outc1)
   # Run the counterfactual where there are no transfers
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
@@ -555,12 +556,20 @@ function RunCounter1(T::Int64)
     patients = NewPatients(Tex);
     c1all = Baseline(T, Tex, patients; levelchange = true, level = 1)
     outc1all = BestOutcome(c1all, bl)
-  return outc1, outc1nr, outc3all, outc2all, outc1all
+  return bl, outc1, outc1nr, outc3all, outc2all, outc1all
 end
 
 
 
-#  outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1()
+# baseline, outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1(50)
+
+
+#=
+Do what with that?
+- Run BaselineCheck on baseline: (dictionary of deaths per county , total deaths, variances across markets) = BaselineCheck(baseline)
+-
+
+=#
 
 
 
