@@ -879,6 +879,8 @@ function StartingVals(h::simh,
 end
 
 
+
+
 """
 `ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} )`
 Computes the return (current profit + expected continuation) for each hospital in the state.
@@ -888,11 +890,15 @@ function ComputeR(hosp::simh,
                   mpats::patientcount,
                   wtp::Dict{Int64,Float64} ;
                   disc::Float64 = 0.95)
-  if  # look up the state
-    SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))
-
-  else # state not available.
-    StartingVals(hosp, ppats, mpats)
+  try hosp.visited[hosp.cns] # look up the state
+    # This can't update all of the values at the state.
+    # I need to track the actions more carefully.
+    hosp.visited[hosp.cns].wvalues = (WEIGHT)*(SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))) + (1-WEIGHT)*(hosp.visited[hosp.cns].wvalues)
+    hosp.visited[hosp.cns].actprobs = PolicyUpdate(hosp.visited[hosp.cns].wvalues)
+  catch y
+    if isa(y, KeyError)
+      hosp.visited[hosp.cns]=hstate(hosp.cns, StartingVals(hosp, ppats, mpats), PolicyUpdate(StartingVals(hosp, ppats, mpats)))
+    end
   end
 end
 
@@ -900,8 +906,8 @@ end
 `PolicyUpdate(hosp::simh, neww::Array{Float64,1})`
 Takes an array of the new W values and maps back to the simh action probabilities.
 """
-function PolicyUpdate(hosp::simh, neww::Array{Float64,1})
-  hosp.actprobs = exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
+function PolicyUpdate(neww::Array{Float64,1})
+  return exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
 end
 
 
