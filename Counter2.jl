@@ -7,11 +7,23 @@
 
 using Distributions
 using DataFrames
+
+"""
+`type hitcount`
+- conf::neighbors
+- visits::Dict{Int64, Int64}
+"""
 type hitcount # this type will record visits to a state-action pair
   conf::neighbors
   visits::Dict{Int64,Int64}
 end
 
+
+"""
+`type history`
+-  path::Dict{neighbors, hitcount}
+-  totalcount::Int64
+"""
 type history
   path::Dict{neighbors, hitcount}
   totalcount::Int64 # records total number of iterations
@@ -19,7 +31,12 @@ end
 
 
 # Initialize empty:  hithist = history(Dict{neighbors, hitcount}(), 0)
-
+"""
+`type hstate`
+-  conf::neighbors
+-  wvalues::Array{Float64,1}
+-  actprobs::Array{Float64,1}
+"""
 type hstate
   #NB: track these for the level !
   conf::neighbors
@@ -27,7 +44,19 @@ type hstate
   actprobs::Array{Float64,1}
 end
 
-
+"""
+`type shortrec<:ProjectModule.Fac`
+-  fid::Int64
+-  lat::Float64
+-  long::Float64
+-  level::Int64
+-  truelevel::Int64
+-  beds::Int64
+-  ns::neighbors
+-  choices::Array{Int64, 2}
+-  chprobs::WeightVec
+-  tbu::Bool
+"""
 type shortrec<:ProjectModule.Fac
   # needs to take location.  must measure distances.  need to update all of these every time, probably.
   fid::Int64
@@ -43,6 +72,18 @@ type shortrec<:ProjectModule.Fac
 end
 
 #NB:  this array needs to include the WTP for each facility too!
+"""
+`type cpats`
+-  zp::Int64
+-  lat::Float64
+-  long::Float64
+-  putils::Array{Float64,2}
+-  mutils::Array{Float64,2}
+-  pwtp::Array{Float64,2}
+-  facs::Array{shortrec,1}
+-  pcounts::patientcount
+-  mcounts::patientcount
+"""
 type cpats
   zp::Int64
   lat::Float64
@@ -55,6 +96,12 @@ type cpats
   mcounts::patientcount
 end
 
+
+"""
+`type cmkt`
+-  fid::Int64
+-  m::Array{cpats,1}
+"""
 type cmkt
   fid::Int64
   m::Array{cpats,1}
@@ -62,6 +109,21 @@ end
 
 
 #NB: When the firm exits, can probably restart from the beginning, but keeping the elements in "visited".  We can keep approximating them.
+"""
+`type simh<:ProjectModule.Fac`
+-  fid::Int64
+-  lat::Float64
+-  long::Float64
+-  level::Int64
+-  actual::Int64
+-  beds::Int64
+-  cns::neighbors # must know what current neighbors look like.
+-  visited::Dict{neighbors, hstate} #possible given "isequal" and "hash" extended for "neighbors"
+-  ns::Array{shortrec, 1}
+-  mk::cmkt # putting the cmkt into the simh record itself.
+-  exit::Bool
+-  tbu::Bool
+"""
 type simh<:ProjectModule.Fac
   fid::Int64
   lat::Float64
@@ -77,7 +139,10 @@ type simh<:ProjectModule.Fac
   tbu::Bool
 end
 
-
+"""
+`type DynState` # this should hold a collection of ALL of the hospitals, for the approximation.
+-  all::Array{simh, 1}
+"""
 type DynState # this should hold a collection of ALL of the hospitals, for the approximation.
   all::Array{simh, 1}
 end
@@ -272,20 +337,6 @@ end
 #TODO - this needs to be fixed so that it returns the FID too.
 
 
-"""
-`StartingVals(h::simh)`
-This will generate a set of starting values for the hospitals in the market.
-Idea - just take the PDV of one period's profit.
-"""
-function StartingVals(h::simh)
-  dmp, dmm = DSim(h.mk, h.fid)
-  #TODO - need to compute WTP for the hospital in these markets!
-  SinglePay(h, dmp, dmm)
-  # TODO - need to cmpute the same for other facilities.  Probably is worth it to update the
-  # utilities, recompute demand, etc.  Then reset.
-  # Value of exit can be initialized to 0, which is fine.
-
-end
 
 
 
@@ -751,21 +802,22 @@ end
 
 
 """
-`Simulate(d::DynState)`
-This should take a dynamic state, as generated above in `DynStateCreate` and do a simulation.
-What does that mean?
-- Start in some state for each firm
-- Choose actions by the other firms in the simh.ns
-- Compute the demand and the return for the simulating hospital
-- Write out the return to this, updating the estimate of the return at that state.
+`FindWTP(h::simh)`
+Get the WTP across all of the zips in the market.  This should search through the
+mkt and add up the values
 """
-function Simulate(d::DynState)
-
-
-
+function FindWTP(h::simh)
+  fid::Int64 = h.fid
+  WTP::Float64 = 0.0
+  for el in h.mk.m
+    for f in 1:size(el.pwtp[1,:],2)
+      if el.pwtp[1,f] == fid
+        WTP += el.pwtp[2,f]
+      end
+    end
+  end
+  return WTP
 end
-
-
 
 """
 `SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
@@ -799,18 +851,33 @@ function SinglePay(s::simh,
                     gamma_2_391::Float64 = 15079.2889,
                     gamma_3_391::Float64 = 1912.7285 ) # params
     outp::Float64 = 0.0
+    wtp::Float64 = FindWTP(s)
     if s.level == 1
-      outp = alf1*wtp[k]*(sum(ppats)+sum(mpats)) - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
+      outp = alf1*wtp*(sum(ppats)+sum(mpats)) - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2
-      outp = alf2*wtp[k]*(sum(ppats)+sum(mpats)) - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
+      outp = alf2*wtp*(sum(ppats)+sum(mpats)) - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
     else # level is 3
-      outp = alf3*wtp[k]*(sum(ppats)+sum(mpats)) - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
+      outp = alf3*wtp*(sum(ppats)+sum(mpats)) - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     end
-    return
+    return outp
 end
 
 
-# The "Payoff" function in counter 1 gets the profit
+
+"""
+`StartingVals(h::simh)`s
+This will generate a set of starting values for the hospitals in the market.
+Idea - just take the PDV of one period's profit.  But it needs to be done
+over the whole set of possible actions.  Right now this assumes that *all* of the
+actions have the same value, except for exit.  That can be improved.
+"""
+function StartingVals(h::simh,
+                      ppats::patientcount,
+                      mpats::patientcount;
+                      disc::Float64 = 0.95)
+  return vcat(repmat([SinglePay(h, ppats, mpats)/(1-disc)], 3), [0])
+end
+
 
 """
 `ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} )`
@@ -821,11 +888,11 @@ function ComputeR(hosp::simh,
                   mpats::patientcount,
                   wtp::Dict{Int64,Float64} ;
                   disc::Float64 = 0.95)
-  #NB: all of this can be updated in place, I think.
-  for
+  if  # look up the state
+    SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))
 
-    Payoff() + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))
-
+  else # state not available.
+    StartingVals(hosp, ppats, mpats)
   end
 end
 
@@ -838,13 +905,6 @@ function PolicyUpdate(hosp::simh, neww::Array{Float64,1})
 end
 
 
-"""
-`UpdateW(hosp::simh, ret::Float64, stcounter::Int64)`
-"""
-function UpdateW(hosp::simh, ret::Float64, stcounter::Int64)
-
-
-end
 
 
 
