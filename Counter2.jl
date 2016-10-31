@@ -11,14 +11,14 @@ using DataFrames
 """
 `type nlrec`
 - aw::Dict{Int64,Float64}
-- psi::Dict{Int64,Float64}
+- psi::Array{Float64,2}
 - counter::Dict{Int64, Int64}
 First element stores {Action, Continuation Value Approximations}.  Second stores probabilities.  Third is an {Action, Hits} counter.
 Stored in a dictionary under a (neighbors, level) tuple-type key.
 """
 type nlrec
   aw::Dict{Int64,Float64}
-  psi::Dict{Int64,1}
+  psi::Array{Float64,2}
   counter::Dict{Int64, Int64}
 end
 
@@ -875,7 +875,7 @@ function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-  return vcat(repmat([SinglePay(h, ppats, mpats)/(1-disc)], 3), [0])
+  return vcat(repmat([SinglePay(h, ppats, mpats)/(1-disc)],3), [SinglePay(h, ppats, mpats)/((1-disc)*1000)])
 end
 
 
@@ -885,9 +885,6 @@ end
 `ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} )`
 Computes the return (current profit + expected continuation) for each hospital in the state.
 """
-
-# TODO - this isn't running exactly right yet.  The values don't seem to be actually updating.  This is where to start tomorrow.
-
 function ComputeR(hosp::simh,
                   ppats::patientcount,
                   mpats::patientcount,
@@ -901,10 +898,13 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[(hosp.cns, hosp.level)].counter[action]
     end
-    #TODO - The probability and the W have to by multiplied correctly.  Need to take the dictionary and mutliply by
-    # the corresponding element of the vector.
-    hosp.visited[(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.visited[(hosp.cns, hosp.level)].aw, hosp.visited[(hosp.cns, hosp.level)].psi) + eulergamma - dot(log(hosp.visited[(hosp.cns, hosp.level)].psi),hosp.visited[(hosp.cns, hosp.level)].aw))) + (1-wt)*(hosp.visited[(hosp.cns, hosp.level)].aw)
-    hosp.visited[(hosp.cns, hosp.level)].psi = PolicyUpdate(hosp.visited[hosp.cns].wvalues) #FIXME - PolicyUpdate needs fixing.
+    hosp.visited[(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp))) + (1-wt)*(hosp.visited[(hosp.cns, hosp.level)].aw[action])
+    for el in 1:size(hosp.visited[(hosp.cns, hosp.level)].psi[1,:],1)
+      if hosp.visited[(hosp.cns, hosp.level)].psi[1,:] == action
+        hosp.visited[(hosp.cns, hosp.level)].psi = hosp.visited[(hosp.cns, hosp.level)].aw[action] # this will change the value below so that the update changes something.
+      end
+    end
+    hosp.visited[(hosp.cns, hosp.level)].psi[2,:] = DA(hosp.visited[hosp.cns].aw) 
     hosp.visited[(hosp.cns, hosp.level)].counter[action] += 1
   catch y
     if isa(y, KeyError)
@@ -920,14 +920,15 @@ end
 `PolicyUpdate(hosp::simh, neww::Array{Float64,1})`
 Takes an array of the new W values and maps back to the simh action probabilities.
 """
-function PolicyUpdate(neww::Dict{Int64, Float64})
-  #TODO - fix this.
-  for k in keys(neww)
-    return exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
-  end
+function PolicyUpdate(neww::Array{Float64,1})
+  return exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
 end
 
-
+"""
+`MD`
+makes a dictionary of a certain kind out of array elements.  Maybe this is
+in the language or doable with a comprehension.
+"""
 function MD(a1::Array{Int64,2}, a2::Array{Float64,1})
   d = Dict{Int64,Float64}()
   for el in 1:size(a1,2)
@@ -938,11 +939,42 @@ end
 
 """
 `WProb(n::nlrec)`
-Takes the product of the elements of the dictionary with their corresponding probabilities.
+Takes the product of the elements of the dictionary with their corresponding probabilties.
 """
 function WProb(n::nlrec)
-
+  cvsum::Float64 = 0.0
+  ersum::Float64 = 0.0
+  for k in keys(n.aw)
+    for el in 1:size(n.psi[1,:],1)
+      if k == el
+        cvsum += n.psi[2,el]*n.aw[k]
+        ersum += log(n.psi[k])*n.psi[k]
+      end
+    end
+  end
+  return cvsum, ersum, (cvsum + eulergamma - ersum)
 end
+
+"""
+`DA(d::Dict{Int64,Float64})`
+Takes a dictionary and returns PolicyUpdate applied to the elements
+"""
+function DA(d::Dict{Int64, Float64})
+  names::Array{Int64,1}=Array{Int64,1}()
+  outp::Array{Float64,1}=Array{Float64,1}()
+  for k in keys(d)
+    push!(names, k)
+    push!(outp, d[k])
+  end
+  return transpose(hcat(names,  PolicyUpdate(outp)))
+end
+
+
+
+
+
+
+
 
 function CheckConvergence()
 
