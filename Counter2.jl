@@ -11,14 +11,14 @@ using DataFrames
 """
 `type nlrec`
 - aw::Dict{Int64,Float64}
-- psi::Array{Float64,2}
+- psi::Dict{Int64,Float64}
 - counter::Dict{Int64, Int64}
 First element stores {Action, Continuation Value Approximations}.  Second stores probabilities.  Third is an {Action, Hits} counter.
 Stored in a dictionary under a (neighbors, level) tuple-type key.
 """
 type nlrec
   aw::Dict{Int64,Float64}
-  psi::Array{Float64,2}
+  psi::Dict{Int64,1}
   counter::Dict{Int64, Int64}
 end
 
@@ -886,7 +886,7 @@ end
 Computes the return (current profit + expected continuation) for each hospital in the state.
 """
 
-# TODO - this isn't running exactly right yet.  The values don't seem to be actually updating.  This is where to start tomorrow.  
+# TODO - this isn't running exactly right yet.  The values don't seem to be actually updating.  This is where to start tomorrow.
 
 function ComputeR(hosp::simh,
                   ppats::patientcount,
@@ -901,12 +901,17 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[(hosp.cns, hosp.level)].counter[action]
     end
-    hosp.visited[(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.wvalues, hosp.actprobs) + eulergamma - dot(log(hosp.actprobs),hosp.actprobs))) + (1-wt)*(hosp.visited[hosp.cns].wvalues)
-    hosp.visited[(hosp.cns, hosp.level)].psi = PolicyUpdate(hosp.visited[hosp.cns].wvalues)
+    #TODO - The probability and the W have to by multiplied correctly.  Need to take the dictionary and mutliply by
+    # the corresponding element of the vector.
+    hosp.visited[(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(dot(hosp.visited[(hosp.cns, hosp.level)].aw, hosp.visited[(hosp.cns, hosp.level)].psi) + eulergamma - dot(log(hosp.visited[(hosp.cns, hosp.level)].psi),hosp.visited[(hosp.cns, hosp.level)].aw))) + (1-wt)*(hosp.visited[(hosp.cns, hosp.level)].aw)
+    hosp.visited[(hosp.cns, hosp.level)].psi = PolicyUpdate(hosp.visited[hosp.cns].wvalues) #FIXME - PolicyUpdate needs fixing.
+    hosp.visited[(hosp.cns, hosp.level)].counter[action] += 1
   catch y
     if isa(y, KeyError)
       hosp.visited[(hosp.cns, hosp.level)]=nlrec(  MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
       hosp.visited[(hosp.cns, hosp.level)].counter[action] += 1
+    else
+      return y
     end
   end
 end
@@ -915,8 +920,11 @@ end
 `PolicyUpdate(hosp::simh, neww::Array{Float64,1})`
 Takes an array of the new W values and maps back to the simh action probabilities.
 """
-function PolicyUpdate(neww::Array{Float64,1})
-  return exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
+function PolicyUpdate(neww::Dict{Int64, Float64})
+  #TODO - fix this.
+  for k in keys(neww)
+    return exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
+  end
 end
 
 
@@ -928,6 +936,13 @@ function MD(a1::Array{Int64,2}, a2::Array{Float64,1})
   return d
 end
 
+"""
+`WProb(n::nlrec)`
+Takes the product of the elements of the dictionary with their corresponding probabilities.
+"""
+function WProb(n::nlrec)
+
+end
 
 function CheckConvergence()
 
