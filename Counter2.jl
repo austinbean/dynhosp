@@ -885,6 +885,9 @@ end
 `ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} )`
 Computes the return (current profit + expected continuation) for each hospital in the state.
 """
+
+# TODO - this isn't running exactly right yet.  The values don't seem to be actually updating.  This is where to start tomorrow.  
+
 function ComputeR(hosp::simh,
                   ppats::patientcount,
                   mpats::patientcount,
