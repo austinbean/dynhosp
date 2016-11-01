@@ -132,7 +132,7 @@ type simh<:ProjectModule.Fac
   actual::Int64
   beds::Int64
   cns::neighbors # must know what current neighbors look like.
-  visited::Dict{Tuple{ProjectModule.neighbors, Int64}, nlrec} #possible given "isequal" and "hash" extended for "neighbors"
+  visited::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, nlrec} #change key to tuple of int64 composed of neighbors and level.
   ns::Array{shortrec, 1}
   mk::cmkt # putting the cmkt into the simh record itself.
   exit::Bool
@@ -148,6 +148,13 @@ type DynState # this should hold a collection of ALL of the hospitals, for the a
 end
 
 
+"""
+`KeyCreate(n::neighbors, l::Int64)`
+takes neighbors and level and returns a tuple - this is a better way (hopefully) to make the keys for the nlrec.
+"""
+function KeyCreate(n::neighbors, l::Int64)
+  return (n.level105, n.level205, n.level305, n.level1515, n.level2515, n.level3515, n.level11525, n.level21525, n.level31525, l)
+end
 
 
 
@@ -179,7 +186,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      Tex.mkts[k1].collection[hk].level,
                      convert(Int64, Tex2.mkts[k1].collection[hk].bedcount),
                      neighbors(0,0,0,0,0,0,0,0,0),
-                     Dict{Tuple{ProjectModule.neighbors, Int64}, nlrec}(),
+                     Dict{Tuple{Int64}, nlrec}(),
                      Array{shortrec,1}(),
                      DynPatients(p, Tex.mkts[k1].collection[hk].fid), # should create the patient collection as a subelement of the hospital record.
                      false,
@@ -810,7 +817,7 @@ function FindWTP(h::simh)
   fid::Int64 = h.fid
   WTP::Float64 = 0.0
   for el in h.mk.m
-    for f in 1:size(el.pwtp[1,:],2)
+    for f in 1:size(el.pwtp,2)
       if el.pwtp[1,f] == fid
         WTP += el.pwtp[2,f]
       end
@@ -826,38 +833,45 @@ Computes the actual firm payoffs.  Uses parameters computed from one run of the 
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount;
-                    alf1::Float64 = 29182.967,
-                    alf2::Float64 = 22167.6375,
-                    alf3::Float64 = 23074.8403,
-                    gamma_1_385::Float64 = 34628.8402,
-                    gamma_2_385::Float64 = 14921.003,
-                    gamma_3_385::Float64 = 12822.723,
-                    gamma_1_386::Float64 = 104578.867,
-                    gamma_2_386::Float64 = 95366.0004,
-                    gamma_3_386::Float64 = 69353.471,
-                    gamma_1_387::Float64 = 34498.5261,
-                    gamma_2_387::Float64 = 48900.8396,
-                    gamma_3_387::Float64 = 24639.0552,
-                    gamma_1_388::Float64 = 26561.8688,
-                    gamma_2_388::Float64 = 20895.5001,
-                    gamma_3_388::Float64 = 29775.8381,
-                    gamma_1_389::Float64 = 20653.5821,
-                    gamma_2_389::Float64 = 20102.2097,
-                    gamma_3_389::Float64 = 8279.774,
-                    gamma_1_390::Float64 = 7372.3301,
-                    gamma_2_390::Float64 = 2514.8717,
-                    gamma_3_390::Float64 = 26113.4462,
-                    gamma_1_391::Float64 = 27018.9915,
-                    gamma_2_391::Float64 = 15079.2889,
-                    gamma_3_391::Float64 = 1912.7285 ) # params
+                    alf1::Float64 = 829.49,
+                    alf2::Float64 = 36166.6,
+                    alf3::Float64 = 16309.47,
+                    gamma_1_385::Float64 = 20680.0, # ✓
+                    gamma_2_385::Float64 = 42692.37, # ✓
+                    gamma_3_385::Float64 = 20962.97, # ✓
+                    gamma_1_386::Float64 = 81918.29, # X
+                    gamma_2_386::Float64 = 74193.4, # X
+                    gamma_3_386::Float64 = 99065.79, # X
+                    gamma_1_387::Float64 = 30405.32, # X
+                    gamma_2_387::Float64 = 49801.84, # X
+                    gamma_3_387::Float64 = 22376.8, # X
+                    gamma_1_388::Float64 = 10051.55, # ✓
+                    gamma_2_388::Float64 = 19019.18, # X
+                    gamma_3_388::Float64 = 33963.5, # X
+                    gamma_1_389::Float64 = 29122.89, # X
+                    gamma_2_389::Float64 = 14279.58, # X
+                    gamma_3_389::Float64 = 20708.15, # X
+                    gamma_1_390::Float64 = 22830.05, # X
+                    gamma_2_390::Float64 = 6754.76, # X
+                    gamma_3_390::Float64 = 3667.42, # ✓
+                    gamma_1_391::Float64 = 9089.77, # X
+                    gamma_2_391::Float64 = 8120.85, # X
+                    gamma_3_391::Float64 = 1900.5, # ✓
+                    mcaid385::Float64 = 151380.0,
+                    mcaid386::Float64 = 48417.0,
+                    mcaid387::Float64 = 18845.0,
+                    mcaid388::Float64 = 7507.0,
+                    mcaid389::Float64 = 9424.0,
+                    mcaid390::Float64 = 4623.0,
+                    mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
     if s.level == 1
-      outp = alf1*wtp*(sum(ppats)+sum(mpats)) - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
+      outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2
-      outp = alf2*wtp*(sum(ppats)+sum(mpats)) - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
+      outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
     else # level is 3
-      outp = alf3*wtp*(sum(ppats)+sum(mpats)) - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
+      outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     end
     return outp
 end
@@ -875,14 +889,14 @@ function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-  return vcat(repmat([SinglePay(h, ppats, mpats)/(1-disc)],3), [SinglePay(h, ppats, mpats)/((1-disc)*1000)])
+  return vcat(repmat([max(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [max(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
 end
 
 
 
 
 """
-`ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} )`
+`ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, action::Int64, iterations::Int64;disc::Float64 = 0.95 )`
 Computes the return (current profit + expected continuation) for each hospital in the state.
 """
 function ComputeR(hosp::simh,
@@ -891,25 +905,25 @@ function ComputeR(hosp::simh,
                   action::Int64,
                   iterations::Int64;
                   disc::Float64 = 0.95)
-  try hosp.visited[(hosp.cns, hosp.level)]
+  try hosp.visited[KeyCreate(hosp.cns, hosp.level)]
     wt::Float64 = 1.0
     if iterations <= 20_000_000
-      wt = 1/sqrt(hosp.visited[(hosp.cns, hosp.level)].counter[action])
+      wt = 1/sqrt(hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action])
     else
-      wt = 1/hosp.visited[(hosp.cns, hosp.level)].counter[action]
+      wt = 1/hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action]
     end
-    hosp.visited[(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp))) + (1-wt)*(hosp.visited[(hosp.cns, hosp.level)].aw[action])
-    for el in 1:size(hosp.visited[(hosp.cns, hosp.level)].psi[1,:],1)
-      if hosp.visited[(hosp.cns, hosp.level)].psi[1,:] == action
-        hosp.visited[(hosp.cns, hosp.level)].psi = hosp.visited[(hosp.cns, hosp.level)].aw[action] # this will change the value below so that the update changes something.
+    hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[KeyCreate(hosp.cns, hosp.level)]))) + (1-wt)*(hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action])
+    for el in 1:size(hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:],1)
+      if hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:] == action
+        hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi = hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action] # this will change the value below so that the update changes something.
       end
     end
-    hosp.visited[(hosp.cns, hosp.level)].psi[2,:] = DA(hosp.visited[hosp.cns].aw) 
-    hosp.visited[(hosp.cns, hosp.level)].counter[action] += 1
+    hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[2,:] = DA(hosp.visited[hosp.cns].aw)
+    hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action] += 1
   catch y
     if isa(y, KeyError)
-      hosp.visited[(hosp.cns, hosp.level)]=nlrec(  MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
-      hosp.visited[(hosp.cns, hosp.level)].counter[action] += 1
+      hosp.visited[KeyCreate(hosp.cns, hosp.level)]=nlrec(  MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+      hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action] += 1
     else
       return y
     end
@@ -937,23 +951,6 @@ function MD(a1::Array{Int64,2}, a2::Array{Float64,1})
   return d
 end
 
-"""
-`WProb(n::nlrec)`
-Takes the product of the elements of the dictionary with their corresponding probabilties.
-"""
-function WProb(n::nlrec)
-  cvsum::Float64 = 0.0
-  ersum::Float64 = 0.0
-  for k in keys(n.aw)
-    for el in 1:size(n.psi[1,:],1)
-      if k == el
-        cvsum += n.psi[2,el]*n.aw[k]
-        ersum += log(n.psi[k])*n.psi[k]
-      end
-    end
-  end
-  return cvsum, ersum, (cvsum + eulergamma - ersum)
-end
 
 """
 `DA(d::Dict{Int64,Float64})`
