@@ -593,6 +593,7 @@ Creates a collection of zip codes containing facilities, utilities, fixed effect
 Will also return a list of unfound facilities, but there aren't any more of those.  The argument "ch" is for the file from "Zip Code Choice Sets.csv"
 When this is called on the EntireState correctly, the hospital records are linked - the zipcode and EntireState collections point to the same underlying hospital entries.
 Zips are now created with a dictionary of type `Dict{Int64, ProjectModule.Fac}` which can contain hospitals or chospitals.
+pats, unf = CreateZips(ProjectModule.zips, ProjectModule.choices, Tex);
 """
 function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
   ppatients = patientcollection( Dict{Int64, zip}() )
@@ -601,24 +602,30 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
     # Creates an empty zip code record, numbered "el"
     ppatients.zips[el] = zip(el, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
                              Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
-                             0.0, 0.0, coefficients(privatedistance_c, privatedistsq_c, privateneoint_c, privatesoloint_c, privatedistbed_c, privateclosest_c),
-                             coefficients(medicaiddistance_c, medicaiddistsq_c, medicaidneoint_c, medicaidsoloint_c, medicaiddistbed_c, medicaidclosest_c),     # lat, long, private coefficients, medicaid coefficients
+                             0.0, 0.0,
+                             coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),
+                             coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c),     # lat, long, private coefficients, medicaid coefficients
                              patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0))                                                                          # private and medicaid patients
   end
+  #FIXME - there is no distance check here right now.  That shouldn't be a problem, but there are some I'm not catching.
   for i = 1:size(ch, 1)                                                                                                                                         # rows in the set of choices
     ppatients.zips[ch[i,1]].lat = ch[i,7]
     ppatients.zips[ch[i,1]].long = ch[i,8]
     for j = 11:17:size(ch,2)                                                                                                                                    # Columns in the set of choices
       try
-        #NB: This shouuld link the hospital records between the EntireState and the patientcollection - they should refer to the same underlying objects.
+        #NB: This should link the hospital records between the EntireState and the patientcollection - they should refer to the same underlying objects.
         # FIXME: right now this catches the MethodError trying to append a chospital to the hospital dictionary.
         Tex.fipsdirectory[ch[i,j]]                                                                                                                              # look for the hosp in the EntireState
         fipscode = Tex.fipsdirectory[ch[i,j]]                                                                                                                   # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
-        ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]                                                                    # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
-        Tex.mkts[fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]                                                                                           # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
+        if distance(ppatients.zips[ch[i,1]].lat, ppatients.zips[ch[i,1]].long, ch[i, j+14], ch[i, j+15] ) < 25 # Check the distance here.
+          ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]                                                                    # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
+          Tex.mkts[fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]                                                                                           # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
+        end
       catch y
         if isa(y, KeyError)
           push!(unfound,ch[i, j])
+        else
+          println(y)
         end
       end
     end
@@ -842,7 +849,7 @@ end
 """
 `SetLevel(mkt::Market, fid::Int64, level::Int64; special::Int64 = 3)`
 This function should set all of the facility levels in a given market to `level`, except for that specified by fid.
-That one is set to the optional argument `special`, which by default is 3.  
+That one is set to the optional argument `special`, which by default is 3.
 """
 function SetLevel(mkt::Market, sfid::Int64, level::Int64; special::Int64 = 3)
   for el in mkt.config
