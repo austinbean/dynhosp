@@ -175,6 +175,7 @@ dyn = DynStateCreate(TexasEq, Tex, patients);
 Note that the function takes TWO EntireState arguments.  This is super dumb, but
 only one of them (containing hospital types) has the bed counts.
 """
+#TODO - need to make sure an outside option is added to each zipcode record.
 function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollection )
   outp = DynState(Array{simh,1}())
   for k1 in keys(Tex.mkts)
@@ -268,9 +269,9 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
         end
       end
       for el in newsimh.ns       # these are shortrecs
-        for zp in newsimh.mk.m # these are cpats
+        for zp in newsimh.mk.m   # these are cpats
           if in(el.fid, zp.putils[1,:])
-            push!(zp.facs, el) # This should push all of the shortrec types
+            push!(zp.facs, el)   # This should push all of the shortrec types
           end
         end
       end
@@ -289,8 +290,8 @@ the collection of patients for those zips.  Note that `f` is a FID for a hospita
 """
 function DynPatients(p::patientcollection, f::Int64 )
   outp::cmkt = cmkt(f, Array{cpats,1}())
-  zpc = PatientFind(p, f)
-  for el in zpc
+  zpc = PatientFind(p, f) # finds the zip codes
+  for el in zpc # TODO: add the outside option here.
     push!(outp.m, cpats(el,
                   p.zips[el].lat,
                   p.zips[el].long,
@@ -310,12 +311,13 @@ end
 Returns a 2 x N array of the (fid, utility) pairs from the zipcode z
 Top row will be the collection of fids
 and the bottom row will be the utilities themselves.
+Outside option is added here as [0, 0].
 """
 function DetUtils(z::zip; switch::Bool = false)
   if switch
-    return  hcat([[k, z.pdetutils[k]] for k in keys(z.pdetutils)]...)
+    return  hcat(hcat([[k, z.pdetutils[k]] for k in keys(z.pdetutils)]...),[0,0])
   else
-    return hcat([[k, z.mdetutils[k]] for k in keys(z.mdetutils)]...)
+    return hcat(hcat([[k, z.mdetutils[k]] for k in keys(z.mdetutils)]...),[0,0])
   end
 end
 
@@ -340,14 +342,6 @@ function CounterWTP(ar::Array{Float64})
   end
   return log(map(x->(1/(1-x)), ar./denom))
 end
-
-#TODO - this needs to be fixed so that it returns the FID too.
-
-
-
-
-
-
 
 """
 `DSim(c::cmkt, f::Int64)`
@@ -825,6 +819,45 @@ function FindWTP(h::simh)
   end
   return WTP
 end
+
+"""
+`CatchWTP(h::simh)`
+When WTP is infinite, what went wrong?
+"""
+function CatchWTP(h::simh; print::Bool = false)
+  outp::Array{Int64,1} = Array{Int64,1}()
+  for el in h.mk.m
+    for f in 1:size(el.pwtp, 2)
+      if el.pwtp[2,f] == Inf
+        push!(outp, h.fid)
+        if print
+          println(h.fid)
+          println(el)
+          println(el.pwtp)
+        end
+      end
+    end
+  end
+  return outp
+end
+
+"""
+`CatchWTPAll(dyn::DynState)`
+get the fids of all of the firms with infinite wtp.
+"""
+function CatchWTPAll(dyn::DynState)
+  outp::Array{Int64,1} = Array{Int64,1}()
+  outp2::Array{Int64,1} = Array{Int64,1}()
+  for el in 1:maximum(size(dyn.all))
+    for el2 in CatchWTP(dyn.all[el])
+      push!(outp, el2)
+      push!(outp2, el)
+    end
+  end
+  return outp, unique(outp2)
+end
+
+
 
 """
 `SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
