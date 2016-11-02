@@ -156,6 +156,10 @@
   zips = convert(Array, zips[:,1]);
   choices = DataFrames.readtable(pathdata*"TX Zip Code Choice Sets.csv", header = true);
 
+  # the choices file above is not correct.  Load TX All Distances.csv instead:
+  # Get this from hospitaldistancepair.py and TX Hospital Sets.do and hosplatlong.py
+  alldists = DataFrames.readtable(pathdata*"TX Zip All Hospital Distances.csv", header = true);
+
   for el in choices.colindex.names
     #println(typeof(choices[el]), "  ", el)
     if (typeof(choices[el]) == DataArrays.DataArray{Int64,1})|(typeof(choices[el]) == DataArrays.DataArray{Float64,1})
