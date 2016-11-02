@@ -594,6 +594,8 @@ Will also return a list of unfound facilities, but there aren't any more of thos
 When this is called on the EntireState correctly, the hospital records are linked - the zipcode and EntireState collections point to the same underlying hospital entries.
 Zips are now created with a dictionary of type `Dict{Int64, ProjectModule.Fac}` which can contain hospitals or chospitals.
 pats, unf = CreateZips(ProjectModule.zips, ProjectModule.choices, Tex);
+
+TODO - rewrite this to use the file alldists instead of ch.
 """
 function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
   ppatients = patientcollection( Dict{Int64, zip}() )
@@ -634,6 +636,20 @@ function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
 end
 
 
+"""
+`function CreateZips2(alld::DataFrames.Dataframe,Tex::EntireState)`
+Now the correct distances are being imported as ProjectModule.alldists.
+But in this version do check to make sure that the distance between any fac and zip is
+less than 25 miles.  
+"""
+function CreateZips2(alld::DataFrames.DataFrame, Tex::EntireState)
+  ppatients = patientcollection( Dict{Int64, zip}() )
+  unfound = Array{Int64,1}()
+  for row = 1:size(alld,1)
+
+  end
+  return ppatients, unfound
+end
 
 
 """
