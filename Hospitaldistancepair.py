@@ -93,9 +93,13 @@ lat_add = 28
 lon_add = 29
 
 for i in range(1,len(hospdata)):
-    hospdata[i][fid_add] = eval(hospdata[i][fid_add])
-    hospdata[i][lat_add] = eval(hospdata[i][lat_add])
-    hospdata[i][lon_add] = eval(hospdata[i][lon_add])
+    if not (hospdata[i][lon_add]=='' or hospdata[i][lat_add]==''):
+        if type(hospdata[i][fid_add]) != int: 
+            hospdata[i][fid_add] = eval(hospdata[i][fid_add])
+        if type(hospdata[i][lat_add]) != float:
+            hospdata[i][lat_add] = eval(hospdata[i][lat_add])
+        if type(hospdata[i][lon_add]) != float:
+            hospdata[i][lon_add] = eval(hospdata[i][lon_add])
 
 # Add field names:
 # TXzip[0].append(hospdata[0][0:10] + hospdata[0][13:16])
@@ -112,13 +116,17 @@ for i in range(len(TXzip)):
     TXzip[i].append(0)  # count the number of appended hospitals
     TXzip[i].append(0)  # note in the second loop below that this is a 50 miler.
     for j in range(1,len(hospdata)):
-        dist = dfunc(TXzip[i][7], TXzip[i][8], hospdata[j][lat_add], hospdata[j][lon_add])
-        if (dist < 25) and (dist not in temp): # and (hospdata[j][fid_add] not in temp):
-            TXzip[i][9] += 1
-            for k in indices:
-                TXzip[i].append(hospdata[j][k])
-            TXzip[i].append(dist)    # don't forget the distance itself
-            temp.add(dist)  # temp.add(hospdata[j][fid_add])
+        if not( (hospdata[j][lat_add]=='') and (hospdata[j][lon_add]=='')):
+            dist = dfunc(TXzip[i][7], TXzip[i][8], hospdata[j][lat_add], hospdata[j][lon_add])
+            if (dist < 25) and (dist not in temp): # and (hospdata[j][fid_add] not in temp):
+                TXzip[i][9] += 1
+                for k in indices:
+                    TXzip[i].append(hospdata[j][k])
+                TXzip[i].append(dist)    # don't forget the distance itself
+                temp.add(dist)  # temp.add(hospdata[j][fid_add])
+
+
+
 '''
 The above changed a little bit - there appear to be some hospitals which have
 different names, different fids, but the same locations (to 16 decimal places
@@ -144,21 +152,25 @@ container = []
 for i in range(len(alldistances)):
     temp = set()
     for j in range(1, len(hospdata)):
-        dist = dfunc(alldistances[i][1], alldistances[i][2], hospdata[j][lat_add], hospdata[j][lon_add])
-        if hospdata[j][0] not in temp:  # this "temp" does not reflect the distance uniqueness correction above - keep it this way, I think
-            box = []
-            for l in range(len(alldistances[1])):
-                box.append(alldistances[i][l])
-            for k in indices:
-                box.append(hospdata[j][k])
-            box.append(dist)
-            container.append(box)
-            temp.add(hospdata[j][0])
-            # alldistances[i].append(hospdata[j][fid_add])
-            # alldistances[i].append(hospdata[j][facility_add]) # Note that the indices here do NOT follow those in "indices" the list, but those in hospdata[0]
-            # alldistances[i].append(hospdata[j][soloint_add]) # solo Intermediate
-            # alldistances[i].append(hospdata[j][intensive_add]) # neo intensive
-            # alldistances[i].append(dist)
+        if not( (hospdata[j][lat_add]=='') and (hospdata[j][lon_add]=='')):
+            dist = dfunc(alldistances[i][1], alldistances[i][2], hospdata[j][lat_add], hospdata[j][lon_add])
+            if hospdata[j][0] not in temp:  # this "temp" does not reflect the distance uniqueness correction above - keep it this way, I think
+                box = []
+                for l in range(len(alldistances[1])):
+                    box.append(alldistances[i][l])
+                for k in indices:
+                    box.append(hospdata[j][k])
+                box.append(dist)
+                container.append(box)
+                temp.add(hospdata[j][0])
+                # alldistances[i].append(hospdata[j][fid_add])
+                # alldistances[i].append(hospdata[j][facility_add]) # Note that the indices here do NOT follow those in "indices" the list, but those in hospdata[0]
+                # alldistances[i].append(hospdata[j][soloint_add]) # solo Intermediate
+                # alldistances[i].append(hospdata[j][intensive_add]) # neo intensive
+                # alldistances[i].append(dist)
+
+
+
 
 
 with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip All Hospital Distances.csv', 'w') as fp:
@@ -178,13 +190,14 @@ for i in range(len(TXzip)):
     if TXzip[i][9] <= 1:
         TXzip[i][10] = 1 # Set an indicator to record that a 50 mile radius was used.
         for j in range(1, len(hospdata)):
-            dist = dfunc(TXzip[i][7], TXzip[i][8], hospdata[j][lat_add], hospdata[j][lon_add])
-            if (dist < 50) and (dist not in temp): # (hospdata[j][fid_add] not in temp):
-                TXzip[i][9] += 1
-                for k in indices:
-                    TXzip[i].append(hospdata[j][k])
-                TXzip[i].append(dist)
-                temp.add(dist) # temp.add(hospdata[j][fid_add])
+            if not( (hospdata[j][lat_add]=='') and (hospdata[j][lon_add]=='')):
+                dist = dfunc(TXzip[i][7], TXzip[i][8], hospdata[j][lat_add], hospdata[j][lon_add])
+                if (dist < 50) and (dist not in temp): # (hospdata[j][fid_add] not in temp):
+                    TXzip[i][9] += 1
+                    for k in indices:
+                        TXzip[i].append(hospdata[j][k])
+                    TXzip[i].append(dist)
+                    temp.add(dist) # temp.add(hospdata[j][fid_add])
 
 max_hosp = 10 # If there are more than 10 hospitals, take the closest 10.
 
@@ -232,6 +245,38 @@ with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip Dis
     print('saving')
     a = csv.writer(fp, delimiter=',')
     a.writerows(TXzip)
+
+
+# 11/02/2016 - try to fix this: get the closest 10 appended no matter where they are.
+# Measure the distance to every hospital from every zip code.  
+
+attempt2 = []
+
+for row1 in range(len(TXzip)):
+    temp = set()
+    for j in range(1, len(hospdata)):
+        tem = []
+        tem.append(TXzip[row1][0]) #add the zip. 
+        tem.append(TXzip[row1][7])
+        tem.append(TXzip[row1][8])
+        if not( (hospdata[j][lat_add]=='') and (hospdata[j][lon_add]=='')):
+            dist = dfunc(TXzip[row1][7], TXzip[row1][8], hospdata[j][lat_add], hospdata[j][lon_add])
+            if (dist not in temp): # fids turn out not to be quite unique.  Distances are unique.  
+                for k in indices:
+                    tem.append(hospdata[j][k])
+                tem.append(dist)
+                temp.add(dist)
+                attempt2.append(tem)
+
+
+with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX All Distances.csv', 'w') as fp:
+    print('saving')
+    a = csv.writer(fp, delimiter=',')
+    a.writerows(attempt2)
+
+
+
+
 
 
 '''
