@@ -158,8 +158,16 @@
 
   # the choices file above is not correct.  Load TX All Distances.csv instead:
   # Get this from hospitaldistancepair.py and TX Hospital Sets.do and hosplatlong.py
-  #TODO - replace all NA's with zeros.  Change all calls to ProjectModule.alldists which are dataframes to array. 
+  #TODO - replace all NA's with zeros.  Change all calls to ProjectModule.alldists which are dataframes to array.
   alldists = DataFrames.readtable(pathdata*"TX Zip All Hospital Distances.csv", header = true);
+  for n in alldists.colindex.names
+    if typeof(alldists[n]) == DataArrays.DataArray{String,1}
+      alldists[ isna(alldists[n]),n] = "missing"
+    else
+      alldists[ isna(alldists[n]), n] = 0
+    end
+  end
+  alldists = convert(Array, alldists)
 
   for el in choices.colindex.names
     #println(typeof(choices[el]), "  ", el)
