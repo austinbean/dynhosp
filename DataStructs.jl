@@ -586,59 +586,6 @@ end
       ##### NB: Demand-side Data Structure Creation.
 
 
-#
-# """
-# `CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)`
-# Creates a collection of zip codes containing facilities, utilities, fixed effects,
-# location, coefficients, and a count of patients.
-# Will also return a list of unfound facilities, but there aren't any more of those.
-# The argument "ch" is for the file from "Zip Code Choice Sets.csv"
-# When this is called on the EntireState correctly, the hospital records are linked -
-# the zipcode and EntireState collections point to the same underlying hospital entries.
-# Zips are now created with a dictionary of type `Dict{Int64, ProjectModule.Fac}` which can contain hospitals or chospitals.
-# pats, unf = CreateZips(ProjectModule.zips, ProjectModule.choices, Tex);
-#
-# TODO - rewrite this to use the file alldists instead of ch.
-# """
-# function CreateZips(zipcodes::Array, ch::Array, Tex::EntireState; phrloc = 103)
-#   ppatients = patientcollection( Dict{Int64, zip}() )
-#   unfound = Array{Int64,1}()
-#   for el in zipcodes
-#     # Creates an empty zip code record, numbered "el"
-#     ppatients.zips[el] = zip(el, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
-#                              Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
-#                              0.0, 0.0,
-#                              coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),
-#                              coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c),     # lat, long, private coefficients, medicaid coefficients
-#                              patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0))                                                                          # private and medicaid patients
-#   end
-#   #FIXME - there is no distance check here right now.  That shouldn't be a problem, but there are some I'm not catching.
-#   for i = 1:size(ch, 1)                                                                                                                                         # rows in the set of choices
-#     ppatients.zips[ch[i,1]].lat = ch[i,7]
-#     ppatients.zips[ch[i,1]].long = ch[i,8]
-#     for j = 11:17:size(ch,2)                                                                                                                                    # Columns in the set of choices
-#       try
-#         #NB: This should link the hospital records between the EntireState and the patientcollection - they should refer to the same underlying objects.
-#         # FIXME: right now this catches the MethodError trying to append a chospital to the hospital dictionary.
-#         Tex.fipsdirectory[ch[i,j]]                                                                                                                              # look for the hosp in the EntireState
-#         fipscode = Tex.fipsdirectory[ch[i,j]]                                                                                                                   # NB: choices[i,11] → FID, Tex.fipsdirectory: FID → FIPSCODE.
-#         if distance(ppatients.zips[ch[i,1]].lat, ppatients.zips[ch[i,1]].long, ch[i, j+14], ch[i, j+15] ) < 25 # Check the distance here.
-#           ppatients.zips[ch[i,1]].facilities[ch[i,j]] = Tex.mkts[fipscode].collection[ch[i,j]]                                                                    # NB: Tex.fipsdirectory[ ch[i, 11]]: FID → Market,
-#           Tex.mkts[fipscode].collection[ ch[i, j]].bedcount = ch[i,j+3]                                                                                           # NB: Tex.fipsdirectory[ ch[i, 11]].collection[ ch[i, 11]]: FID → Hospital Record.
-#         end
-#       catch y
-#         if isa(y, KeyError)
-#           push!(unfound,ch[i, j])
-#         else
-#           println(y)
-#         end
-#       end
-#     end
-#   end
-#   return ppatients, unfound
-# end
-
-
 """
 `function CreateZips(alld::DataFrames.Dataframe,Tex::EntireState)`
 Now the correct distances are being imported as ProjectModule.alldists.
@@ -658,13 +605,12 @@ function CreateZips(alld::DataFrames.DataFrame,
                      bedcol::Int64 = 10,
                      dat::Array{Any,2} = ProjectModule.data05,
                      datfidloc::Int64 = 74,
-                     bedmean::Float64 = mean(alld[ !DataFrames.isna(alld[:, bedcol]),bedcol ]))
+                     bedmean::Float64 = round(mean(alld[ !DataFrames.isna(alld[:, bedcol]),bedcol ])))
   ppatients::patientcollection = patientcollection( Dict{Int64, zip}() )
   # unfound = Array{Int64,1}()
   # found = Array{Int64,1}()
   # names = Array{AbstractString, 1}()
   fids = unique(dat[:,74])
-  bedmean::Float64 = mean(alld[ !DataFrames.isna(alld[:, bedcol]),bedcol ])
   matched::Int64 = 0
   ppatients.zips = Dict(k=> zip(k, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
                            Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
@@ -827,7 +773,7 @@ end
 this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
 It must take an existing EntireState record to link the hospitals.
 """
-function NewPatients(Tex::EntireState; 
+function NewPatients(Tex::EntireState;
                      dists = ProjectModule.alldists,
                      phrloc::Int64 = 103,
                      pins = ProjectModule.pinsured,
