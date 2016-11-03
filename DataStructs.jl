@@ -642,29 +642,35 @@ end
 `FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
 Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
 There is a separate function for the Medicaid patients.
+There is now one zip which patients are in but which is not in pats as constructed above.
 """
-function FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
+function FillPPatients(pats::patientcollection, imported::Matrix;
+                       ziploc::Int64 = 101,
+                       drgloc::Int64 = 104,
+                       notavail::Array{Float32,1} = setdiff(imported[:,ziploc] ,keys(pats.zips)))
   notfound = Array{Int64,1}()
   for row in 1:size(imported, 1)
-    if imported[row, drgloc ] == 385
-      pats.zips[imported[row, ziploc]].ppatients.count385 += 1;
-    elseif imported[row, drgloc ] == 386
-      pats.zips[imported[row, ziploc]].ppatients.count386 += 1;
-    elseif imported[row, drgloc ] == 387
-      pats.zips[imported[row, ziploc]].ppatients.count387 += 1;
-    elseif imported[row, drgloc ] == 388
-      pats.zips[imported[row, ziploc]].ppatients.count388 += 1;
-    elseif imported[row, drgloc ] == 389
-      pats.zips[imported[row, ziploc]].ppatients.count389 += 1;
-    elseif imported[row, drgloc ] == 390
-      pats.zips[imported[row, ziploc]].ppatients.count390 += 1;
-    elseif imported[row, drgloc ] == 391
-      pats.zips[imported[row, ziploc]].ppatients.count391 += 1;
-    else # not found?
-        push!(notfound, pats.zips[imported[row, ziploc]].code);
+    if !in(imported[row,ziploc], notavail)
+      if imported[row, drgloc ] == 385
+        pats.zips[imported[row, ziploc]].ppatients.count385 += 1;
+      elseif imported[row, drgloc ] == 386
+        pats.zips[imported[row, ziploc]].ppatients.count386 += 1;
+      elseif imported[row, drgloc ] == 387
+        pats.zips[imported[row, ziploc]].ppatients.count387 += 1;
+      elseif imported[row, drgloc ] == 388
+        pats.zips[imported[row, ziploc]].ppatients.count388 += 1;
+      elseif imported[row, drgloc ] == 389
+        pats.zips[imported[row, ziploc]].ppatients.count389 += 1;
+      elseif imported[row, drgloc ] == 390
+        pats.zips[imported[row, ziploc]].ppatients.count390 += 1;
+      elseif imported[row, drgloc ] == 391
+        pats.zips[imported[row, ziploc]].ppatients.count391 += 1;
+      else # not found?
+          push!(notfound, pats.zips[imported[row, ziploc]].code);
+      end
     end
   end
-  return pats;
+  return pats
 end
 
 
@@ -675,25 +681,30 @@ end
 Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
 There is a separate function for the privately-insured patients.
 """
-function FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)
+function FillMPatients(pats::patientcollection, imported::Matrix;
+                       ziploc::Int64 = 101,
+                       drgloc::Int64 = 104,
+                       notavail::Array{Float32,1} = setdiff(imported[:,ziploc] ,keys(pats.zips)))
   notfound = Array{Int64,1}()
   for row in 1:size(imported, 1)
-    if imported[row, drgloc ] == 385
-      pats.zips[imported[row, ziploc]].mpatients.count385 += 1;
-    elseif imported[row, drgloc ] == 386
-      pats.zips[imported[row, ziploc]].mpatients.count386 += 1;
-    elseif imported[row, drgloc ] == 387
-      pats.zips[imported[row, ziploc]].mpatients.count387 += 1;
-    elseif imported[row, drgloc ] == 388
-      pats.zips[imported[row, ziploc]].mpatients.count388 += 1;
-    elseif imported[row, drgloc ] == 389
-      pats.zips[imported[row, ziploc]].mpatients.count389 += 1;
-    elseif imported[row, drgloc ] == 390
-      pats.zips[imported[row, ziploc]].mpatients.count390 += 1;
-    elseif imported[row, drgloc ] == 391
-      pats.zips[imported[row, ziploc]].mpatients.count391 += 1;
-    else # not found?
-        push!(notfound, pats.zips[imported[row, ziploc]].code);
+    if !in(imported[row,ziploc], notavail)
+      if imported[row, drgloc ] == 385
+        pats.zips[imported[row, ziploc]].mpatients.count385 += 1;
+      elseif imported[row, drgloc ] == 386
+        pats.zips[imported[row, ziploc]].mpatients.count386 += 1;
+      elseif imported[row, drgloc ] == 387
+        pats.zips[imported[row, ziploc]].mpatients.count387 += 1;
+      elseif imported[row, drgloc ] == 388
+        pats.zips[imported[row, ziploc]].mpatients.count388 += 1;
+      elseif imported[row, drgloc ] == 389
+        pats.zips[imported[row, ziploc]].mpatients.count389 += 1;
+      elseif imported[row, drgloc ] == 390
+        pats.zips[imported[row, ziploc]].mpatients.count390 += 1;
+      elseif imported[row, drgloc ] == 391
+        pats.zips[imported[row, ziploc]].mpatients.count391 += 1;
+      else # not found?
+          push!(notfound, pats.zips[imported[row, ziploc]].code);
+      end
     end
   end
   return pats;
@@ -712,6 +723,19 @@ function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix
 end
 
 
+"""
+`CheckPats(pats::patientcollection)`
+This will compute the total sum of all patients in all zips in the patientcollection.
+This is just to check that all are being added as expected.
+"""
+function CheckPats(pats::patientcollection)
+  count::Int64 = 0
+  for k in keys(pats.zips)
+    count += sum(pats.zips[k].mpatients)
+    count += sum(pats.zips[k].ppatients)
+  end
+  return count
+end
 
 
 
@@ -784,7 +808,7 @@ function NewPatients(Tex::EntireState;
   return patients
 end
 
-# Texas = MakeNew(fips, data05);
+# Texas = MakeNew(fips, convert(ProjectModule.alldists));
 # patients = NewPatients(Texas);
 
 
