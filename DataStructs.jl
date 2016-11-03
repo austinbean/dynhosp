@@ -62,7 +62,16 @@ end
  Takes an entire state and adds data from the imported choices returns a record with
  fipscodes containing hospitals with mostly empty field values
 """
-function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
+function TXSetup(Tex::EntireState, data::Matrix;
+                 lev105loc = 97,
+                 lev205loc = 98,
+                 lev305loc = 99,
+                 lev1515loc = 101,
+                 lev2515loc = 102,
+                 lev3515loc = 103,
+                 lev11525loc = 105,
+                 lev21525loc = 106,
+                 lev31525loc = 107)
   for i = 1:size(data,1)
     fips = data[i, 78]
     if fips != 0
@@ -75,22 +84,22 @@ function TXSetup(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98,
         level = 1
       end
       push!(Tex.mkts[fips].config,
-      hospital( data[i, 74],
-                data[i,94],
-                data[i, 95],
-                data[i, 82],
+      hospital( data[i, 74], #fid
+                data[i,94], #lat
+                data[i, 95], #long
+                data[i, 82], #name
                 fips,
-                level,
+                level, # level
                 Array{Int64,1}(),
                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                 WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]),
+                WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]), #choice probs
                 Array{Float64,1}(),
-                neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ),
-                Array{Int64,1}(),
+                neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ), #neighbors
+                Array{Int64,1}(), # hood (array of fids)
                   0    , # beds added later.
-                false ) )
+                false ) ) # perturbed or not?
     end
     # push all hospital fid/ fips pairs into the directory.
     Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
@@ -587,25 +596,25 @@ end
 
 
 """
-`function CreateZips(alld::DataFrames.Dataframe,Tex::EntireState)`
+`function CreateZips(alld::Array,Tex::EntireState)`
 Now the correct distances are being imported as ProjectModule.alldists.
 But in this version do check to make sure that the distance between any fac and zip is
 less than 25 miles.
-Note that this indexes into the DataFrame according to the named column ":zip".
+Note that this indexes into the Array according to the column zipcol.
 Create the state first with:
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.data05);
 CreateZips(ProjectModule.alldists, Tex)
 """
-function CreateZips(alld::DataFrames.DataFrame,
+function CreateZips(alld::Array,
                      Tex::EntireState;
                      zipcol::Int64 = 1,
                      fidcol::Int64 = 4,
                      bedcol::Int64 = 10,
                      dat::Array{Any,2} = ProjectModule.data05,
                      datfidloc::Int64 = 74,
-                     bedmean::Float64 = round(mean(alld[ !DataFrames.isna(alld[:, bedcol]),bedcol ])))
+                     bedmean::Float64 = round(mean(alld[:,bedcol])))
   ppatients::patientcollection = patientcollection( Dict{Int64, zip}() )
   # unfound = Array{Int64,1}()
   # found = Array{Int64,1}()
@@ -617,12 +626,12 @@ function CreateZips(alld::DataFrames.DataFrame,
                            0.0, 0.0,
                            coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),
                            coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c),     # lat, long, private coefficients, medicaid coefficients
-                           patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0)) for k in alld[:zip])
+                           patientcount(0,0,0,0,0,0,0), patientcount(0,0,0,0,0,0,0)) for k in unique(alld[:,zipcol]))
   for row = 1:size(alld,1)
     if alld[row,fidcol] != 0
       if in(alld[row, fidcol], fids)
         ppatients.zips[alld[row,zipcol]].facilities[alld[row,fidcol]] = Tex.mkts[ Tex.fipsdirectory[alld[row, fidcol]] ].collection[alld[row,fidcol]]
-        if !DataFrames.isna(alld[row,bedcol])
+        if alld[row,bedcol] != 0
           Tex.mkts[Tex.fipsdirectory[alld[row, fidcol]]].collection[ alld[row,fidcol]].bedcount = alld[row, bedcol]
         else
            Tex.mkts[Tex.fipsdirectory[alld[row, fidcol]]].collection[ alld[row,fidcol]].bedcount = bedmean
@@ -808,7 +817,7 @@ function NewPatients(Tex::EntireState;
   return patients
 end
 
-# Texas = MakeNew(fips, convert(ProjectModule.alldists));
+# Texas = MakeNew(ProjectModule.fips, ProjectModule.data05);
 # patients = NewPatients(Texas);
 
 
