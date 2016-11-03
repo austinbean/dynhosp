@@ -103,8 +103,8 @@ for i in range(1,len(hospdata)):
 
 # Add field names:
 # TXzip[0].append(hospdata[0][0:10] + hospdata[0][13:16])
-
-indices = [ i for i in range(14)] + [16,23] + [soloint_add, lat_add, lon_add]
+# Adding the indices of the first year and last year values.  
+indices = [ i for i in range(14)] + [16,23] + [soloint_add, lat_add, lon_add] + [25, 26]
 labels = [ hospdata[0][i] for i in indices]+['distance']
 labels[17] = 'latitude'
 labels[18] = 'longitude'
