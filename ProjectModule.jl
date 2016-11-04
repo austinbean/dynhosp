@@ -235,6 +235,7 @@ module ProjectModule
 
   export FindUndone, CMakeIt, SetLevel, FillState, PatientDraw, AllMortality, VolMortality, LogitEst, logitest, states1, states2, states3, poly, perturb, distance, MakeIt, TXSetup, ExpandDict, MakeNew, CreateEmpty, MarketPrint, NeighborsPrint, FacPrint, NewEntrantLocation, MktSize, ChoicesAvailable, LevelFunction, NeighborAppend, NeighborRemove, NeighborClean, NeighborFix, StrictCountyNeighborFix, HospFindFirst, FidFindFirst, MarketCleaner, HospUpdate, HospPerturb, CreateZips, FillPPatients, FillMPatients, FillPatients, NewPatients, PrintZip, ComputeDetUtil, WhichZips, CalcWTP, WTPMap, WriteWTP, UpdateDeterministic, GenPChoices, GenMChoices, PHistoryAdd, MHistoryAdd, PDemandMap, MDemandMap, HospitalClean, Restore, NewSim, Termination, PSim, TransitionGen, CondSum, DemandCheck, ResultsOut, OuterSim
   export EntireState, chospital, LBW, patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP, counterhistory, mkthistory, simrun, hyrec
+  export FindFids 
   println("Loaded Module")
 
 
