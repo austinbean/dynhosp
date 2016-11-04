@@ -662,6 +662,8 @@ function CreateZips(alld::Array,
                      zipcol::Int64 = 1,
                      fidcol::Int64 = 4,
                      bedcol::Int64 = 10,
+                     latcol::Int64 = 2,
+                     longcol::Int64 = 3,
                      dat::Array{Any,2} = ProjectModule.alldists,
                      datfidloc::Int64 = 4,
                      bedmean::Float64 = round(mean(alld[:,bedcol])))
@@ -680,11 +682,16 @@ function CreateZips(alld::Array,
   for row = 1:size(alld,1)
     if alld[row,fidcol] != 0
       if in(alld[row, fidcol], fids)
+        #TODO - ADD THE LAT AND LONG CODE HERE.
         ppatients.zips[alld[row,zipcol]].facilities[alld[row,fidcol]] = Tex.mkts[ Tex.fipsdirectory[alld[row, fidcol]] ].collection[alld[row,fidcol]]
         if alld[row,bedcol] != 0
           Tex.mkts[Tex.fipsdirectory[alld[row, fidcol]]].collection[ alld[row,fidcol]].bedcount = alld[row, bedcol]
         else
            Tex.mkts[Tex.fipsdirectory[alld[row, fidcol]]].collection[ alld[row,fidcol]].bedcount = bedmean
+        end
+        if ppatients.zips[alld[row,zipcol]].lat == 0
+          ppatients.zips[alld[row,zipcol]].lat = alld[row, latcol]
+          ppatients.zips[alld[row,zipcol]].long = alld[row, longcol]
         end
         # push!(found, alld[row, fidcol])
       else
@@ -855,6 +862,7 @@ end
 `NewPatients(Tex::EntireState; dists = ProjectModule.alldists, phrloc = 103, pins = pinsured, pmed = pmedicaid)`
 this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
 It must take an existing EntireState record to link the hospitals.
+Texas = MakeNew(ProjectModule.fips, ProjectModule.alldists);
 """
 function NewPatients(Tex::EntireState;
                      dists = ProjectModule.alldists,
