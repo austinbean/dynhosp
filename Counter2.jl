@@ -946,6 +946,7 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action]
     end
+    #TODO: Call WProb on the hospital or the nlrec?
     hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[KeyCreate(hosp.cns, hosp.level)]))) + (1-wt)*(hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action])
     for el in 1:size(hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:],1)
       if hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:] == action
@@ -956,7 +957,7 @@ function ComputeR(hosp::simh,
     hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action] += 1
   catch y
     if isa(y, KeyError)
-      hosp.visited[KeyCreate(hosp.cns, hosp.level)]=nlrec(  MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+      hosp.visited[KeyCreate(hosp.cns, hosp.level)]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
       hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action] += 1
     else
       return y
@@ -1001,6 +1002,19 @@ function DA(d::Dict{Int64, Float64})
 end
 
 
+"""
+`WProb(hosp::simh)`
+Compute the return R = π + β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ) + β E [ ϵ | xᵏ+1, Ψᵏ], so this
+is the function that will compute the second term: β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ).
+"""
+
+function WProb(n::nlrec)
+  prd::Float64 = 0.0
+  for el in keys(n.aw)
+    prd += n.aw[el]*n.psi[2,findfirst(n.psi[1,:], el)]
+  end
+  return prd
+end
 
 
 
