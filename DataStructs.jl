@@ -56,76 +56,22 @@ end
 
 
 
-
-# """
-# `TXSetup(Tex::EntireState, data::Matrix; ...)`
-#  Takes an entire state and adds data from the imported choices returns a record with
-#  fipscodes containing hospitals with mostly empty field values
-# """
-# function TXSetup(Tex::EntireState, data::Matrix;
-#                  lev105loc = 97,
-#                  lev205loc = 98,
-#                  lev305loc = 99,
-#                  lev1515loc = 101,
-#                  lev2515loc = 102,
-#                  lev3515loc = 103,
-#                  lev11525loc = 105,
-#                  lev21525loc = 106,
-#                  lev31525loc = 107)
-#   for i = 1:size(data,1)
-#     fips = data[i, 78]
-#     if fips != 0
-#       level = 0
-#       if (data[i, 79] == 1)&(data[i,80]==0)
-#         level = 3
-#       elseif (data[i, 79] == 0)&(data[i,80]==1)
-#         level = 2
-#       else
-#         level = 1
-#       end
-#       push!(Tex.mkts[fips].config,
-#       hospital( data[i, 74], #fid
-#                 data[i,94], #lat
-#                 data[i, 95], #long
-#                 data[i, 82], #name
-#                 fips,
-#                 level, # level
-#                 Array{Int64,1}(),
-#                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-#                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-#                 WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-#                 WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]), #choice probs
-#                 Array{Float64,1}(),
-#                 neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ), #neighbors
-#                 Array{Int64,1}(), # hood (array of fids)
-#                   0    , # beds added later.
-#                 false ) ) # perturbed or not?
-#     end
-#     # push all hospital fid/ fips pairs into the directory.
-#     Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
-#   end
-#   return Tex
-# end
-
-
 """
 `TXSetup(Tex::EntireState, data::Matrix; ...)`
  Takes an entire state and adds data from the imported choices returns a record with
  fipscodes containing hospitals with mostly empty field values
  Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
  MakeIt(Tex, ProjectModule.fips);
- TXSetup2(Tex, ProjectModule.alldists);
+ TXSetup(Tex, ProjectModule.alldists);
 """
 function TXSetup(Tex::EntireState, data::Matrix;
-                 lev105loc = 97,
-                 fidcol = 4,
-                 latcol = 21,
-                 longcol = 22,
-                 namecol = 5,
-                 fipscol = 7,
-                 intensivecol = 11,
-                 intermediatecol = 20,
-                 )
+                 fidcol::Int64 = 4,
+                 latcol::Int64 = 21,
+                 longcol::Int64 = 22,
+                 namecol::Int64 = 5,
+                 fipscol::Int64 = 7,
+                 intensivecol::Int64 = 11,
+                 intermediatecol::Int64 = 20)
   for i = 1:size(data,1)
     fips = data[i, fipscol]
     if fips != 0
@@ -161,6 +107,8 @@ function TXSetup(Tex::EntireState, data::Matrix;
     # push all hospital fid/ fips pairs into the directory.
     Tex.fipsdirectory[data[i, fidcol]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
+  NeighborFix(Tex)
+  InitChoice(Tex)
   return Tex
 end
 
@@ -177,6 +125,28 @@ function FindFids(m::Market)
   return outp
 end
 
+"""
+`InitChoice(Tex::EntireState)`
+Takes a newly created state and fixes all of the choice probabilities.
+"""
+function InitChoice(Tex::EntireState)
+  for mk in keys(Tex.mkts)
+    for el in Tex.mkts[mk].config
+      levl=(-1,-1)
+      if el.level == 1
+        levl = (0,0)
+      elseif el.level == 2
+        levl = (1,0)
+      elseif el.level == 3
+        levl = (0,1)
+      end
+      levels = MktSize(el.neigh)
+      el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
+    end
+  end
+end
+
+
 
 
 """
@@ -189,11 +159,13 @@ function ExpandDict(Tex::EntireState)
     #    el.collection = [ i.fid => i for i in el.config ] # this is the pre0.5 generator syntax
     el.noneqrecord = Dict(i.fid => false for i in el.config)
     # el.noneqrecord = [ i.fid => false for i in el.config] # this is the pre0.5 generator syntax.
-    # I would like to append to each hospital a list of the others in the market.
+    # I would like to append to each hospital a list of the others in the market, if it isn't already there.
     for hosp in el.config
       for hosp2 in el.config
         if hosp.fid != hosp2.fid
-          push!(hosp.hood, hosp2.fid)
+          if !in(hosp2.fid, hosp.hood)
+            push!(hosp.hood, hosp2.fid)
+          end
         end
       end
     end
@@ -205,7 +177,8 @@ end
 """
 `MakeNew(fi::Vector, dat::Matrix)`
 Call this and the whole state with all markets should be created.
-Should be called on "fips" or ProjectModule.fips and data05 or ProjectModule.data05
+Should be called on "fips" or ProjectModule.fips and ProjectModule.alldists.
+MakeNew(ProjectModule.fips, ProjectModule.alldists)
 """
 function MakeNew(fi::Vector, dat::Matrix)
   Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
@@ -231,7 +204,7 @@ function CreateEmpty(fi::Vector, dat::Matrix)
 end
 
 #NB: Creates hospital datastructure
-#Texas = MakeNew(fips, data05);
+#Texas = MakeNew(fips, ProjectModule.alldists );
 
       #### NB:  Supply-side  Printing Utilities to Display Simulation Outcomes
 
@@ -510,7 +483,7 @@ function NeighborFix(state::EntireState)
           for hos2 in mkt2.config
             if distance(hos1.lat, hos1.long, hos2.lat, hos2.long) < 25
               NeighborAppend(hos1, hos2)
-              NeighborAppend(hos2, hos1) # second function call maybe not necessary?  
+              NeighborAppend(hos2, hos1) # second function call maybe not necessary?
             end
           end
         end
@@ -681,7 +654,7 @@ Note that this indexes into the Array according to the column zipcol.
 Create the state first with:
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.data05);
+FillState(Tex, XXXXX);
 CreateZips(ProjectModule.alldists, Tex)
 """
 function CreateZips(alld::Array,
@@ -689,14 +662,14 @@ function CreateZips(alld::Array,
                      zipcol::Int64 = 1,
                      fidcol::Int64 = 4,
                      bedcol::Int64 = 10,
-                     dat::Array{Any,2} = ProjectModule.data05,
-                     datfidloc::Int64 = 74,
+                     dat::Array{Any,2} = ProjectModule.alldists,
+                     datfidloc::Int64 = 4,
                      bedmean::Float64 = round(mean(alld[:,bedcol])))
   ppatients::patientcollection = patientcollection( Dict{Int64, zip}() )
   # unfound = Array{Int64,1}()
   # found = Array{Int64,1}()
   # names = Array{AbstractString, 1}()
-  fids = unique(dat[:,74])
+  fids = unique(dat[:,fidcol])
   matched::Int64 = 0
   ppatients.zips = Dict(k=> zip(k, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
                            Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
@@ -879,7 +852,7 @@ end
 
 
 """
-`NewPatients(Tex::EntireState; fi = fips, da = data05, zi = zips, ch = choices, phrloc = 103, pins = pinsured, pmed = pmedicaid)`
+`NewPatients(Tex::EntireState; dists = ProjectModule.alldists, phrloc = 103, pins = pinsured, pmed = pmedicaid)`
 this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
 It must take an existing EntireState record to link the hospitals.
 """
@@ -894,7 +867,7 @@ function NewPatients(Tex::EntireState;
   return patients
 end
 
-# Texas = MakeNew(ProjectModule.fips, ProjectModule.data05);
+# Texas = MakeNew(ProjectModule.fips, ProjectModule.alldists);
 # patients = NewPatients(Texas);
 
 
@@ -906,40 +879,53 @@ for the counterfactual only.
 Note that this needs to be called AFTER the function `CMakeIt(Tex::EntireState, fip::Vector)` is called
 on an empty state record.
 This version also adds all of the `chospitals` directly to the `Market.collection` dictionary.
+Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists);
 """
-function FillState(Tex::EntireState, data::Matrix; lev105loc = 97, lev205loc = 98, lev305loc = 99, lev1515loc = 101, lev2515loc = 102, lev3515loc = 103, lev11525loc = 105, lev21525loc = 106, lev31525loc = 107)
+function FillState(Tex::EntireState, data::Matrix;
+                   fidcol::Int64 = 4,
+                   latcol::Int64 = 21,
+                   longcol::Int64 = 22,
+                   namecol::Int64 = 5,
+                   fipscol::Int64 = 7,
+                   intensivecol::Int64 = 11,
+                   intermediatecol::Int64 = 20)
   for i = 1:size(data,1)
-    fips = data[i, 78]
+    fips = data[i, fipscol] # fipscode
     if fips != 0
-      level = 0
-      if (data[i, 79] == 1)&(data[i,80]==0)
+      level::Int64 = 0
+      if (data[i, intensivecol] == 1)&(data[i,intermediatecol]==0)
         level = 3
-      elseif (data[i, 79] == 0)&(data[i,80]==1)
+      elseif (data[i, intensivecol] == 0)&(data[i,intermediatecol]==1)
         level = 2
       else
         level = 1
       end
       # Create the new record.
-      newh = ProjectModule.chospital( data[i, 74],
-                data[i,94],
-                data[i, 95],
-                data[i, 82],
-                fips,
-                level,
-                level,
-                Array{Int64,1}(), #volume
-                Array{Int64, 1}(), #mortality
-                Array{Float64,1}(), #ppayoff
-                Array{Float64,1}(), #mpayoff
-                  0    , # beds added later.
-                LBW(0,0,0,0,0,0), # LBW Infants.
-                false, # has intensive
-                false )
-      push!(Tex.mkts[fips].config,newh)
-      Tex.mkts[fips].collection[data[i,74]] = newh # finished.
+      availfids = FindFids(Tex.mkts[fips])
+      if !in(data[i, fidcol], availfids)
+        newh = ProjectModule.chospital( data[i, fidcol],
+                  data[i,latcol],
+                  data[i, longcol],
+                  data[i, namecol],
+                  fips,
+                  level,
+                  level,
+                  Array{Int64,1}(), #volume
+                  Array{Int64, 1}(), #mortality
+                  Array{Float64,1}(), #ppayoff
+                  Array{Float64,1}(), #mpayoff
+                    0    , # beds added later.
+                  LBW(0,0,0,0,0,0), # LBW Infants.
+                  false, # has intensive
+                  false )
+        push!(Tex.mkts[fips].config,newh)
+        Tex.mkts[fips].collection[data[i,fidcol]] = newh # finished.
+      end
     end
     # push all hospital fid/ fips pairs into the directory.
-    Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+    Tex.fipsdirectory[data[i, fidcol]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
   #TODO - add the zero hospital at the zero market.
   return Tex
@@ -1448,11 +1434,11 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
   return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
 
-# Texas = MakeNew(fips, data05);
+# Texas = MakeNew(fips, ProjectModule.alldists);
 # patients = NewPatients(Texas);
 
 #  Tex2 = NewSim(3, Texas, patients);
-#  EmpTex = CreateEmpty(fips, data05);
+#  EmpTex = CreateEmpty(fips, XXX XXX );
 
 
 
@@ -1473,11 +1459,11 @@ end
 
 
 """
-`PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])`
+`PSim(T::Int64 ; di = ProjectModule.alldists, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])`
 Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
 The results are stored in EmptyState, which is an EntireState record instance.
 """
-function PSim(T::Int64 ; di = data05, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
+function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
   EmptyState = CreateEmpty(fi, di);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
@@ -1817,12 +1803,12 @@ end
 
 
 """
-`OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)`
+`OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, ProjectModule.alldists)`
 Runs the Monte Carlo - Equilibrium and Non-equilibrium simulations for each market MCcount times.
 Note that the reduction is (+), but that includes adding the fids, so this must be divided by MCcount
 to return correct results.
 """
-function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = fips, da = data05)
+function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = ProjectModule.fips, da = ProjectModule.alldists)
   outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
     TexasEq = MakeNew(fi, da);                                                                           # Returns an EntireState.  very quick ≈ 0.1 seconds.
