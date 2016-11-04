@@ -137,6 +137,7 @@ type simh<:ProjectModule.Fac
   mk::cmkt # putting the cmkt into the simh record itself.
   exit::Bool
   tbu::Bool
+  converged::Bool
 end
 
 """
@@ -191,7 +192,8 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      Array{shortrec,1}(),
                      DynPatients(p, Tex.mkts[k1].collection[hk].fid), # should create the patient collection as a subelement of the hospital record.
                      false,
-                     false)
+                     false,
+                     false) # added "Converged" Bool.
       for k2 in keys(Tex.mkts)
         for hk2 in keys(Tex.mkts[k2].collection)
           #TODO - note that this might exclude some neighbors from the same county which I want
@@ -946,7 +948,6 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action]
     end
-    #TODO: Call WProb on the hospital or the nlrec?
     hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[KeyCreate(hosp.cns, hosp.level)]))) + (1-wt)*(hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action])
     for el in 1:size(hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:],1)
       if hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:] == action
@@ -1007,7 +1008,6 @@ end
 Compute the return R = π + β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ) + β E [ ϵ | xᵏ+1, Ψᵏ], so this
 is the function that will compute the second term: β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ).
 """
-
 function WProb(n::nlrec)
   prd::Float64 = 0.0
   for el in keys(n.aw)
@@ -1015,6 +1015,66 @@ function WProb(n::nlrec)
   end
   return prd
 end
+
+
+"""
+`DynSim(D::DynState)`
+This computes the dynamic simulation across all of the facilities in all of the markets.
+#TODO - write the check for the firm's exit!  and the restart.
+"""
+function DynSim(D::DynState)
+  iterations::Int64 = 0
+  converged::Bool = false
+  a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
+  b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
+  act::Int64 = 0
+  while !converged
+    for el in D.all
+      if !el.converged                                           # only keep simulating with the ones which haven't converged
+        act = ChooseAction(el)                                   # Takes an action and returns it.
+        a, b = DSim(el.mk)                                       # Demand as a result of actions.
+        GetProb(el)                                              # action choices by other firms
+        ComputeR()
+        # TODO - update the firm and the market
+        # TODO - draw the actions from the distribution implied by the set of W's at the current state!
+        # TODO - Is GetProb updating the ns firms with the state of simh?
+      end
+    end
+    iterations += 1
+  end
+  converged = Halt(D)
+end
+
+
+
+"""
+`Halt(D::DynState)`
+For each firm in the simulation, check whether it has converged or not.  Return false
+when one firm has been found which hasn't.
+"""
+function Halt(D::DynState)
+  b::Bool = true
+  for el in D.all
+    if !el.converged
+      b = false
+      break
+    end
+  end
+  return b
+end
+
+
+
+"""
+`ChooseAction(h::simh)`
+Chooses the action and returns it.
+Uses the choice probs implied by the estimated value functions at the state.
+"""
+function ChooseAction(h::simh)
+  return sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
+end
+
+
 
 
 
