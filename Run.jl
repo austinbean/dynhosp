@@ -7,7 +7,7 @@ loc = pwd()
 
 using ProjectModule
 
-res = OuterSim(2; T1 = 50)
+res = OuterSim(2; T1 = 1)
 
 res2 = convert(DataFrames.DataFrame, res)
 
