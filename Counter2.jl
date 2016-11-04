@@ -164,10 +164,10 @@ Create the dynamic records from the existing state, don't bother doing it from s
 And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
-TexasEq = MakeNew(ProjectModule.fips, ProjectModule.data05);
+TexasEq = MakeNew(ProjectModule.fips, ProjectModule.alldists);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.data05);
+FillState(Tex, ProjectModule.alldists);
 patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, Tex, patients);
@@ -194,6 +194,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      false)
       for k2 in keys(Tex.mkts)
         for hk2 in keys(Tex.mkts[k2].collection)
+          #TODO - note that this might exclude some neighbors from the same county which I want
           if hk2 != hk
             d1 = distance(Tex.mkts[k1].collection[hk].lat, Tex.mkts[k1].collection[hk].long , Tex.mkts[k2].collection[hk2].lat , Tex.mkts[k2].collection[hk2].long)
             if d1 < 25 #check distance
