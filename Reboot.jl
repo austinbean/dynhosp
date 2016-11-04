@@ -181,7 +181,7 @@
   choices = convert(Array{Any, 2}, choices);
 
   # Data
-  fips = unique(data[:,78])
+  fips = union(unique(data[:,78]), unique(alldists[:,7]))
   data05 = data[(data[:,75].==2005), :] ;
 
   bwprobs = DataFrames.readtable(pathdata*"2005 Birth Weight Probabilities.csv", header = true);
