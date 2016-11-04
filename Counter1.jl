@@ -7,7 +7,7 @@
 # Create and fill state and Patient collection:
 # Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 # CMakeIt(Tex, ProjectModule.fips);
-# FillState(Tex, ProjectModule.data05);
+# FillState(Tex, ProjectModule.alldists);
 # patients = NewPatients(Tex);
 #
 
@@ -309,7 +309,7 @@ a mortality baseline can be determined.
 Note: run this on a NEW state record unless the levels have been set back to what they were in reality.
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.data05);
+FillState(Tex, ProjectModule.alldists);
 """
 #TODO: check this against some mortality data from NCHS.
 function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange::Bool = false, level::Int64 = 3)
@@ -513,7 +513,7 @@ function RunCounter1(T::Int64)
     println("Setting up")
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.data05);
+    FillState(Tex, ProjectModule.alldists);
     patients = NewPatients(Tex);
   # Run the baseline then run the counter where each county gets a single level 1 and there *are* transfers.
     println("Running Baseline")
@@ -525,7 +525,7 @@ function RunCounter1(T::Int64)
   # Run the counterfactual where there are no transfers
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.data05);
+    FillState(Tex, ProjectModule.alldists);
     patients = NewPatients(Tex);
     println("Running Single level 3 w/ out transfers")
     c1nr = CounterSim(T, Tex, patients; reassign = false)
@@ -536,7 +536,7 @@ function RunCounter1(T::Int64)
     println("Assigning everyone to level 3")
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.data05);
+    FillState(Tex, ProjectModule.alldists);
     patients = NewPatients(Tex);
     c3 = Baseline(T, Tex, patients; levelchange = true, level = 3)
     outc3all = BestOutcome(c3, bl)
@@ -544,7 +544,7 @@ function RunCounter1(T::Int64)
     println("assigning everyone except the special fac to level 2")
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.data05);
+    FillState(Tex, ProjectModule.alldists);
     patients = NewPatients(Tex);
     c2 = Baseline(T, Tex, patients; levelchange = true, level = 2)
     outc2all = BestOutcome(c2, bl)
@@ -552,7 +552,7 @@ function RunCounter1(T::Int64)
     println("Assigning everyone to level 1")
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.data05);
+    FillState(Tex, ProjectModule.alldists);
     patients = NewPatients(Tex);
     c1all = Baseline(T, Tex, patients; levelchange = true, level = 1)
     outc1all = BestOutcome(c1all, bl)
