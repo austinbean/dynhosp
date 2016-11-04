@@ -57,56 +57,125 @@ end
 
 
 
+# """
+# `TXSetup(Tex::EntireState, data::Matrix; ...)`
+#  Takes an entire state and adds data from the imported choices returns a record with
+#  fipscodes containing hospitals with mostly empty field values
+# """
+# function TXSetup(Tex::EntireState, data::Matrix;
+#                  lev105loc = 97,
+#                  lev205loc = 98,
+#                  lev305loc = 99,
+#                  lev1515loc = 101,
+#                  lev2515loc = 102,
+#                  lev3515loc = 103,
+#                  lev11525loc = 105,
+#                  lev21525loc = 106,
+#                  lev31525loc = 107)
+#   for i = 1:size(data,1)
+#     fips = data[i, 78]
+#     if fips != 0
+#       level = 0
+#       if (data[i, 79] == 1)&(data[i,80]==0)
+#         level = 3
+#       elseif (data[i, 79] == 0)&(data[i,80]==1)
+#         level = 2
+#       else
+#         level = 1
+#       end
+#       push!(Tex.mkts[fips].config,
+#       hospital( data[i, 74], #fid
+#                 data[i,94], #lat
+#                 data[i, 95], #long
+#                 data[i, 82], #name
+#                 fips,
+#                 level, # level
+#                 Array{Int64,1}(),
+#                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+#                 DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+#                 WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+#                 WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]), #choice probs
+#                 Array{Float64,1}(),
+#                 neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ), #neighbors
+#                 Array{Int64,1}(), # hood (array of fids)
+#                   0    , # beds added later.
+#                 false ) ) # perturbed or not?
+#     end
+#     # push all hospital fid/ fips pairs into the directory.
+#     Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+#   end
+#   return Tex
+# end
+
+
 """
 `TXSetup(Tex::EntireState, data::Matrix; ...)`
  Takes an entire state and adds data from the imported choices returns a record with
  fipscodes containing hospitals with mostly empty field values
+ Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+ MakeIt(Tex, ProjectModule.fips);
+ TXSetup2(Tex, ProjectModule.alldists);
 """
 function TXSetup(Tex::EntireState, data::Matrix;
                  lev105loc = 97,
-                 lev205loc = 98,
-                 lev305loc = 99,
-                 lev1515loc = 101,
-                 lev2515loc = 102,
-                 lev3515loc = 103,
-                 lev11525loc = 105,
-                 lev21525loc = 106,
-                 lev31525loc = 107)
+                 fidcol = 4,
+                 latcol = 21,
+                 longcol = 22,
+                 namecol = 5,
+                 fipscol = 7,
+                 intensivecol = 11,
+                 intermediatecol = 20,
+                 )
   for i = 1:size(data,1)
-    fips = data[i, 78]
+    fips = data[i, fipscol]
     if fips != 0
       level = 0
-      if (data[i, 79] == 1)&(data[i,80]==0)
+      if (data[i, intensivecol] == 1)&(data[i,intermediatecol]==0)
         level = 3
-      elseif (data[i, 79] == 0)&(data[i,80]==1)
+      elseif (data[i, intensivecol] == 0)&(data[i,intermediatecol]==1)
         level = 2
       else
         level = 1
       end
-      push!(Tex.mkts[fips].config,
-      hospital( data[i, 74], #fid
-                data[i,94], #lat
-                data[i, 95], #long
-                data[i, 82], #name
-                fips,
-                level, # level
-                Array{Int64,1}(),
-                DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                WeightVec([data[i,19], data[i,37], data[i,55], data[i, 73]]), #choice probs
-                Array{Float64,1}(),
-                neighbors(data[i, lev105loc], data[i,lev205loc ], data[i,lev305loc ], data[i,lev1515loc ], data[i,lev2515loc ], data[i, lev3515loc], data[i,lev11525loc ], data[i,lev21525loc ], data[i,lev31525loc]  ), #neighbors
-                Array{Int64,1}(), # hood (array of fids)
-                  0    , # beds added later.
-                false ) ) # perturbed or not?
+      availfids = FindFids(Tex.mkts[fips])
+      if !in(data[i, fidcol], availfids)
+        push!(Tex.mkts[fips].config,
+        hospital( data[i, fidcol], #fid
+                  data[i,latcol], #lat
+                  data[i, longcol], #long
+                  data[i, namecol], #name
+                  fips,
+                  level, # level
+                  Array{Int64,1}(),
+                  DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                  DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                  WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                  WeightVec([0.0]), #choice probs
+                  Array{Float64,1}(),
+                  neighbors(0,0,0,0,0,0,0,0,0), #neighbors
+                  Array{Int64,1}(), # hood (array of fids)
+                    0    , # beds added later.
+                  false ) ) # perturbed or not?
+      end
     end
     # push all hospital fid/ fips pairs into the directory.
-    Tex.fipsdirectory[data[i, 74]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
+    Tex.fipsdirectory[data[i, fidcol]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
   return Tex
 end
 
+"""
+`FindFids(m::Market)`
+Return all the fids in the market.
+This is necessary in TXSetup to make sure that we only add each hospital to the market once.
+"""
+function FindFids(m::Market)
+  outp::Array{Int64,1} = Array{Int64,1}()
+  for el in m.config
+    push!(outp, el.fid)
+  end
+  return outp
+end
 
 
 
@@ -427,13 +496,21 @@ Compare to StrictCountyNeighborFix which respects county boundaries.
 """
 function NeighborFix(state::EntireState)
   for mkt1 in state.ms
+    for h1 in mkt1.config
+      for h2 in mkt1.config
+        if h1.fid != h2.fid
+          NeighborAppend(h1, h2)
+        end
+      end
+    end
+    # Now do all other counties in the state.
     for mkt2 in state.ms
       if mkt1.fipscode != mkt2.fipscode
         for hos1 in mkt1.config
           for hos2 in mkt2.config
             if distance(hos1.lat, hos1.long, hos2.lat, hos2.long) < 25
               NeighborAppend(hos1, hos2)
-              NeighborAppend(hos2, hos1)
+              NeighborAppend(hos2, hos1) # second function call maybe not necessary?  
             end
           end
         end
