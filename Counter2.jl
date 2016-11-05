@@ -963,7 +963,9 @@ function ComputeR(hosp::simh,
         hosp.visited[k1].psi = hosp.visited[k1].aw[action]
       end
     end
+    #TODO - are these probs getting updated correctly?  Not sure.
     hosp.visited[k1].psi = DA(hosp.visited[k1].aw)
+    # TODO - doesn't look like the count is being updated either.
     hosp.visited[k1].counter[action] += 1
   else # Key not there.
     println("hi")
@@ -971,16 +973,6 @@ function ComputeR(hosp::simh,
     hosp.visited[k1].counter[action] += 1
   end
 end
-
-
-
-
-
-
-
-
-
-
 
 
 """
@@ -1038,8 +1030,9 @@ end
 `ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
 # TODO - Is GetProb updating the ns firms with the state of simh?
+# TODO - probs w/in records are not obviously getting updated by ComputeR.
 """
-function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)))
+function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = true)
   iterations::Int64 = 0
   converged::Bool = false
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
@@ -1053,6 +1046,9 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         GetProb(el)                                              # action choices by other firms
         ComputeR(el, a, b, act, iterations)
         ExCheck(el)
+        if debug
+          PrintVisited(el)
+        end
       end
     end
     iterations += 1
@@ -1132,6 +1128,25 @@ function ExCheck(h::simh)
     end
   end
 end
+
+
+"""
+`PrintVisited(h::hosp)`
+Print the keys of the visited group and the probabilities of the choices, since they
+might not be getting updated at this point.
+"""
+function PrintVisited(h::simh)
+  for el in keys(h.visited)
+    println(el)
+    println(h.visited[el].psi)
+    println(h.visited[el].counter)
+  end
+end
+
+
+
+
+
 
 
 """
