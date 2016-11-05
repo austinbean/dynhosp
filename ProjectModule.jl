@@ -84,6 +84,10 @@ module ProjectModule
     hash((n1.level105, n1.level205, n1.level305, n1.level1515, n1.level2515, n1.level3515, n1.level11525, n1.level21525, n1.level31525) )
   end
 
+  function Base.sum(n::neighbors)
+    n.level105+n.level205+n.level305+n.level1515+n.level2515+n.level3515+n.level11525+n.level21525+n.level31525
+  end
+
   abstract Fac
 
 
