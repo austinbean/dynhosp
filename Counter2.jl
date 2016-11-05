@@ -121,8 +121,9 @@ end
 -  visited::Dict{nl, nlrec} #possible given "isequal" and "hash" extended for "neighbors"
 -  ns::Array{shortrec, 1}
 -  mk::cmkt # putting the cmkt into the simh record itself.
--  exit::Bool
--  tbu::Bool
+-  exit::Bool # did it exit?
+-  tbu::Bool # Does the record need to be updated ?
+-  converged::Bool # has the hospital converged or not?
 """
 type simh<:ProjectModule.Fac
   fid::Int64
@@ -280,6 +281,13 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
       end
       push!(outp.all, newsimh)
     end
+  end
+  for el in outp.all
+    # Creates an initial value in the "visited" states container.
+    el.visited[KeyCreate(el.cns, el.level)] = nlrec(MD(ChoicesAvailable(el), StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))),
+                                                    vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))))),
+                                                    Dict(k => 1 for k in ChoicesAvailable(el)))
+    el.visited[KeyCreate(el.cns, el.level)].counter[10] += 1
   end
   return outp
 end
@@ -941,30 +949,39 @@ function ComputeR(hosp::simh,
                   action::Int64,
                   iterations::Int64;
                   disc::Float64 = 0.95)
-  try hosp.visited[KeyCreate(hosp.cns, hosp.level)]
+  k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
+  if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
     if iterations <= 20_000_000
-      wt = 1/sqrt(hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action])
+      wt = 1/sqrt(hosp.visited[k1].counter[action])
     else
-      wt = 1/hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action]
+      wt = 1/hosp.visited[k1].counter[action]
     end
-    hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[KeyCreate(hosp.cns, hosp.level)]))) + (1-wt)*(hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action])
-    for el in 1:size(hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:],1)
-      if hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[1,:] == action
-        hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi = hosp.visited[KeyCreate(hosp.cns, hosp.level)].aw[action] # this will change the value below so that the update changes something.
+    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1]))) + (1-wt)*(hosp.visited[k1].aw[action])
+    for el in 1:size(hosp.visited[k1].psi[1,:],1)
+      if hosp.visited[k1].psi[1,:] == action
+        hosp.visited[k1].psi = hosp.visited[k1].aw[action]
       end
     end
-    hosp.visited[KeyCreate(hosp.cns, hosp.level)].psi[2,:] = DA(hosp.visited[hosp.cns].aw)
-    hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action] += 1
-  catch y
-    if isa(y, KeyError)
-      hosp.visited[KeyCreate(hosp.cns, hosp.level)]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
-      hosp.visited[KeyCreate(hosp.cns, hosp.level)].counter[action] += 1
-    else
-      return y
-    end
+    hosp.visited[k1].psi = DA(hosp.visited[k1].aw)
+    hosp.visited[k1].counter[action] += 1
+  else # Key not there.
+    println("hi")
+    hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+    hosp.visited[k1].counter[action] += 1
   end
 end
+
+
+
+
+
+
+
+
+
+
+
 
 """
 `PolicyUpdate(hosp::simh, neww::Array{Float64,1})`
@@ -1018,27 +1035,24 @@ end
 
 
 """
-`DynSim(D::DynState)`
+`ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
-#TODO - write the check for the firm's exit!  and the restart.
-#TODO - when this initializes, make sure that dyn starts with whatever state is actually available.  
+# TODO - Is GetProb updating the ns firms with the state of simh?
 """
-function DynSim(D::DynState)
+function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)))
   iterations::Int64 = 0
   converged::Bool = false
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   act::Int64 = 0
-  while !converged
-    for el in D.all
+  while (iterations<itlim)&&(!converged)
+    for el in D.all[chunk]
       if !el.converged                                           # only keep simulating with the ones which haven't converged
         act = ChooseAction(el)                                   # Takes an action and returns it.
-        a, b = DSim(el.mk)                                       # Demand as a result of actions.
+        a, b = DSim(el.mk, el.fid)                               # Demand as a result of actions.
         GetProb(el)                                              # action choices by other firms
         ComputeR(el, a, b, act, iterations)
-        # TODO - update the firm and the market
-        # TODO - draw the actions from the distribution implied by the set of W's at the current state!
-        # TODO - Is GetProb updating the ns firms with the state of simh?
+        ExCheck(el)
       end
     end
     iterations += 1
@@ -1064,6 +1078,29 @@ function Halt(D::DynState)
   return b
 end
 
+"""
+`GetChunk(D::DynState, lim::Int64; lower::Bool = false)`
+Takes the DynState type and returns a collection of indices of D.all where the markets are a
+particular size or range of sizes less than `lim`.  When `lower` is false, takes the `lim` as a
+lower bound and then returns everything with a greater market size.
+Returns: `Array{Int64, 1}`
+"""
+function GetChunk(D::DynState, lim::Int64; lower::Bool = false)
+  outp::Array{Int64, 1} = Array{Int64,1}()
+  for el in 1:size(D.all,1)
+    if !lower
+      if sum(D.all[el].cns)<=lim
+        push!(outp, el)
+      end
+    else
+      if sum(D.all[el].cns)>lim
+        push!(outp, el)
+      end
+    end
+  end
+  return outp
+end
+
 
 
 """
@@ -1072,17 +1109,36 @@ Chooses the action and returns it.
 Uses the choice probs implied by the estimated value functions at the state.
 """
 function ChooseAction(h::simh)
-  return convert(Int64, sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:])))
+  act = convert(Int64, sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:])))
+  if act == 11
+    h.exited = true
+  end
+  return act
 end
 
 
+"""
+`function ExCheck(h::simh)`
+Check if the firm exited, then restart.
+When the firm exits we also reset all of the neighbors.
+"""
+function ExCheck(h::simh)
+  if h.exit
+    h.exit = false
+    for n in h.ns
+      if n.level == -999
+        n.level = n.truelevel
+      end
+    end
+  end
+end
 
 
-
-
-
-
-function CheckConvergence()
+"""
+`CheckConvergence()`
+Check the convergence criterion in Collard-Wexler or Pakes McGuire
+"""
+function CheckConvergence(h::simh; draws::Int64 = 100)
 
 
 end
