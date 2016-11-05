@@ -957,21 +957,42 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
+    println("***")
+    println(wt)
+    println(SinglePay(hosp, ppats, mpats))
+    println( disc*(WProb(hosp.visited[k1])))
+    println(hosp.visited[k1].aw[action])
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1]))) + (1-wt)*(hosp.visited[k1].aw[action])
     for el in 1:size(hosp.visited[k1].psi[1,:],1)
-      if hosp.visited[k1].psi[1,:] == action
-        hosp.visited[k1].psi = hosp.visited[k1].aw[action]
+      if hosp.visited[k1].psi[1,el] == action
+        hosp.visited[k1].psi[2,el] = hosp.visited[k1].aw[action]
+        println(hosp.visited[k1].psi)
+        println("????")
       end
     end
-    #TODO - are these probs getting updated correctly?  Not sure.
-    hosp.visited[k1].psi = DA(hosp.visited[k1].aw)
-    # TODO - doesn't look like the count is being updated either.
+    hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw)
     hosp.visited[k1].counter[action] += 1
   else # Key not there.
     println("hi")
     hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
     hosp.visited[k1].counter[action] += 1
   end
+end
+
+
+"""
+ProbUpdate(aw::Dict{Int64,Float64})
+"""
+function ProbUpdate(aw::Dict{Int64,Float64})
+  tot::Float64 = 0.0
+  outp::Array{Float64,1} = Array{Float64,1}()
+  labs::Array{Int64,1} = Array{Int64, 1}()
+  for el in keys(aw)
+    tot += aw[el]
+    push!(outp, aw[el])
+    push!(labs, el)
+  end
+  return transpose(hcat(labs, outp./tot))
 end
 
 
@@ -1135,11 +1156,15 @@ end
 Print the keys of the visited group and the probabilities of the choices, since they
 might not be getting updated at this point.
 """
-function PrintVisited(h::simh)
-  for el in keys(h.visited)
-    println(el)
-    println(h.visited[el].psi)
-    println(h.visited[el].counter)
+function PrintVisited(h::simh; simple::Bool = true)
+  if !simple
+    for el in keys(h.visited)
+      println(el)
+      println(h.visited[el].psi)
+      println(h.visited[el].counter)
+    end
+  else
+    println(h.visited[KeyCreate(h.cns, h.level)].aw)
   end
 end
 
