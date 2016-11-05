@@ -1021,6 +1021,7 @@ end
 `DynSim(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
 #TODO - write the check for the firm's exit!  and the restart.
+#TODO - when this initializes, make sure that dyn starts with whatever state is actually available.  
 """
 function DynSim(D::DynState)
   iterations::Int64 = 0
@@ -1034,7 +1035,7 @@ function DynSim(D::DynState)
         act = ChooseAction(el)                                   # Takes an action and returns it.
         a, b = DSim(el.mk)                                       # Demand as a result of actions.
         GetProb(el)                                              # action choices by other firms
-        ComputeR()
+        ComputeR(el, a, b, act, iterations)
         # TODO - update the firm and the market
         # TODO - draw the actions from the distribution implied by the set of W's at the current state!
         # TODO - Is GetProb updating the ns firms with the state of simh?
@@ -1071,7 +1072,7 @@ Chooses the action and returns it.
 Uses the choice probs implied by the estimated value functions at the state.
 """
 function ChooseAction(h::simh)
-  return sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
+  return convert(Int64, sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:])))
 end
 
 
