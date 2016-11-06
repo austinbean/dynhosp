@@ -124,6 +124,7 @@ end
 -  exit::Bool # did it exit?
 -  tbu::Bool # Does the record need to be updated ?
 -  converged::Bool # has the hospital converged or not?
+#NB: TODO - add a level last period value so I can record when the charges for changing need to be assessed.
 """
 type simh<:ProjectModule.Fac
   fid::Int64
@@ -810,6 +811,7 @@ end
 """
 `SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
+# NB: TODO - Need to subtract the cost of changing here.
 """
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
@@ -845,6 +847,7 @@ function SinglePay(s::simh,
                     mcaid389::Float64 = 9424.0,
                     mcaid390::Float64 = 4623.0,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+    #TODO - the level change tracker will let me know when I need to assess the fixed costs.
     outp::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
     if s.level == 1
@@ -1106,10 +1109,89 @@ end
 
 
 """
-`CheckConvergence()`
-Check the convergence criterion in Collard-Wexler or Pakes McGuire
+`CheckConvergence(h::simh; draws::Int64 = 100)`
+Check the convergence criterion in Collard-Wexler or Pakes McGuire.
+This can be checked every million iterations.  When that happens,
+reset the counters for every state in "visited".
 """
 function CheckConvergence(h::simh; draws::Int64 = 100)
-
-
+  statecount::Int64 = h.visited.count # how many unique states are there?   NB: this is NOT exactly the right number.  This will be GREATER than those visited in the last million, starting with the second million
+  outp::Array{Float64,1} = Array{Float64, 1}()
+  for k in keys(h.visited)
+    #TODO - draw action profile and state - this means: draw key and level, right?
+    # This means use the probabilities which I have there - draw actions from psi.
+    # TODO - rememember - only draw from that state if visited, which should be when the counter is greater than 2.
+    # something like: if h.visited[k].counter[SOME KEY] > 1
+    for d = 1:draws
+      # Draw the VALUE of the action next state.
+      h.visited[k].aw[sample(h.visited[k].psi[1,:] , WeightVec(h.visited[k].psi[2,:]))]
+    end
+  end
+  for k1 in keys(h.visited)
+    for k2 in keys(h.visited[k1].counter)
+      h.visited[k1].counter[k2] = 1 # Reset all counter keys to 1 to track which states visited in last million iterations.
+    end
+  end
+  return outp
 end
+
+
+
+
+"""
+`DemandGroup(h::simh, totl::Int64)`
+To speed the demand computation, just compute a group of `totl` demands
+and sample uniformly from them.   This will need to be done when the state
+changes.  Perhaps only the state of the main firm.   `psamps` is the
+private patients (first element of return) `msamps` is the Medicaid patients,
+the second element of the return type.
+"""
+function DemandGroup(h::simh, totl::Int64)
+  psamps::Array{patientcount,1} = Array{patientcount, 1}()
+  msamps::Array{patientcount,1} = Array{patientcount, 1}()
+  for i = 1:totl
+    a, b = DSim(h.mk, h.fid)
+    push!(psamps, a)
+    push!(msamps, b)
+  end
+  return psamps, msamps
+end
+
+
+"""
+`EasyDemand(Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}})`
+Given an input in the form of a tuple of patientcounts, this chooses one each of the private and
+medicaid types and returns them.  The first element is the private patients, second element the
+Medicaid patients.  This is thousands of times faster.  Use this method instead.
+"""
+function EasyDemand(inp::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}})
+  return sample(inp[1]), sample(inp[2])
+end
+
+
+"""
+`AvgAggState(h::simh)`
+To make the computation faster, compute the average state in the rest of the market.  Draw actions for
+all of the neighbors, compute the aggregate state, then take the mean over such states.
+"""
+function AvgAggState(h::simh, drws::Int64)
+  tem::Array{neighbors, 1} = Array{neighbors, 1}()
+  interim::neighbors = neighbors(0,0,0,0,0,0,0,0,0)
+  for i = 1:drws
+    GetProb(h)
+    interim = sum(interim, h.cns)
+  end
+  return neighbors( round(Int64, interim.level105/drws), round(Int64,interim.level205/drws ), round(Int64, interim.level305/drws), round(Int64, interim.level1515/drws), round(Int64, interim.level2515/drws), round(Int64, interim.level3515/drws), round(Int64,interim.level11525/drws ), round(Int64, interim.level21525/drws), round(Int64, interim.level31525/drws) )
+end
+
+
+
+
+
+
+
+
+#=
+
+
+=#
