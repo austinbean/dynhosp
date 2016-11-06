@@ -1118,13 +1118,12 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10)
   statecount::Int64 = h.visited.count # how many unique states are there?   NB: this is NOT exactly the right number.  This will be GREATER than those visited in the last million, starting with the second million
   outp::Array{Float64,1} = Array{Float64, 1}() # TODO - should this be a scalar?
   totvisits::Int64 = 0
-  demd1::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}} = DemandGroup(h, demands) # Compute an initial demand set.
+  dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.
   for k in keys(h.visited)
-    # TODO - rememember - only draw from that state if visited, which should be when the counter is greater than 2.
-    for d = 1:draws
-      # Draw the VALUE of the action to get the next state.
+     for d = 1:draws
       nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))]) # LevelFunction takes Int64 argument in second place.
-      #TODO - careful about the levelcheck since the demand is different when we change the level.
+      level::Int64 = LevelFunction(h, nextact)
+      currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, level)
       if haskey(h.visited[KeyCreate(h.cns, LevelFunction(h, nextact))]) # check neighbors/level pair
         if LevelFunction(h, nextact) == h.level
             # here can use the demd above
@@ -1132,7 +1131,7 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10)
           h.level =
 
         end
-      else # when I haven't been there before, must take the initial value.
+      else # when I haven't been there before, must take the initial value.  But the goal is that this doesn't happen.
         hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
       end
     end
@@ -1182,13 +1181,14 @@ end
 
 """
 `ThreeDemands(h::simh, totl::Int64)`
-Speculative - would it be best to have three possible demand sets with one for each level?
-This would:
+An easier way to work with demand.
+This will:
 - Compute demand at some level.
 - Update to another.
 - Compute at that level.
 - Compute at the third level.
 - Return a tuple of demands for medicaid and private patients.
+- Random draws can be made from those demands easily.
 """
 function ThreeDemands(h::simh, totl::Int64)
   outp1::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}} = (Array{patientcount,1}(), Array{patientcount,1}())
@@ -1231,6 +1231,24 @@ function ThreeDemands(h::simh, totl::Int64)
   return outp1, outp2, outp3
 end
 
+
+"""
+`SimpleDemand(ds::::Tuple{Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}}}, lev::Int64)`
+Takes a gigantic tuple of tuples of arrays of patientcounts and returns a random element
+depending on the level.
+The input to this function is the output of the function `ThreeDemands(h::simh, totl::Int64)`
+"""
+function SimpleDemand(ds::Tuple{Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}}}, lev::Int64)
+  if lev == 1
+    return EasyDemand(ds[1])
+  elseif lev == 2
+    return EasyDemand(ds[2])
+  elseif lev == 3
+    return EasyDemand(ds[2])
+  else #exited
+    #nothing
+  end
+end
 
 
 
