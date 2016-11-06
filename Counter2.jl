@@ -898,7 +898,7 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
-    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1]))) + (1-wt)*(hosp.visited[k1].aw[action])
+    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw)
     hosp.visited[k1].counter[action] += 1
     if debug
@@ -967,7 +967,7 @@ end
 
 
 """
-`WProb(hosp::simh)`
+`WProb(n::nlrec)`
 Compute the return R = π + β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ) + β E [ ϵ | xᵏ+1, Ψᵏ], so this
 is the function that will compute the second term: β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ).
 """
@@ -978,6 +978,15 @@ function WProb(n::nlrec)
   end
   return prd
 end
+
+"""
+`ContError(n::nlrec)`
+Computes the continuation value of the error.
+"""
+function ContError(n::nlrec)
+  return (eulergamma - dot(log(n.psi[2,:]), n.psi[2,:]))
+end
+
 
 
 """
@@ -993,11 +1002,13 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   act::Int64 = 0
   while (iterations<itlim)&&(!converged)
+    dems = ThreeDemands(h, demands)                                   # TODO: This needs to be rearranged so that I can get at it without calling it every time inside the loop.
     for el in D.all[chunk]
-      if !el.converged                                           # only keep simulating with the ones which haven't converged
-        act = ChooseAction(el)                                   # Takes an action and returns it.
-        a, b = DSim(el.mk, el.fid)                               # Demand as a result of actions.
-        GetProb(el)                                              # action choices by other firms
+      if !el.converged                                                  # only keep simulating with the ones which haven't converged
+        act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
+        level::Int64 = LevelFunction(el ,act)
+        a, b = SimpleDemand(el, level)                                  # Demand as a result of actions.
+        GetProb(el)                                                     # action choices by other firms
         ComputeR(el, a, b, act, iterations; debug = debug)
         ExCheck(el)
         if debug
@@ -1008,6 +1019,18 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
     iterations += 1
   end
   converged = Halt(D)
+end
+
+"""
+`AllDems(d::DynState, ch::Array{Int64,1})`
+Generate a dictionary of tuples of demand states for every facility in the array `ch`.
+"""
+function AllDems(d::DynState, ch::Array{Int64, 1}; repcount::Int64 = 10)
+  outp::Dict{Int64, Tuple{Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}}}} = Dict{Int64, Tuple{Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}}}}()
+  for el in ch
+    outp[d.all[el].fid] = ThreeDemands(d.all[el], repcount)
+  end
+  return outp
 end
 
 
@@ -1114,25 +1137,25 @@ Check the convergence criterion in Collard-Wexler or Pakes McGuire.
 This can be checked every million iterations.  When that happens,
 reset the counters for every state in "visited".
 """
-function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10)
+function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc::Float64 = 0.95)
   statecount::Int64 = h.visited.count # how many unique states are there?   NB: this is NOT exactly the right number.  This will be GREATER than those visited in the last million, starting with the second million
   outp::Array{Float64,1} = Array{Float64, 1}() # TODO - should this be a scalar?
   totvisits::Int64 = 0
-  dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.
+  dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.  This covers all three levels.
   for k in keys(h.visited)
      for d = 1:draws
+      origlevel::Int64 = h.level # keep track of the level inside of the loop so that it can be reset.
       nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))]) # LevelFunction takes Int64 argument in second place.
       level::Int64 = LevelFunction(h, nextact)
+      h.level = level # this level must be updated so that the profit computation is correct.
       currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, level)
-      if haskey(h.visited[KeyCreate(h.cns, LevelFunction(h, nextact))]) # check neighbors/level pair
-        if LevelFunction(h, nextact) == h.level
-            # here can use the demd above
-        else
-          h.level =
-
-        end
-      else # when I haven't been there before, must take the initial value.  But the goal is that this doesn't happen.
+      currpi::Float64 = SinglePay(h, currdem[1], currdem[2]) # Current period return, excluding continuation value.
+      contval::Float64 = 0.0
+      if haskey(h.visited[KeyCreate(h.cns, level)]) # check neighbors/level pair
+        contval = disc*WProb(h.visited[KeyCreate(h.cns, level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, level)]))
+      else # when I haven't been there before, must take the initial value.  But the goal is that this doesn't happen as I visit more states.
         hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+        contval = disc*WProb(h.visited[KeyCreate(h.cns, level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, level)]))
       end
     end
   end
@@ -1233,7 +1256,7 @@ end
 
 
 """
-`SimpleDemand(ds::::Tuple{Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}}}, lev::Int64)`
+`SimpleDemand(ds::Tuple{Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}},Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}}}, lev::Int64)`
 Takes a gigantic tuple of tuples of arrays of patientcounts and returns a random element
 depending on the level.
 The input to this function is the output of the function `ThreeDemands(h::simh, totl::Int64)`
