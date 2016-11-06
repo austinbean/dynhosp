@@ -1124,9 +1124,16 @@ function CheckConvergence(h::simh; draws::Int64 = 100)
     # something like: if h.visited[k].counter[SOME KEY] > 1
     for d = 1:draws
       # Draw the VALUE of the action next state.
-      h.visited[k].aw[sample(h.visited[k].psi[1,:] , WeightVec(h.visited[k].psi[2,:]))]
+      nextact::Float64 = sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))]
+      if haskey(h.visited[KeyCreate(k)])
+        #TODO - use LevelFunction(h::simh, choices:Int) to get the level.  
+
+      else
+
+      end
     end
   end
+  # DONE - Resets the counter - this will keep track of who has been visited in the last 1_000_000 iterations.
   for k1 in keys(h.visited)
     for k2 in keys(h.visited[k1].counter)
       h.visited[k1].counter[k2] = 1 # Reset all counter keys to 1 to track which states visited in last million iterations.
