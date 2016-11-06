@@ -87,6 +87,10 @@ module ProjectModule
   function Base.sum(n::neighbors)
     n.level105+n.level205+n.level305+n.level1515+n.level2515+n.level3515+n.level11525+n.level21525+n.level31525
   end
+#TODO - extend to take arbitrary args.  This should require splatting I think.  
+  function Base.sum(n1::neighbors, n2::neighbors)
+    neighbors(n1.level105+n2.level105, n1.level205+n2.level205, n1.level305+n2.level305, n1.level1515+n2.level1515, n1.level2515+n2.level2515, n1.level3515+n2.level3515, n1.level11525+n2.level11525, n1.level21525+n2.level21525, n1.level31525+n2.level31525)
+  end
 
   abstract Fac
 
