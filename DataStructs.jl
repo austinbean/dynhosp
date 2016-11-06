@@ -319,7 +319,7 @@ end
 Takes a hospital record and a choice and returns the corresponding level.
 That is, what will the level be next period.
 """
-function LevelFunction(h::hospital, choice::Int64)
+function LevelFunction{T<:Fac}(h::T, choice::Int64)
   if h.level == 1
     if choice == 10
       return 1
