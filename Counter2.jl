@@ -1114,22 +1114,26 @@ Check the convergence criterion in Collard-Wexler or Pakes McGuire.
 This can be checked every million iterations.  When that happens,
 reset the counters for every state in "visited".
 """
-function CheckConvergence(h::simh; draws::Int64 = 100)
+function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10)
   statecount::Int64 = h.visited.count # how many unique states are there?   NB: this is NOT exactly the right number.  This will be GREATER than those visited in the last million, starting with the second million
-  outp::Array{Float64,1} = Array{Float64, 1}()
+  outp::Array{Float64,1} = Array{Float64, 1}() # TODO - should this be a scalar?
+  totvisits::Int64 = 0
+  demd1::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}} = DemandGroup(h, demands) # Compute an initial demand set.
   for k in keys(h.visited)
-    #TODO - draw action profile and state - this means: draw key and level, right?
-    # This means use the probabilities which I have there - draw actions from psi.
     # TODO - rememember - only draw from that state if visited, which should be when the counter is greater than 2.
-    # something like: if h.visited[k].counter[SOME KEY] > 1
     for d = 1:draws
-      # Draw the VALUE of the action next state.
-      nextact::Float64 = sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))]
-      if haskey(h.visited[KeyCreate(k)])
-        #TODO - use LevelFunction(h::simh, choices:Int) to get the level.  
+      # Draw the VALUE of the action to get the next state.
+      nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))]) # LevelFunction takes Int64 argument in second place.
+      #TODO - careful about the levelcheck since the demand is different when we change the level.
+      if haskey(h.visited[KeyCreate(h.cns, LevelFunction(h, nextact))]) # check neighbors/level pair
+        if LevelFunction(h, nextact) == h.level
+            # here can use the demd above
+        else
+          h.level =
 
-      else
-
+        end
+      else # when I haven't been there before, must take the initial value.
+        hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
       end
     end
   end
@@ -1174,6 +1178,60 @@ Medicaid patients.  This is thousands of times faster.  Use this method instead.
 function EasyDemand(inp::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}})
   return sample(inp[1]), sample(inp[2])
 end
+
+
+"""
+`ThreeDemands(h::simh, totl::Int64)`
+Speculative - would it be best to have three possible demand sets with one for each level?
+This would:
+- Compute demand at some level.
+- Update to another.
+- Compute at that level.
+- Compute at the third level.
+- Return a tuple of demands for medicaid and private patients.
+"""
+function ThreeDemands(h::simh, totl::Int64)
+  outp1::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}} = (Array{patientcount,1}(), Array{patientcount,1}())
+  outp2::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}} = (Array{patientcount,1}(), Array{patientcount,1}())
+  outp3::Tuple{Array{ProjectModule.patientcount,1},Array{ProjectModule.patientcount,1}} = (Array{patientcount,1}(), Array{patientcount,1}())
+  if h.level == 1
+    outp1 = DemandGroup(h, totl)
+    h.level = 2
+    h.tbu = true # NB: setting this to true means that the call to UpdateDUtil will update the utility value, the reset this
+    UpdateDUtil(h)
+    outp2 = DemandGroup(h, totl)
+    h.level = 3
+    h.tbu = true
+    UpdateDUtil(h)
+    outp3 = DemandGroup(h, totl)
+    h.level = 1
+  elseif h.level == 2
+    outp2 = DemandGroup(h, totl)
+    h.level = 1
+    h.tbu = true
+    UpdateDUtil(h)
+    outp1 = DemandGroup(h, totl)
+    h.level = 3
+    h.tbu = true
+    UpdateDUtil(h)
+    outp3 = DemandGroup(h, totl)
+    h.level = 2 # reset level
+  elseif h.level == 3
+    outp3 = DemandGroup(h, totl)
+    h.level = 1
+    h.tbu = true
+    UpdateDUtil(h)
+    outp1 = DemandGroup(h, totl)
+    h.level = 2
+    h.tbu = true
+    UpdateDUtil(h)
+    outp2 = DemandGroup(h, totl)
+    h.level = 3
+  end
+  return outp1, outp2, outp3
+end
+
+
 
 
 """
