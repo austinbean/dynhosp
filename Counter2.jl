@@ -547,7 +547,6 @@ Return the state, probably.
 NB: this does not include the possibility of entry so far.
 """
 function GetProb(s::simh)
-  #TODO - eventually this should allow entry too.
   for el in s.ns
     if el.level != -999
       action = sample(ChoicesAvailable(el), el.chprobs )                            # Take the action
@@ -556,143 +555,39 @@ function GetProb(s::simh)
         el.level = 3
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        # NB: this is not working exactly correctly since some of these levels are negative!
         el.chprobs = WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-        if (di>0)&(di<5)
-          s.cns.level305 += 1
-          s.cns.level105 -= 1
-        elseif (di>=5)&(di<15)
-          s.cns.level3515 += 1
-          s.cns.level1515 -= 1
-        elseif (di>=15)&(di<25)
-          s.cns.level31525 += 1
-          s.cns.level11525 -= 1
-        else #nothing here
-          #nothing
-        end
         el.tbu = true
       elseif action == 2
         el.level = 2
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
         el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-        if (di>0)&(di<5)
-          s.cns.level205 += 1
-          s.cns.level105 -= 1
-        elseif (di>=5)&(di<15)
-          s.cns.level2515 += 1
-          s.cns.level1515 -= 1
-        elseif (di>=15)&(di<25)
-          s.cns.level21525 += 1
-          s.cns.level11525 -= 1
-        else #nothing here
-          #nothing
-        end
         el.tbu = true
       elseif action == 3
         el.level = 2
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
         el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-        if (di>0)&(di<5)
-          s.cns.level205 += 1
-          s.cns.level305 -= 1
-        elseif (di>=5)&(di<15)
-          s.cns.level2515 += 1
-          s.cns.level3515 -= 1
-        elseif (di>=15)&(di<25)
-          s.cns.level21525 += 1
-          s.cns.level31525 -= 1
-        else #nothing here
-          #nothing
-        end
         el.tbu = true
       elseif action == 4
         el.level = 1
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
         el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-        if (di>0)&(di<5)
-          s.cns.level105 += 1
-          s.cns.level305 -= 1
-        elseif (di>=5)&(di<15)
-          s.cns.level1515 += 1
-          s.cns.level3515 -= 1
-        elseif (di>=15)&(di<25)
-          s.cns.level11525 += 1
-          s.cns.level31525 -= 1
-        else #nothing here
-          #nothing
-        end
         el.tbu = true
       elseif action == 5
         el.level = 1
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
         el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-        if (di>0)&(di<5)
-          s.cns.level105 += 1
-          s.cns.level205 -= 1
-        elseif (di>=5)&(di<15)
-          s.cns.level1515 += 1
-          s.cns.level2515 -= 1
-        elseif (di>=15)&(di<25)
-          s.cns.level11525 += 1
-          s.cns.level21525 -= 1
-        else #nothing here
-          #nothing
-        end
         el.tbu = true
       elseif action == 6
         el.level = 3
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
         el.chprobs =WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
-        if (di>0)&(di<5)
-          s.cns.level305 += 1
-          s.cns.level205 -= 1
-        elseif (di>=5)&(di<15)
-          s.cns.level3515 += 1
-          s.cns.level2515 -= 1
-        elseif (di>=15)&(di<25)
-          s.cns.level31525 += 1
-          s.cns.level21525 -= 1
-        else #nothing here
-          #nothing
-        end
         el.tbu = true
       elseif action == 11
-        if el.level == 1
-          if (di>0)&(di<5)
-            s.cns.level105 -= 1
-          elseif (di>=5)&&(di<15)
-            s.cns.level1515 -= 1
-          elseif (di>=15)&&(di<25)
-            s.cns.level11525 -= 1
-          else #nothing
-            #nothing
-          end
-        elseif el.level == 2
-          if (di>0)&(di<5)
-            s.cns.level205 -= 1
-          elseif (di>=5)&&(di<15)
-            s.cns.level2515 -= 1
-          elseif (di>=15)&&(di<25)
-            s.cns.level21525 -= 1
-          else #nothing
-            #nothing
-          end
-        else # level is 3
-          if (di>0)&(di<5)
-            s.cns.level305 -= 1
-          elseif (di>=5)&&(di<15)
-            s.cns.level3515 -= 1
-          elseif (di>=15)&&(di<25)
-            s.cns.level31525 -= 1
-          else #nothing
-            #nothing
-          end
-        end
         el.level = -999
         el.tbu = true
       else # action == 10 - "do nothing" (recall that 7,8,9 were entry actions)
@@ -700,9 +595,51 @@ function GetProb(s::simh)
       end
     end
     FixNN(s)   # this will correct the "neighbors of the neighbors"
+    FixMainNs(s)
   end
 end
 
+"""
+`FixMainNs(s::simh)`
+Fix the neighbrs of the main facility.
+"""
+function FixMainNs(s::simh)
+  s.cns = neighbors(0,0,0,0,0,0,0,0,0)
+  for el in s.ns
+    d1::Float64 = distance(s.lat, s.long, el.lat, el.long)<5
+    if (d1<5)
+      if el.level == 1
+        s.cns.level105 += 1
+      elseif el.level == 2
+        s.cns.level205 += 1
+      elseif el.level == 3
+         s.cns.level305 += 1
+      else # exited
+        #do nothing
+      end
+    elseif (d1>=5)&(d1<15)
+      if el.level == 1
+        s.cns.level1515 += 1
+      elseif el.level == 2
+        s.cns.level2515 += 1
+      elseif el.level == 3
+         s.cns.level3515 += 1
+      else # exited
+        #do nothing
+      end
+    elseif (d1>=15)&(d1<25)
+      if el.level == 1
+        s.cns.level11525 += 1
+      elseif el.level == 2
+        s.cns.level21525 += 1
+      elseif el.level == 3
+         s.cns.level31525 += 1
+      else # exited
+        #do nothing
+      end
+    end
+  end
+end
 
 
 """
@@ -948,7 +885,8 @@ function ComputeR(hosp::simh,
                   mpats::patientcount,
                   action::Int64,
                   iterations::Int64;
-                  disc::Float64 = 0.95)
+                  disc::Float64 = 0.95,
+                  debug::Bool = true)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
@@ -957,24 +895,15 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
-    println("***")
-    println(wt)
-    println(SinglePay(hosp, ppats, mpats))
-    println( disc*(WProb(hosp.visited[k1])))
-    println(hosp.visited[k1].aw[action])
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1]))) + (1-wt)*(hosp.visited[k1].aw[action])
-    for el in 1:size(hosp.visited[k1].psi[1,:],1)
-      if hosp.visited[k1].psi[1,el] == action
-        hosp.visited[k1].psi[2,el] = hosp.visited[k1].aw[action]
-        println(hosp.visited[k1].psi)
-        println("????")
-      end
-    end
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw)
     hosp.visited[k1].counter[action] += 1
+    if debug
+      PrintVisited(hosp)
+    end
   else # Key not there.
     println("hi")
-    hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats))  , vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+    hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
     hosp.visited[k1].counter[action] += 1
   end
 end
@@ -982,6 +911,7 @@ end
 
 """
 ProbUpdate(aw::Dict{Int64,Float64})
+This should update the probabilities.
 """
 function ProbUpdate(aw::Dict{Int64,Float64})
   tot::Float64 = 0.0
@@ -992,7 +922,7 @@ function ProbUpdate(aw::Dict{Int64,Float64})
     push!(outp, aw[el])
     push!(labs, el)
   end
-  return transpose(hcat(labs, outp./tot))
+  return transpose(hcat(labs,  PolicyUpdate(outp)   ))
 end
 
 
@@ -1065,7 +995,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         act = ChooseAction(el)                                   # Takes an action and returns it.
         a, b = DSim(el.mk, el.fid)                               # Demand as a result of actions.
         GetProb(el)                                              # action choices by other firms
-        ComputeR(el, a, b, act, iterations)
+        ComputeR(el, a, b, act, iterations; debug = debug)
         ExCheck(el)
         if debug
           PrintVisited(el)
@@ -1128,7 +1058,7 @@ Uses the choice probs implied by the estimated value functions at the state.
 function ChooseAction(h::simh)
   act = convert(Int64, sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:])))
   if act == 11
-    h.exited = true
+    h.exit = true
   end
   return act
 end
@@ -1164,7 +1094,8 @@ function PrintVisited(h::simh; simple::Bool = true)
       println(h.visited[el].counter)
     end
   else
-    println(h.visited[KeyCreate(h.cns, h.level)].aw)
+    println(KeyCreate(h.cns, h.level))
+    println(h.visited[KeyCreate(h.cns, h.level)].psi)
   end
 end
 
