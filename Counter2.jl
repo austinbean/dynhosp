@@ -1000,15 +1000,15 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   converged::Bool = false
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
-  act::Int64 = 0
+  dems = AllDems(D, chunk; repcount = 10)
+  steadylevs = AllAgg(D, chunk) #NB: records the mean aggregate state.
   while (iterations<itlim)&&(!converged)
-    dems = ThreeDemands(h, demands)                                   # TODO: This needs to be rearranged so that I can get at it without calling it every time inside the loop.
     for el in D.all[chunk]
       if !el.converged                                                  # only keep simulating with the ones which haven't converged
         act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
         level::Int64 = LevelFunction(el ,act)
-        a, b = SimpleDemand(el, level)                                  # Demand as a result of actions.
-        GetProb(el)                                                     # action choices by other firms
+        a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
+        GetProb(el)                                                     # TODO - replace this by the mean? action choices by other firms
         ComputeR(el, a, b, act, iterations; debug = debug)
         ExCheck(el)
         if debug
@@ -1018,7 +1018,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
     end
     iterations += 1
   end
-  converged = Halt(D)
+  converged = Halt(D, chunk)
 end
 
 """
@@ -1040,9 +1040,9 @@ end
 For each firm in the simulation, check whether it has converged or not.  Return false
 when one firm has been found which hasn't.
 """
-function Halt(D::DynState)
+function Halt(D::DynState, chunk::Array{Int64,1})
   b::Bool = true
-  for el in D.all
+  for el in D.all[chunk]
     if !el.converged
       b = false
       break
@@ -1142,6 +1142,8 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc
   outp::Array{Float64,1} = Array{Float64, 1}() # TODO - should this be a scalar?
   totvisits::Int64 = 0
   dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.  This covers all three levels.
+  # Need some kind of Dict for the states being Approximated:
+  states::Dict{} = Dict()
   for k in keys(h.visited)
      for d = 1:draws
       origlevel::Int64 = h.level # keep track of the level inside of the loop so that it can be reset.
@@ -1157,6 +1159,7 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc
         hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
         contval = disc*WProb(h.visited[KeyCreate(h.cns, level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, level)]))
       end
+      h.level = origlevel # reset the level to the original value.
     end
   end
   # DONE - Resets the counter - this will keep track of who has been visited in the last 1_000_000 iterations.
@@ -1279,11 +1282,15 @@ end
 `AvgAggState(h::simh)`
 To make the computation faster, compute the average state in the rest of the market.  Draw actions for
 all of the neighbors, compute the aggregate state, then take the mean over such states.
+Note that this will also reset the market to its original state before drawing actions for the neighbors
+in every round.
+This function is called in `AllAgg.`
 """
 function AvgAggState(h::simh, drws::Int64)
   tem::Array{neighbors, 1} = Array{neighbors, 1}()
   interim::neighbors = neighbors(0,0,0,0,0,0,0,0,0)
   for i = 1:drws
+    FixNS(h)
     GetProb(h)
     interim = sum(interim, h.cns)
   end
@@ -1291,8 +1298,49 @@ function AvgAggState(h::simh, drws::Int64)
 end
 
 
+"""
+`AllAgg(d::DynState, ch::Array{Int64, 1})`
+Computes three aggregate market states for each of the firms which are in "ch"
+The return type is a dictionary of Tuple{Int64, Int64} keys mapping to a neighbors type.
+"""
+function AllAgg(d::DynState, ch::Array{Int64,1})
+  outp::Dict{Tuple{Int64, Int64}, ProjectModule.neighbors} = Dict{Tuple{Int64, Int64}, ProjectModule.neighbors}()
+  for el in d.all[ch]
+    for levs = [1,2,3]
+      FixNS(el)
+      el.level = levs
+      UpdateDUtil(el)
+      outp[(el.fid, levs)] = AvgAggState(el, 20)
+    end
+  end
+  return outp
+end
+
+"""
+`FixNS(h::simh)`
+Take all of the neighbors and reset their states to their true levels if those levels aren't what they
+should be
+"""
+function FixNS(h::simh)
+  for nb in h.ns
+    if nb.level != nb.truelevel # if the firm exited, reset it.
+      nb.level = nb.truelevel
+    end
+  end
+end
 
 
+
+
+"""
+`NeighborsCheck(d::DynState)`
+How many neighbors do the firms have?
+"""
+function NeighborsCheck(d::DynState)
+  for el in d.all
+    println(el.fid, "  ", sum(el.cns))
+  end
+end
 
 
 
