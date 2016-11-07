@@ -1005,9 +1005,11 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   while (iterations<itlim)&&(!converged)
     for el in D.all[chunk]
       if !el.converged                                                  # only keep simulating with the ones which haven't converged
+        # FIXME - something confusing happens here.  ChooseAction calls the dictionary at an element that doesn't exist.
         act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
         level::Int64 = LevelFunction(el ,act)
         a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
+        # TODO - at this point, check current level against prior, then switch aggregate state if it changes.  
         GetProb(el)                                                     # TODO - replace this by the mean? action choices by other firms
         ComputeR(el, a, b, act, iterations; debug = debug)
         ExCheck(el)
