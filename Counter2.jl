@@ -840,6 +840,12 @@ function SinglePay(s::simh,
                     gamma_1_391::Float64 = 9089.77, # X
                     gamma_2_391::Float64 = 8120.85, # X
                     gamma_3_391::Float64 = 1900.5, # ✓
+                    level12::Float64 = ,
+                    level13::Float64 = ,
+                    level21::Float64 = ,
+                    level23::Float64 = ,
+                    level31::Float64 = ,
+                    level32::Float64 = ,
                     mcaid385::Float64 = 151380.0,
                     mcaid386::Float64 = 48417.0,
                     mcaid387::Float64 = 18845.0,
@@ -848,7 +854,9 @@ function SinglePay(s::simh,
                     mcaid390::Float64 = 4623.0,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     #TODO - the level change tracker will let me know when I need to assess the fixed costs.
+    #
     outp::Float64 = 0.0
+    levelc::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
     if s.level == 1
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
@@ -857,7 +865,34 @@ function SinglePay(s::simh,
     else # level is 3
       outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     end
-    return outp
+    if s.level != s.previous
+      if s.level == 1
+        if s.previous == 2
+          levelc = level21
+        elseif s.previous == 3
+          levelc = level31
+        else
+          #not possible
+        end
+      elseif s.level == 2
+        if s.previous == 1
+          levelc = level12
+        elseif s.previous == 3
+          levelc = level32
+        else
+          # not possible
+        end
+      elseif s.level == 3
+        if s.previous == 2
+          levelc = level32
+        elseif s.previous == 1
+          levelc = level31 
+        else
+          # not possible
+        end
+      end
+    end
+    return outp - levelc
 end
 
 
@@ -907,13 +942,14 @@ function ComputeR(hosp::simh,
       println("cont Val error")
       println(disc*ContError(hosp.visited[k1]))
     end
-    # FIXME - the error is (at least) in the computation of continuation values.
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw)
     hosp.visited[k1].counter[action] += 1
     if debug
       WhyNaN(hosp.visited[k1])
     end
+    #TODO - add a new field tracking the level in the last period.
+    hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
     println("hi")
     hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
