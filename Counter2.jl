@@ -607,8 +607,8 @@ Fix the neighbrs of the main facility.
 function FixMainNs(s::simh)
   s.cns = neighbors(0,0,0,0,0,0,0,0,0)
   for el in s.ns
-    d1::Float64 = distance(s.lat, s.long, el.lat, el.long)<5
-    if (d1<5)
+    d1::Float64 = distance(s.lat, s.long, el.lat, el.long)
+    if (d1<5)&&(d1>0)
       if el.level == 1
         s.cns.level105 += 1
       elseif el.level == 2
@@ -618,7 +618,7 @@ function FixMainNs(s::simh)
       else # exited
         #do nothing
       end
-    elseif (d1>=5)&(d1<15)
+    elseif (d1>=5)&&(d1<15)
       if el.level == 1
         s.cns.level1515 += 1
       elseif el.level == 2
@@ -628,7 +628,7 @@ function FixMainNs(s::simh)
       else # exited
         #do nothing
       end
-    elseif (d1>=15)&(d1<25)
+    elseif (d1>=15)&&(d1<25)
       if el.level == 1
         s.cns.level11525 += 1
       elseif el.level == 2
@@ -915,6 +915,7 @@ end
 """
 ProbUpdate(aw::Dict{Int64,Float64})
 This should update the probabilities.
+#FIXME - why is the constant "tot" not being used?  That must be wrong.  
 """
 function ProbUpdate(aw::Dict{Int64,Float64})
   tot::Float64 = 0.0
@@ -1001,15 +1002,14 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   dems = AllDems(D, chunk; repcount = 10)
-  steadylevs = AllAgg(D, chunk) #NB: records the mean aggregate state.
+  steadylevs = AllAgg(D, chunk)
   while (iterations<itlim)&&(!converged)
     for el in D.all[chunk]
       if !el.converged                                                  # only keep simulating with the ones which haven't converged
-        # FIXME - something confusing happens here.  ChooseAction calls the dictionary at an element that doesn't exist.
         act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
         level::Int64 = LevelFunction(el ,act)
         a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
-        # TODO - at this point, check current level against prior, then switch aggregate state if it changes.  
+        # TODO - at this point, check current level against prior, then switch aggregate state if it changes.
         GetProb(el)                                                     # TODO - replace this by the mean? action choices by other firms
         ComputeR(el, a, b, act, iterations; debug = debug)
         ExCheck(el)
@@ -1259,6 +1259,10 @@ function ThreeDemands(h::simh, totl::Int64)
     outp2 = DemandGroup(h, totl)
     h.level = 3
   end
+  h.level = h.actual #reassign the levels
+  UpdateDUtil(h)
+  FixNS(h)
+  FixMainNs(h)
   return outp1, outp2, outp3
 end
 
@@ -1299,6 +1303,10 @@ function AvgAggState(h::simh, drws::Int64)
     GetProb(h)
     interim = sum(interim, h.cns)
   end
+  h.level = h.actual #reset firm level to the actual
+  FixNS(h)
+  UpdateDUtil(h)
+  FixMainNs(h)
   return neighbors( round(Int64, interim.level105/drws), round(Int64,interim.level205/drws ), round(Int64, interim.level305/drws), round(Int64, interim.level1515/drws), round(Int64, interim.level2515/drws), round(Int64, interim.level3515/drws), round(Int64,interim.level11525/drws ), round(Int64, interim.level21525/drws), round(Int64, interim.level31525/drws) )
 end
 
@@ -1317,6 +1325,10 @@ function AllAgg(d::DynState, ch::Array{Int64,1})
       UpdateDUtil(el)
       outp[(el.fid, levs)] = AvgAggState(el, 20)
     end
+    el.level = el.actual #reset firm level to the actual
+    FixNS(el)
+    UpdateDUtil(el)
+    FixMainNs(el)
   end
   return outp
 end
