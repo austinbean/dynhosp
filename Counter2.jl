@@ -131,6 +131,7 @@ type simh<:ProjectModule.Fac
   lat::Float64
   long::Float64
   level::Int64
+  previous::Int64
   actual::Int64
   beds::Int64
   cns::neighbors # must know what current neighbors look like.
@@ -186,6 +187,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
       newsimh = simh(Tex.mkts[k1].collection[hk].fid,
                      Tex.mkts[k1].collection[hk].lat,
                      Tex.mkts[k1].collection[hk].long,
+                     Tex.mkts[k1].collection[hk].level,
                      Tex.mkts[k1].collection[hk].level,
                      Tex.mkts[k1].collection[hk].level,
                      convert(Int64, Tex2.mkts[k1].collection[hk].bedcount),
@@ -303,7 +305,7 @@ the collection of patients for those zips.  Note that `f` is a FID for a hospita
 function DynPatients(p::patientcollection, f::Int64 )
   outp::cmkt = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f) # finds the zip codes
-  for el in zpc # TODO: add the outside option here.
+  for el in zpc
     push!(outp.m, cpats(el,
                   p.zips[el].lat,
                   p.zips[el].long,
@@ -342,14 +344,7 @@ This only needs to be done for the private patients!
 """
 function CounterWTP(ar::Array{Float64})
   denom::Float64 = 0.0
-  for i =1:maximum(size(ar)) #might be a problem for one choice.
-    # try exp(ar[i])
-    # catch y
-    #   println(y)
-    #   if y == DomainError
-    #     println(ar[i])
-    #   end
-    # end
+  for i =1:maximum(size(ar))
     denom += (ar[i] = exp(ar[i]))
   end
   return log(map(x->(1/(1-x)), ar./denom))
@@ -485,16 +480,20 @@ function HUtil{T<:ProjectModule.Fac}(c::cpats, sr::T, p_or_m::Bool;
       return pcoeffs.distance*d+pcoeffs.distsq*(d^2)+pcoeffs.distbed*(sr.beds*d/100)+pcoeffs.closest*(0)
     elseif sr.level == 2
       return pcoeffs.distance*d+pcoeffs.distsq*(d^2)+pcoeffs.distbed*(sr.beds*d/100)+pcoeffs.closest*(0)+pcoeffs.inter
-    else #sr.level == 3
+    elseif sr.level == 3
       return pcoeffs.distance*d+pcoeffs.distsq*(d^2)+pcoeffs.distbed*(sr.beds*d/100)+pcoeffs.closest*(0)+pcoeffs.inten
+    else # should cover anyone who exited.
+      return 0.0
     end
   else
     if sr.level == 1
       return mcoeffs.distance*d+mcoeffs.distsq*(d^2)+mcoeffs.distbed*(sr.beds*d/100)+mcoeffs.closest*(0)
     elseif sr.level == 2
       return mcoeffs.distance*d+mcoeffs.distsq*(d^2)+mcoeffs.distbed*(sr.beds*d/100)+mcoeffs.closest*(0)+mcoeffs.inter
-    else #sr.level == 3
+    elseif sr.level == 3
       return mcoeffs.distance*d+mcoeffs.distsq*(d^2)+mcoeffs.distbed*(sr.beds*d/100)+mcoeffs.closest*(0)+mcoeffs.inten
+    else # covers exits.
+      return 0.0
     end
   end
 end
@@ -591,7 +590,7 @@ function GetProb(s::simh)
       elseif action == 11
         el.level = -999
         el.tbu = true
-      else # action == 10 - "do nothing" (recall that 7,8,9 were entry actions)
+      else # action == 10 - "do nothing" (7,8,9 were entry actions - currently unused)
         #nothing.
       end
     end
@@ -714,12 +713,6 @@ end
 
 
 
-
-
-
-
-
-
 """
 `GetProbCheck(d::DynState)`
 Just simulates the function `GetProb` and tries to figure out whether it's working.
@@ -811,12 +804,11 @@ end
 """
 `SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
-# NB: TODO - Need to subtract the cost of changing here.
 """
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount;
-                    alf1::Float64 = 829.49,
+                    alf1::Float64 = 8336.17,
                     alf2::Float64 = 36166.6,
                     alf3::Float64 = 16309.47,
                     gamma_1_385::Float64 = 20680.0, # ✓
@@ -840,12 +832,12 @@ function SinglePay(s::simh,
                     gamma_1_391::Float64 = 9089.77, # X
                     gamma_2_391::Float64 = 8120.85, # X
                     gamma_3_391::Float64 = 1900.5, # ✓
-                    level12::Float64 = ,
-                    level13::Float64 = ,
-                    level21::Float64 = ,
-                    level23::Float64 = ,
-                    level31::Float64 = ,
-                    level32::Float64 = ,
+                    level12::Float64 = 1.64669492e6,
+                    level13::Float64 = 5.0165876e6,
+                    level21::Float64 = -366430.33,
+                    level23::Float64 = 1.83969306e6,
+                    level31::Float64 = -90614.32,
+                    level32::Float64 = -157206.98,
                     mcaid385::Float64 = 151380.0,
                     mcaid386::Float64 = 48417.0,
                     mcaid387::Float64 = 18845.0,
@@ -886,7 +878,7 @@ function SinglePay(s::simh,
         if s.previous == 2
           levelc = level32
         elseif s.previous == 1
-          levelc = level31 
+          levelc = level31
         else
           # not possible
         end
