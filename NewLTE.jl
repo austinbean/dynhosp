@@ -41,7 +41,7 @@ function MetropolisHastings(initialpr::Vector,
                             pro_σ_scale::Float64 = 100.0,
                             pro_σ = pro_σ_scale*eye(param_dim),
                             proposal = Distributions.MvNormal(pro_μ, pro_σ),
-                            prior_μ::Array{Float64,1} = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ],
+                            prior_μ::Array{Float64,1} = [100.0, 200.0, 300.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412,  2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ],
                             prior_σ_scale::Float64 = 100.0,
                             prior_σ = prior_σ_scale*eye(param_dim),
                             prior = Distributions.MvNormal(prior_μ, prior_σ),
@@ -181,7 +181,7 @@ end # of MetropolisHastings()
 const nsims = 100_000 #_000
 
 #drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
-guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ];
+guess = [100.0, 200.0, 300.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 # sim_vals, overcounter, undercounter, accept, tr, param_accept, allvals = MetropolisHastings(guess, nsims; debug = true) # for debugging
 
 sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims; debug = false) # no debugging output.
@@ -222,7 +222,7 @@ histogram(sim_vals[:,2], nbins=50)
 
 
 # Sim Annealing:
-guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 100000, 200000, 0, 100000, 200000, 0, 100000, 200000, 0 ];
+guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 
 res1 =  optimize(objfun, guess, method = SimulatedAnnealing(), iterations = 10_000_000, show_trace = true, show_every = 500_000)
 
