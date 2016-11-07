@@ -703,6 +703,18 @@ function CreateZips(alld::Array,
   return  ppatients   #, unique(unfound), unique(names), unique(found)
 end
 
+"""
+`AddOO(patients::patientcollection)`
+Add an outside option with zero utility to the choices of patients.
+"""
+function AddOO(pats::patientcollection)
+  for el in keys(pats.zips)
+    pats.zips[el].pdetutils[0] = 0.0
+    pats.zips[el].mdetutils[0] = 0.0
+  end
+end
+
+
 
 """
 `FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
@@ -872,6 +884,7 @@ function NewPatients(Tex::EntireState;
   patients = CreateZips(dists, Tex) #NB: This needs to take the whole state so that the hosps in zips point to the same underlying record.
   patients = FillPatients(patients, pins, pmed)
   UpdateDeterministic(patients)
+  AddOO(patients)
   return patients
 end
 
@@ -1041,18 +1054,17 @@ end
 """
 `CalcWTP(zipc::zip)`
 Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
-Output is sent to WTPMap
+Output is sent to WTPMap.
+#NB - adding an outside option here.
 """
 function CalcWTP(zipc::zip)
   outp = Dict(j=> 0.0 for j in keys(zipc.pdetutils))
-#  outp = [j => 0.0 for j in keys(zipc.pdetutils)] # this is the pre0.5 generator syntax
+#  outp[0] = 0.0 # maps 0, the OO fid, to 0.0, the OO utility.
   interim = 0.0
   for el in keys(zipc.pdetutils)
-    #NB: computed utility of exited firm will be zero by ComputeDetUtil assigning it to -999, so exp(-999) = 0
-    interim +=  (outp[el] = exp(zipc.pdetutils[el]) ) #NB: This is a nice trick - simultaneously assigning and adding.
+    interim +=  (outp[el] = exp(zipc.pdetutils[el]) )
   end
   return Dict( j=> outp[j]/interim for j in keys(outp))
-  #return [ j => outp[j]/interim for j in keys(outp)] #this is pre 0.5 generator syntax.
 end
 
 
@@ -1062,23 +1074,21 @@ end
 Takes a patient collection and an entire state and returns a dict{fid, WTP}
 computed by calling CalcWTP.  Right now it ignores Inf and NaN.
 Input is from CalcWTP.  Output is sent to WriteWTP
+# NB: changing the try-catch to haskey.
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
-  # TODO - I am not sure this is updating the state values correctly.
   outp = Dict(j=>0.0 for j in keys(Tex.fipsdirectory))
-#  outp = [ j=> 0.0 for j in keys(Tex.fipsdirectory) ] # this is the pre0.5 generator syntax.
   for zipc in keys(pats.zips)
     vals = CalcWTP(pats.zips[zipc])
     for el in keys(vals) # What to do about key errors?  there will be some.
-      try
-        outp[el]
-        if (vals[el]!=1)&!isnan(vals[el])
-          outp[el]+= log((1/(1-vals[el])))
+      if haskey(outp, el)
+        if vals[el] != 1 & !isnan(vals[el]) # there should be no way for this to be 1 anyway.
+          outp[el] += log(1/(1-vals[el]))
+        elseif (vals[el] == 1)||(isnan(vals[el]))
+            println(zipc, "  ", vals[el])
         end
-      catch y # here the issue was that this was catching an "InexactError" but there was no test for it.
-        if isa(y, KeyError)
-          #println(el) #the facility is missing.  Could be an entrant.
-        end
+      else # key absent
+        # facility missing.
       end
     end
   end
