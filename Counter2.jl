@@ -898,15 +898,30 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
+    if debug
+      println("************")
+      println("current return")
+      println(SinglePay(hosp, ppats, mpats))
+      println("Cont Value")
+      println(disc*(WProb(hosp.visited[k1])))
+      println("cont Val error")
+      println(disc*ContError(hosp.visited[k1]))
+    end
+    # FIXME - the error is (at least) in the computation of continuation values.
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw)
     hosp.visited[k1].counter[action] += 1
     if debug
-      PrintVisited(hosp)
+      WhyNaN(hosp.visited[k1])
     end
   else # Key not there.
     println("hi")
     hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+    if debug
+      println("New Record")
+      println(hosp.visited[k1].aw)
+      println(hosp.visited[k1].psi)
+    end
     hosp.visited[k1].counter[action] += 1
   end
 end
@@ -915,14 +930,11 @@ end
 """
 ProbUpdate(aw::Dict{Int64,Float64})
 This should update the probabilities.
-#FIXME - why is the constant "tot" not being used?  That must be wrong.  
 """
 function ProbUpdate(aw::Dict{Int64,Float64})
-  tot::Float64 = 0.0
   outp::Array{Float64,1} = Array{Float64,1}()
   labs::Array{Int64,1} = Array{Int64, 1}()
   for el in keys(aw)
-    tot += aw[el]
     push!(outp, aw[el])
     push!(labs, el)
   end
@@ -931,12 +943,18 @@ end
 
 
 """
-`PolicyUpdate(hosp::simh, neww::Array{Float64,1})`
+`PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.0001)`
 Takes an array of the new W values and maps back to the simh action probabilities.
+NB: When probs are 0, continuation value of error is problematic, since this is
+given by the log, so the value is constrained to be this small positive value.
+The problem is basically underflow: when returns are really high to staying in and
+much smaller to getting out, the estimated prob is zero.
 """
-function PolicyUpdate(neww::Array{Float64,1})
-  return exp(neww - maximum(neww))/sum(exp(neww-maximum(neww)))
+function PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.0001)
+  return max(exp(neww - maximum(neww)), ep)/sum(exp(neww-maximum(neww)))
 end
+
+
 
 """
 `MD`
@@ -971,6 +989,7 @@ end
 `WProb(n::nlrec)`
 Compute the return R = π + β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ) + β E [ ϵ | xᵏ+1, Ψᵏ], so this
 is the function that will compute the second term: β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ).
+This is the continuation value ignoring the error.
 """
 function WProb(n::nlrec)
   prd::Float64 = 0.0
@@ -988,6 +1007,24 @@ function ContError(n::nlrec)
   return (eulergamma - dot(log(n.psi[2,:]), n.psi[2,:]))
 end
 
+
+"""
+`WhyNaN(n::nlrec)`
+Getting some NaNs in both probabilities and values in nlrecs.
+Try to diagnose that with this.
+"""
+function WhyNaN(n::nlrec)
+  for el in keys(n.aw)
+    if isnan(n.aw[el])
+      println(n.aw[el], "  ", el)
+    end
+  end
+  for el in n.psi[2,:]
+    if isnan(el)
+      println(el)
+    end
+  end
+end
 
 
 """
