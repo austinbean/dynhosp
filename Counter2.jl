@@ -1139,15 +1139,15 @@ reset the counters for every state in "visited".
 """
 function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc::Float64 = 0.95)
   statecount::Int64 = h.visited.count # how many unique states are there?   NB: this is NOT exactly the right number.  This will be GREATER than those visited in the last million, starting with the second million
-  outp::Array{Float64,1} = Array{Float64, 1}() # TODO - should this be a scalar?
+  outp::Array{Float64,1} = Array{Float64, 1}()
   totvisits::Int64 = 0
   dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.  This covers all three levels.
-  # Need some kind of Dict for the states being Approximated:
-  states::Dict{} = Dict()
+  states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Float64} = Dict(k=> 0.0 for k in keys(h.visited))
   for k in keys(h.visited)
+    approxim::Float64 = 0.0
      for d = 1:draws
       origlevel::Int64 = h.level # keep track of the level inside of the loop so that it can be reset.
-      nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))]) # LevelFunction takes Int64 argument in second place.
+      nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:]))) # LevelFunction takes Int64 argument in second place.
       level::Int64 = LevelFunction(h, nextact)
       h.level = level # this level must be updated so that the profit computation is correct.
       currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, level)
@@ -1156,11 +1156,14 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc
       if haskey(h.visited[KeyCreate(h.cns, level)]) # check neighbors/level pair
         contval = disc*WProb(h.visited[KeyCreate(h.cns, level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, level)]))
       else # when I haven't been there before, must take the initial value.  But the goal is that this doesn't happen as I visit more states.
-        hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+        #I'm not sure I care that this is adding states to the hospital record, but note it.
+        hosp.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
         contval = disc*WProb(h.visited[KeyCreate(h.cns, level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, level)]))
       end
       h.level = origlevel # reset the level to the original value.
+      approxim += currpi + contval
     end
+    states[KeyCreate(h.cns, h.level)] = approxim/draws
   end
   # DONE - Resets the counter - this will keep track of who has been visited in the last 1_000_000 iterations.
   for k1 in keys(h.visited)
