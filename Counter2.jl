@@ -845,8 +845,6 @@ function SinglePay(s::simh,
                     mcaid389::Float64 = 9424.0,
                     mcaid390::Float64 = 4623.0,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
-    #TODO - the level change tracker will let me know when I need to assess the fixed costs.
-    #
     outp::Float64 = 0.0
     levelc::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
