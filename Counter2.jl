@@ -115,6 +115,7 @@ end
 -  lat::Float64
 -  long::Float64
 -  level::Int64
+-  previous::Int64
 -  actual::Int64
 -  beds::Int64
 -  cns::neighbors # must know what current neighbors look like.
@@ -124,7 +125,6 @@ end
 -  exit::Bool # did it exit?
 -  tbu::Bool # Does the record need to be updated ?
 -  converged::Bool # has the hospital converged or not?
-#NB: TODO - add a level last period value so I can record when the charges for changing need to be assessed.
 """
 type simh<:ProjectModule.Fac
   fid::Int64
@@ -931,15 +931,13 @@ function ComputeR(hosp::simh,
       println("Probabilities: ", hosp.visited[k1].psi[2,:])
     end
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
-    hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw)
+    hosp.visited[k1].psi = WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     if debug
       WhyNaN(hosp.visited[k1])
     end
-    #TODO - add a new field tracking the level in the last period.
     hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
-    println("hi")
     hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
     if debug
       println("New Record")
@@ -977,6 +975,25 @@ much smaller to getting out, the estimated prob is zero.
 function PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.0001)
   return max(exp(neww - maximum(neww)), ep)/sum(exp(neww-maximum(neww)))
 end
+
+"""
+`WeightedProbUpdate(aw::Dict{Int64,Float64}, its::Int64)`
+There is an underflow problem in the update of probabilities.  Weight them according to the
+number of iterations in the update.
+"""
+function WeightedProbUpdate(aw::Dict{Int64, Float64}, ps::Array{Float64,2}, its::Int64)
+  next::Array{Float64,2} = ProbUpdate(aw)
+  for el1 in 1:maximum(size(ps[1,:]))
+    for el2 in 1:maximum(size(next[1,:]))
+      if ps[1,el1] == next[1,el2]
+        ps[2,el1] = (1/its)*(ps[2,el1]) +(1-(1/its))*(next[2,el1])
+      end
+    end
+  end
+  return ps
+end
+
+
 
 
 
@@ -1073,7 +1090,6 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         GetProb(el)                                                     # TODO - replace this by the mean? action choices by other firms
         ComputeR(el, a, b, act, iterations; debug = debug)
         if (level != el.level)&(level != -999)
-          println("hi")
           el.cns = steadylevs[(el.fid, el.level)]
           el.previous = el.level
           el.level = level
@@ -1239,6 +1255,7 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc
             h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, currdem[1], currdem[2])), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, currdem[1], currdem[2])))), Dict(k => 1 for k in ChoicesAvailable(h)) )
             contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
           end
+          #FIXME - these are an order of magnitude off of the existing values.
           h.level = origlevel                                                                                 # reset the level to the original value.
           approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
         end
@@ -1443,6 +1460,36 @@ function NeighborsCheck(d::DynState)
 end
 
 
+"""
+`VisitPrint(h::simh)`
+Print the states visited, the counts and the vals approximated
+"""
+function VisitPrint(h::simh)
+  for el in keys(h.visited)
+    println("State: ", el)
+    println("Values: ", h.visited[el].aw)
+    for k in keys(h.visited[el].counter)
+      println("Action ", k, "  Counter ", h.visited[el].counter[k])
+    end
+  end
+end
+
+"""
+`ProbChange(h::simh)`
+Watch how the probabilities change
+"""
+function ProbChange(h::simh)
+  println(h.visited[KeyCreate(h.cns, h.level)].psi)
+end
+
+
+function testunder(h::Array{Float64,1})
+  # There is some problem with the fact that when the value functions are different the
+  # estimated choice prob is indistinguishable from zero.
+  # but the conversion back to float64 makes it zero anyway.
+  h = convert(Array{BigFloat},h)
+  return exp(h)/sum(exp(h))
+end
 
 
 #=
