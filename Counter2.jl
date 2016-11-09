@@ -808,6 +808,7 @@ Computes the actual firm payoffs.  Uses parameters computed from one run of the 
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount;
+                    scalefact::Float64 = 3.0e9,
                     alf1::Float64 = 8336.17,
                     alf2::Float64 = 36166.6,
                     alf3::Float64 = 16309.47,
@@ -882,7 +883,7 @@ function SinglePay(s::simh,
         end
       end
     end
-    return outp - levelc
+    return (outp - levelc)/scalefact
 end
 
 
@@ -1237,15 +1238,19 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc
   dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.  This covers all three levels.
   states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
+  # FIXME: maybe part of the problem comes from trying to approximate the value at exit states?
   for k in keys(h.visited)
     for k2 in keys(h.visited[k].counter)
       if h.visited[k].counter[k2] > 1                                                                     # NB: Counter initialized to 1, so this restricts to visited states.
+         println("********************")
+         println("Current Estimate: ", h.visited[k].aw[k2])
          approxim::Float64 = 0.0
          for d = 1:draws
           origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
           nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:])))    # Take an action.  NB: LevelFunction takes Int64 argument in second place.
           h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
           currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, h.level) # draw from the limited demand set.
+          println("Demand: ", currdem[1], "   ", currdem[2])
           currpi::Float64 = SinglePay(h, currdem[1], currdem[2])                                              # Current period return, excluding continuation value.
           contval::Float64 = 0.0
           if haskey(h.visited, KeyCreate(h.cns, h.level))                                                     # check neighbors/level pair
@@ -1258,7 +1263,9 @@ function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc
           #FIXME - these are an order of magnitude off of the existing values.
           h.level = origlevel                                                                                 # reset the level to the original value.
           approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
+          println(approxim)
         end
+        println("FINAL: ", approxim/draws)
         push!(outp, (approxim/draws - h.visited[k].aw[k2])^2)                                                 # TODO - replace this with a sum when confidence is reached in the outcome..
         push!(pairs, (approxim/draws, h.visited[k].aw[k2]))
         states[KeyCreate(h.cns, h.level)] = (approxim/draws, h.visited[k].aw[k2])
@@ -1482,13 +1489,25 @@ function ProbChange(h::simh)
   println(h.visited[KeyCreate(h.cns, h.level)].psi)
 end
 
-
-function testunder(h::Array{Float64,1})
-  # There is some problem with the fact that when the value functions are different the
-  # estimated choice prob is indistinguishable from zero.
-  # but the conversion back to float64 makes it zero anyway.
-  h = convert(Array{BigFloat},h)
-  return exp(h)/sum(exp(h))
+"""
+`findscale(d::DynState)`
+Run a demand and profit computation a bunch of times to find the max to use as a scaling factor.
+Also return the min just to get an idea of where the bottom is.
+"""
+function FindScale(d::DynState)
+  maxprof::Float64 = 0.0
+  minprof::Float64 = 1_000_000
+  for el in d.all
+    for i = 1:10
+      a, b = DSim(el.mk, el.fid)
+      if SinglePay(el, a, b) > maxprof
+        maxprof = SinglePay(el, a, b)
+      elseif SinglePay(el,a,b) < minprof
+        minprof = SinglePay(el, a, b)
+      end
+    end
+  end
+  return maxprof, minprof
 end
 
 
