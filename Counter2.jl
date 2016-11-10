@@ -899,7 +899,7 @@ function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-  return vcat(repmat([max(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [max(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
+  return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
 end
 
 
