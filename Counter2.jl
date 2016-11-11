@@ -948,7 +948,6 @@ function ComputeR(hosp::simh,
       println("Actions: ", hosp.visited[k1].psi[1,:])
       println("Probabilities: ", hosp.visited[k1].psi[2,:])
     end
-    # TODO - this is WeightedProbUpdate - make sure that's the right thing to do.
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
@@ -1092,7 +1091,7 @@ end
 `ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
 
-To start: 
+To start:
 dyn = CounterObjects();
 
 """
@@ -1101,6 +1100,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   converged::Bool = false
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
+  #NB: here could also redraw these every N periods or something.
   steadylevs = AllAgg(D, chunk)
   while (iterations<itlim)&&(!converged)
     if iterations%1000 == 0
@@ -1111,9 +1111,11 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
         level::Int64 = LevelFunction(el ,act)
         a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
-        GetProb(el)                                                     # TODO - replace this by the mean? action choices by other firms
         ComputeR(el, a, b, act, iterations; debug = debug)  # NB: I really think the problem is here.
         if (level != el.level)&(level != -999)
+          # NB: Now this will only attempt to approximate at the mean values of states. 
+          #GetProb(el)
+          steadylevs[(el.fid, level)]                                     # approximate value at fewer states.
           el.cns = steadylevs[(el.fid, el.level)]
           el.previous = el.level
           el.level = level
@@ -1268,6 +1270,8 @@ function CheckConvergence(h::simh; draws::Int64 = 1000, demands::Int64 = 10, dis
     for k2 in keys(h.visited[k].counter)
       if h.visited[k].counter[k2] > 1                                                                         # NB: Counter initialized to 1, so this restricts to visited states.
          println("********************")
+         println(k)
+         println(h.visited[k])
          println("Current Estimate: ", h.visited[k].aw[k2])
          approxim::Float64 = 0.0
          for d = 1:draws
