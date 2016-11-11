@@ -161,6 +161,21 @@ function KeyCreate(n::neighbors, l::Int64)
 end
 
 
+"""
+`CounterObjects()`
+Makes the counterfactual objects again.
+dyn = CounterObjects();
+"""
+function CounterObjects()
+  TexasEq = MakeNew(ProjectModule.fips, ProjectModule.alldists);
+  Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  CMakeIt(Tex, ProjectModule.fips);
+  FillState(Tex, ProjectModule.alldists);
+  patients = NewPatients(Tex);
+  return DynStateCreate(TexasEq, Tex, patients);
+end
+
+
 
 """
 `DynStateCreate(Tex::EntireState, Tex2::EntireState, p::patientcollection )`
@@ -899,7 +914,9 @@ function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-  return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
+        # NB: just as a test - what if I initialize everything to 0?
+        return [0,0,0,0]
+  #return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
 end
 
 
@@ -915,7 +932,7 @@ function ComputeR(hosp::simh,
                   action::Int64,
                   iterations::Int64;
                   disc::Float64 = 0.95,
-                  debug::Bool = true)
+                  debug::Bool = false)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
@@ -931,8 +948,9 @@ function ComputeR(hosp::simh,
       println("Actions: ", hosp.visited[k1].psi[1,:])
       println("Probabilities: ", hosp.visited[k1].psi[2,:])
     end
+    # TODO - this is WeightedProbUpdate - make sure that's the right thing to do.
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
-    hosp.visited[k1].psi = WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
+    hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     if debug
       WhyNaN(hosp.visited[k1])
@@ -973,7 +991,7 @@ given by the log, so the value is constrained to be this small positive value.
 The problem is basically underflow: when returns are really high to staying in and
 much smaller to getting out, the estimated prob is zero.
 """
-function PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.0001)
+function PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.000000001)
   return max(exp(neww - maximum(neww)), ep)/sum(exp(neww-maximum(neww)))
 end
 
@@ -981,6 +999,7 @@ end
 `WeightedProbUpdate(aw::Dict{Int64,Float64}, its::Int64)`
 There is an underflow problem in the update of probabilities.  Weight them according to the
 number of iterations in the update.
+#NB: NOT IN USE at the moment.
 """
 function WeightedProbUpdate(aw::Dict{Int64, Float64}, ps::Array{Float64,2}, its::Int64)
   next::Array{Float64,2} = ProbUpdate(aw)
@@ -1072,6 +1091,10 @@ end
 """
 `ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
+
+To start: 
+dyn = CounterObjects();
+
 """
 function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
@@ -1089,7 +1112,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         level::Int64 = LevelFunction(el ,act)
         a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
         GetProb(el)                                                     # TODO - replace this by the mean? action choices by other firms
-        ComputeR(el, a, b, act, iterations; debug = debug)
+        ComputeR(el, a, b, act, iterations; debug = debug)  # NB: I really think the problem is here.
         if (level != el.level)&(level != -999)
           el.cns = steadylevs[(el.fid, el.level)]
           el.previous = el.level
@@ -1099,14 +1122,16 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
             el.visited[k1]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
           end
         end
-        ExCheck(el)
+        # TODO - get all cleanup actions at the end of the period here.
+        ExCheck(el) # Checks for exit
+        FixNN(el) # fixes the neighbors.
+        el.previous = el.level # reassign current level to previous.
+        iterations += 1
       end
       #TODO - uncomment convergence test when that is debugged.
       # if iterations%1_000 == 0
       #   CheckConvergence(el)
       # end
-      el.previous = el.level # reassign current level to previous.
-      iterations += 1
     end
   end
   converged = Halt(D, chunk)
@@ -1231,44 +1256,42 @@ Check the convergence criterion in Collard-Wexler or Pakes McGuire.
 This can be checked every million iterations.  When that happens,
 reset the counters for every state in "visited".
 """
-function CheckConvergence(h::simh; draws::Int64 = 100, demands::Int64 = 10, disc::Float64 = 0.95, debug::Bool = true)
+function CheckConvergence(h::simh; draws::Int64 = 1000, demands::Int64 = 10, disc::Float64 = 0.95, debug::Bool = true)
   outp::Array{Float64,1} = Array{Float64, 1}()
   pairs::Array{Tuple{Float64,Float64},1} = Array{Tuple{Float64, Float64},1}()
   totvisits::Int64 = 0
   dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.  This covers all three levels.
   states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
-  # FIXME: maybe part of the problem comes from trying to approximate the value at exit states?
+  # NB: One problem seems to be that the values I'm getting are really different.  Why?  (between ComputeR and this part).
   for k in keys(h.visited)
     for k2 in keys(h.visited[k].counter)
-      if h.visited[k].counter[k2] > 1                                                                     # NB: Counter initialized to 1, so this restricts to visited states.
+      if h.visited[k].counter[k2] > 1                                                                         # NB: Counter initialized to 1, so this restricts to visited states.
          println("********************")
          println("Current Estimate: ", h.visited[k].aw[k2])
          approxim::Float64 = 0.0
          for d = 1:draws
-          origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
-          nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:])))    # Take an action.  NB: LevelFunction takes Int64 argument in second place.
-          h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
-          currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, h.level) # draw from the limited demand set.
-          println("Demand: ", currdem[1], "   ", currdem[2])
-          currpi::Float64 = SinglePay(h, currdem[1], currdem[2])                                              # Current period return, excluding continuation value.
-          contval::Float64 = 0.0
-          if haskey(h.visited, KeyCreate(h.cns, h.level))                                                     # check neighbors/level pair
-            contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
-          else                                                                                                # when I haven't been there before, must take the initial value.  But the goal is that this doesn't happen as I visit more states.
-            #I'm not sure I care that this is adding states to the hospital record, but note it.
-            h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, currdem[1], currdem[2])), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, currdem[1], currdem[2])))), Dict(k => 1 for k in ChoicesAvailable(h)) )
-            contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
-          end
-          #FIXME - these are an order of magnitude off of the existing values.
-          h.level = origlevel                                                                                 # reset the level to the original value.
-          approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
-          println(approxim)
-        end
-        println("FINAL: ", approxim/draws)
-        push!(outp, (approxim/draws - h.visited[k].aw[k2])^2)                                                 # TODO - replace this with a sum when confidence is reached in the outcome..
-        push!(pairs, (approxim/draws, h.visited[k].aw[k2]))
-        states[KeyCreate(h.cns, h.level)] = (approxim/draws, h.visited[k].aw[k2])
+            origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
+            nextact::Int64 = convert(Int64, sample(h.visited[k].psi[1,:], WeightVec(h.visited[k].psi[2,:])))    # Take an action.  NB: LevelFunction takes Int64 argument in second place.
+            h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
+            currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, h.level) # draw from the limited demand set.
+            currpi::Float64 = SinglePay(h, currdem[1], currdem[2])                                              # Current period return, excluding continuation value.
+            contval::Float64 = 0.0
+            if haskey(h.visited, KeyCreate(h.cns, h.level))                                                     # check neighbors/level pair
+              contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
+            else                                                                                                # when I haven't been there before, must take the initial value.  But the goal is that this doesn't happen as I visit more states.
+              #I'm not sure I care that this is adding states to the hospital record, but note it.
+              h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, currdem[1], currdem[2])), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, currdem[1], currdem[2])))), Dict(k => 1 for k in ChoicesAvailable(h)) )
+              contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
+            end
+            #FIXME - these are an order of magnitude off of the existing values.
+            h.level = origlevel                                                                                 # reset the level to the original value.
+            approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
+         end
+         println("FINAL: ", approxim/draws)
+         push!(outp, (approxim/draws - h.visited[k].aw[k2])^2)                                                 # TODO - replace this with a sum when confidence is reached in the outcome..
+         push!(pairs, (approxim/draws, h.visited[k].aw[k2]))
+         states[KeyCreate(h.cns, h.level)] = (approxim/draws, h.visited[k].aw[k2])
       end
     end
   end
