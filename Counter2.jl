@@ -915,7 +915,7 @@ function StartingVals(h::simh,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
         # NB: just as a test - what if I initialize everything to 0?
-        return [0,0,0,0]
+        return [0.0,0.0,0.0,0.0]
   #return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
 end
 
@@ -1113,7 +1113,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
         ComputeR(el, a, b, act, iterations; debug = debug)  # NB: I really think the problem is here.
         if (level != el.level)&(level != -999)
-          # NB: Now this will only attempt to approximate at the mean values of states. 
+          # NB: Now this will only attempt to approximate at the mean values of states.
           #GetProb(el)
           steadylevs[(el.fid, level)]                                     # approximate value at fewer states.
           el.cns = steadylevs[(el.fid, el.level)]
