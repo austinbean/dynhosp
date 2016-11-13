@@ -1057,10 +1057,10 @@ function ComputeR(hosp::simh,
                   disc::Float64 = 0.95,
                   debug::Bool = false)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
-  println(k1)
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
     if iterations <= 20_000_000
+      println("the key is: ", k1)
       println("action: " ,action)
       #FIXME - the error is right here.  This record does not exist yet?
       wt = 1/sqrt(hosp.visited[k1].counter[action])
@@ -1088,7 +1088,7 @@ This computes the dynamic simulation across all of the facilities in all of the 
 
 To start:
 dyn = CounterObjects();
-
+#NB: TODO - there needs to be a counter so I make sure I'm only checking convergence at the last million visited states, NOT all of them.  
 """
 function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
@@ -1102,23 +1102,22 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
     end
     for el in D.all[chunk]
       if !el.converged                                                  # only keep simulating with the ones which haven't converged
-        act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
-        level::Int64 = LevelFunction(el ,act)
-        a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
-        el.level = level # NB: this needs to be reassigned BEFORE the return is computed.
+        a, b = SimpleDemand(dems[el.fid], el.level)                        # Demand as a result of actions.
         GetProb(el)
-        println(act)
-        # FIXME _ what is changing in here that this can miss a key in ComputeR?  I am mystified.
         # TODO: add a market size check here to do something more like oblivious in large markets.
-        el.previous = el.level
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
+          println("adding new counter")
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
         end
-        ComputeR(el, a, b, act, iterations; debug = debug)  # NB: I really think the problem is here.
         # TODO - get all cleanup actions at the end of the period here.
+        act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
+        ComputeR(el, a, b, act, iterations; debug = debug)
+        level::Int64 = LevelFunction(el ,act)
         ExCheck(el) # Checks for exit
         FixNN(el) # fixes the neighbors.
         el.previous = el.level # reassign current level to previous.
+        el.level = level # NB: this needs to be reassigned BEFORE the return is computed.
+
         iterations += 1
       end
       #TODO - uncomment convergence test when that is debugged.
