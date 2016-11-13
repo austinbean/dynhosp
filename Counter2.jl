@@ -1057,6 +1057,7 @@ function ComputeR(hosp::simh,
                   disc::Float64 = 0.95,
                   debug::Bool = false)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
+  println("action: " ,action)
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
     if iterations <= 20_000_000
@@ -1116,20 +1117,15 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
       if !el.converged                                                  # only keep simulating with the ones which haven't converged
         act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
         level::Int64 = LevelFunction(el ,act)
-        println(level)
         a, b = SimpleDemand(dems[el.fid], level)                        # Demand as a result of actions.
-        if (level != el.level)&(level != -999)
-          el.level = level # NB: this needs to be reassigned BEFORE the return is computed.
-          GetProb(el)
-          println("hi")
-          # TODO: add a market size check here to do something more like oblivious in large markets.
-          #steadylevs[(el.fid, level)]                                     # approximate value at fewer states.
-          #el.cns = steadylevs[(el.fid, el.level)]
-          el.previous = el.level
-          k1 = KeyCreate(el.cns, el.level)
-          if !haskey(el.visited, k1)
-            el.visited[k1]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
-          end
+        el.level = level # NB: this needs to be reassigned BEFORE the return is computed.
+        GetProb(el)
+        println(act)
+        # FIXME _ what is changing in here that this can miss a key in ComputeR?  I am mystified.  
+        # TODO: add a market size check here to do something more like oblivious in large markets.
+        el.previous = el.level
+        if !haskey(el.visited, KeyCreate(el.cns, el.level))
+          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
         end
         ComputeR(el, a, b, act, iterations; debug = debug)  # NB: I really think the problem is here.
         # TODO - get all cleanup actions at the end of the period here.
