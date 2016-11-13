@@ -1057,36 +1057,23 @@ function ComputeR(hosp::simh,
                   disc::Float64 = 0.95,
                   debug::Bool = false)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
-  println("action: " ,action)
+  println(k1)
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
     if iterations <= 20_000_000
+      println("action: " ,action)
+      #FIXME - the error is right here.  This record does not exist yet?
       wt = 1/sqrt(hosp.visited[k1].counter[action])
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
-    if debug
-      println("************")
-      println("Current state: ", k1)
-      println("Current Values: ", hosp.visited[k1].aw)
-      println("Actions: ", hosp.visited[k1].psi[1,:])
-      println("Probabilities: ", hosp.visited[k1].psi[2,:])
-    end
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
-    if debug
-      WhyNaN(hosp.visited[k1])
-    end
     hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
     if hosp.level != -999 # nothing added for exiters.
       hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
-      if debug
-        println("New Record")
-        println(hosp.visited[k1].aw)
-        println(hosp.visited[k1].psi)
-      end
       hosp.visited[k1].counter[action] += 1
     end
   end
@@ -1121,7 +1108,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         el.level = level # NB: this needs to be reassigned BEFORE the return is computed.
         GetProb(el)
         println(act)
-        # FIXME _ what is changing in here that this can miss a key in ComputeR?  I am mystified.  
+        # FIXME _ what is changing in here that this can miss a key in ComputeR?  I am mystified.
         # TODO: add a market size check here to do something more like oblivious in large markets.
         el.previous = el.level
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
