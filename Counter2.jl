@@ -1060,9 +1060,6 @@ function ComputeR(hosp::simh,
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
     if iterations <= 20_000_000
-      println("the key is: ", k1)
-      println("action: " ,action)
-      #FIXME - the error is right here.  This record does not exist yet?
       wt = 1/sqrt(hosp.visited[k1].counter[action])
     else
       wt = 1/hosp.visited[k1].counter[action]
@@ -1072,11 +1069,29 @@ function ComputeR(hosp::simh,
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
-    if hosp.level != -999 # nothing added for exiters.
+    if (hosp.level != -999)&&(action != 11) # nothing added for exiters.
       hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
       hosp.visited[k1].counter[action] += 1
     end
   end
+end
+
+
+type vrecord
+  visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
+  totalcnt::Int64 # count all states
+end
+
+type allvisits
+  all::Dict{Int64, vrecord}
+end
+
+"""
+`RTuple(h::simh, a::Int64)`
+Makes a tuple out of a record, level and action.
+"""
+function RTuple(h::simh, a::Int64)
+  return t::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = (h.cns.level105, h.cns.level205, h.cns.level305, h.cns.level1515, h.cns.level2515, h.cns.level3515, h.cns.level11525, h.cns.level21525, h.cns.level31525, h.level, a)
 end
 
 
@@ -1088,7 +1103,7 @@ This computes the dynamic simulation across all of the facilities in all of the 
 
 To start:
 dyn = CounterObjects();
-#NB: TODO - there needs to be a counter so I make sure I'm only checking convergence at the last million visited states, NOT all of them.  
+#NB: TODO - there needs to be a counter so I make sure I'm only checking convergence at the last million visited states, NOT all of them.
 """
 function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
@@ -1096,6 +1111,10 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   steadylevs = AllAgg(D, chunk)
+  V = allvisits(Dict{Int64, vrecord}())
+  for el in chunk # creates a dictionary of visited records.
+    V.all[D.all[el].fid] = vrecord( Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1}(), 1)
+  end
   while (iterations<itlim)&&(!converged)
     if iterations%1000 == 0
       dems = AllDems(D, chunk; repcount = 10)                           # Recompute the demand set every 1000 iterations.
@@ -1113,11 +1132,10 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
         act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
         ComputeR(el, a, b, act, iterations; debug = debug)
         level::Int64 = LevelFunction(el ,act)
+        el.previous = el.level # reassign current level to previous.
+        el.level = level
         ExCheck(el) # Checks for exit
         FixNN(el) # fixes the neighbors.
-        el.previous = el.level # reassign current level to previous.
-        el.level = level # NB: this needs to be reassigned BEFORE the return is computed.
-
         iterations += 1
       end
       #TODO - uncomment convergence test when that is debugged.
@@ -1128,6 +1146,7 @@ function ValApprox(D::DynState, itlim::Int64; chunk::Array{Int64,1} = collect(1:
   end
   converged = Halt(D, chunk)
 end
+
 
 
 
@@ -1268,8 +1287,9 @@ Check if the firm exited, then restart.
 When the firm exits we also reset all of the neighbors.
 """
 function ExCheck(h::simh)
-  if h.exit
+  if (h.exit)|(h.level== -999)
     h.exit = false
+    h.level = h.actual
     for n in h.ns
       if n.level == -999
         n.level = n.truelevel
