@@ -34,6 +34,30 @@ end
 
 
 """
+`vrecord`
+- visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
+- totalcnt::Int64 # count all states
+Records which state-action pairs have been visited, plus the total iteration count.  The array length is fixed at
+1 million so only those state-action pairs are checked.
+"""
+type vrecord
+  visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
+  totalcnt::Int64 # count all states
+end
+
+
+"""
+`allvisits`
+- all::Dict{Int64, vrecord}
+Dictionary of {Fid, VRecord}, which records visits to state-action pairs.
+"""
+type allvisits
+  all::Dict{Int64, vrecord}
+end
+
+
+
+"""
 `type history`
 -  path::Dict{neighbors, hitcount}
 -  totalcount::Int64
@@ -815,96 +839,6 @@ end
 
 
 
-"""
-`SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
-Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
-"""
-function SinglePay(s::simh,
-                    mpats::ProjectModule.patientcount,
-                    ppats::ProjectModule.patientcount;
-                    scalefact::Float64 = 3.0e9,
-                    alf1::Float64 = 8336.17,
-                    alf2::Float64 = 36166.6,
-                    alf3::Float64 = 16309.47,
-                    gamma_1_385::Float64 = 20680.0, # ✓
-                    gamma_2_385::Float64 = 42692.37, # ✓
-                    gamma_3_385::Float64 = 20962.97, # ✓
-                    gamma_1_386::Float64 = 81918.29, # X
-                    gamma_2_386::Float64 = 74193.4, # X
-                    gamma_3_386::Float64 = 99065.79, # X
-                    gamma_1_387::Float64 = 30405.32, # X
-                    gamma_2_387::Float64 = 49801.84, # X
-                    gamma_3_387::Float64 = 22376.8, # X
-                    gamma_1_388::Float64 = 10051.55, # ✓
-                    gamma_2_388::Float64 = 19019.18, # X
-                    gamma_3_388::Float64 = 33963.5, # X
-                    gamma_1_389::Float64 = 29122.89, # X
-                    gamma_2_389::Float64 = 14279.58, # X
-                    gamma_3_389::Float64 = 20708.15, # X
-                    gamma_1_390::Float64 = 22830.05, # X
-                    gamma_2_390::Float64 = 6754.76, # X
-                    gamma_3_390::Float64 = 3667.42, # ✓
-                    gamma_1_391::Float64 = 9089.77, # X
-                    gamma_2_391::Float64 = 8120.85, # X
-                    gamma_3_391::Float64 = 1900.5, # ✓
-                    level12::Float64 = 1.64669492e6,
-                    level13::Float64 = 5.0165876e6,
-                    level21::Float64 = -366430.33,
-                    level23::Float64 = 1.83969306e6,
-                    level31::Float64 = -90614.32,
-                    level32::Float64 = -157206.98,
-                    mcaid385::Float64 = 151380.0,
-                    mcaid386::Float64 = 48417.0,
-                    mcaid387::Float64 = 18845.0,
-                    mcaid388::Float64 = 7507.0,
-                    mcaid389::Float64 = 9424.0,
-                    mcaid390::Float64 = 4623.0,
-                    mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
-    outp::Float64 = 0.0
-    levelc::Float64 = 0.0
-    wtp::Float64 = FindWTP(s)
-    if s.level == 1
-      outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
-    elseif s.level == 2
-      outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
-    elseif s.level == 3
-      outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
-    else # level = -999 (exit)
-      outp = 0.0
-    end
-    if s.level != s.previous
-      if s.level == 1
-        if s.previous == 2
-          levelc = level21
-        elseif s.previous == 3
-          levelc = level31
-        else
-          #not possible
-        end
-      elseif s.level == 2
-        if s.previous == 1
-          levelc = level12
-        elseif s.previous == 3
-          levelc = level32
-        else
-          # not possible
-        end
-      elseif s.level == 3
-        if s.previous == 2
-          levelc = level32
-        elseif s.previous == 1
-          levelc = level31
-        else
-          # not possible
-        end
-      elseif s.level == -999
-        levelc = 0.0
-      end
-    end
-    return (outp - levelc)/scalefact
-end
-
-
 
 """
 `StartingVals(h::simh)`s
@@ -1045,6 +979,101 @@ function WhyNaN(n::nlrec)
 end
 
 
+
+"""
+`SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
+Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
+#TODO - this should probably take an action argument, especially when the action is 11 (Exit)
+"""
+function SinglePay(s::simh,
+                    mpats::ProjectModule.patientcount,
+                    ppats::ProjectModule.patientcount,
+                    action::Int64;
+                    scalefact::Float64 = 3.0e9,
+                    alf1::Float64 = 8336.17,
+                    alf2::Float64 = 36166.6,
+                    alf3::Float64 = 16309.47,
+                    gamma_1_385::Float64 = 20680.0, # ✓
+                    gamma_2_385::Float64 = 42692.37, # ✓
+                    gamma_3_385::Float64 = 20962.97, # ✓
+                    gamma_1_386::Float64 = 81918.29, # X
+                    gamma_2_386::Float64 = 74193.4, # X
+                    gamma_3_386::Float64 = 99065.79, # X
+                    gamma_1_387::Float64 = 30405.32, # X
+                    gamma_2_387::Float64 = 49801.84, # X
+                    gamma_3_387::Float64 = 22376.8, # X
+                    gamma_1_388::Float64 = 10051.55, # ✓
+                    gamma_2_388::Float64 = 19019.18, # X
+                    gamma_3_388::Float64 = 33963.5, # X
+                    gamma_1_389::Float64 = 29122.89, # X
+                    gamma_2_389::Float64 = 14279.58, # X
+                    gamma_3_389::Float64 = 20708.15, # X
+                    gamma_1_390::Float64 = 22830.05, # X
+                    gamma_2_390::Float64 = 6754.76, # X
+                    gamma_3_390::Float64 = 3667.42, # ✓
+                    gamma_1_391::Float64 = 9089.77, # X
+                    gamma_2_391::Float64 = 8120.85, # X
+                    gamma_3_391::Float64 = 1900.5, # ✓
+                    level12::Float64 = 1.64669492e6,
+                    level13::Float64 = 5.0165876e6,
+                    level21::Float64 = -366430.33,
+                    level23::Float64 = 1.83969306e6,
+                    level31::Float64 = -90614.32,
+                    level32::Float64 = -157206.98,
+                    mcaid385::Float64 = 151380.0,
+                    mcaid386::Float64 = 48417.0,
+                    mcaid387::Float64 = 18845.0,
+                    mcaid388::Float64 = 7507.0,
+                    mcaid389::Float64 = 9424.0,
+                    mcaid390::Float64 = 4623.0,
+                    mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+    outp::Float64 = 0.0
+    levelc::Float64 = 0.0
+    wtp::Float64 = FindWTP(s)
+    if s.level == 1&(action!=11)
+      outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
+    elseif s.level == 2&(action!=11)
+      outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
+    elseif s.level == 3&(action!=11)
+      outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
+    else # level = -999 (exit)
+      outp = 0.0
+    end
+    if s.level != s.previous
+      if s.level == 1
+        if s.previous == 2
+          levelc = level21
+        elseif s.previous == 3
+          levelc = level31
+        else
+          #not possible
+        end
+      elseif s.level == 2
+        if s.previous == 1
+          levelc = level12
+        elseif s.previous == 3
+          levelc = level32
+        else
+          # not possible
+        end
+      elseif s.level == 3
+        if s.previous == 2
+          levelc = level32
+        elseif s.previous == 1
+          levelc = level31
+        else
+          # not possible
+        end
+      elseif (s.level == -999)||(action == 11) #TODO - here add the scrap values of exiting.
+        levelc = 0.0
+      end
+    end
+    return (outp - levelc)/scalefact
+end
+
+
+
+
 """
 `ComputeR(hosp::simh, ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, action::Int64, iterations::Int64;disc::Float64 = 0.95 )`
 Computes the return (current profit + expected continuation) for each hospital in the state.
@@ -1058,6 +1087,7 @@ function ComputeR(hosp::simh,
                   debug::Bool = false)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
   if haskey(hosp.visited, k1)
+    # TODO - what is this doing on an exit action?  SinglePay needs to be updated to take an action to track when it's 11/Exit.
     wt::Float64 = 1.0
     if iterations <= 20_000_000
       wt = 1/sqrt(hosp.visited[k1].counter[action])
@@ -1077,14 +1107,6 @@ function ComputeR(hosp::simh,
 end
 
 
-type vrecord
-  visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
-  totalcnt::Int64 # count all states
-end
-
-type allvisits
-  all::Dict{Int64, vrecord}
-end
 
 """
 `RTuple(h::simh, a::Int64)`
@@ -1103,7 +1125,7 @@ This computes the dynamic simulation across all of the facilities in all of the 
 
 To start:
 dyn = CounterObjects();
-V = allvisits(Dict{Int64, vrecord}())
+V = allvisits(Dict{Int64, vrecord}());
 """
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
@@ -1111,49 +1133,51 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
   a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
   steadylevs = AllAgg(D, chunk)
-  for el in chunk # creates a dictionary of visited records.
+  for el in chunk                                                          # creates a dictionary of visited records.
     V.all[D.all[el].fid] = vrecord( Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1}(), 1)
   end
   while (iterations<itlim)&&(!converged)
     if iterations%1000 == 0
-      dems = AllDems(D, chunk; repcount = 10)                           # Recompute the demand set every 1000 iterations.
+      dems = AllDems(D, chunk; repcount = 10)                              # Recompute the demand set every 1000 iterations.
     end
     for el in D.all[chunk]
-      if !el.converged                                                  # only keep simulating with the ones which haven't converged
+      if !el.converged                                                     # only keep simulating with the ones which haven't converged
         a, b = SimpleDemand(dems[el.fid], el.level)                        # Demand as a result of actions.
-        GetProb(el)
+        GetProb(el)                                                        # this chooses the action by the other firms
         # TODO: add a market size check here to do something more like oblivious in large markets.
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
           println("adding new counter")
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
         end
         # TODO - get all cleanup actions at the end of the period here.
-        act::Int64 = ChooseAction(el)                                   # Takes an action and returns it.
-        ComputeR(el, a, b, act, iterations; debug = debug)
-        level::Int64 = LevelFunction(el ,act)
+        act::Int64 = ChooseAction(el)                                       # Takes an action and returns it.
+        ComputeR(el, a, b, act, iterations; debug = debug)                  # Computes the return to the action
+        level::Int64 = LevelFunction(el ,act)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
-          push!(V.all[el.fid].visited, RTuple(el, act))
+          push!(V.all[el.fid].visited, RTuple(el, act))                     # Record the first million state-action pairs in a vector
         elseif iterations >1_000_000
-          V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, act) # once this is a million entries long, start overwriting to keep track of only 1_000_000
+          V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, act)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
         end
-        el.previous = el.level # reassign current level to previous.
-        el.level = level
-        ExCheck(el) # Checks for exit
-        FixNN(el) # fixes the neighbors.
-        iterations += 1
-        V.all[el.fid].totalcnt += 1
+        el.previous = el.level                                              # Reassign current level to previous.
+        el.level = level                                                    # Reassign current level, if it has changed or not.
+        ExCheck(el)                                                         # Checks for exit
+        FixNN(el)                                                           # Fixes the firms neighbors.
+        iterations += 1                                                     # Update iteration count - TODO: delete after debugging.
+        V.all[el.fid].totalcnt += 1                                         # Update the iteration count within the visit records.
       end
       #TODO - uncomment convergence test when that is debugged.
-      # if iterations%1_000 == 0
+      # if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
       #   CheckConvergence(el)
       # end
     end
   end
-  converged = Halt(D, chunk)
+  converged = Halt(D, chunk)                                                # Check to see if all firms in "chunk" have converged, then halt if they have.
 end
 
 """
 `KeytoTuple(x::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64})`
+The visit record is a giant tuple - this cuts that into (neighbors, level) and (action).
+The former is a tuple, the latter a scalar.
 """
 function KeytoTuple(x::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64})
   return x[1:end-1], x[end]
@@ -1172,15 +1196,15 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
   outp::Array{Float64,1} = Array{Float64, 1}()
   pairs::Array{Tuple{Float64,Float64},1} = Array{Tuple{Float64, Float64},1}()
   totvisits::Int64 = 0
-  dems = ThreeDemands(h, demands) # compute a set of demand values - fixed.  This covers all three levels.
+  dems = ThreeDemands(h, demands)                                                                         # compute a set of demand values - fixed.  This covers all three levels.
   states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
-  for k in V # only check this set of values visited in the last million iterations.
+  for k in V                                                                                              # only check this set of values visited in the last million iterations.
    k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, k2::Int64 = KeytoTuple(k)
    approxim::Float64 = 0.0
    for d = 1:draws
       origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
-      nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], WeightVec(h.visited[k1].psi[2,:])))    # Take an action.  NB: LevelFunction takes Int64 argument in second place.
+      nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
       currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, h.level) # draw from the limited demand set.
       currpi::Float64 = SinglePay(h, currdem[1], currdem[2])                                              # Current period return, excluding continuation value.
@@ -1208,6 +1232,14 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
   return outp, itercount, states, pairs                                                                             # TODO: eventually divide former by latter. And drop states.
 end
 
+
+
+
+"""
+`LogitCheck(h::simh)`
+Check the estimated probabilities from the record of visits against the probabilities
+from the original logit model.  
+"""
 
 
 
