@@ -1094,7 +1094,7 @@ function ComputeR(hosp::simh,
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
-    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
+    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats, action) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
@@ -1238,8 +1238,35 @@ end
 """
 `LogitCheck(h::simh)`
 Check the estimated probabilities from the record of visits against the probabilities
-from the original logit model.  
+from the original logit model.
 """
+function LogitCheck(h::simh)
+  for k in keys(h.visited)
+    levl = (-1, -1)
+    choices = [0]
+    if k[end] == 1
+      levl = (0,0)
+    elseif k[end] == 2
+      levl = (1,0)
+    elseif k[end] == 3
+      levl = (0,1)
+    end
+    if k[end] == 1
+      choices = [10 2 1 11]
+    elseif k[end] == 2
+      choices = [5 10 6 11]
+    elseif k[end] == 3
+      choices =  [4 3 10 11]
+    end
+    levels = MktSize(neighbors(k[1], k[2], k[3], k[4], k[5], k[6], k[7], k[8], k[9]))
+    prs = logitest(levl, levels[1], levels[2], levels[3], [h.cns.level105; h.cns.level205; h.cns.level305; h.cns.level1515; h.cns.level2515; h.cns.level3515; h.cns.level11525; h.cns.level21525; h.cns.level31525 ] )
+    println("*****************")
+    println("Neighbors: ", k[1:end-1])
+    println("Level: ", k[end])
+    println("Equilibrium Probabilities: ", choices,"  ", prs)
+    println("Estimated Probabilities: ", h.visited[k].psi)
+  end
+end
 
 
 
