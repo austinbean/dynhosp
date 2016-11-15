@@ -1087,14 +1087,16 @@ function ComputeR(hosp::simh,
                   debug::Bool = false)
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
   if haskey(hosp.visited, k1)
-    # TODO - what is this doing on an exit action?  SinglePay needs to be updated to take an action to track when it's 11/Exit.
     wt::Float64 = 1.0
     if iterations <= 20_000_000
       wt = 1/sqrt(hosp.visited[k1].counter[action])
     else
       wt = 1/hosp.visited[k1].counter[action]
     end
-    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats, action) + disc*(WProb(hosp.visited[k1])) + disc*ContError(hosp.visited[k1])) + (1-wt)*(hosp.visited[k1].aw[action])
+    hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats, action) + disc*(WProb(hosp.visited[k1])) ) + (1-wt)*(hosp.visited[k1].aw[action])
+    if action != 11 # there is no continuation value of the error when the firm exits.
+      hosp.visited[k1].aw[action] += disc*ContError(hosp.visited[k1])
+    end
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
