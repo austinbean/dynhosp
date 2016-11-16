@@ -327,7 +327,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
     # Creates an initial value in the "visited" states container.
     el.visited[KeyCreate(el.cns, el.level)] = nlrec(MD(ChoicesAvailable(el), StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))),
                                                     vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))))),
-                                                    Dict(k => 1 for k in ChoicesAvailable(el)))
+                                                    Dict(k => 0 for k in ChoicesAvailable(el)))
     el.visited[KeyCreate(el.cns, el.level)].counter[10] += 1
   end
   return outp
@@ -1089,9 +1089,9 @@ function ComputeR(hosp::simh,
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
     if iterations <= 20_000_000
-      wt = 1/sqrt(hosp.visited[k1].counter[action])
+      wt = 1/sqrt(hosp.visited[k1].counter[action]+1)
     else
-      wt = 1/hosp.visited[k1].counter[action]
+      wt = 1/(hosp.visited[k1].counter[action]+1)
     end
     hosp.visited[k1].aw[action] = (wt)*(SinglePay(hosp, ppats, mpats, action) + disc*(WProb(hosp.visited[k1])) ) + (1-wt)*(hosp.visited[k1].aw[action])
     if action != 11 # there is no continuation value of the error when the firm exits.
@@ -1102,7 +1102,7 @@ function ComputeR(hosp::simh,
     hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
     if (hosp.level != -999)&&(action != 11) # nothing added for exiters.
-      hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 1 for k in ChoicesAvailable(hosp)) )
+      hosp.visited[k1]=nlrec(MD(ChoicesAvailable(hosp), StartingVals(hosp, ppats, mpats)), vcat(ChoicesAvailable(hosp),transpose(PolicyUpdate(StartingVals(hosp, ppats, mpats)))), Dict(k => 0 for k in ChoicesAvailable(hosp)) )
       hosp.visited[k1].counter[action] += 1
     end
   end
@@ -1216,8 +1216,10 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
         contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)])
         if nextact != 11
           contval += disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
-        end 
+        end
       else
+        #FIXME - what is happening here now on "not available"  contval stays 0 - but that's going to make the error larger.
+        # This can't just leave it at 0, since that will make the approximation too small.  
         println("not available")
       end
       h.level = origlevel                                                                                 # reset the level to the original value.
