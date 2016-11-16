@@ -1209,10 +1209,14 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
       nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
       currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, h.level) # draw from the limited demand set.
-      currpi::Float64 = SinglePay(h, currdem[1], currdem[2])                                              # Current period return, excluding continuation value.
+      currpi::Float64 = SinglePay(h, currdem[1], currdem[2], nextact)                                              # Current period return, excluding continuation value.
       contval::Float64 = 0.0
       if haskey(h.visited, KeyCreate(h.cns, h.level))                                                     # check neighbors/level pair
-        contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)]) + disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
+        #FIXME - note here: ContError should not be present upon exit.
+        contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)])
+        if nextact != 11
+          contval += disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
+        end 
       else
         println("not available")
       end
