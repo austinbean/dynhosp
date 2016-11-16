@@ -851,9 +851,8 @@ function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-        # NB: just as a test - what if I initialize everything to 0?
-        return [0.0,0.0,0.0,0.0]
-  #return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100000.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
+        #return [0.0,0.0,0.0,0.0]
+  return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
 end
 
 
@@ -1149,7 +1148,7 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         # TODO: add a market size check here to do something more like oblivious in large markets.
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
           println("adding new counter")
-          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
+          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 0 for k in ChoicesAvailable(el)) )
         end
         # TODO - get all cleanup actions at the end of the period here.
         act::Int64 = ChooseAction(el)                                       # Takes an action and returns it.
@@ -1219,8 +1218,13 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
         end
       else
         #FIXME - what is happening here now on "not available"  contval stays 0 - but that's going to make the error larger.
-        # This can't just leave it at 0, since that will make the approximation too small.  
-        println("not available")
+        # But these will still be 0 since that's what StartingVals is giving.
+        println("Added entry")
+        # Choices available?  Is that going to get the level right?  What about act?
+        h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, currdem[1], currdem[2])), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, currdem[1], currdem[2])))), Dict(k => 0 for k in ChoicesAvailable(h)) )
+        if nextat!=11
+          contval += disc*()
+        end
       end
       h.level = origlevel                                                                                 # reset the level to the original value.
       approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
