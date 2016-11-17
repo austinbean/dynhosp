@@ -852,7 +852,7 @@ function StartingVals(h::simh,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
         #return [0.0,0.0,0.0,0.0]
-  return vcat(repmat([min(SinglePay(h, ppats, mpats)/(1-disc), 100.0)],3), [min(SinglePay(h, ppats, mpats)/((1-disc)*1000), 1000.0)])
+  return vcat(repmat([min(SinglePay(h, ppats, mpats, 10)/(1-disc), 100.0)],3), [min(SinglePay(h, ppats, mpats, 10)/((1-disc)*1000), 100.0)])
 end
 
 
