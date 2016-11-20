@@ -1352,7 +1352,7 @@ end
 
 
 """
-`function ExCheck(h::simh)`
+`ExCheck(h::simh)`
 Check if the firm exited, then restart.
 When the firm exits we also reset all of the neighbors.
 """
@@ -1375,15 +1375,12 @@ Print the keys of the visited group and the probabilities of the choices, since 
 might not be getting updated at this point.
 """
 function PrintVisited(h::simh; simple::Bool = true)
-  if !simple
-    for el in keys(h.visited)
-      println(el)
-      println(h.visited[el].psi)
-      println(h.visited[el].counter)
+  for el in keys(h.visited)
+    println("**************************")
+    println(el)
+    for act in keys(h.visited[el].aw)
+      println("Action: ", act, " Value: ", h.visited[el].aw[act] ,"  Probability: ", h.visited[el].psi[2,findin(h.visited[el].psi[1,:], act)][1], "  Frequency: ", h.visited[el].counter[act],)
     end
-  else
-    println(KeyCreate(h.cns, h.level))
-    println(h.visited[KeyCreate(h.cns, h.level)].psi)
   end
 end
 
