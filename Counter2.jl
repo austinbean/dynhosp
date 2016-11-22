@@ -982,7 +982,6 @@ end
 """
 `SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
-#TODO - this should probably take an action argument, especially when the action is 11 (Exit)
 """
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
