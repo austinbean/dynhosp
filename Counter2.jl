@@ -392,6 +392,11 @@ end
 `DSim(c::cmkt, f::Int64)`
 This is going to take the collection of patients and the fid and figure out
 how many people choose it.  It's ok fast, but not really fast.
+
+#NB: this demand is dumb.  And incorrect.  The correct thing to do is for the
+firm to take the expectation.  But we know what that looks like.  I just need to
+update the deterministic component, compute the probability, and then multiply by the
+number of people in the zip.  This needs fixing, but will be much faster.
 """
 function DSim(c::cmkt, f::Int64; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
   pcount::patientcount = patientcount(0,0,0,0,0,0,0)
