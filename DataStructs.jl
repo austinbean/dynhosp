@@ -42,8 +42,12 @@ Platform Info:
 """
 `MakeIt(Tex::EntireState, fip::Vector)`
 Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
+
+Testing this:
+MakeIt(ProjectModule.fips);
 """
-function MakeIt(Tex::EntireState, fip::Vector)
+function MakeIt(fip::Vector)
+  Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   for el in fip
     if el != 0
       el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}(), $el, Dict{Int64, Bool}())"))
@@ -51,7 +55,7 @@ function MakeIt(Tex::EntireState, fip::Vector)
     end
   end
   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
-  # Tex.mkts = [ m.fipscode => m for m in Tex.ms] # this is the pre0.5 generator syntax
+  return Tex
 end
 
 
@@ -60,9 +64,13 @@ end
 `TXSetup(Tex::EntireState, data::Matrix; ...)`
  Takes an entire state and adds data from the imported choices returns a record with
  fipscodes containing hospitals with mostly empty field values
- Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
- MakeIt(Tex, ProjectModule.fips);
+
+ Testing:
+ Tex = MakeIt(ProjectModule.fips);
  TXSetup(Tex, ProjectModule.alldists);
+OR:
+ Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+
 """
 function TXSetup(Tex::EntireState, data::Matrix;
                  fidcol::Int64 = 4,
@@ -116,6 +124,13 @@ end
 `FindFids(m::Market)`
 Return all the fids in the market.
 This is necessary in TXSetup to make sure that we only add each hospital to the market once.
+
+Testing:
+  Setup -
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+  Testing:
+FindFids(Tex.mkts[48453])
+FindFids(Tex.mkts[48201])
 """
 function FindFids(m::Market)
   outp::Array{Int64,1} = Array{Int64,1}()
@@ -128,20 +143,33 @@ end
 """
 `InitChoice(Tex::EntireState)`
 Takes a newly created state and fixes all of the choice probabilities.
+
+Testing:
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+InitChoice(Tex)
+
+#NB - InitChoice is already called in Tex.  Test with:
+Tex.mkts[48453].config[1].chprobability
 """
 function InitChoice(Tex::EntireState)
   for mk in keys(Tex.mkts)
     for el in Tex.mkts[mk].config
-      levl=(-1,-1)
+  #    levl=(-1,-1)
       if el.level == 1
         levl = (0,0)
+        levels = MktSize(el.neigh)
+        el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
       elseif el.level == 2
         levl = (1,0)
+        levels = MktSize(el.neigh)
+        el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
       elseif el.level == 3
         levl = (0,1)
+        levels = MktSize(el.neigh)
+        el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
       end
-      levels = MktSize(el.neigh)
-      el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
+#      levels = MktSize(el.neigh)
+#      el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
     end
   end
 end
@@ -156,9 +184,7 @@ end
 function ExpandDict(Tex::EntireState)
   for el in Tex.ms
     el.collection = Dict(i.fid => i for i in el.config)
-    #    el.collection = [ i.fid => i for i in el.config ] # this is the pre0.5 generator syntax
     el.noneqrecord = Dict(i.fid => false for i in el.config)
-    # el.noneqrecord = [ i.fid => false for i in el.config] # this is the pre0.5 generator syntax.
     # I would like to append to each hospital a list of the others in the market, if it isn't already there.
     for hosp in el.config
       for hosp2 in el.config
