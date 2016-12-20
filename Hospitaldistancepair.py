@@ -109,6 +109,12 @@ labels = [ hospdata[0][i] for i in indices]+['distance']
 labels[17] = 'latitude'
 labels[18] = 'longitude'
 
+
+
+# ABOVE THIS LINE --- to recreate the TX All Distances.csv file.  
+
+
+
 print("Appending Hospitals Less than 25 miles distant")
 
 for i in range(len(TXzip)):
@@ -249,6 +255,7 @@ with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip Dis
 
 # 11/02/2016 - try to fix this: get the closest 10 appended no matter where they are.
 # Measure the distance to every hospital from every zip code.  
+# BELOW THIS LINE --- To recreate the TX Zip All Distances.csv file.  
 
 attempt2 = []
 
@@ -274,7 +281,7 @@ with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX All Dis
     a = csv.writer(fp, delimiter=',')
     a.writerows(attempt2)
 
-
+### ABOVE THIS LINE ----
 
 
 

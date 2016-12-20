@@ -130,11 +130,6 @@ for i in range(0, len(hospdata)):
 	elif hospdata[i][len(hospdata[i])-1] == 'FOUND':
 		curr_add = hospdata[i][addr_add]
 
-with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX All Addresses.csv', 'w') as f:
-	print ('saving')
-	a = csv.writer(f, delimiter=',')
-	a.writerows(hospdata)
-
 
 
 
@@ -176,12 +171,12 @@ print(dcnt)
 # OK - there are several to fix here.  A couple where the distance is 10 and then 2 where it is more than 100 miles.  Fix those by hand.  
 
 for row in range(1,len(hospdata)):
-	if row[0] == 670132:
-		row[14] = 33.1050940
-		row[15] = -94.1654897
-	elif row[0] == 4813735:
-		row[14] = 29.329170
-		row[15] = -96.119180
+	if hospdata[row][0] == 670132:
+		hospdata[row][14] = '33.1050940'
+		hospdata[row][15] = '-94.1654897'
+	elif hospdata[row][0] == 4813735:
+		hospdata[row][14] = '29.329170'
+		hospdata[row][15] = '-96.119180'
 
 
 # Check who was not found:
@@ -191,6 +186,13 @@ for i in range(0, len(hospdata)):
 		print("********************")
 		print(i)
 		print(hospdata[i])
+
+
+
+with open('/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX All Addresses.csv', 'w') as f:
+	print ('saving')
+	a = csv.writer(f, delimiter=',')
+	a.writerows(hospdata)
 
 
 
