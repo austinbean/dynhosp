@@ -45,13 +45,27 @@ Perhaps poor practice to use Eval in this way, but generates markets named m*fip
 
 Testing this:
 MakeIt(ProjectModule.fips);
+
+#TODO - there must be a better way to do this than eval.
 """
+# function MakeIt(fip::Vector)
+#   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+#   for el in fip
+#     if el != 0
+#       #FIXME - note that this overwrites "el", right?
+#       el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}(), $el, Dict{Int64, Bool}())"))
+#       push!(Tex.ms, el)
+#     end
+#   end
+#   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
+#   return Tex
+# end
+
 function MakeIt(fip::Vector)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
-  for el in fip
-    if el != 0
-      el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}(), $el, Dict{Int64, Bool}())"))
-      push!(Tex.ms, el)
+  for f in fip
+    if f != 0
+      push!(Tex.ms, Market( Array{hospital,1}(), Dict{Int64, hospital}(), f, Dict{Int64, Bool}()))
     end
   end
   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
