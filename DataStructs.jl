@@ -48,19 +48,6 @@ MakeIt(ProjectModule.fips);
 
 #TODO - there must be a better way to do this than eval.
 """
-# function MakeIt(fip::Vector)
-#   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
-#   for el in fip
-#     if el != 0
-#       #FIXME - note that this overwrites "el", right?
-#       el = eval(parse("m$el = Market( Array{hospital,1}(), Dict{Int64, hospital}(), $el, Dict{Int64, Bool}())"))
-#       push!(Tex.ms, el)
-#     end
-#   end
-#   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
-#   return Tex
-# end
-
 function MakeIt(fip::Vector)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   for f in fip
