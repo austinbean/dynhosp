@@ -45,8 +45,6 @@ Perhaps poor practice to use Eval in this way, but generates markets named m*fip
 
 Testing this:
 MakeIt(ProjectModule.fips);
-
-#TODO - there must be a better way to do this than eval.
 """
 function MakeIt(fip::Vector)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
@@ -118,6 +116,7 @@ function TXSetup(Tex::EntireState, data::Matrix;
   end
   NeighborFix(Tex)
   InitChoice(Tex)
+  ExpandDict(Tex)
   return Tex
 end
 
@@ -181,6 +180,8 @@ end
 """
 `ExpandDict(Tex::EntireState)`
  Expand the market dictionaries so that they are filled with the hospitals
+
+ NB: Can I run this within TXSetup??
 """
 function ExpandDict(Tex::EntireState)
   for el in Tex.ms
@@ -207,12 +208,10 @@ Call this and the whole state with all markets should be created.
 Should be called on "fips" or ProjectModule.fips and ProjectModule.alldists.
 MakeNew(ProjectModule.fips, ProjectModule.alldists)
 """
+#TODO - rewrite this, since MakeIt now has different signature.
+# TODO - also: cannot have ExpandDict be last since it doesn't return anything.  Nothing is returned by this.
 function MakeNew(fi::Vector, dat::Matrix)
-  Texas = EntireState(Array{hospital,1}(), Dict{Int64, Market}(), Dict{Int64, hospital}())
-  MakeIt(Texas, fi)
-  TXSetup(Texas, dat)
-  ExpandDict(Texas)
-  return Texas
+  return TXSetup(MakeIt(fi), dat)
 end
 
 
