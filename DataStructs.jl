@@ -189,7 +189,7 @@ function ExpandDict(Tex::EntireState)
     for hosp in el.config
       for hosp2 in el.config
         if hosp.fid != hosp2.fid
-          if !in(hosp2.fid, hosp.hood)
+          if !in(hosp2.fid, hosp.hood) #TODO - is this condition necessary?  When will this be tripped?
             push!(hosp.hood, hosp2.fid)
           end
         end
