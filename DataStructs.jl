@@ -46,7 +46,7 @@ Perhaps poor practice to use Eval in this way, but generates markets named m*fip
 Testing this:
 MakeIt(ProjectModule.fips);
 """
-function MakeIt(fip::Vector)
+function MakeIt(fip::Vector{Int64})
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   for f in fip
     if f != 0
@@ -294,13 +294,13 @@ end
 Takes the market, takes the mean location of all hospitals, adds normal noise to it.  ≈ 6 miles perturbation from mean.
 """
 function NewEntrantLocation(mkt::Market)
-  meanlat = 0
-  meanlong = 0
+  meanlat::Float64 = 0.0
+  meanlong::Float64 = 0.0
   for el in mkt.config # over hospitals
     meanlat += el.lat
     meanlong += el.long
   end
-  return [meanlat/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1], meanlong/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1]]
+  return [meanlat/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1], meanlong/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1]]::Array{Float64,1}
 end
 
 
@@ -327,13 +327,13 @@ e.g., returns the numbered choices available to it.
 """
 function ChoicesAvailable{T<:Fac}(h::T)
   if h.level == 1
-    return [10 2 1 11]
+    return [10 2 1 11]::Array{Int64,2}
   elseif h.level == 2
-    return [5 10 6 11]
+    return [5 10 6 11]::Array{Int64,2}
   elseif h.level == 3
-    return [4 3 10 11]
+    return [4 3 10 11]::Array{Int64,2}
   else # exited
-    return [-999 -999 -999 -999]
+    return [-999 -999 -999 -999]::Array{Int64,2}
   end
 end
 
