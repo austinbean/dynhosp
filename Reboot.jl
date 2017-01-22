@@ -181,8 +181,8 @@
   choices = convert(Array{Any, 2}, choices);
 
   # Data
-  fips = union(unique(data[:,78]), unique(alldists[:,7]))
-  data05 = 0 # data[(data[:,75].==2005), :] ; # NB - killing this because it has bad data and I want to find what is using it and change it.  
+  fips = convert(Array{Int64}, union(unique(data[:,78]), unique(alldists[:,7])))
+  data05 = 0 # data[(data[:,75].==2005), :] ; # NB - killing this because it has bad data and I want to find what is using it and change it.
 
   bwprobs = DataFrames.readtable(pathdata*"2005 Birth Weight Probabilities.csv", header = true);
   naprobs = DataFrames.readtable(pathdata*"2005 NICU Admission Probabilities.csv", header = true);
