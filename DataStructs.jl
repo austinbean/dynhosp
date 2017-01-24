@@ -487,7 +487,24 @@ end
 `NeighborFix(state::EntireState)`
 For every hospital in the state, append all other hospitals within 25 miles, ignoring county boundaries.
 Compare to StrictCountyNeighborFix which respects county boundaries.
+
 """
+function NeighborFix(state::EntireState)
+  for mk1 in state.ms
+    for mk2 in state.ms
+      for h1 in mk1.config
+        for h2 in mk2.config
+          if (h1.fid != h2.fid)&&(distance(h1.lat, h1.long, h2.lat, h2.long) < 25)
+            NeighborAppend(h1, h2)
+            NeighborAppend(h2, h1)
+          end
+        end
+      end
+    end
+  end
+end
+ #=
+ #variant
 function NeighborFix(state::EntireState)
   for mkt1 in state.ms
     for h1 in mkt1.config
@@ -504,7 +521,7 @@ function NeighborFix(state::EntireState)
           for hos2 in mkt2.config
             if distance(hos1.lat, hos1.long, hos2.lat, hos2.long) < 25
               NeighborAppend(hos1, hos2)
-              NeighborAppend(hos2, hos1) # second function call maybe not necessary?
+              NeighborAppend(hos2, hos1) # The function is not symmetric, so the second call is important.
             end
           end
         end
@@ -512,6 +529,7 @@ function NeighborFix(state::EntireState)
     end
   end
 end
+  =#
 
 
 
