@@ -41,7 +41,6 @@ Platform Info:
 
 """
 `MakeIt(Tex::EntireState, fip::Vector)`
-Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
 
 Testing this:
 MakeIt(ProjectModule.fips);
@@ -208,8 +207,6 @@ Call this and the whole state with all markets should be created.
 Should be called on "fips" or ProjectModule.fips and ProjectModule.alldists.
 MakeNew(ProjectModule.fips, ProjectModule.alldists)
 """
-#TODO - rewrite this, since MakeIt now has different signature.
-# TODO - also: cannot have ExpandDict be last since it doesn't return anything.  Nothing is returned by this.
 function MakeNew(fi::Vector, dat::Matrix)
   return TXSetup(MakeIt(fi), dat)
 end
@@ -311,13 +308,11 @@ Operates on a type `n` set of neighbors - returns the number of hospitals at lev
 """
 function MktSize(n::neighbors)
   # takes a set of neighbors and returns the sum of levels 1, 2, 3 at the various distances.
-  sum1 = n.level105 + n.level1515 + n.level11525
-  sum2 = n.level205 + n.level2515 + n.level21525
-  sum3 = n.level305 + n.level3515 + n.level31525
+  sum1::Int64 = n.level105 + n.level1515 + n.level11525
+  sum2::Int64 = n.level205 + n.level2515 + n.level21525
+  sum3::Int64 = n.level305 + n.level3515 + n.level31525
   return sum1, sum2, sum3
 end
-
-
 
 
 """
@@ -392,7 +387,7 @@ It is not symmetric - it appends entrant to elm, not vice versa.  Extended to in
 the counterfactual simulation.
 """
 function NeighborAppend{T<:Fac}(elm::T, entrant::T)
-  dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
+  dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
     if (dist < 25)&(entrant.level != -999)
       push!(elm.hood, entrant.fid)
@@ -434,7 +429,7 @@ takes two hospital records, computes the distance between them and subtracts 1 f
 It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
 """
 function NeighborRemove{T<:Fac}(elm::T, entrant::T)
-  dist = distance(elm.lat, elm.long, entrant.lat, entrant.long )
+  dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
     if dist < 25
       deleteat!(elm.hood, findin(elm.hood, entrant.fid))
@@ -479,8 +474,8 @@ Also sets the distance/category "neighbors" to a vector of zeros.
 function NeighborClean(state::EntireState)
   for mkt in state.ms
     for hosp in mkt.config
-      hosp.neigh = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0)
-      hosp.hood = Array{Int64,1}()
+      hosp.neigh::neighbors = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0)
+      hosp.hood::Array{Int64,1} = Array{Int64,1}()
     end
   end
 end
