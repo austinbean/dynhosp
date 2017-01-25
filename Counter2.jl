@@ -483,6 +483,22 @@ end
 
 
 
+
+"""
+`DS2(c::cmkt, f::Int64)`
+This is going to compute a market share at the level of a zip or zip-drg.
+That formula exists.  The shares will be proportional to the deterministic
+utility component.  We just need all of the utilities in the market and number of
+each patient type in the same.
+"""
+
+function DS2(c::cmkt, f::Int64)
+  pcount::patientcount = patientcount(0,0,0,0,0,0,0)
+  mcount::patientcount = patientcount(0,0,0,0,0,0,0)
+
+
+end
+
 """
 `UpdateDUtil(h::simh)`
 When something in the market changes, the utility must be updated in all zip codes
@@ -1618,6 +1634,24 @@ function FindScale(d::DynState)
   end
   return maxprof, minprof
 end
+
+"""
+`MktShare(cp::cpats)`
+Compute the market share
+"""
+
+function MktShare(cp::cpats, fid::Int64)
+
+
+
+end
+
+
+
+
+
+
+
 
 
 #=
