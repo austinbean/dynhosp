@@ -208,7 +208,7 @@ And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
 TexasEq = MakeNew(ProjectModule.fips, ProjectModule.alldists);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists);
 patients = NewPatients(Tex);
@@ -339,6 +339,9 @@ end
 This will take a collection of patients and create a cmkt, which is a vector of
 cpats.  That is, it will take every zip for which `f` is an option, then create
 the collection of patients for those zips.  Note that `f` is a FID for a hospital.
+
+Note that the patients collection is created with NewPatients which is defined in DataStructs.
+#TODO - here is the problem with patient linking.  This is not outputting anything?
 """
 function DynPatients(p::patientcollection, f::Int64 )
   outp::cmkt = cmkt(f, Array{cpats,1}())
@@ -756,7 +759,7 @@ end
 `PatientFind(s::patientcollection, f::fid)`
 Take an entire state type and figure out which zips have that as an option.
 Returns a vector of the zips in which it is possible to choose that one hospital
-denoted by f.
+denoted by f.  f is the hospital FID.
 """
 function PatientFind(s::patientcollection, f::Int64)
   outp = Array{Int64,1}()
