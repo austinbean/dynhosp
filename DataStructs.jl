@@ -494,7 +494,7 @@ function NeighborFix(state::EntireState)
     for mk2 in state.ms
       for h1 in mk1.config
         for h2 in mk2.config
-          if (h1.fid != h2.fid)&&(distance(h1.lat, h1.long, h2.lat, h2.long) < 25)
+          if (h1.fid != h2.fid)&&(distance(h1.lat, h1.long, h2.lat, h2.long) < 25.0)
             NeighborAppend(h1, h2)
             NeighborAppend(h2, h1)
           end
