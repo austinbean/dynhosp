@@ -342,6 +342,8 @@ the collection of patients for those zips.  Note that `f` is a FID for a hospita
 
 Note that the patients collection is created with NewPatients which is defined in DataStructs.
 #TODO - here is the problem with patient linking.  This is not outputting anything?
+Some of these are coming up empty.  About 473/1938.  Check how many zips there are in the data.
+Yes, this is a problem.  There are 1742 unique zips in the inpatient data.  Find out what happened here.  
 """
 function DynPatients(p::patientcollection, f::Int64 )
   outp::cmkt = cmkt(f, Array{cpats,1}())
