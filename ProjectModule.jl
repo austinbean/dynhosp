@@ -87,7 +87,7 @@ module ProjectModule
   function Base.sum(n::neighbors)
     n.level105+n.level205+n.level305+n.level1515+n.level2515+n.level3515+n.level11525+n.level21525+n.level31525
   end
-#TODO - extend to take arbitrary args.  This should require splatting I think.  
+#TODO - extend to take arbitrary args.  This should require splatting I think.
   function Base.sum(n1::neighbors, n2::neighbors)
     neighbors(n1.level105+n2.level105, n1.level205+n2.level205, n1.level305+n2.level305, n1.level1515+n2.level1515, n1.level2515+n2.level2515, n1.level3515+n2.level3515, n1.level11525+n2.level11525, n1.level21525+n2.level21525, n1.level31525+n2.level31525)
   end
@@ -241,9 +241,91 @@ module ProjectModule
 
 
 
-  export FindUndone, CMakeIt, SetLevel, FillState, PatientDraw, AllMortality, VolMortality, LogitEst, logitest, states1, states2, states3, poly, perturb, distance, MakeIt, TXSetup, ExpandDict, MakeNew, CreateEmpty, MarketPrint, NeighborsPrint, FacPrint, NewEntrantLocation, MktSize, ChoicesAvailable, LevelFunction, NeighborAppend, NeighborRemove, NeighborClean, NeighborFix, StrictCountyNeighborFix, HospFindFirst, FidFindFirst, MarketCleaner, HospUpdate, HospPerturb, CreateZips, FillPPatients, FillMPatients, FillPatients, NewPatients, PrintZip, ComputeDetUtil, WhichZips, CalcWTP, WTPMap, WriteWTP, UpdateDeterministic, GenPChoices, GenMChoices, PHistoryAdd, MHistoryAdd, PDemandMap, MDemandMap, HospitalClean, Restore, NewSim, Termination, PSim, TransitionGen, CondSum, DemandCheck, ResultsOut, OuterSim
-  export EntireState, chospital, LBW, patientcollection, zip, coefficients, patientcount, EntireState, Market, hospital, neighbors, DemandHistory, WTP, counterhistory, mkthistory, simrun, hyrec
-  export FindFids, InitChoice
+  export FindUndone
+  export CMakeIt
+  export SetLevel
+  export FillState
+  export PatientDraw
+  export AllMortality
+  export VolMortality
+  export LogitEst
+  export logitest
+  export states1
+  export states2
+  export states3
+  export poly
+  export perturb
+  export distance
+  export MakeIt
+  export TXSetup
+  export ExpandDict
+  export MakeNew
+  export CreateEmpty
+  export MarketPrint
+  export NeighborsPrint
+  export FacPrint
+  export NewEntrantLocation
+  export MktSize
+  export ChoicesAvailable
+  export LevelFunction
+  export NeighborAppend
+  export NeighborRemove
+  export NeighborClean
+  export NeighborFix
+  export StrictCountyNeighborFix
+  export HospFindFirst
+  export FidFindFirst
+  export MarketCleaner
+  export HospUpdate
+  export HospPerturb
+  export CreateZips
+  export FillPPatients
+  export FillMPatients
+  export FillPatients
+  export NewPatients
+  export PrintZip
+  export ComputeDetUtil
+  export WhichZips
+  export CalcWTP
+  export WTPMap
+  export WriteWTP
+  export UpdateDeterministic
+  export GenPChoices
+  export GenMChoices
+  export PHistoryAdd
+  export MHistoryAdd
+  export PDemandMap
+  export MDemandMap
+  export HospitalClean
+  export Restore
+  export NewSim
+  export Termination
+  export PSim
+  export TransitionGen
+  export CondSum
+  export DemandCheck
+  export ResultsOut
+  export OuterSim
+  export EntireState
+  export chospital
+  export LBW
+  export patientcollection
+  export zip
+  export coefficients
+  export patientcount
+  export EntireState
+  export Market
+  export hospital
+  export neighbors
+  export DemandHistory
+  export WTP
+  export counterhistory
+  export mkthistory
+  export simrun
+  export hyrec
+  export FindFids
+  export InitChoice
+  export NewPatientsTest
   println("Loaded Module")
 
 
