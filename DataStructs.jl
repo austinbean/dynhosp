@@ -913,6 +913,8 @@ end
 `NewPatients(Tex::EntireState; dists = ProjectModule.alldists, phrloc = 103, pins = pinsured, pmed = pmedicaid)`
 this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
 It must take an existing EntireState record to link the hospitals.
+
+#TODO - there are patients who don't get added.  Their zips are not in the list but are in the inpatient discharge.
 Texas = MakeNew(ProjectModule.fips, ProjectModule.alldists);
 patients = NewPatients(Texas);
 """
@@ -950,28 +952,48 @@ function NewPatientsTest(Tex::EntireState;
   AddOO(patients)
   pzips::Dict{Int64, Int64} = Dict(k => 0 for k in unique(pins[:,ziploc]))
   for n in 1:size(pins, 1)
-    pzips[pins[n,ziploc]] += 1
+    if haskey(pzips, pins[n,ziploc])
+      pzips[pins[n,ziploc]] += 1
+    else
+      println("No key for ", pins[n,ziploc])
+    end
   end
   mzips::Dict{Int64, Int64} = Dict(k => 0 for k in unique(pmed[:,ziploc]))
   for n in 1:size(pmed,1)
-    mzips[pmed[n,ziploc]] += 1
+    if haskey(mzips, pmed[n,ziploc])
+      mzips[pmed[n,ziploc]] += 1
+    else
+      println("No key for ", pmed[n, ziploc])
+    end
   end
+  nothere::Array{Int64,1} = Array{Int64,1}()
   for el in keys(patients.zips)
     if (sum(patients.zips[el].ppatients) == 0)
-      if pzips[el] != 0
-        println("At zip ", el)
-        println("Private patients number ", sum(patients.zips[el].ppatients))
-        println("But in the data: ", pzips[el])
+      if haskey(pzips, el)
+        if pzips[el] != 0
+          println("At zip ", el)
+          println("Private patients number ", sum(patients.zips[el].ppatients))
+          println("But in the data: ", pzips[el])
+        end
+      else
+        println("absent key ", el )
+        push!(nothere, el)
       end
     end
     if (sum(patients.zips[el].mpatients) == 0)
-      if mzips[el] != 0
-        println("At zip ", el)
-        println("Medicaid patients number ", sum(patients.zips[el].mpatients))
-        println("But in the data: ", mzips[el])
+      if haskey(mzips, el)
+        if mzips[el] != 0
+          println("At zip ", el)
+          println("Medicaid patients number ", sum(patients.zips[el].mpatients))
+          println("But in the data: ", mzips[el])
+        end
+      else
+        println("absent key ", el)
+        push!(nothere, el)
       end
     end
   end
+  return unique(nothere)
 end
 
 
