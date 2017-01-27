@@ -323,6 +323,7 @@ module ProjectModule
   export mkthistory
   export simrun
   export hyrec
+  export AddOO
   export FindFids
   export InitChoice
   export NewPatientsTest
