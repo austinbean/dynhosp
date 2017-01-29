@@ -686,6 +686,10 @@ end
 
 """
 `function CreateZips(alld::Array,Tex::EntireState)`
+This creates zip code records but doesn't put patients into them.
+Those tasks are done by FillMPatients and FillPPatients.
+This contains zips which are *not* seen in the data.  That's potentially ok, but also potentially confusing.
+But check to make sure *some* of the zips have patients.  
 Now the correct distances are being imported as ProjectModule.alldists.
 But in this version do check to make sure that the distance between any fac and zip is
 less than 25 miles.
@@ -693,8 +697,9 @@ Note that this indexes into the Array according to the column zipcol.
 Create the state first with:
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, XXXXX);
-CreateZips(ProjectModule.alldists, Tex)
+FillState(Tex, ProjectModule.alldists);
+zipcheck = CreateZips(ProjectModule.alldists, Tex);
+
 """
 function CreateZips(alld::Array,
                      Tex::EntireState;
@@ -939,6 +944,13 @@ What it does:
 Call it:
 Texas = MakeNew(ProjectModule.fips, ProjectModule.alldists);
 NewPatientsTest(Texas)
+
+# Results - a bunch of missing zips.  Try to load and find them in that third source of zip codes.
+# But how many patients are there in these zips?  That is not clear yet.  Figure that out first.
+And what happens to them in the previous function when the set of patients is created?  Not sure.
+
+Do I have locations for all of the zips?  That is the question.
+- Check CreateZips.  Around line 700.
 """
 function NewPatientsTest(Tex::EntireState;
                      dists::Array{Any,2} = ProjectModule.alldists,
@@ -950,20 +962,16 @@ function NewPatientsTest(Tex::EntireState;
   patients = FillPatients(patients, pins, pmed)
   UpdateDeterministic(patients)
   AddOO(patients)
-  pzips::Dict{Int64, Int64} = Dict(k => 0 for k in unique(pins[:,ziploc]))
+  pzips::Dict{Int64, Int64} = Dict(k => 0 for k in unique(pins[:,ziploc])) # this is guaranteed to get all of the zips.
   for n in 1:size(pins, 1)
     if haskey(pzips, pins[n,ziploc])
       pzips[pins[n,ziploc]] += 1
-    else
-      println("No key for ", pins[n,ziploc])
     end
   end
   mzips::Dict{Int64, Int64} = Dict(k => 0 for k in unique(pmed[:,ziploc]))
   for n in 1:size(pmed,1)
     if haskey(mzips, pmed[n,ziploc])
       mzips[pmed[n,ziploc]] += 1
-    else
-      println("No key for ", pmed[n, ziploc])
     end
   end
   nothere::Array{Int64,1} = Array{Int64,1}()
@@ -993,7 +1001,7 @@ function NewPatientsTest(Tex::EntireState;
       end
     end
   end
-  return unique(nothere)
+  return unique(nothere), pzips, mzips
 end
 
 
