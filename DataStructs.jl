@@ -289,17 +289,22 @@ end
 """
 `NewEntrantLocation(mkt::Market)`
 Takes the market, takes the mean location of all hospitals, adds normal noise to it.  ≈ 6 miles perturbation from mean.
+NB: return of Union{,} comes from rand(Normal(0, 0.1))
 """
 function NewEntrantLocation(mkt::Market)
   meanlat::Float64 = 0.0
   meanlong::Float64 = 0.0
+  m_sz::Float64 = convert(Float64, length(mkt.config))
   for el in mkt.config # over hospitals
     meanlat += el.lat
     meanlong += el.long
   end
-  return [meanlat/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1], meanlong/size(mkt.config, 1) + rand(Normal(0, 0.1), 1)[1]]::Array{Float64,1}
+  meanlat/=m_sz
+  meanlong/=m_sz
+  meanlat += rand(Normal(0, 0.1))
+  meanlong += rand(Normal(0, 0.1))
+  return [meanlat, meanlong]::Array{Float64,1}
 end
-
 
 
 """
@@ -689,7 +694,7 @@ end
 This creates zip code records but doesn't put patients into them.
 Those tasks are done by FillMPatients and FillPPatients.
 This contains zips which are *not* seen in the data.  That's potentially ok, but also potentially confusing.
-But check to make sure *some* of the zips have patients.  
+But check to make sure *some* of the zips have patients.
 Now the correct distances are being imported as ProjectModule.alldists.
 But in this version do check to make sure that the distance between any fac and zip is
 less than 25 miles.
