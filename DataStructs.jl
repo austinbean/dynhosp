@@ -207,23 +207,24 @@ function ExpandDict(Tex::EntireState)
 end
 
 
-
+#=
 """
+NB - this function is being deprecated.
 `MakeNew(fi::Vector, dat::Matrix)`
 Call this and the whole state with all markets should be created.
 Should be called on "fips" or ProjectModule.fips and ProjectModule.alldists.
 MakeNew(ProjectModule.fips, ProjectModule.alldists)
 
-#FIXME - what was this supposed to do ideally?  Create an empty state with some objects and not others.
-# This is important for PSim at the end.
 """
 function MakeNew(fi::Vector, dat::Matrix)
-  return TXSetup(MakeIt(fi), dat)
+  Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+  MakeIt(Tex, fi)
+  TXSetup(Tex, dat)
+  return Tex
 end
+=#
 
 
-
-# TODO: How are these functions different?
 """
 `CreateEmpty(fi::Vector, dat::Matrix)`
  This creates an empty entire state record for the perturbed simulation.
@@ -233,12 +234,9 @@ Tex = CreateEmpty(ProjectModule.fips, ProjectModule.alldists)
 
 """
 function CreateEmpty(fi::Vector, dat::Matrix)
-  #TODO - is this going to do what I think?  MakeIt does not take a state argument because it creates one.
-  #TODO - what is being returned and how many states end up in memory?  I think this cannot be working the way I think.
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   MakeIt(Tex, fi)
   TXSetup(Tex, dat)
-  ExpandDict(Tex) # FIXME - this is redundant because this is called in TXSetup already.  
   return Tex
 end
 
@@ -1629,13 +1627,12 @@ Runs a perturbed simulation - for each market, while there are hospitals I have 
 The results are stored in EmptyState, which is an EntireState record instance.
 """
 function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
-    #FIXME - CreateEmpty does *not* create an empty state record.  But I think this does not matter - it is just to hold records.
   EmptyState = CreateEmpty(fi, di);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
-    Tex = MakeNew(fi, di);                                                                              # NB: New state every time - this is kind of inefficient.
+    Tex = CreateEmpty(fi, di)                                                                           # NB: New state every time - this is kind of inefficient.
     pats = NewPatients(Tex);                                                                            # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
     for el in keys(EmptyState.mkts)
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)])
@@ -1977,7 +1974,7 @@ to return correct results.
 function OuterSim(MCcount::Int; T1::Int64 = 3, dim1::Int64 = 290, dim2::Int64 = 67, fi = ProjectModule.fips, da = ProjectModule.alldists)
   outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
-    TexasEq = MakeNew(fi, da);                                                                           # Returns an EntireState.  very quick ≈ 0.1 seconds.
+    TexasEq = CreateEmpty(fi, di)
     #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
     eq_patients = NewPatients(TexasEq)                                                                   # Separate patients - these linked to Eq Entire State.
     #neq_patients = NewPatients(TexasNeq)                                                                # Separate patients - these linked to Neq Entire State.
