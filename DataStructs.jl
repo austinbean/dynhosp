@@ -65,6 +65,8 @@ end
  fipscodes containing hospitals with mostly empty field values
 
  Testing:
+ #NB: Make It Needs a state argument.
+
  Tex = MakeIt(ProjectModule.fips);
  TXSetup(Tex, ProjectModule.alldists);
 OR:
@@ -127,6 +129,8 @@ This is necessary in TXSetup to make sure that we only add each hospital to the 
 
 Testing:
   Setup -
+  #NB: Make It Needs a state argument.
+
 Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
   Testing:
 FindFids(Tex.mkts[48453])
@@ -145,6 +149,8 @@ end
 Takes a newly created state and fixes all of the choice probabilities.
 
 Testing:
+#NB: Make It Needs a state argument.
+
 Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
 InitChoice(Tex)
 
@@ -207,6 +213,9 @@ end
 Call this and the whole state with all markets should be created.
 Should be called on "fips" or ProjectModule.fips and ProjectModule.alldists.
 MakeNew(ProjectModule.fips, ProjectModule.alldists)
+
+#FIXME - what was this supposed to do ideally?  Create an empty state with some objects and not others.
+# This is important for PSim at the end.
 """
 function MakeNew(fi::Vector, dat::Matrix)
   return TXSetup(MakeIt(fi), dat)
@@ -220,17 +229,16 @@ end
  This creates an empty entire state record for the perturbed simulation.
 
 Testing:
-NB - maybe this is not being called on the right object.  That is, not ProjectModule.data.
-CreateEmpty(ProjectModule.fips, ProjectModule.alldists)
+Tex = CreateEmpty(ProjectModule.fips, ProjectModule.alldists)
 
 """
 function CreateEmpty(fi::Vector, dat::Matrix)
   #TODO - is this going to do what I think?  MakeIt does not take a state argument because it creates one.
   #TODO - what is being returned and how many states end up in memory?  I think this cannot be working the way I think.
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
-  MakeIt(fi)
+  MakeIt(Tex, fi)
   TXSetup(Tex, dat)
-  ExpandDict(Tex)
+  ExpandDict(Tex) # FIXME - this is redundant because this is called in TXSetup already.  
   return Tex
 end
 
@@ -400,6 +408,7 @@ It is not symmetric - it appends entrant to elm, not vice versa.  Extended to in
 the counterfactual simulation.
 
 Testing this:
+#NB: Make It Needs a state argument.
 Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
 NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
@@ -447,6 +456,8 @@ end
 takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
 It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
 Testing this:
+#NB: Make It Needs a state argument.
+
 Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
 NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
@@ -1618,6 +1629,7 @@ Runs a perturbed simulation - for each market, while there are hospitals I have 
 The results are stored in EmptyState, which is an EntireState record instance.
 """
 function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
+    #FIXME - CreateEmpty does *not* create an empty state record.  But I think this does not matter - it is just to hold records.
   EmptyState = CreateEmpty(fi, di);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
