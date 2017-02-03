@@ -43,10 +43,11 @@ Platform Info:
 `MakeIt(Tex::EntireState, fip::Vector)`
 
 Testing this:
-MakeIt(ProjectModule.fips);
+Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+MakeIt(Tex, ProjectModule.fips);
+
 """
-function MakeIt(fip::Vector{Int64})
-  Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+function MakeIt(Tex::EntireState, fip::Vector{Int64})
   for f in fip
     if f != 0
       push!(Tex.ms, Market( Array{hospital,1}(), Dict{Int64, hospital}(), f, Dict{Int64, Bool}()))
@@ -219,10 +220,13 @@ end
  This creates an empty entire state record for the perturbed simulation.
 
 Testing:
-CreateEmpty(ProjectModule.fips, ProjectModule.data)
+NB - maybe this is not being called on the right object.  That is, not ProjectModule.data.
+CreateEmpty(ProjectModule.fips, ProjectModule.alldists)
 
 """
 function CreateEmpty(fi::Vector, dat::Matrix)
+  #TODO - is this going to do what I think?  MakeIt does not take a state argument because it creates one.
+  #TODO - what is being returned and how many states end up in memory?  I think this cannot be working the way I think.
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   MakeIt(fi)
   TXSetup(Tex, dat)
