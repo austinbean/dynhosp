@@ -217,10 +217,14 @@ end
 """
 `CreateEmpty(fi::Vector, dat::Matrix)`
  This creates an empty entire state record for the perturbed simulation.
+
+Testing:
+CreateEmpty(ProjectModule.fips, ProjectModule.data)
+
 """
 function CreateEmpty(fi::Vector, dat::Matrix)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
-  MakeIt(Tex, fi)
+  MakeIt(fi)
   TXSetup(Tex, dat)
   ExpandDict(Tex)
   return Tex
@@ -390,6 +394,12 @@ Takes two hospital records, computes the distance between them and adds a 1 to t
 Appends it to the hood of elm, which is a list of fids.  So this adds to both elm.neigh and elm.hood.
 It is not symmetric - it appends entrant to elm, not vice versa.  Extended to include arguments of `chospital` type for
 the counterfactual simulation.
+
+Testing this:
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
+NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
+
 """
 function NeighborAppend{T<:Fac}(elm::T, entrant::T)
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
@@ -432,6 +442,11 @@ end
 `NeighborRemove{T<:Fac}(elm::T, entrant::T)`
 takes two hospital records, computes the distance between them and subtracts 1 from the relevant record in the neighborhood type.
 It removes the record of entrant FROM the record of elm.  Also not symmetric - removes entrant from elm's records, not the reverse.
+Testing this:
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
+NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
+
 """
 function NeighborRemove{T<:Fac}(elm::T, entrant::T)
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
