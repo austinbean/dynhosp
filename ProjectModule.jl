@@ -327,6 +327,8 @@ module ProjectModule
   export FindFids
   export InitChoice
   export NewPatientsTest
+  export DicttoVec
+  export PatientCountOut
   println("Loaded Module")
 
 
