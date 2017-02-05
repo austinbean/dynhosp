@@ -1301,7 +1301,9 @@ patients = NewPatients(Texas);
 GenMChoices(patients, Texas)
 """
 function GenMChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  outp::Dict{Int64, patientcount} = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
+  # Is the next line really slow?
+   outp::Dict{Int64, patientcount} = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
+  #outp::Dict{Int64, patientcount} = PatientCountOut(Tex)
   outp[0] = patientcount(0, 0, 0, 0, 0, 0, 0) # adding a zero entry - patients are permitted to choose the outside option.
   for zipcode in keys(pats.zips)
     if pats.zips[zipcode].mdetutils.count > 0
@@ -1349,6 +1351,15 @@ function DicttoVec(d::Dict{Int64, Float64})
   return outp
 end
 
+
+# FIXME - maybe delete this?  Not clear it's faster.  
+function PatientCountOut(Tex::EntireState)
+  outp::Dict{Int64, patientcount} = Dict{Int64, patientcount}()
+  for el in keys(Tex.fipsdirectory)
+    outp[el] = patientcount(0,0,0,0,0,0,0)
+  end
+  return outp
+end
 
 
 
