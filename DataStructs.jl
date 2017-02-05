@@ -1254,7 +1254,7 @@ patients = NewPatients(Texas);
 GenPChoices(patients, Texas)
 """
 function GenPChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  outp = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
+  outp::Dict{Int64, patientcount} = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
   outp[0] = patientcount(0,0,0,0,0,0,0) # create an outside option
   for zipcode in keys(pats.zips)
     if pats.zips[zipcode].pdetutils.count > 0
@@ -1301,11 +1301,11 @@ patients = NewPatients(Texas);
 GenMChoices(patients, Texas)
 """
 function GenMChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
-  outp = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
+  outp::Dict{Int64, patientcount} = Dict( j=> patientcount(0, 0, 0, 0, 0, 0, 0) for j in keys(Tex.fipsdirectory) )
   outp[0] = patientcount(0, 0, 0, 0, 0, 0, 0) # adding a zero entry - patients are permitted to choose the outside option.
   for zipcode in keys(pats.zips)
     if pats.zips[zipcode].mdetutils.count > 0
-      utils = hcat([ [k1,pats.zips[zipcode].mdetutils[k1]] for k1 in keys(pats.zips[zipcode].mdetutils)]...) # this creates a 2X(num hospitals) matrix - top row is fids, bottom is deterministic utilities.
+      utils = DicttoVec(pats.zips[zipcode].mdetutils) # this creates a 2X(num hospitals) matrix - top row is fids, bottom is deterministic utilities.
       temparr = zeros(size(utils, 2))
       for k = 1:pats.zips[zipcode].mpatients.count385
         outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count385 += 1
@@ -1329,6 +1329,22 @@ function GenMChoices(pats::patientcollection, Tex::EntireState; dist_μ = 0, dis
         outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count391 += 1
       end
     end
+  end
+  return outp
+end
+
+"""
+`function DicttoVec`
+Takes the dictionary of utilities and returns a vector - top row is FID's and bottom row is
+utilities.  Lower allocation than doing this as a comprehension.
+"""
+function DicttoVec(d::Dict{Int64, Float64})
+  outp::Array{Float64,2} = zeros(2, d.count)
+  col::Int64 = 1
+  for el in keys(d)
+    outp[1, col] = el
+    outp[2, col] = d[el]
+    col += 1
   end
   return outp
 end
