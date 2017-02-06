@@ -6,6 +6,18 @@ type threadtest
   c::Int64
 end
 
+#=
+After importing the project module.
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = NewPatients(Texas);
+GenPChoices(patients, Texas);
+
+=#
+
+
+
+
+
 
 function thtest(x1::Int64, x2::Int64, x3::Int64)
   outp::threadtest = threadtest(0,0,0)
@@ -125,6 +137,19 @@ function mapper(utils::Array{Float64,2}, temparr::Array{Float64,2})
   return indmax(utils+randn!(temparr))
 end
 
+function countit(arr::Array{Int64,1})
+  outp::threadtest = threadtest(0, 0, 0)
+  for el in arr
+    if el == 1
+      outp.a += 1
+    elseif el == 2
+      outp.b += 1
+    elseif el == 3
+      outp.c += 1
+    end
+  end
+  return outp
+end
 
 function V1(x::Int64)
 #  outp::threadtest = threadtest(0,0,0)
@@ -135,7 +160,7 @@ function V1(x::Int64)
   for k1 = 1:x
     a[k1] = mapper(testarr, temparr)
   end
-  return a
+  return countit(a)
 end
 
 
@@ -148,10 +173,31 @@ function V2(x::Int64)
   Threads.@threads for k1 = 1:x
     a[k1] = mapper(testarr, temparr)
   end
-  return a
+  return countit(a)
 end
 
+function F1(x::Int64)
+  outp = zeros(Int64, x)
+  for k1 = 1:x
+    outp[k1] = k1^2
+  end
+  return outp
+end
 
+function F2(x::Int64)
+  outp = zeros(Int64, x)
+  Threads.@threads for k1 = 1:x
+    outp[k1] = k1^2
+  end
+  return outp
+end
+
+#=
+- The key should be to make sure that the ORDER is preserved.
+- But once the order is preserved, the utilities work in the way expected and
+this is pretty quick, I think.
+
+=#
 
 
 function doit()
@@ -179,15 +225,34 @@ end
 function test2()
   println("version 2")
   println("compile")
-  V1(1)
-  V2(1)
+  V1(10)
+  V2(10)
   println("Testing NO threads: ")
-  @time V1(1000);
+  @time V1(100000);
   println("Testing THREADS: ")
-  @time V2(1000);
+  @time V2(100000);
+end
+
+function test3()
+  println("version 3")
+  println("compile")
+  F1(1)
+  F2(1)
+  println("testing")
+  println("NO threads")
+  @time F1(1000);
+  println("THREADS")
+  @time F2(1000)
 end
 
 
+#doit();
+test2();
+#test3();
 
-#doit()
-test2()
+
+
+
+
+
+####
