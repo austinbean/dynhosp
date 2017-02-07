@@ -11,8 +11,19 @@ After importing the project module.
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 patients = NewPatients(Texas);
 GenPChoices(patients, Texas);
+NB: DicttoVec(patients.zips[xxxx].pdetutils)
 
 =#
+
+function PCh(p::patientcount, )
+#TODO - THIS is the part I want to get right.  This can be mapped.
+# can the allocation be avoided somehow?
+  for k = 1:pats.zips[zipcode].mpatients.count385
+    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count385 += 1
+  end
+
+
+end
 
 
 
@@ -133,9 +144,51 @@ function thtest2(x1::Int64, x2::Int64, x3::Int64)
   return outp, count1, count2, count3
 end
 
-function mapper(utils::Array{Float64,2}, temparr::Array{Float64,2})
-  return indmax(utils+randn!(temparr))
+"""
+`function UMap(utils::Array{Float64,2}, fids::Array{Int64,2}, temparr::Array{Float64,2})`
+
+This function takes:
+- Array of Utils
+- Array of Fids
+- Temporary Array
+
+Computes utility + random component, maps out corresponding FID.
+
+testing:
+ut = [0.1 0.2 0.3 0.4 0.5];
+fi = [111 222 333 444 19];
+ta = [0.0 0.0 0.0 0.0 0.0];
+mapper(ut, fi, ta)
+"""
+function UMap(utils::Array{Float64,2},
+              fids::Array{Int64,2},
+              temparr::Array{Float64,2};
+              dist_μ = 0,
+              dist_σ = 1,
+              dist_ξ = 0,
+              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+  return fids[indmax(utils+rand!(d, temparr))]
 end
+
+# Maybe this is the wrong approach?  What is being mapped when and where?  
+
+function FIDCounter(chosen::Array{Int64,2}, fids::Array{Int64,2})
+  outp::Dict{Int64, Int64} = Dict{Int64, Int64}()
+  for el in fids
+    outp[el] = 0
+  end
+  for c in chosen
+    outp[c] += 1
+  end
+  return outp
+end
+
+
+
+
+
+
+
 
 function countit(arr::Array{Int64,1})
   outp::threadtest = threadtest(0, 0, 0)
