@@ -155,25 +155,34 @@ This function takes:
 Computes utility + random component, maps out corresponding FID.
 
 testing:
-ut = [0.1 0.2 0.3 0.4 0.5];
-fi = [111 222 333 444 19];
-ta = [0.0 0.0 0.0 0.0 0.0];
-mapper(ut, fi, ta)
+ut = [0.1, 0.2, 0.3, 0.4, 0.5];
+fi = [111.0, 222.0, 333.0, 444.0, 19.0];
+ta = [0.0, 0.0, 0.0, 0.0, 0.0];
+UMap(ut, fi, ta)
 """
-function UMap(utils::Array{Float64,2},
-              fids::Array{Int64,2},
-              temparr::Array{Float64,2};
+function UMap(utils::Array{Float64,1},
+              fids::Array{Float64,1},
+              temparr::Array{Float64,1};
               dist_μ = 0,
               dist_σ = 1,
               dist_ξ = 0,
-              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))
+              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))::Float64
   return fids[indmax(utils+rand!(d, temparr))]
 end
 
-# Maybe this is the wrong approach?  What is being mapped when and where?  
+function ChoiceVector(utils::Array{Float64,1},
+              fids::Array{Float64,1},
+              x::Int64)::Array{Float64,1}
+  outp::Array{Float64,1} = zeros(Float64, x)
+  temparry::Array{Float64, 1} = zeros(fids)
+  Threads.@threads for i = 1:x
+    outp[i] = UMap(utils, fids, temparry)
+  end
+  return outp::Array{Float64,1}
+end
 
-function FIDCounter(chosen::Array{Int64,2}, fids::Array{Int64,2})
-  outp::Dict{Int64, Int64} = Dict{Int64, Int64}()
+function FIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})
+  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
   for el in fids
     outp[el] = 0
   end
@@ -183,7 +192,15 @@ function FIDCounter(chosen::Array{Int64,2}, fids::Array{Int64,2})
   return outp
 end
 
+# 0.056291 seconds (166.08 k allocations: 15.814 MB)
+FIDCounter( ChoiceVector(ab[2,:], ab[1,:], 100000) , ab[1,:] )
 
+
+
+function MarketDemand(p::patientcollection)
+
+
+end
 
 
 
@@ -300,7 +317,7 @@ end
 
 
 #doit();
-test2();
+#test2();
 #test3();
 
 
