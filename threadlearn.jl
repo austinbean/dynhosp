@@ -170,6 +170,23 @@ function UMap(utils::Array{Float64,1},
   return fids[indmax(utils+rand!(d, temparr))]
 end
 
+"""
+Just for comparison, this one runs WITHOUT threading and takes
+about 3-4 times as long for 100_000 entries.  That doesn't mean that
+this is the best way you could do this task in a no-threading way.
+"""
+function NOTHREADChoiceVector(utils::Array{Float64,1},
+              fids::Array{Float64,1},
+              x::Int64)::Array{Float64,1}
+  outp::Array{Float64,1} = zeros(Float64, x)
+  temparry::Array{Float64, 1} = zeros(fids)
+  for i = 1:x
+    outp[i] = UMap(utils, fids, temparry)
+  end
+  return outp::Array{Float64,1}
+end
+
+
 function ChoiceVector(utils::Array{Float64,1},
               fids::Array{Float64,1},
               x::Int64)::Array{Float64,1}
@@ -194,12 +211,38 @@ end
 
 # 0.056291 seconds (166.08 k allocations: 15.814 MB)
 FIDCounter( ChoiceVector(ab[2,:], ab[1,:], 100000) , ab[1,:] )
+# output here is a dictionary.
 
-
-
-function MarketDemand(p::patientcollection)
-
-
+# What is this going to do?  Take the counts, generate demand by each one,
+# then map demand back to patientcounts.
+function ZipDemand(z::zip)
+  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
+  utils::Array{Float64,2} = DicttoVec(z.pdetutils)
+  for el in utils[1,:] #TODO - this has to handle medicaid patients too.
+    outp[el] =  patientcount(0,0,0,0,0,0,0)
+  end
+  for k1 in utils[1,:]
+    outp[k1].count385 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count385), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count386 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count386), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count387 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count387), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count388 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count388), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count389 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count389), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count390 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count390), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count391 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count391), utils[1,:])[k1]
+  end
+  return outp
 end
 
 
