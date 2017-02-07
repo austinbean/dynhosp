@@ -245,8 +245,19 @@ function ZipDemand(z::zip)
   return outp
 end
 
-
-
+function FinalDemand(p::patientcollection, Tex::EntireState)
+  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
+  outp[0] = patientcount(0,0,0,0,0,0,0)
+  for el in keys(Tex.fipsdirectory)
+    outp[el] = patientcount(0,0,0,0,0,0,0)
+  end
+  for z in keys(p.zips)
+    for k1 in keys(ZipDemand(p.zips[z]))
+      outp[k1] += ZipDemand(p.zips[z])[k1]
+    end
+  end
+  return outp
+end
 
 
 
