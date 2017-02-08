@@ -15,18 +15,164 @@ NB: DicttoVec(patients.zips[xxxx].pdetutils)
 
 =#
 
-function PCh(p::patientcount, )
-#TODO - THIS is the part I want to get right.  This can be mapped.
-# can the allocation be avoided somehow?
-  for k = 1:pats.zips[zipcode].mpatients.count385
-    outp[utils[1,indmax(utils[2,:] + rand!(d, temparr))]].count385 += 1
+
+"""
+`function UMap(utils::Array{Float64,2}, fids::Array{Int64,2}, temparr::Array{Float64,2})`
+
+This function takes:
+- Array of Utils
+- Array of Fids
+- Temporary Array
+
+Computes utility + random component, maps out corresponding FID.
+
+testing:
+ut = [0.1, 0.2, 0.3, 0.4, 0.5];
+fi = [111.0, 222.0, 333.0, 444.0, 19.0];
+ta = [0.0, 0.0, 0.0, 0.0, 0.0];
+UMap(ut, fi, ta)
+"""
+function UMap(utils::Array{Float64,1},
+              fids::Array{Float64,1},
+              temparr::Array{Float64,1};
+              dist_μ = 0,
+              dist_σ = 1,
+              dist_ξ = 0,
+              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))::Float64
+  return fids[indmax(utils+rand!(d, temparr))]
+end
+
+"""
+`function ChoiceVector(utils::Array{Float64,1}, fids::Array{Float64,1}, x::Int64)::Array{Float64,1}`
+Allocates an array, then uses threading to allocate calls to `UMap` across different threads.  Output
+is a vector of chosen facilities - i.e. a vector of FIDs.
+
+#Testing on Choice Data:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = NewPatients(Texas);
+tem = DicttoVec(patients.zips[78702].pdetutils)
+utl = tem[2,:]
+fid = tem[1,:]
+
+ChoiceVector(utl, fid, 50)
+- Combine the next one?  No reason for this to take two functions.
+"""
+function ChoiceVector(utils::Array{Float64,1},
+              fids::Array{Float64,1},
+              x::Int64)
+  outp::Array{Float64,1} = zeros(Float64, x)
+  temparry::Array{Float64, 1} = zeros(fids)
+  Threads.@threads for i = 1:x
+    outp[i] = UMap(utils, fids, temparry)
   end
-
-
+  dt::Dict{Float64, Int64} = Dict()
+  for el in fids
+    dt[el] = 0
+  end
+  for i = 1:x
+    dt[outp[i]] += 1
+  end
+  return dt::Dict{Float64, Int64}
 end
 
 
 
+
+
+# 0.056291 seconds (166.08 k allocations: 15.814 MB)
+
+
+# What is this going to do?  Take the counts, generate demand by each one,
+# then map demand back to patientcounts.
+function ZipDemand(z::zip)
+  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
+  utils::Array{Float64,2} = DicttoVec(z.pdetutils)
+  for el in utils[1,:] #TODO - this has to handle medicaid patients too.
+    outp[el] =  patientcount(0,0,0,0,0,0,0)
+  end
+  for k1 in utils[1,:]
+    outp[k1].count385 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count385), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count386 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count386), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count387 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count387), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count388 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count388), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count389 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count389), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count390 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count390), utils[1,:])[k1]
+  end
+  for k1 in utils[1,:]
+    outp[k1].count391 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count391), utils[1,:])[k1]
+  end
+  return outp
+end
+
+# This is stupidly slow.  Outrageously slow even.
+# Maybe the best thing to do is to rework zip demand?
+
+
+function FinalDemand(p::patientcollection, Tex::EntireState)
+  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
+  outp[0] = patientcount(0,0,0,0,0,0,0)
+  for el in keys(Tex.fipsdirectory)
+    outp[el] = patientcount(0,0,0,0,0,0,0)
+  end
+  for z in keys(p.zips)
+    for k1 in keys(ZipDemand(p.zips[z]))
+      outp[k1] += ZipDemand(p.zips[z])[k1]
+    end
+  end
+  return outp
+end
+
+
+
+
+###
+
+
+"""
+`function FIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})`
+This function takes a vector of chosen options and of FID's (option ID's),
+creates a dict of {FID, Int64} then counts occurrences of the FIDs in the
+array `chosen`
+
+#Testing on Choice Data:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = NewPatients(Texas);
+tem = DicttoVec(patients.zips[78702].pdetutils)
+utl = tem[2,:]
+fid = tem[1,:]
+
+ChoiceVector(utl, fid, 50)
+FIDCounter(ChoiceVector(utl, fid, 50), fid)
+# NB - now not needed since ChoiceVector returns a dictionary.
+"""
+function FIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})
+  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
+  for el in fids
+    outp[el] = 0
+  end
+  for c in chosen
+    outp[c] += 1
+  end
+  return outp
+end
+
+
+
+
+#=
+Some investigations of threading and how it works below.
+
+=#
 
 
 
@@ -143,122 +289,6 @@ function thtest2(x1::Int64, x2::Int64, x3::Int64)
   end
   return outp, count1, count2, count3
 end
-
-"""
-`function UMap(utils::Array{Float64,2}, fids::Array{Int64,2}, temparr::Array{Float64,2})`
-
-This function takes:
-- Array of Utils
-- Array of Fids
-- Temporary Array
-
-Computes utility + random component, maps out corresponding FID.
-
-testing:
-ut = [0.1, 0.2, 0.3, 0.4, 0.5];
-fi = [111.0, 222.0, 333.0, 444.0, 19.0];
-ta = [0.0, 0.0, 0.0, 0.0, 0.0];
-UMap(ut, fi, ta)
-"""
-function UMap(utils::Array{Float64,1},
-              fids::Array{Float64,1},
-              temparr::Array{Float64,1};
-              dist_μ = 0,
-              dist_σ = 1,
-              dist_ξ = 0,
-              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))::Float64
-  return fids[indmax(utils+rand!(d, temparr))]
-end
-
-"""
-Just for comparison, this one runs WITHOUT threading and takes
-about 3-4 times as long for 100_000 entries.  That doesn't mean that
-this is the best way you could do this task in a no-threading way.
-"""
-function NOTHREADChoiceVector(utils::Array{Float64,1},
-              fids::Array{Float64,1},
-              x::Int64)::Array{Float64,1}
-  outp::Array{Float64,1} = zeros(Float64, x)
-  temparry::Array{Float64, 1} = zeros(fids)
-  for i = 1:x
-    outp[i] = UMap(utils, fids, temparry)
-  end
-  return outp::Array{Float64,1}
-end
-
-
-function ChoiceVector(utils::Array{Float64,1},
-              fids::Array{Float64,1},
-              x::Int64)::Array{Float64,1}
-  outp::Array{Float64,1} = zeros(Float64, x)
-  temparry::Array{Float64, 1} = zeros(fids)
-  Threads.@threads for i = 1:x
-    outp[i] = UMap(utils, fids, temparry)
-  end
-  return outp::Array{Float64,1}
-end
-
-function FIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})
-  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
-  for el in fids
-    outp[el] = 0
-  end
-  for c in chosen
-    outp[c] += 1
-  end
-  return outp
-end
-
-# 0.056291 seconds (166.08 k allocations: 15.814 MB)
-FIDCounter( ChoiceVector(ab[2,:], ab[1,:], 100000) , ab[1,:] )
-# output here is a dictionary.
-
-# What is this going to do?  Take the counts, generate demand by each one,
-# then map demand back to patientcounts.
-function ZipDemand(z::zip)
-  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
-  utils::Array{Float64,2} = DicttoVec(z.pdetutils)
-  for el in utils[1,:] #TODO - this has to handle medicaid patients too.
-    outp[el] =  patientcount(0,0,0,0,0,0,0)
-  end
-  for k1 in utils[1,:]
-    outp[k1].count385 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count385), utils[1,:])[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count386 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count386), utils[1,:])[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count387 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count387), utils[1,:])[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count388 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count388), utils[1,:])[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count389 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count389), utils[1,:])[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count390 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count390), utils[1,:])[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count391 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count391), utils[1,:])[k1]
-  end
-  return outp
-end
-
-function FinalDemand(p::patientcollection, Tex::EntireState)
-  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
-  outp[0] = patientcount(0,0,0,0,0,0,0)
-  for el in keys(Tex.fipsdirectory)
-    outp[el] = patientcount(0,0,0,0,0,0,0)
-  end
-  for z in keys(p.zips)
-    for k1 in keys(ZipDemand(p.zips[z]))
-      outp[k1] += ZipDemand(p.zips[z])[k1]
-    end
-  end
-  return outp
-end
-
 
 
 function countit(arr::Array{Int64,1})
@@ -380,3 +410,39 @@ end
 
 
 ####
+
+
+
+"""
+`function NOTHREADChoiceVector(utils::Array{Float64,1},fids::Array{Float64,1},x::Int64)::Array{Float64,1}`
+Just for comparison, this one runs WITHOUT threading and takes
+about 3-4 times as long for 100_000 entries.  That doesn't mean that
+this is the best way you could do this task in a no-threading way.
+"""
+function NOTHREADChoiceVector(utils::Array{Float64,1},
+              fids::Array{Float64,1},
+              x::Int64)::Array{Float64,1}
+  outp::Array{Float64,1} = zeros(Float64, x)
+  temparry::Array{Float64, 1} = zeros(fids)
+  for i = 1:x
+    outp[i] = UMap(utils, fids, temparry)
+  end
+  return outp::Array{Float64,1}
+end
+
+"""
+I think the reason threading doesn't do anything here is that there's only one copy of the dict in memory, so
+you can't actually divide up that part of the process across threads.
+"""
+function FAKETHREADFIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})
+  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
+  for el in fids
+    outp[el] = 0
+  end
+  Threads.@threads for c in 1:size(chosen,1)
+    # this probably doesn't work because there is only one copy of the dictionary.  How can it be mapped
+    # across threads?
+    outp[chosen[c]] += 1
+  end
+  return outp
+end
