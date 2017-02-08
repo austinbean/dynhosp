@@ -43,9 +43,9 @@ function UMap(utils::Array{Float64,1},
 end
 
 """
-`function ChoiceVector(utils::Array{Float64,1}, fids::Array{Float64,1}, x::Int64)::Array{Float64,1}`
+`function ChoiceVector(utils::Array{Float64,1}, fids::Array{Float64,1}, x::Int64)`
 Allocates an array, then uses threading to allocate calls to `UMap` across different threads.  Output
-is a vector of chosen facilities - i.e. a vector of FIDs.
+is a Dict{Float64, Int64} of facilities and patient counts.
 
 #Testing on Choice Data:
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
@@ -55,11 +55,12 @@ utl = tem[2,:]
 fid = tem[1,:]
 
 ChoiceVector(utl, fid, 50)
-- Combine the next one?  No reason for this to take two functions.
+
+# NB - this could even be rewritten to take utils and fids together...
 """
 function ChoiceVector(utils::Array{Float64,1},
               fids::Array{Float64,1},
-              x::Int64)
+              x::Int64) #rewrite to take a dictionary - that will make this easier, I think.  
   outp::Array{Float64,1} = zeros(Float64, x)
   temparry::Array{Float64, 1} = zeros(fids)
   Threads.@threads for i = 1:x
@@ -73,6 +74,34 @@ function ChoiceVector(utils::Array{Float64,1},
     dt[outp[i]] += 1
   end
   return dt::Dict{Float64, Int64}
+end
+
+"""
+`function DictCombine(arg...)`
+This function takes an arbitrary number of dictionaries and combines them.
+Dicts must be Dict{Float64, Int64}.
+"""
+function DictCombine(arg...)::Dict{Float64, Int64}
+  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
+  for (i,dct) in enumerate(arg)
+    for k in keys(dct)
+      if haskey(outp, k)
+        outp[k] += dct[k]
+      else
+        outp[k] = dct[k]
+      end
+    end
+  end
+  return outp
+end
+
+
+function attempt2(pz::patientcollection)
+  outp::Dict{Float64,Int64} = Dict{Float64, Int64}()
+  for ky in keys(pz.zips)
+
+  end
+  return outp
 end
 
 
@@ -91,25 +120,25 @@ function ZipDemand(z::zip)
     outp[el] =  patientcount(0,0,0,0,0,0,0)
   end
   for k1 in utils[1,:]
-    outp[k1].count385 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count385), utils[1,:])[k1]
+    outp[k1].count385 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count385)[k1]
   end
   for k1 in utils[1,:]
-    outp[k1].count386 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count386), utils[1,:])[k1]
+    outp[k1].count386 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count386)[k1]
   end
   for k1 in utils[1,:]
-    outp[k1].count387 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count387), utils[1,:])[k1]
+    outp[k1].count387 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count387)[k1]
   end
   for k1 in utils[1,:]
-    outp[k1].count388 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count388), utils[1,:])[k1]
+    outp[k1].count388 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count388)[k1]
   end
   for k1 in utils[1,:]
-    outp[k1].count389 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count389), utils[1,:])[k1]
+    outp[k1].count389 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count389)[k1]
   end
   for k1 in utils[1,:]
-    outp[k1].count390 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count390), utils[1,:])[k1]
+    outp[k1].count390 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count390)[k1]
   end
   for k1 in utils[1,:]
-    outp[k1].count391 += FIDCounter(ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count391), utils[1,:])[k1]
+    outp[k1].count391 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count391)[k1]
   end
   return outp
 end
