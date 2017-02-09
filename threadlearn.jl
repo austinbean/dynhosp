@@ -1,10 +1,6 @@
 
 
-type threadtest
-  a::Int64
-  b::Int64
-  c::Int64
-end
+
 
 #=
 After importing the project module.
@@ -77,19 +73,20 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 patients = NewPatients(Texas);
 
 ChoiceVector(patients.zips[78702].pdetutils, 50)
+#NB - there is a performance issue in that the type of many of these is read as Core.Box, but this is #15276 or something.
 """
-function ChoiceVector(pd::Dict{Int64, Float64},
-              x::Int64) #rewrite to take a dictionary - that will make this easier, I think.
+function ChoiceVector(pd::Dict{Int64, Float64}, x::Int64)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
   outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(fids)
+  for el in fids
+    dt[el] = 0
+  end
   Threads.@threads for i = 1:x
     outp[i] = UMap(utils, fids, temparry)
   end
   dt::Dict{Int64, Int64} = Dict()
-  for el in fids
-    dt[el] = 0
-  end
+
   for i = 1:x
     dt[outp[i]] += 1
   end
@@ -99,12 +96,16 @@ end
 
 
 """
-`function DictCombine(arg...)`
-This function takes an arbitrary number of dictionaries and combines them.
-Dicts must be Dict{Float64, Int64}.
+`function DictCombine(outp, arg...)`
+This function takes an arbitrary number of dictionaries and adds them to outp.
+Dicts must be Dict{Int64, Int64}.
+
+D1 = Dict(1 => 3, 2 => 4, 3 => 16, 4 => 12)
+D2 = Dict( 6=> 36, 8=>64 , 10=>100 , 12=> 144, 14=>1414 )
+D3 = Dict( 7=> 49, 9=> 81, 11=> 121, 13=> 169, 15=> 225)
 """
-function DictCombine(arg...)::Dict{Float64, Int64}
-  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
+function DictCombine(outp, arg...)::Dict{Int64, Int64}
+  # This could easily be rewritten to take a patientcount as the second arg to the dict.
   for (i,dct) in enumerate(arg) # arg is enumerated, but that generates an (int, dict) pair.
     for k in keys(dct)
       if haskey(outp, k)
@@ -119,15 +120,12 @@ end
 
 
 
-# Think about what the goal is here.
 # Each zip returns a dictionary of {fid, demand} for ONE DRG.
-# work with that simple case and then make it worse.  
+# work with that simple case and then make it worse.
 function attempt2(pz::patientcollection)
   outp::Dict{Float64,Int64} = Dict{Float64, Int64}()
   for ky in keys(pz.zips)
-    # create utils and fids for each zip.
-    # call DictCombine on seven calls to ChoiceVector.
-    # How are these being aggregated over the zips?
+    DictCombine(outp, ChoiceVector(pz.zips[ky].pdetutils, pz.zips[ky].ppatients.count391))
   end
   return outp
 end
@@ -135,93 +133,11 @@ end
 
 
 
-
-# 0.056291 seconds (166.08 k allocations: 15.814 MB)
-
-
-# What is this going to do?  Take the counts, generate demand by each one,
-# then map demand back to patientcounts.
-function ZipDemand(z::zip)
-  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
-  utils::Array{Float64,2} = DicttoVec(z.pdetutils)
-  for el in utils[1,:] #TODO - this has to handle medicaid patients too.
-    outp[el] =  patientcount(0,0,0,0,0,0,0)
-  end
-  for k1 in utils[1,:]
-    outp[k1].count385 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count385)[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count386 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count386)[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count387 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count387)[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count388 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count388)[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count389 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count389)[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count390 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count390)[k1]
-  end
-  for k1 in utils[1,:]
-    outp[k1].count391 += ChoiceVector(utils[2,:], utils[1,:], z.ppatients.count391)[k1]
-  end
-  return outp
-end
-
-# This is stupidly slow.  Outrageously slow even.
-# Maybe the best thing to do is to rework zip demand?
-
-
-function FinalDemand(p::patientcollection, Tex::EntireState)
-  outp::Dict{Float64, patientcount} = Dict{Float64, patientcount}()
-  outp[0] = patientcount(0,0,0,0,0,0,0)
-  for el in keys(Tex.fipsdirectory)
-    outp[el] = patientcount(0,0,0,0,0,0,0)
-  end
-  for z in keys(p.zips)
-    for k1 in keys(ZipDemand(p.zips[z]))
-      outp[k1] += ZipDemand(p.zips[z])[k1]
-    end
-  end
-  return outp
-end
 
 
 
 
 ###
-
-
-"""
-`function FIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})`
-This function takes a vector of chosen options and of FID's (option ID's),
-creates a dict of {FID, Int64} then counts occurrences of the FIDs in the
-array `chosen`
-
-#Testing on Choice Data:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
-patients = NewPatients(Texas);
-tem = DicttoVec(patients.zips[78702].pdetutils)
-utl = tem[2,:]
-fid = tem[1,:]
-
-ChoiceVector(utl, fid, 50)
-FIDCounter(ChoiceVector(utl, fid, 50), fid)
-# NB - now not needed since ChoiceVector returns a dictionary.
-"""
-function FIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})
-  outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
-  for el in fids
-    outp[el] = 0
-  end
-  for c in chosen
-    outp[c] += 1
-  end
-  return outp
-end
 
 
 
