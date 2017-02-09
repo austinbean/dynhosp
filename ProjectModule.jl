@@ -170,6 +170,35 @@ module ProjectModule
     return x.count385 + x.count386 + x.count387 + x.count388 + x.count389 + x.count390 + x.count391
   end
 
+  Base.start(::patientcount) = :count385
+  function Base.next(p::patientcount, state)
+    if state == :count385
+      return p.count385, :count386
+    elseif state == :count386
+      return p.count386, :count387
+    elseif state == :count387
+      return p.count387, :count388
+    elseif state == :count388
+      return p.count388, :count389
+    elseif state == :count389
+      return p.count389, :count390
+    elseif state == :count390
+      return p.count390, :count391
+    elseif state == :count391
+      return p.count391, :count392
+    else
+      return :count392
+    end
+  end
+  function Base.done(p::patientcount, state)
+    if state == :count392
+      return true
+    else
+      return false
+    end
+  end
+
+
   type coefficients
     distance::Float64
     distsq::Float64
