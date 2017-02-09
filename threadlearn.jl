@@ -28,7 +28,7 @@ Computes utility + random component, maps out corresponding FID.
 
 testing:
 ut = [0.1, 0.2, 0.3, 0.4, 0.5];
-fi = [111.0, 222.0, 333.0, 444.0, 19.0];
+fi = [111, 222, 333, 444, 19];
 ta = [0.0, 0.0, 0.0, 0.0, 0.0];
 UMap(ut, fi, ta)
 """
@@ -48,6 +48,13 @@ end
 `function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}`
 This is a more efficient version of `DicttoVec`.  Takes a dictionary of {Int64,Float64}
 and returns two vectors.
+
+
+#Testing on Choice Data:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = NewPatients(Texas);
+
+DV(patients.zips[78702].pdetutils)
 """
 function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
   out1::Array{Int64,1} = zeros(Int64, d.count) #for the keys/FIDs
@@ -69,11 +76,11 @@ is a Dict{Float64, Int64} of facilities and patient counts.
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 patients = NewPatients(Texas);
 
-ChoiceVector(patients.zips[78702].pdetutils 50)
+ChoiceVector(patients.zips[78702].pdetutils, 50)
 """
 function ChoiceVector(pd::Dict{Int64, Float64},
               x::Int64) #rewrite to take a dictionary - that will make this easier, I think.
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) #   ::Tuple{Array{Int64,1},Array{Float64,1}}
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
   outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(fids)
   Threads.@threads for i = 1:x
@@ -87,13 +94,6 @@ function ChoiceVector(pd::Dict{Int64, Float64},
     dt[outp[i]] += 1
   end
   return dt::Dict{Int64, Int64}
-end
-
-function testtype(pd::Dict{Int64, Float64}, x::Int64)
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)::Tuple{Array{Int64,1},Array{Float64,1}}
-  outp::Array{Int64,1} = zeros(Int64, x)
-  temparry::Array{Float64, 1} = zeros(fids)
-  return fids, utils, outp, temparry
 end
 
 
@@ -117,8 +117,11 @@ function DictCombine(arg...)::Dict{Float64, Int64}
   return outp
 end
 
+
+
 # Think about what the goal is here.
 # Each zip returns a dictionary of {fid, demand} for ONE DRG.
+# work with that simple case and then make it worse.  
 function attempt2(pz::patientcollection)
   outp::Dict{Float64,Int64} = Dict{Float64, Int64}()
   for ky in keys(pz.zips)
@@ -227,6 +230,36 @@ end
 Some investigations of threading and how it works below.
 
 =#
+
+
+
+#=
+# Curious problem - w/out the loop, all types are inferred correctly.
+# w/ the loop and @threads, all become boxed.
+
+function testtype(x::Int64)
+  outp::Array{Int64,1} = zeros(Int64, x)
+  Threads.@threads for i = 1:x
+    outp[i] = i
+  end
+end
+
+function testtype2(x::Int64)
+  outp::Array{Int64,1} = zeros(Int64, x)
+  for i = 1:x
+    outp[i] = i
+  end
+end
+
+testtype(1);
+testtype2(1);
+
+@code_warntype testtype(1);
+@code_warntype testtype2(1);
+
+=#
+
+
 
 
 
