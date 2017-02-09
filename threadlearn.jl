@@ -60,7 +60,7 @@ ChoiceVector(utl, fid, 50)
 """
 function ChoiceVector(utils::Array{Float64,1},
               fids::Array{Float64,1},
-              x::Int64) #rewrite to take a dictionary - that will make this easier, I think.  
+              x::Int64) #rewrite to take a dictionary - that will make this easier, I think.
   outp::Array{Float64,1} = zeros(Float64, x)
   temparry::Array{Float64, 1} = zeros(fids)
   Threads.@threads for i = 1:x
@@ -83,7 +83,7 @@ Dicts must be Dict{Float64, Int64}.
 """
 function DictCombine(arg...)::Dict{Float64, Int64}
   outp::Dict{Float64, Int64} = Dict{Float64, Int64}()
-  for (i,dct) in enumerate(arg)
+  for (i,dct) in enumerate(arg) # arg is enumerated, but that generates an (int, dict) pair.
     for k in keys(dct)
       if haskey(outp, k)
         outp[k] += dct[k]
@@ -95,11 +95,14 @@ function DictCombine(arg...)::Dict{Float64, Int64}
   return outp
 end
 
-
+# Think about what the goal is here.
+# Each zip returns a dictionary of {fid, demand} for ONE DRG.
 function attempt2(pz::patientcollection)
   outp::Dict{Float64,Int64} = Dict{Float64, Int64}()
   for ky in keys(pz.zips)
-
+    # create utils and fids for each zip.
+    # call DictCombine on seven calls to ChoiceVector.
+    # How are these being aggregated over the zips?
   end
   return outp
 end
