@@ -17,7 +17,7 @@ NB: DicttoVec(patients.zips[xxxx].pdetutils)
 
 
 """
-`function UMap(utils::Array{Float64,2}, fids::Array{Int64,2}, temparr::Array{Float64,2})`
+`function UMap(utils::Array{Float64,1}, fids::Array{Int64,1}, temparr::Array{Float64,1})`
 
 This function takes:
 - Array of Utils
@@ -33,14 +33,32 @@ ta = [0.0, 0.0, 0.0, 0.0, 0.0];
 UMap(ut, fi, ta)
 """
 function UMap(utils::Array{Float64,1},
-              fids::Array{Float64,1},
+              fids::Array{Int64,1},
               temparr::Array{Float64,1};
               dist_μ = 0,
               dist_σ = 1,
               dist_ξ = 0,
-              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))::Float64
+              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))::Int64
   return fids[indmax(utils+rand!(d, temparr))]
 end
+
+
+
+"""
+`function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}`
+This is a more efficient version of `DicttoVec`.  Takes a dictionary of {Int64,Float64}
+and returns two vectors.
+"""
+function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
+  out1::Array{Int64,1} = zeros(Int64, d.count) #for the keys/FIDs
+  out2::Array{Float64,1} = zeros(Float64, d.count) #for the utils
+  for (i,k) in enumerate(keys(d))
+    out1[i] = k
+    out2[i] = d[k]
+  end
+  return out1, out2
+end
+
 
 """
 `function ChoiceVector(utils::Array{Float64,1}, fids::Array{Float64,1}, x::Int64)`
@@ -50,31 +68,35 @@ is a Dict{Float64, Int64} of facilities and patient counts.
 #Testing on Choice Data:
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 patients = NewPatients(Texas);
-tem = DicttoVec(patients.zips[78702].pdetutils)
-utl = tem[2,:]
-fid = tem[1,:]
 
-ChoiceVector(utl, fid, 50)
-
-# NB - this could even be rewritten to take utils and fids together...
+ChoiceVector(patients.zips[78702].pdetutils 50)
 """
-function ChoiceVector(utils::Array{Float64,1},
-              fids::Array{Float64,1},
+function ChoiceVector(pd::Dict{Int64, Float64},
               x::Int64) #rewrite to take a dictionary - that will make this easier, I think.
-  outp::Array{Float64,1} = zeros(Float64, x)
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) #   ::Tuple{Array{Int64,1},Array{Float64,1}}
+  outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(fids)
   Threads.@threads for i = 1:x
     outp[i] = UMap(utils, fids, temparry)
   end
-  dt::Dict{Float64, Int64} = Dict()
+  dt::Dict{Int64, Int64} = Dict()
   for el in fids
     dt[el] = 0
   end
   for i = 1:x
     dt[outp[i]] += 1
   end
-  return dt::Dict{Float64, Int64}
+  return dt::Dict{Int64, Int64}
 end
+
+function testtype(pd::Dict{Int64, Float64}, x::Int64)
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)::Tuple{Array{Int64,1},Array{Float64,1}}
+  outp::Array{Int64,1} = zeros(Int64, x)
+  temparry::Array{Float64, 1} = zeros(fids)
+  return fids, utils, outp, temparry
+end
+
+
 
 """
 `function DictCombine(arg...)`
