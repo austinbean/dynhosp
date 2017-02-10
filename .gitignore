@@ -10,6 +10,7 @@ simulationresults.csv
 Deprecated.jl
 parallelnotes.txt
 computetimeestimate.jl
+threadjunk.jl
 timer.txt
 TXzipsonly.csv
 temp_results_48001.csv
