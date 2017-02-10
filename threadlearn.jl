@@ -79,18 +79,32 @@ function ChoiceVector(pd::Dict{Int64, Float64}, x::Int64)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
   outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(fids)
+  dt::Dict{Int64, Int64} = Dict()
   for el in fids
     dt[el] = 0
   end
-  Threads.@threads for i = 1:x
-    outp[i] = UMap(utils, fids, temparry)
-  end
-  dt::Dict{Int64, Int64} = Dict()
-
+  # Threads.@threads for i = 1:x
+  #   outp[i] = UMap(utils, fids, temparry)
+  # end
+  UseThreads(outp, fids, utils, temparry)
   for i = 1:x
     dt[outp[i]] += 1
   end
   return dt::Dict{Int64, Int64}
+end
+"""
+`function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1}, utils::Array{Float64,1}, temparry::Array{Float64, 1})`
+The sole purpose of this is to avoid #15276, which generates an ambiguity in the type of the arrays in `ChoiceVector`.
+There is no ambiguity in this one.
+https://github.com/JuliaLang/julia/issues/15276
+Workaround, maybe?
+See this:
+https://github.com/yuyichao/explore/blob/8d52fb6caa745a658f2c9bbffd3b0f0fe4a2cc48/julia/issue-17395/scale.jl#L21
+"""
+function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1}, utils::Array{Float64,1}, temparry::Array{Float64, 1})
+  Threads.@threads for i = 1:length(inpt)
+    inpt[i] = UMap(utils, fids, temparry)
+  end
 end
 
 
