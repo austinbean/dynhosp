@@ -83,6 +83,7 @@ function ChoiceVector(pd::Dict{Int64, Float64}, x::Int64)
   for el in fids
     dt[el] = 0
   end
+  # Uncomment when 15276 is fixed.
   # Threads.@threads for i = 1:x
   #   outp[i] = UMap(utils, fids, temparry)
   # end
@@ -132,8 +133,25 @@ function DictCombine(outp, arg...)::Dict{Int64, Int64}
   return outp
 end
 
+function DoIt()
+  println("Threads ")
+  Threads.nthreads()
+  println("Import/Warmup")
+  Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+  patients = NewPatients(Texas);
+  ChoiceVector(patients.zips[78759].pdetutils, 1)
+  # Time and track:
+  println("Testing")
+  ChoiceVector(patients.zips[78759].pdetutils, 100_000);
+end
+
+DoIt()
 
 
+
+
+
+#=
 # Each zip returns a dictionary of {fid, demand} for ONE DRG.
 # work with that simple case and then make it worse.
 function attempt2(pz::patientcollection)
@@ -143,15 +161,12 @@ function attempt2(pz::patientcollection)
   end
   return outp
 end
+=#
 
 
 
 
 
-
-
-
-###
 
 
 
@@ -174,6 +189,8 @@ function testtype(x::Int64)
   end
 end
 
+
+
 function testtype2(x::Int64)
   outp::Array{Int64,1} = zeros(Int64, x)
   for i = 1:x
@@ -181,13 +198,28 @@ function testtype2(x::Int64)
   end
 end
 
+# The next function AVOIDS that instability problem.
+
+function testtype3(x::Int64)
+  outp::Array{Int64,1} = zeros(Int64,x)
+  dothread(outp)
+  return outp
+end
+
+function dothread(x)
+  Threads.@threads for i = 1:length(x)
+    x[i] = i
+  end
+end
+
 testtype(1);
 testtype2(1);
+testtype3(1)
 
 @code_warntype testtype(1);
 @code_warntype testtype2(1);
+@code_warntype testtype3(1);
 
-=#
 
 
 
@@ -285,13 +317,6 @@ function thtest2(x1::Int64, x2::Int64, x3::Int64)
   end
   #Threads.@threads
   for c3 = 1:x3
-    #=
-    Ok - threads don't work here.  What's wrong?  It is something like: it's not waiting for all of them to finish.
-    OR it doesn't have proper access to this "mind" variable.  Probably this is not someting where access to the
-    shared resource is possible?
-    Maybe I need as many copies of mind as there are threads?  Try that.
-    Options - allocated according to number of threads or allocate according to number of iterations x3?
-    =#
     mind = testarr[1, indmax(testarr[2,:]+randn(3))]
     count3 += 1
     if mind == 1
@@ -363,12 +388,6 @@ function F2(x::Int64)
   return outp
 end
 
-#=
-- The key should be to make sure that the ORDER is preserved.
-- But once the order is preserved, the utilities work in the way expected and
-this is pretty quick, I think.
-
-=#
 
 
 function doit()
@@ -426,7 +445,6 @@ end
 
 
 
-####
 
 
 
@@ -463,3 +481,6 @@ function FAKETHREADFIDCounter(chosen::Array{Float64,1}, fids::Array{Float64,1})
   end
   return outp
 end
+
+
+=#
