@@ -76,6 +76,9 @@ is a Dict{Float64, Int64} of facilities and patient counts.
 """
 function ChoiceVector(pd::Dict{Int64, Float64}, x::Int64)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
+    #TODO - below there is a place to maybe use one array rather than reallocating every time.
+    # That would probably be smart.  Just set all elements back to zero.  That takes basically no time
+    # no patient category is more than 1511 in any zip code.  Use 1600 vector of 0.0 floats and clean it up.  
   outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(fids)
   dt::Dict{Int64, Int64} = Dict()
@@ -109,6 +112,22 @@ end
 
 
 
+
+function TestRe(v::Array{Float64, 1})
+  for i = 1:length(v)
+    v[i] = -1.0
+  end
+end
+
+function testit()
+  v = rand(100_000)
+  println(time(TestRe(v)))
+end
+
+testit()
+
+
+
 """
 `function DictCombine(outp, arg...)`
 This function takes an arbitrary number of dictionaries and adds them to outp.
@@ -139,7 +158,41 @@ function DoIt()
 end
 
 using Distributions
-DoIt()
+#DoIt()
+
+
+function UMapAgg(utils::Array{Float64,1},
+              fids::Array{Int64,1},
+              temparr::Array{Float64,1},
+              x::Int64) # NB - could change this int to be an array or a patientcount, etc.
+  out1::Dict{Int64,Int64} = Dict()
+  for el in fids
+    out1[el] = 0
+  end
+  for i = 1:x
+    out1[UMap(utils, fids, temparr)] += 1 #recall UMap returns a fid.
+  end
+  return out1
+end
+
+
+
+# Can threads be called to compute UMap w/ out allocating the vector?
+function ThreadDict(pd::Dict{Int64,Float64}, x::Int64)
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
+  temparry::Array{Float64, 1} = zeros(fids)
+  d1::Dict{Int64,Int64} = Dict()
+  for el in keys(pd)
+    d1[el] = 0
+  end
+  # TODO - below doesn't work.   Why not?  Well,
+  Threads.@threads for i = 1:x
+    println("Thread ", Threads.threadid(), "  ", DictCombine(d1, UMapAgg(utils, fids, temparry, x)))
+  end
+  #return d1
+end
+
+#another idea - make a version of UMap that takes an integer argument and returns a dict.
 
 
 
