@@ -116,14 +116,6 @@ dic1 = NewHospDict(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
 ChoiceVector2(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
 REMEMBER TO TURN ON THREADING.
-
-w/out threading:
-
-@time for k in keys(patients.zips)
-       ChoiceVector2(patients.zips[k].pdetutils, dic1, inpt, patients.zips[k].ppatients)
-       end
-  0.185116 seconds (414.98 k allocations: 30.381 MB, 4.91% gc time)
-
 """
 function ChoiceVector2(pd::Dict{Int64, Float64},
                        dt::Dict{Int64, patientcount},
@@ -191,6 +183,24 @@ function ResVec(v::Array{Int64, 1})
     v[i] = 1
   end
 end
+
+"""
+`function StateDemand(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})`
+Returns a dictionary of private demands for the whole state.
+Takes as input a patientcollection, a dict{Int64, patientcount} and a re-usable array v.
+"""
+function StateDemand(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})
+  for k in keys(p.zips)
+    ChoiceVector2(p.zips[k].pdetutils, d, v, p.zips[k].ppatients)
+  end
+end
+
+
+
+
+
+
+
 
 function testit()
   v = rand(100_000)
