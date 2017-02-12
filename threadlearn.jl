@@ -74,7 +74,6 @@ is a Dict{Float64, Int64} of facilities and patient counts.
 #ChoiceVector(patients.zips[78702].pdetutils, input, 50)
 """
 function ChoiceVector(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::Int64)
-  #TODO - this doesn't need to happen each of 7 times within the patientcount.
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # this is the biggest source of allocation now.
   # outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(utils)
@@ -90,20 +89,48 @@ function ChoiceVector(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::Int64)
   return dt::Dict{Int64, Int64}
 end
 
-#TODO - this can take an empty dict of ALL hospitals and patientcounts.
-# nd = Dict(k=> patientcount(0,0,0,0,0,0,0) for k in keys(Texas.fipsdirectory))
 
-# cut the allocation by passing a dictionary of all of the fids, perhaps.  
-
-function ChoiceVector2(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::patientcount)
-  # these two lines are the biggest source of allocation now.
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
-  temparry::Array{Float64, 1} = zeros(utils)
-  #TODO - Create this outside and take it as an argument.
+function NewHospDict(Tex::EntireState)
   dt::Dict{Int64, patientcount} = Dict()
-  for el in fids
+  for el in keys(Tex.fipsdirectory)
     dt[el] = patientcount(0,0,0,0,0,0,0)
   end
+  dt[0] = patientcount(0,0,0,0,0,0,0)
+  return dt
+end
+
+function PatientsClean(dt::Dict{Int64, patientcount})
+  for el in keys(dt)
+    dt[el] = patientcount(0,0,0,0,0,0,0)
+  end
+end
+
+
+"""
+`function ChoiceVector2()`
+This should operate in-place on the dictionary dt.
+The dictionary has an entry for every hospital.
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = NewPatients(Texas);
+dic1 = NewHospDict(Texas);
+inpt = ones(Int64, 1550); # largest group is 1511
+ChoiceVector2(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
+REMEMBER TO TURN ON THREADING.
+
+w/out threading:
+
+@time for k in keys(patients.zips)
+       ChoiceVector2(patients.zips[k].pdetutils, dic1, inpt, patients.zips[k].ppatients)
+       end
+  0.185116 seconds (414.98 k allocations: 30.381 MB, 4.91% gc time)
+
+"""
+function ChoiceVector2(pd::Dict{Int64, Float64},
+                       dt::Dict{Int64, patientcount},
+                       ch::Array{Int64,1},
+                       x::patientcount)
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
+  temparry::Array{Float64, 1} = zeros(utils)
   for (loc, num) in enumerate(x)
     UseThreads(ch, fids, utils, temparry, num)
     if loc == 1
@@ -134,12 +161,9 @@ function ChoiceVector2(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::patientc
       for i = 1:num
         dt[ch[i]].count391 += 1
       end
-    else
-      println("wat")
     end
     ResVec(ch) #reset the vector.
   end
-  return dt::Dict{Int64, patientcount}
 end
 
 """
@@ -158,8 +182,10 @@ function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float
 end
 
 
-
-
+"""
+`function ResVec(v::Array{Int64,1})`
+This function resets the vector to its original state.
+"""
 function ResVec(v::Array{Int64, 1})
   for i = 1:length(v)
     v[i] = 1
