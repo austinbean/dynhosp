@@ -70,31 +70,78 @@ is a Dict{Float64, Int64} of facilities and patient counts.
 #Testing on Choice Data:
 #Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 #patients = NewPatients(Texas);
-
-#ChoiceVector(patients.zips[78702].pdetutils, 50)
-#NB - there is a performance issue in that the type of many of these is read as Core.Box, but this is #15276 or something.
+#input = ones(Int64, 1650);
+#ChoiceVector(patients.zips[78702].pdetutils, input, 50)
 """
-function ChoiceVector(pd::Dict{Int64, Float64}, x::Int64)
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
-    #TODO - below there is a place to maybe use one array rather than reallocating every time.
-    # That would probably be smart.  Just set all elements back to zero.  That takes basically no time
-    # no patient category is more than 1511 in any zip code.  Use 1600 vector of 0.0 floats and clean it up.  
-  outp::Array{Int64,1} = zeros(Int64, x)
-  temparry::Array{Float64, 1} = zeros(fids)
+function ChoiceVector(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::Int64)
+  #TODO - this doesn't need to happen each of 7 times within the patientcount.
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # this is the biggest source of allocation now.
+  # outp::Array{Int64,1} = zeros(Int64, x)
+  temparry::Array{Float64, 1} = zeros(utils)
   dt::Dict{Int64, Int64} = Dict()
   for el in fids
     dt[el] = 0
   end
-  # Uncomment when 15276 is fixed.
-  # Threads.@threads for i = 1:x
-  #   outp[i] = UMap(utils, fids, temparry)
-  # end
-  UseThreads(outp, fids, utils, temparry)
+  UseThreads(ch, fids, utils, temparry, x)
   for i = 1:x
-    dt[outp[i]] += 1
+    dt[ch[i]] += 1 # It seems like I can't get a key error, but I'm not 100% sure of that.
   end
+  ResVec(ch) #reset the vector.
   return dt::Dict{Int64, Int64}
 end
+
+#TODO - this can take an empty dict of ALL hospitals and patientcounts.
+# nd = Dict(k=> patientcount(0,0,0,0,0,0,0) for k in keys(Texas.fipsdirectory))
+
+# cut the allocation by passing a dictionary of all of the fids, perhaps.  
+
+function ChoiceVector2(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::patientcount)
+  # these two lines are the biggest source of allocation now.
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
+  temparry::Array{Float64, 1} = zeros(utils)
+  #TODO - Create this outside and take it as an argument.
+  dt::Dict{Int64, patientcount} = Dict()
+  for el in fids
+    dt[el] = patientcount(0,0,0,0,0,0,0)
+  end
+  for (loc, num) in enumerate(x)
+    UseThreads(ch, fids, utils, temparry, num)
+    if loc == 1
+      for i = 1:num
+        dt[ch[i]].count385 += 1
+      end
+    elseif loc==2
+      for i = 1:num
+        dt[ch[i]].count386 += 1
+      end
+    elseif loc==3
+      for i = 1:num
+        dt[ch[i]].count387 += 1
+      end
+    elseif loc==4
+      for i = 1:num
+        dt[ch[i]].count388 += 1
+      end
+    elseif loc==5
+      for i = 1:num
+        dt[ch[i]].count389 += 1
+      end
+    elseif loc==6
+      for i = 1:num
+        dt[ch[i]].count390 += 1
+      end
+    elseif loc==7
+      for i = 1:num
+        dt[ch[i]].count391 += 1
+      end
+    else
+      println("wat")
+    end
+    ResVec(ch) #reset the vector.
+  end
+  return dt::Dict{Int64, patientcount}
+end
+
 """
 `function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1}, utils::Array{Float64,1}, temparry::Array{Float64, 1})`
 The sole purpose of this is to avoid #15276, which generates an ambiguity in the type of the arrays in `ChoiceVector`.
@@ -104,8 +151,8 @@ Workaround, maybe?
 See this:
 https://github.com/yuyichao/explore/blob/8d52fb6caa745a658f2c9bbffd3b0f0fe4a2cc48/julia/issue-17395/scale.jl#L21
 """
-function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1}, utils::Array{Float64,1}, temparry::Array{Float64, 1})
-  Threads.@threads for i = 1:length(inpt)
+function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1},temparry::Array{Float64, 1}, x::Int64)
+  Threads.@threads for i = 1:x
     inpt[i] = UMap(utils, fids, temparry)
   end
 end
@@ -113,15 +160,15 @@ end
 
 
 
-function TestRe(v::Array{Float64, 1})
+function ResVec(v::Array{Int64, 1})
   for i = 1:length(v)
-    v[i] = -1.0
+    v[i] = 1
   end
 end
 
 function testit()
   v = rand(100_000)
-  println(time(TestRe(v)))
+  #println(time(TestRe(v)))
 end
 
 testit()
