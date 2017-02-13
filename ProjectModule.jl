@@ -358,6 +358,13 @@ module ProjectModule
   export NewPatientsTest
   export DicttoVec
   export PatientCountOut
+  export UMap
+  export DV
+  export NewHospDict
+  export PatientsClean
+  export ChoiceVector
+  export UseThreads
+  export ResVec 
   println("Loaded Module")
 
 
