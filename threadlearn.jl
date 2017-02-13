@@ -9,6 +9,22 @@ patients = NewPatients(Texas);
 GenPChoices(patients, Texas);
 NB: DicttoVec(patients.zips[xxxx].pdetutils)
 
+Updated version:
+@time ab = OuterSim(3; T1 = 3);
+Current iteration 1
+Current iteration 2
+Current iteration 3
+195.408350 seconds (771.19 M allocations: 27.919 GB, 4.49% gc time)
+
+Prior Version:
+@time ab = OuterSim(3; T1 = 3);
+Current iteration 1
+Current iteration 2
+Current iteration 3
+185.595211 seconds (1.07 G allocations: 48.070 GB, 7.21% gc time)
+
+
+
 =#
 
 
