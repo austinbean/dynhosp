@@ -731,6 +731,10 @@ end
 Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
 There is a separate function for the Medicaid patients.
 There is now one zip which patients are in but which is not in pats as constructed above.
+#Testing -
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = CreateZips(ProjectModule.alldists, Texas)
+FillPPatients(patients , ProjectModule.pinsured)
 """
 function FillPPatients(pats::patientcollection, imported::Matrix;
                        ziploc::Int64 = 101,
@@ -758,7 +762,6 @@ function FillPPatients(pats::patientcollection, imported::Matrix;
       end
     end
   end
-  return pats
 end
 
 
@@ -795,7 +798,6 @@ function FillMPatients(pats::patientcollection, imported::Matrix;
       end
     end
   end
-  return pats;
 end
 
 
@@ -804,10 +806,11 @@ end
 """
 `FillPPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)`
  Adds the privately insured and medicaid patients to the zip records.
+ 0.027785 seconds (138 allocations: 1.308 MB)
 """
 function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)
-  pats = FillPPatients(pats, private)
-  pats = FillMPatients(pats, medicaid)
+  FillPPatients(pats, private)
+  FillMPatients(pats, medicaid)
 end
 
 
@@ -833,28 +836,31 @@ Computes the deterministic component of utility for each hospital in the zip "zi
 Maps exited facilites to have deterministic utility -999
 Works on private and medicaid patients by setting p_or_m to true or false, respectively.
 Has been written to accomodate hospital FE's when available.
+#TODO - this doesn't need to return.  Since it takes a zipc, fid argument, we can just have
+# something like.... zipc.mdetutils[fid] = ... OR zipc.pdetutils[fid] = ...
+# how did this end up changing the values completely?  Just by removing the return statement?
 """
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
   if p_or_m #if TRUE private
     if zipc.facilities[fid].level == 1
-      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
     elseif zipc.facilities[fid].level == 2
-      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
     elseif zipc.facilities[fid].level == 3
-      return zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
     else  # =-999
-      return -999 # can't choose a facility which has exited - set det utility very low.
+      zipc.pdetutils[fid] = -999.0 # can't choose a facility which has exited - set det utility very low.
     end
   else
     if zipc.facilities[fid].level == 1
-      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
     elseif zipc.facilities[fid].level == 2
-      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
     elseif zipc.facilities[fid].level == 3
-      return zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
     else  # =-999
-      return -999
+      zipc.mdetutils[fid] = -999.0
     end
   end
 end
@@ -867,12 +873,13 @@ end
 `UpdateDeterministic(collect::patientcollection)`
 Computes the deterministic component of the utility - updates every firm every time it is called.
 Is called during the Eq and Non-eq simulations.
+0.043695 seconds (483.33 k allocations: 7.605 MB)
 """
 function UpdateDeterministic(collect::patientcollection)
   for el in keys(collect.zips) #iterates over zips
     for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
-      collect.zips[el].mdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, false)
-      collect.zips[el].pdetutils[fid] = ComputeDetUtil(collect.zips[el], fid, true)
+      ComputeDetUtil(collect.zips[el], fid, false)
+      ComputeDetUtil(collect.zips[el], fid, true)
     end
   end
 end
@@ -895,7 +902,7 @@ function NewPatients(Tex::EntireState;
                      pins = ProjectModule.pinsured,
                      pmed = ProjectModule.pmedicaid)
   patients = CreateZips(dists, Tex) #NB: This needs to take the whole state so that the hosps in zips point to the same underlying record.
-  patients = FillPatients(patients, pins, pmed)
+  FillPatients(patients, pins, pmed)
   UpdateDeterministic(patients)
   AddOO(patients)
   return patients
