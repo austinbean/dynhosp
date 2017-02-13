@@ -203,9 +203,22 @@ end
 
 
 function testit()
-  v = rand(100_000)
-  #println(time(TestRe(v)))
+  Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+  patients = NewPatients(Texas);
+  dic1 = NewHospDict(Texas)
+  inp1 = zeros(Int64, 1550)
+  StateDemand(patients, dic1, inp1)
+  println("Timing")
+  @time StateDemand(patients, dic1, inp1)
+  PatientsClean(dic1)
+  for i = 1:5
+    @time StateDemand(patients, dic1, inp1)
+    PatientsClean(dic1)
+  end
+
 end
+
+using Distributions
 
 testit()
 
@@ -240,7 +253,6 @@ function DoIt()
   ChoiceVector(Dict(4536048 => 0.17909, 4536337 => -0.00907679, 4536253 => -0.00466823, 4916029 => 0.155892, 0 => 0.0, 4530190 => 1.45951, 2093151 => 2.12427, 4916068 => -0.0048307, 4536338 => 0.346297, 4530200 => 1.64229, 4530170 => 1.5257), 100_000);
 end
 
-using Distributions
 #DoIt()
 
 
