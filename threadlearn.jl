@@ -63,7 +63,7 @@ end
 
 
 """
-`function ChoiceVector(utils::Array{Float64,1}, fids::Array{Float64,1}, x::Int64)`
+`function SingleChoiceVector(utils::Array{Float64,1}, fids::Array{Float64,1}, x::Int64)`
 Allocates an array, then uses threading to allocate calls to `UMap` across different threads.  Output
 is a Dict{Float64, Int64} of facilities and patient counts.
 
@@ -73,7 +73,7 @@ is a Dict{Float64, Int64} of facilities and patient counts.
 #input = ones(Int64, 1650);
 #ChoiceVector(patients.zips[78702].pdetutils, input, 50)
 """
-function ChoiceVector(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::Int64)
+function SingleChoiceVector(pd::Dict{Int64, Float64}, ch::Array{Int64,1}, x::Int64)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # this is the biggest source of allocation now.
   # outp::Array{Int64,1} = zeros(Int64, x)
   temparry::Array{Float64, 1} = zeros(utils)
@@ -117,10 +117,10 @@ inpt = ones(Int64, 1550); # largest group is 1511
 ChoiceVector2(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
 REMEMBER TO TURN ON THREADING.
 """
-function ChoiceVector2(pd::Dict{Int64, Float64},
-                       dt::Dict{Int64, patientcount},
-                       ch::Array{Int64,1},
-                       x::patientcount)
+function ChoiceVector(pd::Dict{Int64, Float64},
+                      dt::Dict{Int64, patientcount},
+                      ch::Array{Int64,1},
+                      x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
   temparry::Array{Float64, 1} = zeros(utils)
   for (loc, num) in enumerate(x)
@@ -191,7 +191,7 @@ Takes as input a patientcollection, a dict{Int64, patientcount} and a re-usable 
 """
 function StateDemand(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})
   for k in keys(p.zips)
-    ChoiceVector2(p.zips[k].pdetutils, d, v, p.zips[k].ppatients)
+    ChoiceVector(p.zips[k].pdetutils, d, v, p.zips[k].ppatients)
   end
 end
 
@@ -212,6 +212,9 @@ function testit()
   @time StateDemand(patients, dic1, inp1)
   PatientsClean(dic1)
   for i = 1:5
+    println("Old")
+    @time GenPChoices(patients, Texas)
+    println("New")
     @time StateDemand(patients, dic1, inp1)
     PatientsClean(dic1)
   end
