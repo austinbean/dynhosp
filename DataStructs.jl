@@ -840,7 +840,7 @@ Maps exited facilites to have deterministic utility -999
 Works on private and medicaid patients by setting p_or_m to true or false, respectively.
 Has been written to accomodate hospital FE's when available.
 Allocations come here from accessing the fields.  18-20 per call.
-0.000014 seconds (18 allocations: 384 bytes) -> this is one call in one of the lines below, not the whole thing.  
+0.000014 seconds (18 allocations: 384 bytes) -> this is one call in one of the lines below, not the whole thing.
 """
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
@@ -1109,6 +1109,7 @@ Takes a patientcollection and tells me which zips have the hospital fid
 """
 function WhichZips(pats::patientcollection, fid::Int64)
   for zi in keys(pats.zips)
+    # TODO - replace this with haskey()
     try
       pats.zips[zi].facilities[fid]
       println(zi)
@@ -1129,6 +1130,7 @@ Output is sent to WTPMap.
 #NB - adding an outside option here.
 """
 function CalcWTP(zipc::zip)
+  #TODO - this comprehension will be slow: just add the keys manually.
   outp = Dict(j=> 0.0 for j in keys(zipc.pdetutils))
 #  outp[0] = 0.0 # maps 0, the OO fid, to 0.0, the OO utility.
   interim::Float64 = 0.0
@@ -1145,7 +1147,6 @@ end
 Takes a patient collection and an entire state and returns a dict{fid, WTP}
 computed by calling CalcWTP.  Right now it ignores Inf and NaN.
 Input is from CalcWTP.  Output is sent to WriteWTP
-# NB: changing the try-catch to haskey.
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
   outp = Dict(j=>0.0 for j in keys(Tex.fipsdirectory))
