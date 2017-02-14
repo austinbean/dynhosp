@@ -33,6 +33,7 @@ function MakeIt(Tex::EntireState, fip::Vector{Int64})
       push!(Tex.ms, Market( Array{hospital,1}(), Dict{Int64, hospital}(), f, Dict{Int64, Bool}()))
     end
   end
+  #TODO 02/14/17 - this comprehension will be slow.
   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
   return Tex
 end
@@ -40,9 +41,9 @@ end
 
 
 """
-`TXSetup(Tex::EntireState, data::Matrix; ...)`
+`TXSetup(Tex::EntireState, data::Matrix, sp::Int64 ; ...)`
  Takes an entire state and adds data from the imported choices returns a record with
- fipscodes containing hospitals with mostly empty field values
+ fipscodes containing hospitals with mostly empty field values.  Arrays will be length sp.
 
  Testing:
  #NB: Make It Needs a state argument.
@@ -53,7 +54,9 @@ OR:
  Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
 
 """
-function TXSetup(Tex::EntireState, data::Matrix;
+function TXSetup(Tex::EntireState,
+                 data::Matrix
+                 sp::Int64;
                  fidcol::Int64 = 4,
                  latcol::Int64 = 21,
                  longcol::Int64 = 22,
@@ -81,14 +84,14 @@ function TXSetup(Tex::EntireState, data::Matrix;
                   data[i, namecol], #name
                   fips,
                   level, # level
-                  Array{Int64,1}(),
-                  DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                  DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                  WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
+                  Array{Int64,1}(sp), #level history
+                  DemandHistory( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
+                  DemandHistory( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
+                  WTP( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
                   WeightVec([0.0]), #choice probs
-                  Array{Float64,1}(),
+                  Array{Float64,1}(sp), #prob history
                   neighbors(0,0,0,0,0,0,0,0,0), #neighbors
-                  Array{Int64,1}(), # hood (array of fids)
+                  Array{Int64,1}(), # hood (array of fids) - uncertain length.
                     0    , # beds added later.
                   false ) ) # perturbed or not?
       end
@@ -96,9 +99,9 @@ function TXSetup(Tex::EntireState, data::Matrix;
     # push all hospital fid/ fips pairs into the directory.
     Tex.fipsdirectory[data[i, fidcol]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
-  NeighborFix(Tex)
-  InitChoice(Tex)
-  ExpandDict(Tex)
+  NeighborFix(Tex) #TODO 02/14/17 check length issues.
+  InitChoice(Tex) #TODO 02/14/17 check length issues.
+  ExpandDict(Tex) #TODO 02/14/17 check length issues.
   return Tex
 end
 
@@ -171,6 +174,7 @@ end
 """
 function ExpandDict(Tex::EntireState)
   for el in Tex.ms
+    # TODO 02/14/2017 - these comprehensions are surely slow.
     el.collection = Dict(i.fid => i for i in el.config)
     el.noneqrecord = Dict(i.fid => false for i in el.config)
     # I would like to append to each hospital a list of the others in the market, if it isn't already there.
@@ -440,7 +444,16 @@ Also sets the distance/category "neighbors" to a vector of zeros.
 function NeighborClean(state::EntireState)
   for mkt in state.ms
     for hosp in mkt.config
-      hosp.neigh::neighbors = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0)
+      # avoid allocations.
+      hosp.neigh.level105 = 0
+      hosp.neigh.level205 = 0
+      hosp.neigh.level305 = 0
+      hosp.neigh.level1515 = 0
+      hosp.neigh.level2515 = 0
+      hosp.neigh.level3515 = 0
+      hosp.neigh.level11525 = 0
+      hosp.neigh.level21525 = 0
+      hosp.neigh.level31525 = 0
       hosp.hood::Array{Int64,1} = Array{Int64,1}()
     end
   end
@@ -1109,7 +1122,7 @@ Takes a patientcollection and tells me which zips have the hospital fid
 """
 function WhichZips(pats::patientcollection, fid::Int64)
   for zi in keys(pats.zips)
-    # TODO - replace this with haskey()
+    # TODO 02/14/2017 - replace this with haskey()
     try
       pats.zips[zi].facilities[fid]
       println(zi)
@@ -1130,7 +1143,7 @@ Output is sent to WTPMap.
 #NB - adding an outside option here.
 """
 function CalcWTP(zipc::zip)
-  #TODO - this comprehension will be slow: just add the keys manually.
+  #TODO 02/14/2017 - this comprehension will be slow: just add the keys manually.
   outp = Dict(j=> 0.0 for j in keys(zipc.pdetutils))
 #  outp[0] = 0.0 # maps 0, the OO fid, to 0.0, the OO utility.
   interim::Float64 = 0.0
@@ -1149,6 +1162,7 @@ computed by calling CalcWTP.  Right now it ignores Inf and NaN.
 Input is from CalcWTP.  Output is sent to WriteWTP
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
+  #TODO 02/14/2017 - this comprehension will be slow: just add the keys manually.
   outp = Dict(j=>0.0 for j in keys(Tex.fipsdirectory))
   for zipc in keys(pats.zips)
     vals = CalcWTP(pats.zips[zipc])
@@ -1175,15 +1189,24 @@ end
 Takes a dict of {fid, WTP} and writes it out by DRG.
 Works on the output of WTPMap
 """
-function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)
+function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState, index::Int64)
+  # now be careful with index: it needs to be the right value.
   for els in keys(reslt)
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387, reslt[els])
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388, reslt[els])
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389, reslt[els])
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390, reslt[els])
-    push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391, reslt[els])
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385[index]=reslt[els]
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386[index]=reslt[els]
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387[index]=reslt[els]
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388[index]=reslt[els]
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389[index]=reslt[els]
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390[index]=reslt[els]
+    Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391[index]=reslt[els]
+# OLD
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387, reslt[els])
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388, reslt[els])
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389, reslt[els])
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390, reslt[els])
+    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391, reslt[els])
   end
 end
 
@@ -1400,14 +1423,22 @@ end
 `PHistoryAdd(hos::hospital, cnt::patientcount)`
 Maps patientcount to the private demand history
 """
-function PHistoryAdd(hos::hospital, cnt::patientcount)
-  push!(hos.pdemandhist.demand385, cnt.count385)
-  push!(hos.pdemandhist.demand386, cnt.count386)
-  push!(hos.pdemandhist.demand387, cnt.count387)
-  push!(hos.pdemandhist.demand388, cnt.count388)
-  push!(hos.pdemandhist.demand389, cnt.count389)
-  push!(hos.pdemandhist.demand390, cnt.count390)
-  push!(hos.pdemandhist.demand391, cnt.count391)
+function PHistoryAdd(hos::hospital, cnt::patientcount, index::Int64)
+  hos.pdemandhist.demand385[index]=cnt.count385
+  hos.pdemandhist.demand386[index]=cnt.count386
+  hos.pdemandhist.demand387[index]=cnt.count387
+  hos.pdemandhist.demand388[index]=cnt.count388
+  hos.pdemandhist.demand389[index]=cnt.count389
+  hos.pdemandhist.demand390[index]=cnt.count390
+  hos.pdemandhist.demand391[index]=cnt.count391
+# OLD
+  # push!(hos.pdemandhist.demand385, cnt.count385)
+  # push!(hos.pdemandhist.demand386, cnt.count386)
+  # push!(hos.pdemandhist.demand387, cnt.count387)
+  # push!(hos.pdemandhist.demand388, cnt.count388)
+  # push!(hos.pdemandhist.demand389, cnt.count389)
+  # push!(hos.pdemandhist.demand390, cnt.count390)
+  # push!(hos.pdemandhist.demand391, cnt.count391)
 end
 
 
@@ -1417,14 +1448,22 @@ end
 `MHistoryAdd(hos::hospital, cnt::patientcount)`
 Maps patientcount to the Medicaid demand history.
 """
-function MHistoryAdd(hos::hospital, cnt::patientcount)
-  push!(hos.mdemandhist.demand385, cnt.count385)
-  push!(hos.mdemandhist.demand386, cnt.count386)
-  push!(hos.mdemandhist.demand387, cnt.count387)
-  push!(hos.mdemandhist.demand388, cnt.count388)
-  push!(hos.mdemandhist.demand389, cnt.count389)
-  push!(hos.mdemandhist.demand390, cnt.count390)
-  push!(hos.mdemandhist.demand391, cnt.count391)
+function MHistoryAdd(hos::hospital, cnt::patientcount, index::Int64)
+  hos.mdemandhist.demand385[index]=cnt.count385
+  hos.mdemandhist.demand386[index]=cnt.count386
+  hos.mdemandhist.demand387[index]=cnt.count387
+  hos.mdemandhist.demand388[index]=cnt.count388
+  hos.mdemandhist.demand389[index]=cnt.count389
+  hos.mdemandhist.demand390[index]=cnt.count390
+  hos.mdemandhist.demand391[index]=cnt.count391
+# # OLD
+#   push!(hos.mdemandhist.demand385, cnt.count385)
+#   push!(hos.mdemandhist.demand386, cnt.count386)
+#   push!(hos.mdemandhist.demand387, cnt.count387)
+#   push!(hos.mdemandhist.demand388, cnt.count388)
+#   push!(hos.mdemandhist.demand389, cnt.count389)
+#   push!(hos.mdemandhist.demand390, cnt.count390)
+#   push!(hos.mdemandhist.demand391, cnt.count391)
 end
 
 
@@ -1435,10 +1474,10 @@ end
 Maps Private patient demand out to the state record.
 Note - now cleans out the dictionary from GenPChoices.
 """
-function PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
+function PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState, index::Int64)
   for el in keys(patd)
     if el != 0 # don't map out the outside option.
-      PHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el])
+      PHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el], index)
     end
   end
   PatientsClean(patd)
@@ -1452,10 +1491,10 @@ end
 Maps Medicaid Patient demand out to the state record.
 Note - now cleans out the dictionary from GenMChoices.
 """
-function MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)
+function MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState, index::Int64)
   for el in keys(patd)
       if el != 0 # don't map out the outside option.
-        MHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el])
+        MHistoryAdd(Tex.mkts[Tex.fipsdirectory[el]].collection[el], patd[el], index)
       end
   end
   PatientsClean(patd)
@@ -1557,6 +1596,7 @@ The return of `PatientDraw` is a dictionary of {fid, LBW}.  Take that volume and
 rate.  Then apply the mortality rate to the LBW record.  The elements keys(d) will be fids.
 """
 function AllMortality(d::Dict{Int64, LBW}, Tex::EntireState)
+  #TODO 02/14/2017 - fix this comprehension, which is surely slow.
   outp = Dict(j => 0 for j in keys(d))
   for el in keys(d)
     outp[el] = floor(sum(d[el])*VolMortality(sum(d[el]), Tex.mkts[ Tex.fipsdirectory[el] ].collection[el].level))         # Function calls the level too
@@ -1572,8 +1612,6 @@ This function needs to return a mortality rate for the volume.  That is, take th
 rate as a function of the patient volume.  This data comes from Chung, Phibbs, Boscardin, et al Medical Care 2010
 "The Effect of Neonatal Intensive Care Level and Hospital Volume on Mortality of Very Low Birth Weigh Infants"
 """
-
-
 function VolMortality{T<:Real}(v::T, lev::Int64)
   if lev == 1
     if (v>=0)&(v<10)
@@ -1617,6 +1655,11 @@ end
 """
 `NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )`
 Runs a T period simulation using the whole state and whole collection of patient records.
+
+Testing:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = NewPatients(Texas);
+NewSim(10, Texas, patients)
 """
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
   d1 = NewHospDict(Tex) # creates a dict for GenP below.
@@ -1624,21 +1667,21 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
   arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   for i = 1:T
-    WriteWTP(WTPMap(pats, Tex), Tex)
+    WriteWTP(WTPMap(pats, Tex), Tex, i)
     GenPChoices(pats, d1, arry1) # this now modifies the dictionary in-place
-    PDemandMap(d1, Tex) # and this now cleans the dictionary up at the end, setting all demands to 0.
+    PDemandMap(d1, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
     GenMChoices(pats, d2, arry2) # this now modifies the dictionary in-place
-    MDemandMap(d2, Tex) # and this now cleans the dictionary up at the end, setting all demands to 0.
+    MDemandMap(d2, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
     for el in Tex.ms
       entrant = sample(entrants, WeightVec(entryprobs))
       if entrant != 0
         entloc = NewEntrantLocation(el)                                                        # called on the market
         newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
-                         DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                         DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                         WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                         WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
+                         DemandHistory( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
+                         DemandHistory( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
+                         WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
+                         WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
         push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
         el.collection[newfid] = entr
         for elm in el.config                                                                   # need to add it to the dictionary too:
@@ -1649,11 +1692,11 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
       end
       for elm in el.config
         action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
-        push!( elm.probhistory ,elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]) # Record the prob with which the action was taken.
+        elm.probhistory[i] = elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]     # Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
         elm.level = newchoice                                                                  # Set the level to be the new choice.
-        push!(elm.levelhistory, newchoice)
+        elm.levelhistory[i] = newchoice
       end
     end
     UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
@@ -2055,10 +2098,61 @@ end
 
 
 
-## NB: To clean up - but these aren't debugged or used.
+## NB: To clean up
 
 
+"""
+`function CleanDemandHist(d::DemandHistory)`
+Sets values back to zero.
+"""
+function CleanDemandHistory(d::DemandHistory)
+  for i = 1:length(d.demand385)
+    d.demand385[i] = 0
+    d.demand386[i] = 0
+    d.demand387[i] = 0
+    d.demand388[i] = 0
+    d.demand389[i] = 0
+    d.demand390[i] = 0
+    d.demand391[i] = 0
+  end
+end
 
+"""
+`function CleanLevelHistory(hos::hospital)`
+Cleans out the level history AFTER the first one is written back.
+"""
+function CleanLevelHistory(hos::hospital)
+  for i = 1:length(hos.levelhistory)
+    hos.levelhistory[i] = 0
+  end
+end
+
+"""
+`function CleanWTPHistory`
+Cleans out the WTP history.  Sets all to 0.0 since all are Float64.
+"""
+function CleanWTPHistory(hos::hospital)
+  for i = 1:length(hos.wtphist.w385)
+    hos.wtphist.w385[i] = 0.0
+    hos.wtphist.w386[i] = 0.0
+    hos.wtphist.w387[i] = 0.0
+    hos.wtphist.w388[i] = 0.0
+    hos.wtphist.w389[i] = 0.0
+    hos.wtphist.w390[i] = 0.0
+    hos.wtphist.w391[i] = 0.0
+  end
+end
+
+"""
+`function CleanProbHistory`
+Sets prob history back to 0.0, except for the first entry which is 1.
+"""
+function CleanProbHistory(h::hospital)
+  h.probhistory[1] = 1.0
+  for i = 2:length(h.probhistory)
+    h.probhistory[i] = 0.0
+  end
+end
 
 """
 `HospitalClean(hos::hospital)`
@@ -2068,14 +2162,22 @@ eventually perturbed will probably change.
 """
 function HospitalClean(hos::hospital)
   hos.level = hos.levelhistory[1]                  #Reset level history to initial value
-  hos.levelhistory = [hos.levelhistory[1]]           #Set record length back to zero.
-  hos.mdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
-  hos.pdemandhist = DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()) #empty demand history
-  hos.wtphist = WTP(Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ) #empty WTP
-  hos.chprobability = WeightVec([0])               #TODO: this one is complicated!
-  hos.probhistory = Array{Float64,1}()             #Empty history of choices.
-  hos.neigh = neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0) #TODO: reset this in Restore()
-  hos.hood = Array{Int64,1}()                      #TODO: reset in Restore()
+  CleanLevelHistory(hos)           #Set record length back to zero.
+  CleanDemandHistory(hos.mdemandhist)  #empty demand history
+  CleanDemandHistory(hos.pdemandhist)  #empty demand history
+  CleanWTPHistory(hos)  #empty WTP
+  #hos.chprobability = WeightVec([0]) # Reset this in Restore below when all states and levels have been reset.
+  CleanProbHistory(hos)             #Empty history of choices.
+  hos.neigh.level105 = 0
+  hos.neigh.level205 = 0
+  hos.neigh.level305 = 0
+  hos.neigh.level1515 = 0
+  hos.neigh.level2515 = 0
+  hos.neigh.level3515 = 0
+  hos.neigh.level11525 = 0
+  hos.neigh.level21525 = 0
+  hos.neigh.level31525 = 0
+  hos.hood = Array{Int64,1}()
   hos.perturbed = false                            #For now this is always false.
 end
 
@@ -2099,10 +2201,12 @@ function Restore(Tex::EntireState)
   NeighborFix(Tex) # Restores all neighbors to both hosp.neigh and hosp.hood.
   for mkt in Tex.ms
     for hos in mkt.config
+      # I bet this problem comes from the logitest.jl function.
       HospUpdate(hos, hos.level; update = true) # HospUpdate should now fix these.
     end
   end
-  return Tex
+  # TODO - need to restore the probabilities of action at the initial state too
+
 end
 
 
