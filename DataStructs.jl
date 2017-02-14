@@ -660,7 +660,8 @@ Now the correct distances are being imported as ProjectModule.alldists.
 But in this version do check to make sure that the distance between any fac and zip is
 less than 25 miles.
 Note that this indexes into the Array according to the column zipcol.
-Create the state first with:
+
+Testing:
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists);
@@ -839,7 +840,7 @@ Maps exited facilites to have deterministic utility -999
 Works on private and medicaid patients by setting p_or_m to true or false, respectively.
 Has been written to accomodate hospital FE's when available.
 Allocations come here from accessing the fields.  18-20 per call.
-0.000014 seconds (18 allocations: 384 bytes)
+0.000014 seconds (18 allocations: 384 bytes) -> this is one call in one of the lines below, not the whole thing.  
 """
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
