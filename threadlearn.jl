@@ -28,6 +28,129 @@ Current iteration 3
 =#
 
 
+# Can a type contain a vector of a particular length?
+# Not obviously, but you can construct as l1 = lentype(Array{Float64,1}( LENGTH ))
+
+type lentype
+  elt::Array{Float64,1}
+  leng::Int64
+#TODO - can do this with a constructor maybe?  Check if length == leng?  
+  lentype()
+end
+
+
+
+
+
+
+
+
+
+
+# testing pushing vs. indexing.
+
+
+function pusher(v::Array{Float64,1})
+  for i = 1:5000
+    push!(v, randn())
+  end
+end
+
+function writer(v::Array{Float64,1})
+  for i = 1:length(v)
+    v[i] = randn()
+  end
+end
+
+function res(v::Array{Float64,1})
+  for i = 1:length(v)
+    v[i] = 0.0
+  end
+end
+
+function testp()
+  v1 = Array{Float64,1}()
+  v2 = Array{Float64,1}(5000)
+  pusher(v1)
+  writer(v2)
+  res(v2)
+  for i = 1:10
+    v1 = Array{Float64,1}()
+    println("Push")
+    @time pusher(v1)
+    println("Write")
+    @time writer(v2)
+    res(v2)
+  end
+end
+testp()
+
+
+function test2()
+  v2 = Array{Float64,1}(5000)
+  writer(v2)
+  res(v2)
+  @time for i = 1:50
+    v1 = Array{Float64,1}()
+    pusher(v1)
+  end
+
+  @time for i = 1:50
+    writer(v2)
+    res(v2)
+  end
+end
+test2() # results suggest that indexing is always faster.  And has no allocations, basically.
+
+
+
+# testing immutables:
+
+immutable coeffs
+  a::Float64
+  b::Float64
+  c::Float64
+  d::Float64
+end
+
+type mutb
+  a::Float64
+  b::Float64
+  c::Float64
+  d::Float64
+end
+
+type target
+  f::Float64
+  g::Float64
+  h::Float64
+  i::Float64
+end
+
+m1 = mutb(1.0, 1.0, 1.0, 9.9)
+i1 = coeffs(1.0, 1.0, 1.0, 9.9)
+t1 = target(2.0, 2.0, 2.0, 2.0)
+
+function f1(m::mutb, t::target)
+    return m.a*t.f + m.b*t.g + m.c*t.h + m.d*t.i
+end
+
+function f2(c::coeffs, t::target)
+  return c.a*t.f + c.b*t.g + c.c*t.h + c.d*t.i
+end
+
+f1(m1)
+f2(i1)
+
+for i = 1:10
+  println("type")
+  @time f1(m1)
+  println("immutable")
+  @time f2(i1)
+end
+
+
+
 """
 `function UMap(utils::Array{Float64,1}, fids::Array{Int64,1}, temparr::Array{Float64,1})`
 
