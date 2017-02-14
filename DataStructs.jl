@@ -733,8 +733,11 @@ There is a separate function for the Medicaid patients.
 There is now one zip which patients are in but which is not in pats as constructed above.
 #Testing -
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
-patients = CreateZips(ProjectModule.alldists, Texas)
+patients = CreateZips(ProjectModule.alldists, Texas);
 FillPPatients(patients , ProjectModule.pinsured)
+
+Timing:
+0.012576 seconds (71 allocations: 619.688 KB)
 """
 function FillPPatients(pats::patientcollection, imported::Matrix;
                        ziploc::Int64 = 101,
@@ -743,19 +746,19 @@ function FillPPatients(pats::patientcollection, imported::Matrix;
   notfound = Array{Int64,1}()
   for row in 1:size(imported, 1)
     if !in(imported[row,ziploc], notavail)
-      if imported[row, drgloc ] == 385
+      if imported[row, drgloc] == 385
         pats.zips[imported[row, ziploc]].ppatients.count385 += 1;
-      elseif imported[row, drgloc ] == 386
+      elseif imported[row, drgloc] == 386
         pats.zips[imported[row, ziploc]].ppatients.count386 += 1;
-      elseif imported[row, drgloc ] == 387
+      elseif imported[row, drgloc] == 387
         pats.zips[imported[row, ziploc]].ppatients.count387 += 1;
-      elseif imported[row, drgloc ] == 388
+      elseif imported[row, drgloc] == 388
         pats.zips[imported[row, ziploc]].ppatients.count388 += 1;
-      elseif imported[row, drgloc ] == 389
+      elseif imported[row, drgloc] == 389
         pats.zips[imported[row, ziploc]].ppatients.count389 += 1;
-      elseif imported[row, drgloc ] == 390
+      elseif imported[row, drgloc] == 390
         pats.zips[imported[row, ziploc]].ppatients.count390 += 1;
-      elseif imported[row, drgloc ] == 391
+      elseif imported[row, drgloc] == 391
         pats.zips[imported[row, ziploc]].ppatients.count391 += 1;
       else # not found?
           push!(notfound, pats.zips[imported[row, ziploc]].code);
@@ -771,6 +774,13 @@ end
 `FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
 Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
 There is a separate function for the privately-insured patients.
+Testing:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = CreateZips(ProjectModule.alldists, Texas);
+FillMPatients(patients , ProjectModule.pinsured)
+
+Timing:
+0.012498 seconds (71 allocations: 619.688 KB)
 """
 function FillMPatients(pats::patientcollection, imported::Matrix;
                        ziploc::Int64 = 101,
@@ -779,19 +789,19 @@ function FillMPatients(pats::patientcollection, imported::Matrix;
   notfound = Array{Int64,1}()
   for row in 1:size(imported, 1)
     if !in(imported[row,ziploc], notavail)
-      if imported[row, drgloc ] == 385
+      if imported[row, drgloc] == 385
         pats.zips[imported[row, ziploc]].mpatients.count385 += 1;
-      elseif imported[row, drgloc ] == 386
+      elseif imported[row, drgloc] == 386
         pats.zips[imported[row, ziploc]].mpatients.count386 += 1;
-      elseif imported[row, drgloc ] == 387
+      elseif imported[row, drgloc] == 387
         pats.zips[imported[row, ziploc]].mpatients.count387 += 1;
-      elseif imported[row, drgloc ] == 388
+      elseif imported[row, drgloc] == 388
         pats.zips[imported[row, ziploc]].mpatients.count388 += 1;
-      elseif imported[row, drgloc ] == 389
+      elseif imported[row, drgloc] == 389
         pats.zips[imported[row, ziploc]].mpatients.count389 += 1;
-      elseif imported[row, drgloc ] == 390
+      elseif imported[row, drgloc] == 390
         pats.zips[imported[row, ziploc]].mpatients.count390 += 1;
-      elseif imported[row, drgloc ] == 391
+      elseif imported[row, drgloc] == 391
         pats.zips[imported[row, ziploc]].mpatients.count391 += 1;
       else # not found?
           push!(notfound, pats.zips[imported[row, ziploc]].code);
@@ -804,9 +814,17 @@ end
 
 
 """
-`FillPPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)`
+`FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)`
  Adds the privately insured and medicaid patients to the zip records.
  0.027785 seconds (138 allocations: 1.308 MB)
+
+Testing:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+patients = CreateZips(ProjectModule.alldists, Texas);
+FillPatients(patients , ProjectModule.pinsured, ProjectModule.pmedicaid)
+
+Timing.
+ 0.029902 seconds (138 allocations: 1.308 MB)
 """
 function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)
   FillPPatients(pats, private)
@@ -815,30 +833,11 @@ end
 
 
 """
-`CheckPats(pats::patientcollection)`
-This will compute the total sum of all patients in all zips in the patientcollection.
-This is just to check that all are being added as expected.
-"""
-function CheckPats(pats::patientcollection)
-  count::Int64 = 0
-  for k in keys(pats.zips)
-    count += sum(pats.zips[k].mpatients)
-    count += sum(pats.zips[k].ppatients)
-  end
-  return count
-end
-
-
-
-"""
 `ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)`
 Computes the deterministic component of utility for each hospital in the zip "zipc".
 Maps exited facilites to have deterministic utility -999
 Works on private and medicaid patients by setting p_or_m to true or false, respectively.
 Has been written to accomodate hospital FE's when available.
-#TODO - this doesn't need to return.  Since it takes a zipc, fid argument, we can just have
-# something like.... zipc.mdetutils[fid] = ... OR zipc.pdetutils[fid] = ...
-# how did this end up changing the values completely?  Just by removing the return statement?
 """
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
