@@ -90,3 +90,18 @@ function ZeroFind(mat::Array{Float64,2})
   end
   return zers
 end
+
+
+"""
+`CheckPats(pats::patientcollection)`
+This will compute the total sum of all patients in all zips in the patientcollection.
+This is just to check that all are being added as expected.
+"""
+function CheckPats(pats::patientcollection)
+  count::Int64 = 0
+  for k in keys(pats.zips)
+    count += sum(pats.zips[k].mpatients)
+    count += sum(pats.zips[k].ppatients)
+  end
+  return count
+end
