@@ -838,26 +838,28 @@ Computes the deterministic component of utility for each hospital in the zip "zi
 Maps exited facilites to have deterministic utility -999
 Works on private and medicaid patients by setting p_or_m to true or false, respectively.
 Has been written to accomodate hospital FE's when available.
+Allocations come here from accessing the fields.  18-20 per call.
+0.000014 seconds (18 allocations: 384 bytes)
 """
 function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
   if p_or_m #if TRUE private
     if zipc.facilities[fid].level == 1
-      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)#+zipc.pcoeffs.closest*(0) + zipc.fes[fid]
     elseif zipc.facilities[fid].level == 2
-      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inter+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)#+zipc.pcoeffs.closest*(0) + zipc.fes[fid]
     elseif zipc.facilities[fid].level == 3
-      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.pdetutils[fid] = zipc.pcoeffs.distance*dist+zipc.pcoeffs.distsq*(dist^2)+zipc.pcoeffs.inten+zipc.pcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)#+zipc.pcoeffs.closest*(0) + zipc.fes[fid]
     else  # =-999
       zipc.pdetutils[fid] = -999.0 # can't choose a facility which has exited - set det utility very low.
     end
   else
     if zipc.facilities[fid].level == 1
-      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)#+zipc.pcoeffs.closest*(0) + zipc.fes[fid]
     elseif zipc.facilities[fid].level == 2
-      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inter+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)#+zipc.pcoeffs.closest*(0) + zipc.fes[fid]
     elseif zipc.facilities[fid].level == 3
-      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)+zipc.pcoeffs.closest*(0) #+ zipc.fes[fid]
+      zipc.mdetutils[fid] = zipc.mcoeffs.distance*dist+zipc.mcoeffs.distsq*(dist^2)+zipc.mcoeffs.inten+zipc.mcoeffs.distbed*(dist*zipc.facilities[fid].bedcount/100)#+zipc.pcoeffs.closest*(0) + zipc.fes[fid]
     else  # =-999
       zipc.mdetutils[fid] = -999.0
     end
@@ -888,12 +890,17 @@ end
 
 """
 `NewPatients(Tex::EntireState; dists = ProjectModule.alldists, phrloc = 103, pins = pinsured, pmed = pmedicaid)`
-this creates the whole collection of patients.  0.7 seconds.  Pretty slow.
+this creates the whole collection of patients.
 It must take an existing EntireState record to link the hospitals.
 
 #TODO - there are patients who don't get added.  Their zips are not in the list but are in the inpatient discharge.
+
+Testing:
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 patients = NewPatients(Texas);
+
+Timing:
+0.248355 seconds (2.75 M allocations: 54.025 MB)
 """
 function NewPatients(Tex::EntireState;
                      dists::Array{Any,2} = ProjectModule.alldists,
