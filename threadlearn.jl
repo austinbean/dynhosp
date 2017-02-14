@@ -30,12 +30,13 @@ Current iteration 3
 
 # Can a type contain a vector of a particular length?
 # Not obviously, but you can construct as l1 = lentype(Array{Float64,1}( LENGTH ))
+# so the parameter doesn't need to be part of the type.
 
-type lentype
+type lentype2
   elt::Array{Float64,1}
   leng::Int64
-#TODO - can do this with a constructor maybe?  Check if length == leng?  
-  lentype()
+
+  lentype2(elt, leng) = length(elt)==leng ? error("die") : new(elt, leng)
 end
 
 
