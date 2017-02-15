@@ -46,16 +46,14 @@ end
  fipscodes containing hospitals with mostly empty field values.  Arrays will be length sp.
 
  Testing:
- #NB: Make It Needs a state argument.
 
- Tex = MakeIt(ProjectModule.fips);
- TXSetup(Tex, ProjectModule.alldists);
-OR:
- Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+ Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+ MakeIt(Tex, ProjectModule.fips);
+ TXSetup(Tex, ProjectModule.alldists, 12);
 
 """
 function TXSetup(Tex::EntireState,
-                 data::Matrix
+                 data::Matrix,
                  sp::Int64;
                  fidcol::Int64 = 4,
                  latcol::Int64 = 21,
@@ -85,8 +83,8 @@ function TXSetup(Tex::EntireState,
                   fips,
                   level, # level
                   Array{Int64,1}(sp), #level history
-                  DemandHistory( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
-                  DemandHistory( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
+                  DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #private demand history
+                  DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #medicaid demand history
                   WTP( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
                   WeightVec([0.0]), #choice probs
                   Array{Float64,1}(sp), #prob history
@@ -113,8 +111,9 @@ This is necessary in TXSetup to make sure that we only add each hospital to the 
 Testing:
   Setup -
   #NB: Make It Needs a state argument.
-
-Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+  Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+  MakeIt(Tex, ProjectModule.fips);
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
   Testing:
 FindFids(Tex.mkts[48453])
 FindFids(Tex.mkts[48201])
@@ -133,8 +132,9 @@ Takes a newly created state and fixes all of the choice probabilities.
 
 Testing:
 #NB: Make It Needs a state argument.
-
-Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+MakeIt(Tex, ProjectModule.fips);
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
 InitChoice(Tex)
 
 #NB - InitChoice is already called in Tex.  Test with:
@@ -210,17 +210,17 @@ end
 
 
 """
-`CreateEmpty(fi::Vector, dat::Matrix)`
+`CreateEmpty(fi::Vector, dat::Matrix,sp::Int64)`
  This creates an empty entire state record for the perturbed simulation.
 
 Testing:
-Tex = CreateEmpty(ProjectModule.fips, ProjectModule.alldists)
+Tex = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50)
 
 """
-function CreateEmpty(fi::Vector, dat::Matrix)
+function CreateEmpty(fi::Vector, dat::Matrix, sp::Int64)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   MakeIt(Tex, fi)
-  TXSetup(Tex, dat)
+  TXSetup(Tex, dat, sp)
   return Tex
 end
 
@@ -344,7 +344,9 @@ the counterfactual simulation.
 
 Testing this:
 #NB: Make It Needs a state argument.
-Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
+Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+MakeIt(Tex, ProjectModule.fips);
 NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 
@@ -393,7 +395,9 @@ It removes the record of entrant FROM the record of elm.  Also not symmetric - r
 Testing this:
 #NB: Make It Needs a state argument.
 
-Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists);
+Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
+Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+MakeIt(Tex, ProjectModule.fips);
 NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 
@@ -605,6 +609,14 @@ end
 `HospUpdate(hosp::hospital, choice::Int; update = false)`
 Takes a hospital record and updates the probabilities of the choices.
 
+Testing:
+#Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
+Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+MakeIt(Tex, ProjectModule.fips);
+TXSetup(Tex, ProjectModule.alldists, 50) -> INT64
+patients = NewPatients(Tex);
+NewSim(10, Tex, patients);
+
 HospUpdate(Texas.mkts[48453].config[1], 1; true)
 ------ BoundsError --------------------- Stacktrace (most recent call last)
 
@@ -755,7 +767,7 @@ Takes the imported matrix of *privately-insured* patients and records the number
 There is a separate function for the Medicaid patients.
 There is now one zip which patients are in but which is not in pats as constructed above.
 #Testing -
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = CreateZips(ProjectModule.alldists, Texas);
 FillPPatients(patients , ProjectModule.pinsured)
 
@@ -798,7 +810,7 @@ end
 Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
 There is a separate function for the privately-insured patients.
 Testing:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = CreateZips(ProjectModule.alldists, Texas);
 FillMPatients(patients , ProjectModule.pinsured)
 
@@ -842,7 +854,7 @@ end
  0.027785 seconds (138 allocations: 1.308 MB)
 
 Testing:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = CreateZips(ProjectModule.alldists, Texas);
 FillPatients(patients , ProjectModule.pinsured, ProjectModule.pmedicaid)
 
@@ -919,7 +931,7 @@ It must take an existing EntireState record to link the hospitals.
 #TODO - there are patients who don't get added.  Their zips are not in the list but are in the inpatient discharge.
 
 Testing:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 
 Timing:
@@ -944,7 +956,7 @@ What it does:
 - For patients in the *data* - count the number at each zip code.
 - For patients generated by NewPatients(), IF the number of patients at that zip is zero, but the number in the data isn't, prints a warning.
 Call it:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 NewPatientsTest(Texas)
 
 # Results - a bunch of missing zips.  Try to load and find them in that third source of zip codes.
@@ -1253,7 +1265,7 @@ and returns two vectors.
 
 
 #Testing on Choice Data:
-#Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+#Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 #patients = NewPatients(Texas);
 #DV(patients.zips[78702].pdetutils)
 """
@@ -1301,7 +1313,7 @@ end
 `function ChoiceVector(pd::Dict{Int64, Float64},dt::Dict{Int64, patientcount},ch::Array{Int64,1},x::patientcount)`
 This should operate in-place on the dictionary dt.
 The dictionary has an entry for every hospital.
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 dic1 = NewHospDict(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
@@ -1666,7 +1678,7 @@ end
 Runs a T period simulation using the whole state and whole collection of patient records.
 
 Testing:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 NewSim(10, Texas, patients)
 """
@@ -1687,8 +1699,8 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
         entloc = NewEntrantLocation(el)                                                        # called on the market
         newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
         entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
-                         DemandHistory( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                         DemandHistory( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
+                         DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
+                         DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                          WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
                          WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
         push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
@@ -1736,13 +1748,14 @@ Runs a perturbed simulation - for each market, while there are hospitals I have 
 The results are stored in EmptyState, which is an EntireState record instance.
 """
 function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
-  EmptyState = CreateEmpty(fi, di);                                                                     # This is just a container of EntireState type - does not need linking.
+  EmptyState = CreateEmpty(fi, di, T);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
   arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
+#TODO 02/18/2017 - don't create empty.  Clean out old one.
     Tex = CreateEmpty(fi, di)                                                                           # NB: New state every time - this is kind of inefficient.
     d1 = NewHospDict(Tex) # creates a dict for GenP below.
     d2 = NewHospDict(Tex) # creates a dict for GenM below
@@ -2092,7 +2105,7 @@ OuterSim(3)
 function OuterSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
   outp = @sync @parallel (+) for j = 1:MCcount
     println("Current iteration ", j)
-    TexasEq = CreateEmpty(fi, di)
+    TexasEq = CreateEmpty(fi, di, T1)
     #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
     eq_patients = NewPatients(TexasEq)                                                                   # Separate patients - these linked to Eq Entire State.
     #neq_patients = NewPatients(TexasNeq)                                                                # Separate patients - these linked to Neq Entire State.
