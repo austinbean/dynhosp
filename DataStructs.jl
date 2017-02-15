@@ -604,6 +604,15 @@ end
 """
 `HospUpdate(hosp::hospital, choice::Int; update = false)`
 Takes a hospital record and updates the probabilities of the choices.
+
+HospUpdate(Texas.mkts[48453].config[1], 1; true)
+------ BoundsError --------------------- Stacktrace (most recent call last)
+
+ [1] — anonymous at <missing>:?
+
+ [2] — indexed_next; at tuple.jl:35 [inlined]
+
+BoundsError
 """
 function HospUpdate{T<:Fac}(hosp::T, choice::Int; update = false)
   levl = (-1, -1)
@@ -2201,7 +2210,7 @@ function Restore(Tex::EntireState)
   NeighborFix(Tex) # Restores all neighbors to both hosp.neigh and hosp.hood.
   for mkt in Tex.ms
     for hos in mkt.config
-      # I bet this problem comes from the logitest.jl function.
+      #FIXME - this is broken for some reason.   I bet this problem comes from the logitest.jl function.
       HospUpdate(hos, hos.level; update = true) # HospUpdate should now fix these.
     end
   end
