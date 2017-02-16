@@ -355,9 +355,9 @@ NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 function NeighborAppend{T<:Fac}(elm::T, entrant::T)
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
-    if (dist < 25)&(entrant.level != -999)
+    if (dist < 25.0)&(entrant.level != -999)
       push!(elm.hood, entrant.fid)
-      if dist<5
+      if dist<5.0
         if entrant.level == 1
           elm.neigh.level105 += 1
         elseif entrant.level == 2
@@ -365,7 +365,7 @@ function NeighborAppend{T<:Fac}(elm::T, entrant::T)
         elseif entrant.level == 3
           elm.neigh.level305 += 1
         end
-      elseif (dist>5)&(dist<15)
+      elseif (dist>5.0)&(dist<15.0)
         if entrant.level == 1
           elm.neigh.level1515 += 1
         elseif entrant.level == 2
@@ -373,7 +373,7 @@ function NeighborAppend{T<:Fac}(elm::T, entrant::T)
         elseif entrant.level == 3
           elm.neigh.level3515 += 1
         end
-      elseif (dist>15)
+      elseif (dist>15.0)
         if entrant.level == 1
           elm.neigh.level11525 += 1
         elseif entrant.level == 2
@@ -406,9 +406,9 @@ NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 function NeighborRemove{T<:Fac}(elm::T, entrant::T)
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
-    if dist < 25
+    if dist < 25.0
       deleteat!(elm.hood, findin(elm.hood, entrant.fid))
-      if dist<5
+      if dist<5.0
         if entrant.level == 1
           elm.neigh.level105 = max(elm.neigh.level105 -1, 0)
         elseif entrant.level == 2
@@ -416,7 +416,7 @@ function NeighborRemove{T<:Fac}(elm::T, entrant::T)
         elseif entrant.level == 3
           elm.neigh.level305 = max(elm.neigh.level305 -1, 0)
         end
-      elseif (dist>5)&(dist<15)
+      elseif (dist>5.0)&(dist<15.0)
         if entrant.level == 1
           elm.neigh.level1515 = max(elm.neigh.level1515 -1,0)
         elseif entrant.level == 2
@@ -424,7 +424,7 @@ function NeighborRemove{T<:Fac}(elm::T, entrant::T)
         elseif entrant.level == 3
           elm.neigh.level3515 = max(elm.neigh.level3515 -1,0)
         end
-      elseif (dist>15)
+      elseif (dist>15.0)
         if entrant.level == 1
           elm.neigh.level11525= max(elm.neigh.level11525 - 1,0)
         elseif entrant.level == 2
@@ -474,11 +474,11 @@ Compare to StrictCountyNeighborFix which respects county boundaries.
 
 """
 function NeighborFix(state::EntireState)
-  for mk1 in state.ms
-    for mk2 in state.ms
-      for h1 in mk1.config
-        for h2 in mk2.config
-          if (h1.fid != h2.fid)&&(distance(h1.lat, h1.long, h2.lat, h2.long) < 25.0)
+  for mk1 in state.ms #over market fips
+    for h1 in mk1.config #hospitals in the market
+      for mk2 in state.ms # now markets in the state again.
+        for h2 in mk2.config # hospitals in the market.
+          if (h1.fid != h2.fid)&&(distance(h1.lat, h1.long, h2.lat, h2.long) < 25.0) # if they are closer than 25 AND not the same facility.
             NeighborAppend(h1, h2)
             NeighborAppend(h2, h1)
           end
@@ -487,33 +487,7 @@ function NeighborFix(state::EntireState)
     end
   end
 end
- #=
- #variant
-function NeighborFix(state::EntireState)
-  for mkt1 in state.ms
-    for h1 in mkt1.config
-      for h2 in mkt1.config
-        if h1.fid != h2.fid
-          NeighborAppend(h1, h2)
-        end
-      end
-    end
-    # Now do all other counties in the state.
-    for mkt2 in state.ms
-      if mkt1.fipscode != mkt2.fipscode
-        for hos1 in mkt1.config
-          for hos2 in mkt2.config
-            if distance(hos1.lat, hos1.long, hos2.lat, hos2.long) < 25
-              NeighborAppend(hos1, hos2)
-              NeighborAppend(hos2, hos1) # The function is not symmetric, so the second call is important.
-            end
-          end
-        end
-      end
-    end
-  end
-end
-  =#
+
 
 
 
@@ -599,7 +573,7 @@ function MarketCleaner(mkt::Market)
     # Remove the hospital from the market array
     deleteat!(mkt.config, FidFindFirst(mkt, el)) # NB: HospFindFirst takes *market* as argument, but deleteat! takes *array*, i.e, market.config
     # Remove the hospital from the market dictionary
-    pop!(mkt.collection, el)
+    delete!(mkt.collection, el)
   end
 end
 
@@ -619,13 +593,6 @@ patients = NewPatients(Tex);
 NewSim(10, Tex, patients);
 
 HospUpdate(Texas.mkts[48453].config[1], 1; true)
------- BoundsError --------------------- Stacktrace (most recent call last)
-
- [1] — anonymous at <missing>:?
-
- [2] — indexed_next; at tuple.jl:35 [inlined]
-
-BoundsError
 """
 function HospUpdate{T<:ProjectModule.Fac}(hosp::T, choice::Int64; update = false)
  levl = (-1, -1)
@@ -1756,7 +1723,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
-#TODO 02/18/2017 - don't create empty.  Clean out old one.  Use RESTORE.  
+#TODO 02/18/2017 - don't create empty.  Clean out old one.  Use RESTORE.
     Tex = CreateEmpty(fi, di)                                                                           # NB: New state every time - this is kind of inefficient.
     d1 = NewHospDict(Tex) # creates a dict for GenP below.
     d2 = NewHospDict(Tex) # creates a dict for GenM below
