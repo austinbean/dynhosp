@@ -592,7 +592,7 @@ TXSetup(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 NewSim(10, Tex, patients);
 
-HospUpdate(Texas.mkts[48453].config[1], 1; true)
+HospUpdate(Texas.mkts[48453].config[1], 1; update = true)
 """
 function HospUpdate{T<:ProjectModule.Fac}(hosp::T, choice::Int64; update = false)
  levl = (-1, -1)
@@ -1721,10 +1721,10 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
   counter = 1
   arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
+  Tex = CreateEmpty(fi, di, T)                                                                           # NB: New state every time - this is kind of inefficient.
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
-#TODO 02/18/2017 - don't create empty.  Clean out old one.  Use RESTORE.
-    Tex = CreateEmpty(fi, di)                                                                           # NB: New state every time - this is kind of inefficient.
+    Restore(Tex) #cleans out all recorded data.
     d1 = NewHospDict(Tex) # creates a dict for GenP below.
     d2 = NewHospDict(Tex) # creates a dict for GenM below
     pats = NewPatients(Tex);                                                                            # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
@@ -1744,22 +1744,22 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
     end
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
     for i = 1:T
-      WriteWTP(WTPMap(pats, Tex), Tex)
+      WriteWTP(WTPMap(pats, Tex), Tex, i)
       GenPChoices(pats, d1, arry1) # this now modifies the dictionary in-place
-      PDemandMap(d1, Tex) # and this now cleans the dictionary up at the end, setting all demands to 0.
+      PDemandMap(d1, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
       GenMChoices(pats, d2, arry2) # this now modifies the dictionary in-place
-      MDemandMap(d2, Tex) # and this now cleans the dictionary up at the end, setting all demands to 0.
+      MDemandMap(d2, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
           entrant = sample(entrants, WeightVec(entryprobs))
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
             newfid = -floor(rand()*1e6)-1000000                                                        # all entrant fids negative to facilitate their removal.
-            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant),
-                             DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                             DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                             WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
-                             WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
+            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
+                             DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
+                             DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
+                             WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
+                             WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
                              push!(el.config, entr)                                                   # need to create a new record for this hospital in the market
              el.collection[newfid] = entr                                                             # need to add it to the dictionary too:
              for elm in el.config
