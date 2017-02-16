@@ -340,23 +340,6 @@ module ProjectModule
   export DemandCheck
   export ResultsOut
   export OuterSim
-  export EntireState
-  export chospital
-  export LBW
-  export patientcollection
-  export zip
-  export coefficients
-  export patientcount
-  export EntireState
-  export Market
-  export hospital
-  export neighbors
-  export DemandHistory
-  export WTP
-  export counterhistory
-  export mkthistory
-  export simrun
-  export hyrec
   export AddOO
   export FindFids
   export InitChoice
@@ -374,7 +357,28 @@ module ProjectModule
   export CleanProbHistory
   export CleanWTPHistory
   export CleanDemandHistory
-  export RemoveEntrant 
+  export RemoveEntrant
+
+  # Export types 
+  export EntireState
+  export chospital
+  export LBW
+  export patientcollection
+  export zip
+  export coefficients
+  export patientcount
+  export EntireState
+  export Market
+  export hospital
+  export neighbors
+  export DemandHistory
+  export initial
+  export WTP
+  export counterhistory
+  export mkthistory
+  export simrun
+  export hyrec
+
   println("Loaded Module")
 
 
