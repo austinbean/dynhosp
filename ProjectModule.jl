@@ -94,6 +94,10 @@ module ProjectModule
 
   abstract Fac
 
+  immutable initial
+    level::Int64
+  end
+
 
   type hospital <: Fac
     fid::Int64
@@ -102,6 +106,7 @@ module ProjectModule
     name::AbstractString
     fipscode::Int64
     level::Int64
+    init::initial # initial level is immutable.
     levelhistory::Array{Int64,1}
     pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
     mdemandhist::DemandHistory
@@ -364,7 +369,12 @@ module ProjectModule
   export PatientsClean
   export ChoiceVector
   export UseThreads
-  export ResVec 
+  export ResVec
+  export CleanLevelHistory
+  export CleanProbHistory
+  export CleanWTPHistory
+  export CleanDemandHistory
+  export RemoveEntrant 
   println("Loaded Module")
 
 
