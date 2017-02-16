@@ -82,6 +82,7 @@ function TXSetup(Tex::EntireState,
                   data[i, namecol], #name
                   fips,
                   level, # level
+                  initial(level) , #initial level - immutable.
                   Array{Int64,1}(sp), #level history
                   DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #private demand history
                   DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #medicaid demand history
@@ -613,7 +614,7 @@ Testing:
 #Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
 Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
 MakeIt(Tex, ProjectModule.fips);
-TXSetup(Tex, ProjectModule.alldists, 50) -> INT64
+TXSetup(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 NewSim(10, Tex, patients);
 
@@ -626,9 +627,9 @@ HospUpdate(Texas.mkts[48453].config[1], 1; true)
 
 BoundsError
 """
-function HospUpdate{T<:Fac}(hosp::T, choice::Int; update = false)
-  levl = (-1, -1)
- if (hosp.level!=choice)|update # want to be able to force this to rerun when the data is cleaned again.
+function HospUpdate{T<:ProjectModule.Fac}(hosp::T, choice::Int64; update = false)
+ levl = (-1, -1)
+ if (hosp.level!=choice)||update # want to be able to force this to rerun when the data is cleaned again.
    if choice != -999
      if choice == 1
        levl = (0,0)
@@ -639,13 +640,12 @@ function HospUpdate{T<:Fac}(hosp::T, choice::Int; update = false)
      end
      levels = MktSize(hosp.neigh)
      prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
-  #   println(prs)
      return WeightVec(vec(prs))
    else # choice = -999
      return WeightVec([1.0]) #TODO: one option, no choices ??  Might need four options [1.0 1.0 1.0 1.0]
    end
- else
-   return hosp.chprobability
+  else
+     return hosp.chprobability
   end
 end
 
@@ -1680,7 +1680,7 @@ Runs a T period simulation using the whole state and whole collection of patient
 Testing:
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
-NewSim(10, Texas, patients)
+NewSim(10, Texas, patients);
 """
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
   d1 = NewHospDict(Tex) # creates a dict for GenP below.
@@ -1698,11 +1698,12 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
       if entrant != 0
         entloc = NewEntrantLocation(el)                                                        # called on the market
         newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
-        entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
+        entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
                          DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                          DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                          WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
                          WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
+        entr.levelhistory[i] = entrant
         push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
         el.collection[newfid] = entr
         for elm in el.config                                                                   # need to add it to the dictionary too:
@@ -1755,7 +1756,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
-#TODO 02/18/2017 - don't create empty.  Clean out old one.
+#TODO 02/18/2017 - don't create empty.  Clean out old one.  Use RESTORE.  
     Tex = CreateEmpty(fi, di)                                                                           # NB: New state every time - this is kind of inefficient.
     d1 = NewHospDict(Tex) # creates a dict for GenP below.
     d2 = NewHospDict(Tex) # creates a dict for GenM below
@@ -1787,7 +1788,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
             newfid = -floor(rand()*1e6)-1000000                                                        # all entrant fids negative to facilitate their removal.
-            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, [entrant],
+            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant),
                              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                              DemandHistory( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
                              WTP( Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(),  Array{Float64,1}(), Array{Float64,1}() ),
@@ -2144,7 +2145,8 @@ end
 Cleans out the level history AFTER the first one is written back.
 """
 function CleanLevelHistory(hos::hospital)
-  for i = 1:length(hos.levelhistory)
+  hos.levelhistory[1] = hos.init.level
+  for i = 2:length(hos.levelhistory)
     hos.levelhistory[i] = 0
   end
 end
@@ -2183,7 +2185,7 @@ some fields don't change: fid, lat, long, name, fips, bedcount,
 eventually perturbed will probably change.
 """
 function HospitalClean(hos::hospital)
-  hos.level = hos.levelhistory[1]                  #Reset level history to initial value
+  hos.level = hos.init.level                 #Reset level history to initial value
   CleanLevelHistory(hos)           #Set record length back to zero.
   CleanDemandHistory(hos.mdemandhist)  #empty demand history
   CleanDemandHistory(hos.pdemandhist)  #empty demand history
@@ -2204,6 +2206,28 @@ function HospitalClean(hos::hospital)
 end
 
 
+"""
+`RemoveEntrant(Tex::EntireState)`
+Finds entrants and removes them.
+Must go over ALL markets.
+Remove from collection and config.
+"""
+function RemoveEntrant(Tex::EntireState)
+  for k1 in keys(Tex.mkts)
+    ents = Array{Int64,1}() # this allocates a little.
+    for k2 in keys(Tex.mkts[k1].collection)
+      if k2 < 0
+        push!(ents, k2)
+      end
+    end
+    if length(ents)>0 # nonzero length means more than one entrant.
+      for el in ents
+        delete!(Tex.mkts[k1].collection, el)
+        deleteat!(Tex.mkts[k1].config, FidFindFirst(Tex.mkts[k1], el))
+      end
+    end
+  end
+end
 
 
 """
@@ -2219,16 +2243,13 @@ function Restore(Tex::EntireState)
       HospitalClean(hos)
     end
   end
-#TODO: this isn't quite working yet.  But it isn't crucial at the moment.
+  RemoveEntrant(Tex)
   NeighborFix(Tex) # Restores all neighbors to both hosp.neigh and hosp.hood.
   for mkt in Tex.ms
     for hos in mkt.config
-      #FIXME - this is broken for some reason.   I bet this problem comes from the logitest.jl function.
       HospUpdate(hos, hos.level; update = true) # HospUpdate should now fix these.
     end
   end
-  # TODO - need to restore the probabilities of action at the initial state too
-
 end
 
 
