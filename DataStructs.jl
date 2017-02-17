@@ -1709,10 +1709,42 @@ end
 
 """
 `function RecordCopy{T<:ProjectModule.Fac}(ES::EntireState, h::T)`
+This function will copy all the elements of the perturbed hospital
+to the output record.
 """
-function RecordCopy(ES::EntireState, h::T)
-
-
+function RecordCopy{T<:ProjectModule.Fac}(ES::EntireState, h::T)
+  fips = ES.fipsdirectory[h.fid]
+  # To copy: probhistory, WTP history, levelhistory, pdemandhist, mdemandhist,
+  for i = 1:length(h.probhistory)
+    # probhistory
+    ES.mkts[fips].collection[h.fid].probhistory[i] = h.probhistory[i]
+    # WTP history
+    ES.mkts[fips].collection[h.fid].wtphist.w385[i] = h.wtphist.w385[i]
+    ES.mkts[fips].collection[h.fid].wtphist.w386[i] = h.wtphist.w386[i]
+    ES.mkts[fips].collection[h.fid].wtphist.w387[i] = h.wtphist.w387[i]
+    ES.mkts[fips].collection[h.fid].wtphist.w388[i] = h.wtphist.w388[i]
+    ES.mkts[fips].collection[h.fid].wtphist.w389[i] = h.wtphist.w389[i]
+    ES.mkts[fips].collection[h.fid].wtphist.w390[i] = h.wtphist.w390[i]
+    ES.mkts[fips].collection[h.fid].wtphist.w391[i] = h.wtphist.w391[i]
+    # levelhistory
+    ES.mkts[fips].collection[h.fid].levelhistory[i] = h.levelhistory[i]
+    # pdemandhist
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand385[i] = h.pdemandhist.demand385[i]
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand386[i] = h.pdemandhist.demand386[i]
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand387[i] = h.pdemandhist.demand387[i]
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand388[i] = h.pdemandhist.demand388[i]
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand389[i] = h.pdemandhist.demand389[i]
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand390[i] = h.pdemandhist.demand390[i]
+    ES.mkts[fips].collection[h.fid].pdemandhist.demand391[i] = h.pdemandhist.demand391[i]
+    #mdemandhist
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand385[i] = h.mdemandhist.demand385[i]
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand386[i] = h.mdemandhist.demand386[i]
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand387[i] = h.mdemandhist.demand387[i]
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand388[i] = h.mdemandhist.demand388[i]
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand389[i] = h.mdemandhist.demand389[i]
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand390[i] = h.mdemandhist.demand390[i]
+    ES.mkts[fips].collection[h.fid].mdemandhist.demand391[i] = h.mdemandhist.demand391[i]
+  end
 end
 
 
