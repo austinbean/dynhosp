@@ -1707,6 +1707,13 @@ function Termination(EmTex::EntireState)
   return isdone
 end
 
+"""
+`function RecordCopy{T<:ProjectModule.Fac}(ES::EntireState, h::T)`
+"""
+function RecordCopy(ES::EntireState, h::T)
+
+
+end
 
 
 
@@ -1771,18 +1778,18 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
           for elm in el.config
              if !elm.perturbed                                                                        # not perturbed, i.e., "perturbed" == false
                action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
-               push!(elm.probhistory, elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ])  # Record the prob with which the action was taken.
+               elm.probhistory[i]= elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]  # Record the prob with which the action was taken.
                newchoice = LevelFunction(elm, action)                                                 # What is the new level?
                elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
                elm.level = newchoice                                                                  # Set the level to be the new choice.
-               push!(elm.levelhistory, newchoice)
+               elm.levelhistory[i]=newchoice
              else # perturbed.
                action = sample( ChoicesAvailable(elm), HospPerturb(elm, elm.level,0.05))
-               push!(elm.probhistory, elm.chprobability[findin(ChoicesAvailable(elm), action)[1]])
+               elm.probhistory[i]=elm.chprobability[findin(ChoicesAvailable(elm), action)[1]]
                newchoice = LevelFunction(elm, action)
                elm.chprobability = HospUpdate(elm, newchoice)
                elm.level = newchoice
-               push!(elm.levelhistory, newchoice)
+               elm.levelhistory[i]=newchoice
              end
           end
         end
@@ -1790,8 +1797,8 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     fipst = 0; fidt = 0;
-    #TODO 02/16/2017: the results are being appended to the EmptyState record, rather than written.
     for fips in pmarkets                                                                              # a collection of fips codes
+      # TODO 02/16/2017 - here I think I need to copy element by element.  Write a function.
       EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
       for num in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
