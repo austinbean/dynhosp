@@ -358,8 +358,9 @@ module ProjectModule
   export CleanWTPHistory
   export CleanDemandHistory
   export RemoveEntrant
+  export RecordCopy
 
-  # Export types 
+  # Export types
   export EntireState
   export chospital
   export LBW
