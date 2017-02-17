@@ -1714,7 +1714,6 @@ to the output record.
 """
 function RecordCopy{T<:ProjectModule.Fac}(ES::EntireState, h::T)
   fips = ES.fipsdirectory[h.fid]
-  # To copy: probhistory, WTP history, levelhistory, pdemandhist, mdemandhist,
   for i = 1:length(h.probhistory)
     # probhistory
     ES.mkts[fips].collection[h.fid].probhistory[i] = h.probhistory[i]
@@ -1784,10 +1783,10 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
     for i = 1:T
       WriteWTP(WTPMap(pats, Tex), Tex, i)
-      GenPChoices(pats, d1, arry1) # this now modifies the dictionary in-place
-      PDemandMap(d1, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
-      GenMChoices(pats, d2, arry2) # this now modifies the dictionary in-place
-      MDemandMap(d2, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
+      GenPChoices(pats, d1, arry1)    # this now modifies the dictionary in-place
+      PDemandMap(d1, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
+      GenMChoices(pats, d2, arry2)    # this now modifies the dictionary in-place
+      MDemandMap(d2, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
           entrant = sample(entrants, WeightVec(entryprobs))
@@ -1828,14 +1827,13 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
       end
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
-    fipst = 0; fidt = 0;
     for fips in pmarkets                                                                              # a collection of fips codes
-      # TODO 02/16/2017 - here I think I need to copy element by element.  Write a function.
-      EmptyState.mkts[fips].collection[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = Tex.mkts[fips].collection[currentfac[fips]]
+      RecordCopy(EmptyState, Tex.mkts[fips].collection[currentfac[fips]])                             # copies the record 
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
+        #The next piece is not strictly necessary.  The config and collection point to the same underlying objects.  
       for num in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
         if EmptyState.mkts[fips].config[num].fid == Tex.mkts[fips].collection[currentfac[fips]].fid   # check for equality in the fids
-          EmptyState.mkts[fips].config[num] = Tex.mkts[fips].collection[currentfac[fips]]
+          RecordCopy(EmptyState, Tex.mkts[fips].collection[currentfac[fips]]) # here I am reassigning.  
         end
       end
     end
