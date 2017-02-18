@@ -1789,6 +1789,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
       MDemandMap(d2, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
+            #TODO 02/18/2017 - this can be rewritten as a function.  
           entrant = sample(entrants, WeightVec(entryprobs))
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
