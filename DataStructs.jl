@@ -177,6 +177,10 @@ function ExpandDict(Tex::EntireState)
   for el in Tex.ms
     # TODO 02/14/2017 - these comprehensions are surely slow.
     el.collection = Dict(i.fid => i for i in el.config)
+    # for i in el.config 
+    #     el.collection[i.fid] = i
+    # end 
+
     el.noneqrecord = Dict(i.fid => false for i in el.config)
     # I would like to append to each hospital a list of the others in the market, if it isn't already there.
     for hosp in el.config
@@ -670,21 +674,22 @@ zipcheck = CreateZips(ProjectModule.alldists, Tex);
 
 """
 function CreateZips(alld::Array,
-                     Tex::EntireState;
-                     zipcol::Int64 = 1,
-                     fidcol::Int64 = 4,
-                     bedcol::Int64 = 10,
-                     latcol::Int64 = 2,
-                     longcol::Int64 = 3,
-                     dat::Array{Any,2} = ProjectModule.alldists,
-                     datfidloc::Int64 = 4,
-                     bedmean::Float64 = round(mean(alld[:,bedcol])))
+                    Tex::EntireState;
+                    zipcol::Int64 = 1,
+                    fidcol::Int64 = 4,
+                    bedcol::Int64 = 10,
+                    latcol::Int64 = 2,
+                    longcol::Int64 = 3,
+                    dat::Array{Any,2} = ProjectModule.alldists,
+                    datfidloc::Int64 = 4,
+                    bedmean::Float64 = round(mean(alld[:,bedcol])))
   ppatients::patientcollection = patientcollection( Dict{Int64, zip}() )
   # unfound = Array{Int64,1}()
   # found = Array{Int64,1}()
   # names = Array{AbstractString, 1}()
   fids = unique(dat[:,fidcol])
   matched::Int64 = 0
+  # TODO - this comprehension is slow.  
   ppatients.zips = Dict(k=> zip(k, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
                            Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
                            0.0, 0.0,
@@ -714,6 +719,9 @@ function CreateZips(alld::Array,
   end
   return  ppatients   #, unique(unfound), unique(names), unique(found)
 end
+
+
+
 
 """
 `AddOO(patients::patientcollection)`
@@ -1128,17 +1136,22 @@ end
 `CalcWTP(zipc::zip)`
 Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
 Output is sent to WTPMap.
-#NB - adding an outside option here.
+
+Testing:
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+
 """
 function CalcWTP(zipc::zip)
-  #TODO 02/14/2017 - this comprehension will be slow: just add the keys manually.
-  outp = Dict(j=> 0.0 for j in keys(zipc.pdetutils))
-#  outp[0] = 0.0 # maps 0, the OO fid, to 0.0, the OO utility.
+  outp::Dict{Int64,Float64} = Dict{Int64,Float64}()
   interim::Float64 = 0.0
   for el in keys(zipc.pdetutils)
     interim +=  (outp[el] = exp(zipc.pdetutils[el]) )
   end
-  return Dict( j=> outp[j]/interim for j in keys(outp))
+  for k in keys(zipc.pdetutils)
+    outp[k] = outp[k]/interim
+  end 
+  return outp::Dict{Int64,Float64}
 end
 
 
@@ -1148,15 +1161,18 @@ end
 Takes a patient collection and an entire state and returns a dict{fid, WTP}
 computed by calling CalcWTP.  Right now it ignores Inf and NaN.
 Input is from CalcWTP.  Output is sent to WriteWTP
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+WTPMap(patients, Texas)
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
-  #TODO 02/14/2017 - this comprehension will be slow: just add the keys manually.
-  outp = Dict(j=>0.0 for j in keys(Tex.fipsdirectory))
+  outp::Dict{Int64,Float64} = Dict{Int64,Float64}() 
   for zipc in keys(pats.zips)
     vals = CalcWTP(pats.zips[zipc])
-    for el in keys(vals) # What to do about key errors?  there will be some.
+    for el in keys(vals) 
       if haskey(outp, el)
-        if vals[el] != 1 & !isnan(vals[el]) # there should be no way for this to be 1 anyway.
+        if (vals[el]!=1)&(!isnan(vals[el])) # there should be no way for this to be 1 anyway.
           outp[el] += log(1/(1-vals[el]))
         elseif (vals[el] == 1)||(isnan(vals[el]))
             println(zipc, "  ", vals[el])
@@ -1178,7 +1194,6 @@ Takes a dict of {fid, WTP} and writes it out by DRG.
 Works on the output of WTPMap
 """
 function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState, index::Int64)
-  # now be careful with index: it needs to be the right value.
   for els in keys(reslt)
     Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385[index]=reslt[els]
     Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386[index]=reslt[els]
@@ -1187,14 +1202,6 @@ function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState, index::Int64)
     Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389[index]=reslt[els]
     Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390[index]=reslt[els]
     Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391[index]=reslt[els]
-# OLD
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w385, reslt[els])
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w386, reslt[els])
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w387, reslt[els])
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w388, reslt[els])
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w389, reslt[els])
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w390, reslt[els])
-    # push!(Tex.mkts[Tex.fipsdirectory[els]].collection[els].wtphist.w391, reslt[els])
   end
 end
 
@@ -1419,14 +1426,6 @@ function PHistoryAdd(hos::hospital, cnt::patientcount, index::Int64)
   hos.pdemandhist.demand389[index]=cnt.count389
   hos.pdemandhist.demand390[index]=cnt.count390
   hos.pdemandhist.demand391[index]=cnt.count391
-# OLD
-  # push!(hos.pdemandhist.demand385, cnt.count385)
-  # push!(hos.pdemandhist.demand386, cnt.count386)
-  # push!(hos.pdemandhist.demand387, cnt.count387)
-  # push!(hos.pdemandhist.demand388, cnt.count388)
-  # push!(hos.pdemandhist.demand389, cnt.count389)
-  # push!(hos.pdemandhist.demand390, cnt.count390)
-  # push!(hos.pdemandhist.demand391, cnt.count391)
 end
 
 
@@ -1444,14 +1443,6 @@ function MHistoryAdd(hos::hospital, cnt::patientcount, index::Int64)
   hos.mdemandhist.demand389[index]=cnt.count389
   hos.mdemandhist.demand390[index]=cnt.count390
   hos.mdemandhist.demand391[index]=cnt.count391
-# # OLD
-#   push!(hos.mdemandhist.demand385, cnt.count385)
-#   push!(hos.mdemandhist.demand386, cnt.count386)
-#   push!(hos.mdemandhist.demand387, cnt.count387)
-#   push!(hos.mdemandhist.demand388, cnt.count388)
-#   push!(hos.mdemandhist.demand389, cnt.count389)
-#   push!(hos.mdemandhist.demand390, cnt.count390)
-#   push!(hos.mdemandhist.demand391, cnt.count391)
 end
 
 
@@ -1585,7 +1576,7 @@ rate.  Then apply the mortality rate to the LBW record.  The elements keys(d) wi
 """
 function AllMortality(d::Dict{Int64, LBW}, Tex::EntireState)
   #TODO 02/14/2017 - fix this comprehension, which is surely slow.
-  outp = Dict(j => 0 for j in keys(d))
+  outp::Dict{Int64, Int64} = Dict{Int64,Int64}() # = Dict(j => 0 for j in keys(d))
   for el in keys(d)
     outp[el] = floor(sum(d[el])*VolMortality(sum(d[el]), Tex.mkts[ Tex.fipsdirectory[el] ].collection[el].level))         # Function calls the level too
   end
@@ -1759,13 +1750,14 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
   counter = 1
   arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
-  Tex = CreateEmpty(fi, di, T)                                                                           # NB: New state every time - this is kind of inefficient.
+  Tex = CreateEmpty(fi, di, T)                                                                          # NB: New state once.
+  pats = NewPatients(Tex);                                                                              # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
-    Restore(Tex) #cleans out all recorded data.
-    d1 = NewHospDict(Tex) # creates a dict for GenP below.
-    d2 = NewHospDict(Tex) # creates a dict for GenM below
-    pats = NewPatients(Tex);                                                                            # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
+    Restore(Tex)                                                                                        # cleans out all recorded data.
+    UpdateDeterministic(pats)                                                                           # restores patient data to original state by updating utilities
+    d1 = NewHospDict(Tex)                                                                               # creates a dict for GenP below.
+    d2 = NewHospDict(Tex)                                                                               # creates a dict for GenM below
     for el in keys(EmptyState.mkts)
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)])
         pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1)
