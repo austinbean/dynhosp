@@ -91,7 +91,7 @@ function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int6
                 gamma_1_391::Float64 = 27018.9915,
                 gamma_2_391::Float64 = 15079.2889,
                 gamma_3_391::Float64 = 1912.7285 ) # params
-  outp = Dict(k => 0.0 for k in keys(ppats))
+  outp::Dict{Int64,Float64} = Dict{Int64,Float64}() # Dict(k => 0.0 for k in keys(ppats))
   for k in keys(ppats) # multiplied by patient volumes or not?
     if Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 1
       outp[k] = alf1*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_1_385*ppats[k].count385 - gamma_1_385*mpats[k].count385 - gamma_1_386*ppats[k].count386 - gamma_1_386*mpats[k].count386 - gamma_1_387*ppats[k].count387 - gamma_1_387*mpats[k].count387 - gamma_1_388*mpats[k].count388 - gamma_1_388*ppats[k].count388 - gamma_1_389*mpats[k].count389 - gamma_1_389*ppats[k].count389 - gamma_1_390*ppats[k].count390 - gamma_1_390*mpats[k].count390 - gamma_1_391*ppats[k].count391 - gamma_1_391*mpats[k].count391
@@ -197,10 +197,16 @@ fid and a vector of `mktyear` - these contain the distribution of births and the
 for each hospital.
 By varying the `level` parameter, it is possible to simulate the assignment of level 2 to all hospitals except the special specified one.
 Or the assignment of everyone to have level 3.
+# TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
+
 """
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1, reassign::Bool = true)
-  # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
+  d1 = NewHospDict(Tex) # creates a dict for GenP below.
+  d2 = NewHospDict(Tex) # creates a dict for GenM below
+  arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
+  arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   res = counterhistory(Dict{Int64, mkthistory}())                                                            # the output - a counterfactual history
+  #TODO 02/20/2017 - remove dict comprehension.  
   res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))                          # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts) #these are fipscodes
     res.hist[mk].values = Dict( k=>simrun(mk, Dict{Int64,hyrec}(), 0.0, k) for k in keys(Tex.mkts[mk].collection)) # for each FID in the market, a simrun record element.
@@ -235,6 +241,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
     wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
+      #TODO - fix this for the new form of GenP and GenM.  
       mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       pdict = Payoff(drgp, drgm, Tex, wtpc)
       if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
