@@ -82,7 +82,7 @@ function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int6
                 gamma_1_388::Float64 = 26561.8688,
                 gamma_2_388::Float64 = 20895.5001,
                 gamma_3_388::Float64 = 29775.8381,
-                gamma_1_389::Float64 = 20653.5821,
+                gamma_1_389::Float64 = 20653.5821, 
                 gamma_2_389::Float64 = 20102.2097,
                 gamma_3_389::Float64 = 8279.774,
                 gamma_1_390::Float64 = 7372.3301,
@@ -92,14 +92,21 @@ function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int6
                 gamma_2_391::Float64 = 15079.2889,
                 gamma_3_391::Float64 = 1912.7285 ) # params
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}() # Dict(k => 0.0 for k in keys(ppats))
+  for k1 in keys(ppats) # put the dictionary together.
+    if k1 != 0 # don't add OO.
+      outp[k1] = 0.0
+    end 
+  end 
   for k in keys(ppats) # multiplied by patient volumes or not?
-    if Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 1
-      outp[k] = alf1*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_1_385*ppats[k].count385 - gamma_1_385*mpats[k].count385 - gamma_1_386*ppats[k].count386 - gamma_1_386*mpats[k].count386 - gamma_1_387*ppats[k].count387 - gamma_1_387*mpats[k].count387 - gamma_1_388*mpats[k].count388 - gamma_1_388*ppats[k].count388 - gamma_1_389*mpats[k].count389 - gamma_1_389*ppats[k].count389 - gamma_1_390*ppats[k].count390 - gamma_1_390*mpats[k].count390 - gamma_1_391*ppats[k].count391 - gamma_1_391*mpats[k].count391
-    elseif Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 2
-      outp[k] = alf2*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_2_385*ppats[k].count385 - gamma_2_385*mpats[k].count385 - gamma_2_386*ppats[k].count386 - gamma_2_386*mpats[k].count386 - gamma_2_387*ppats[k].count387 - gamma_2_387*mpats[k].count387 - gamma_2_388*mpats[k].count388 - gamma_2_388*ppats[k].count388 - gamma_2_389*mpats[k].count389 - gamma_2_389*ppats[k].count389 - gamma_2_390*ppats[k].count390 - gamma_2_390*mpats[k].count390 - gamma_2_391*ppats[k].count391 - gamma_2_391*mpats[k].count391
-    else # level is 3
-      outp[k] = alf3*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_3_385*ppats[k].count385 - gamma_3_385*mpats[k].count385 - gamma_3_386*ppats[k].count386 - gamma_3_386*mpats[k].count386 - gamma_3_387*ppats[k].count387 - gamma_3_387*mpats[k].count387 - gamma_3_388*mpats[k].count388 - gamma_3_388*ppats[k].count388 - gamma_3_389*mpats[k].count389 - gamma_3_389*ppats[k].count389 - gamma_3_390*ppats[k].count390 - gamma_3_390*mpats[k].count390 - gamma_3_391*ppats[k].count391 - gamma_3_391*mpats[k].count391
-    end
+    if k != 0 # don't include OO.
+      if Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 1
+        outp[k] = alf1*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_1_385*ppats[k].count385 - gamma_1_385*mpats[k].count385 - gamma_1_386*ppats[k].count386 - gamma_1_386*mpats[k].count386 - gamma_1_387*ppats[k].count387 - gamma_1_387*mpats[k].count387 - gamma_1_388*mpats[k].count388 - gamma_1_388*ppats[k].count388 - gamma_1_389*mpats[k].count389 - gamma_1_389*ppats[k].count389 - gamma_1_390*ppats[k].count390 - gamma_1_390*mpats[k].count390 - gamma_1_391*ppats[k].count391 - gamma_1_391*mpats[k].count391
+      elseif Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 2
+        outp[k] = alf2*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_2_385*ppats[k].count385 - gamma_2_385*mpats[k].count385 - gamma_2_386*ppats[k].count386 - gamma_2_386*mpats[k].count386 - gamma_2_387*ppats[k].count387 - gamma_2_387*mpats[k].count387 - gamma_2_388*mpats[k].count388 - gamma_2_388*ppats[k].count388 - gamma_2_389*mpats[k].count389 - gamma_2_389*ppats[k].count389 - gamma_2_390*ppats[k].count390 - gamma_2_390*mpats[k].count390 - gamma_2_391*ppats[k].count391 - gamma_2_391*mpats[k].count391
+      else # level is 3
+        outp[k] = alf3*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_3_385*ppats[k].count385 - gamma_3_385*mpats[k].count385 - gamma_3_386*ppats[k].count386 - gamma_3_386*mpats[k].count386 - gamma_3_387*ppats[k].count387 - gamma_3_387*mpats[k].count387 - gamma_3_388*mpats[k].count388 - gamma_3_388*ppats[k].count388 - gamma_3_389*mpats[k].count389 - gamma_3_389*ppats[k].count389 - gamma_3_390*ppats[k].count390 - gamma_3_390*mpats[k].count390 - gamma_3_391*ppats[k].count391 - gamma_3_391*mpats[k].count391
+      end
+    end 
   end
   return outp
 end
@@ -199,6 +206,11 @@ By varying the `level` parameter, it is possible to simulate the assignment of l
 Or the assignment of everyone to have level 3.
 # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
 
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists);
+patients = NewPatients(Tex);
+
 """
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1, reassign::Bool = true)
   d1 = NewHospDict(Tex) # creates a dict for GenP below.
@@ -241,8 +253,11 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
     wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
-      #TODO - fix this for the new form of GenP and GenM.  
-      mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex )        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+      #TODO - Clean these dictionaries up later.    
+      GenPChoices(pats, d1, arry1)
+      GenMChoices(pats, d2, arry2)
+      #TODO - don't reallocate demand every period - clean up 
+      mappeddemand, drgp, drgm = PatientDraw(d1, d2, Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       pdict = Payoff(drgp, drgm, Tex, wtpc)
       if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
         for el in mkt_fips
@@ -320,6 +335,10 @@ FillState(Tex, ProjectModule.alldists);
 """
 #TODO: check this against some mortality data from NCHS.
 function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange::Bool = false, level::Int64 = 3)
+  d1 = NewHospDict(Tex) # creates a dict for GenP below.
+  d2 = NewHospDict(Tex) # creates a dict for GenM below
+  arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
+  arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   res = counterhistory(Dict{Int64, mkthistory}())                                                        # the output - a counterfactual history
   res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))                      # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts)
@@ -330,8 +349,10 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
   end
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
   wtpc = WTPMap(pats, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
-  for i = 1:T                                                                                            # T is now the sim periods, not sequential choices.
-    mappeddemand, drgp, drgm = PatientDraw(GenPChoices(pats, Tex),  GenMChoices(pats, Tex),  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
+  for i = 1:T    
+    GenPChoices(pats, d1, arry1)  
+    GenMChoices(pats, d2, arry2)                                                                                      # T is now the sim periods, not sequential choices.
+    mappeddemand, drgp, drgm = PatientDraw(d1,  d1,  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
     pdict = Payoff(drgp, drgm, Tex, wtpc)
     if levelchange                                                                                       # NB: this should permit changing the level of every hospital.
       for k1 in keys(Tex.mkts)
