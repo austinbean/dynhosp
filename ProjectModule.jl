@@ -270,7 +270,7 @@ module ProjectModule
   include("LogitEst.jl")
   include("Distance.jl")
   include("DataStructs.jl")
-
+  include("Counter1.jl")
   #include("Reboot.jl")
 
 
@@ -359,6 +359,22 @@ module ProjectModule
   export CleanDemandHistory
   export RemoveEntrant
   export RecordCopy
+
+  # Export Counter1.jl Functions 
+  export CategoryReminder
+  export Payoff 
+  export TermFl
+  export FindVLBW
+  export MeanCost 
+  export CounterSim 
+  export Baseline 
+  export BaselineCheck
+  export DeathCheck 
+  export BestOutcome 
+  export SimpleResultsPrint 
+  export DemandChangeATX 
+  export RunCounter
+  
 
   # Export types
   export EntireState
