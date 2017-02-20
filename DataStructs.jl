@@ -1168,18 +1168,18 @@ WTPMap(patients, Texas)
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}() 
+  for k1 in keys(Tex.fipsdirectory) # need a list of all fids to initialize the dictionary.
+    outp[k1] = 0.0
+  end 
+
   for zipc in keys(pats.zips)
-    vals = CalcWTP(pats.zips[zipc])
+    vals = CalcWTP(pats.zips[zipc]) #TODO - this allocates.  That's sort of dumb.  
     for el in keys(vals) 
-      if haskey(outp, el)
         if (vals[el]!=1)&(!isnan(vals[el])) # there should be no way for this to be 1 anyway.
           outp[el] += log(1/(1-vals[el]))
         elseif (vals[el] == 1)||(isnan(vals[el]))
             println(zipc, "  ", vals[el])
         end
-      else # key absent
-        # facility missing.
-      end
     end
   end
   return outp # gives a dict{fid, WTP} back
@@ -1508,60 +1508,65 @@ function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
                      w11 = WeightVec([1-admitprobs[11],admitprobs[11]]),
                      w12 = WeightVec([1-admitprobs[12],admitprobs[12]]),
                      w13 = WeightVec([1-admitprobs[13],admitprobs[13]]))
-  outp::Dict{Int64, LBW} = Dict( k=>LBW(0,0,0,0,0,0) for k in keys(Tex.fipsdirectory)) # empty dictionary of fids/LBW record types
+  outp::Dict{Int64, LBW} = Dict{Int64, LBW}()  # = Dict( k=>LBW(0,0,0,0,0,0) for k in keys(Tex.fipsdirectory)) # empty dictionary of fids/LBW record types
+  for k1 in keys(ppat)
+    outp[k1] = LBW(0,0,0,0,0,0)
+  end 
   for el in keys(ppat)
-    totl = sum(ppat[el] + mpat[el])
-    for i = 1:totl
-      bwt = sample(bins, WeightVec(weightpr)) # sample from the distribution of birthweights.
-      if bwt == 1                                                               # all at this weight are being admitted
-        outp[el].bt05 += 1
-      elseif bwt == 2                                                           # all at this weight are being admitted
-        outp[el].bt510 += 1
-      elseif bwt == 3                                                           # all at this weight are being admitted
-        outp[el].bt510 += 1
-      elseif bwt == 4                                                           # all at this weight are being admitted
-        outp[el].bt1015 += 1
-      elseif bwt == 5                                                           # all at this weight are being admitted
-        outp[el].bt1015 += 1
-      elseif bwt == 6                                                           # all at this weight are being admitted
-        outp[el].bt1520 += 1
-      elseif bwt == 7                                                           # all at this weight are being admitted
-        nicuadmit = sample([0,1], w7)
-        if nicuadmit == 1
-          outp[el].bt2025 += 1                                                  # at this weight admissions are stochastic
+    if el!=0
+        totl = sum(ppat[el] + mpat[el])
+        for i = 1:totl
+          bwt = sample(bins, WeightVec(weightpr)) # sample from the distribution of birthweights.
+          if bwt == 1                                                               # all at this weight are being admitted
+            outp[el].bt05 += 1
+          elseif bwt == 2                                                           # all at this weight are being admitted
+            outp[el].bt510 += 1
+          elseif bwt == 3                                                           # all at this weight are being admitted
+            outp[el].bt510 += 1
+          elseif bwt == 4                                                           # all at this weight are being admitted
+            outp[el].bt1015 += 1
+          elseif bwt == 5                                                           # all at this weight are being admitted
+            outp[el].bt1015 += 1
+          elseif bwt == 6                                                           # all at this weight are being admitted
+            outp[el].bt1520 += 1
+          elseif bwt == 7                                                           # all at this weight are being admitted
+            nicuadmit = sample([0,1], w7)
+            if nicuadmit == 1
+              outp[el].bt2025 += 1                                                  # at this weight admissions are stochastic
+            end
+          elseif bwt == 8
+            nicuadmit = sample([0,1], w8)
+            if nicuadmit == 1
+              outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
+            end
+          elseif bwt == 9
+            nicuadmit = sample([0,1], w9)
+            if nicuadmit == 1
+              outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
+            end
+          elseif bwt == 10
+            nicuadmit = sample([0,1], w10)
+            if nicuadmit == 1
+              outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
+            end
+          elseif bwt == 11
+            nicuadmit = sample([0,1], w11)
+            if nicuadmit == 1
+              outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
+            end
+          elseif bwt == 12
+            nicuadmit = sample([0,1], w12)
+            if nicuadmit == 1
+              outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
+            end
+          else #bwt == 13
+            nicuadmit = sample([0,1], w13)
+            if nicuadmit == 1
+              outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
+            end
+          end
         end
-      elseif bwt == 8
-        nicuadmit = sample([0,1], w8)
-        if nicuadmit == 1
-          outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
-        end
-      elseif bwt == 9
-        nicuadmit = sample([0,1], w9)
-        if nicuadmit == 1
-          outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
-        end
-      elseif bwt == 10
-        nicuadmit = sample([0,1], w10)
-        if nicuadmit == 1
-          outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
-        end
-      elseif bwt == 11
-        nicuadmit = sample([0,1], w11)
-        if nicuadmit == 1
-          outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
-        end
-      elseif bwt == 12
-        nicuadmit = sample([0,1], w12)
-        if nicuadmit == 1
-          outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
-        end
-      else #bwt == 13
-        nicuadmit = sample([0,1], w13)
-        if nicuadmit == 1
-          outp[el].bt2580 += 1                                                  # at this weight admissions are stochastic
-        end
-      end
-    end
+    end 
   end
   return outp, ppat, mpat
 end
