@@ -1001,9 +1001,9 @@ for the counterfactual only.
 Note that this needs to be called AFTER the function `CMakeIt(Tex::EntireState, fip::Vector)` is called
 on an empty state record.
 This version also adds all of the `chospitals` directly to the `Market.collection` dictionary.
-Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+Tex = EntireState(Array{chospital,1}(), Dict{Int64,Market}(), Dict{Int64,chospital}())
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists);
+FillState(Tex, ProjectModule.alldists, 50);
 """
 function FillState(Tex::EntireState, data::Matrix, ns::Int64;
                    fidcol::Int64 = 4,
@@ -1056,12 +1056,10 @@ end
 """
 `CMakeIt(Tex::EntireState, fip::Vector)`
 Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
+Tex = EntireState(Array{chospital,1}(), Dict{Int64,Market}(), Dict{Int64,chospital}())
+CMakeIt(Tex, ProjectModule.fips);
 
-  for f in fip
-    if f != 0
-      push!(Tex.ms, Market( Array{hospital,1}(), Dict{Int64, hospital}(), f, Dict{Int64, Bool}()))
-    end
-  end
+
 """
 function CMakeIt(Tex::EntireState, fip::Vector)
   for el in fip
@@ -1072,6 +1070,44 @@ function CMakeIt(Tex::EntireState, fip::Vector)
   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
   # Tex.mkts = [ m.fipscode => m for m in Tex.ms] # this is the pre0.5 generator syntax
 end
+
+"""
+`CounterClean(Tex::EntireState)`
+Takes the initial counterfactual state and writes all values of all hosp quantities to 0.
+"""
+function CounterClean(Tex::EntireState)
+    for fips in keys(Tex.mkts)
+        for fid in keys(Tex.mkts[fips].collection)
+            for i = 1:length(Tex.mkts[fips].collection[fid].totalv)
+                Tex.mkts[fips].collection[fid].totalv[i] = 0
+                Tex.mkts[fips].collection[fid].mortality[i] = 0
+                Tex.mkts[fips].collection[fid].ppayoff[i] = 0.0
+                Tex.mkts[fips].collection[fid].mpayoff[i] = 0.0
+            end 
+        end 
+    end 
+end 
+
+"""
+`CounterCleanResults(ch::counterhistory)`
+Arrays are allocated so set values to zeros.  
+"""
+function CounterCleanResults(ch::counterhistory)
+    for k1 in keys(ch.hist)
+        for k2 in keys(ch.hist[k1].values)
+            for k3 in keys(ch.hist[k1].values[k2].hosprecord)
+                for i = 1:length(ch.hist[k1].values[k2].hosprecord[k3].totbr)
+                    ch.hist[k1].values[k2].hosprecord[k3].totbr[i] = 0
+                    ch.hist[k1].values[k2].hosprecord[k3].totlbw[i] = 0
+                    ch.hist[k1].values[k2].hosprecord[k3].totvlbw[i] = 0
+                    ch.hist[k1].values[k2].hosprecord[k3].deaths[i] = 0
+                    ch.hist[k1].values[k2].hosprecord[k3].profit[i] = 0.0
+                end         
+            end 
+        end
+    end 
+end 
+
 
 
 """
