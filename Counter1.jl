@@ -208,7 +208,7 @@ Or the assignment of everyone to have level 3.
 
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists);
+FillState(Tex, ProjectModule.alldists, 20);
 patients = NewPatients(Tex);
 
 """
@@ -223,9 +223,10 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
   for mk in keys(Tex.mkts) #these are fipscodes
     res.hist[mk].values = Dict( k=>simrun(mk, Dict{Int64,hyrec}(), 0.0, k) for k in keys(Tex.mkts[mk].collection)) # for each FID in the market, a simrun record element.
     for k1 in keys(Tex.mkts[mk].collection)
-      res.hist[mk].values[k1].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}(), Array{Float64,1}()) for k2 in keys(Tex.mkts[mk].collection))
+      res.hist[mk].values[k1].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T)) for k2 in keys(Tex.mkts[mk].collection))
     end
   end
+  CounterCleanResults(res)
   termflag = true                                                                                           # Start the termination flag.
   while termflag
     #TODO - it may make sense to hive this all off and make it a separate function choosing subsets of size n from the hospitals.
@@ -265,11 +266,11 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
           mortcount = 0.0
           for k in keys(Tex.mkts[el].collection)
             #TODO - this is wrong.  Mappeddemand is NICU admits, NOT all of the demand.
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
-              push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k])
+              res.hist[el].values[currentfac[el]].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k])
+              res.hist[el].values[currentfac[el]].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
+              res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510
+              res.hist[el].values[currentfac[el]].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+              res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k]
               mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]                        # this is confusing - has this behavior changed since 0.4?
           end
           res.hist[el].values[currentfac[el]].yeartot = mortcount
@@ -288,21 +289,21 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             end
           end
           for k in nofac
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, 0)
+            res.hist[el].values[currentfac[el]].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k]) - (mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+            res.hist[el].values[currentfac[el]].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520
+            res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw[i] = 0
             # TODO: compute the death rate among higher weight babies for fairness, perhaps?
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, 0.0)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] - MeanCost(mappeddemand[k].bt1015 + mappeddemand[k].bt510,lev))
+            res.hist[el].values[currentfac[el]].hosprecord[k].deaths[i] = 0.0
+            res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k] - MeanCost(mappeddemand[k].bt1015 + mappeddemand[k].bt510,lev)
             mortcount += 0
           end
           for k in hasfac
             sharedvlbw = FindVLBW(mappeddemand, Tex, hasfac)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]))
-            push!(res.hist[el].values[currentfac[el]].hosprecord[k].profit, pdict[k] + MeanCost(sharedvlbw[k],3) )
+            res.hist[el].values[currentfac[el]].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k])
+            res.hist[el].values[currentfac[el]].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
+            res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]
+            res.hist[el].values[currentfac[el]].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
+            res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k] + MeanCost(sharedvlbw[k],3) 
             mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
           end
           res.hist[el].values[currentfac[el]].yeartot = mortcount
@@ -344,9 +345,10 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
   for mk in keys(Tex.mkts)
     res.hist[mk].values = Dict( 0=>simrun(mk, Dict{Int64,hyrec}(), 0.0, 0))                              # 0 records that this is the equilibrium.
     for k1 in keys(Tex.mkts[mk].collection)
-      res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}(), Array{Float64,1}()) for k2 in keys(Tex.mkts[mk].collection))
+      res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T)) for k2 in keys(Tex.mkts[mk].collection))
     end
   end
+  CounterCleanResults(res)  
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
   wtpc = WTPMap(pats, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
   for i = 1:T    
@@ -363,11 +365,11 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
       fac = 0
       mortcount = 0.0
       for k in keys(Tex.mkts[el].collection)
-        push!(res.hist[el].values[0].hosprecord[k].totbr, sum(drgp[k])+sum(drgm[k]))
-        push!(res.hist[el].values[0].hosprecord[k].totlbw, mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-        push!(res.hist[el].values[0].hosprecord[k].totvlbw, mappeddemand[k].bt1015 + mappeddemand[k].bt510)
-        push!(res.hist[el].values[0].hosprecord[k].deaths, VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510))
-        push!(res.hist[el].values[0].hosprecord[k].profit, pdict[k])
+        res.hist[el].values[0].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k])
+        res.hist[el].values[0].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
+        res.hist[el].values[0].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510
+        res.hist[el].values[0].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)
+        res.hist[el].values[0].hosprecord[k].profit[i] = pdict[k]
         mortcount += res.hist[el].values[0].hosprecord[k].deaths[end]
       end
       res.hist[el].values[0].yeartot = mortcount
