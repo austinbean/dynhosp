@@ -187,12 +187,14 @@ end
 `CounterObjects()`
 Makes the counterfactual objects again.
 dyn = CounterObjects();
+
+#TODO - use CreateEmpty instead of MakeNew
 """
-function CounterObjects()
-  TexasEq = MakeNew(ProjectModule.fips, ProjectModule.alldists);
+function CounterObjects(T::Int64)
+  TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, T);
   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
   CMakeIt(Tex, ProjectModule.fips);
-  FillState(Tex, ProjectModule.alldists);
+  FillState(Tex, ProjectModule.alldists, T);
   patients = NewPatients(Tex);
   return DynStateCreate(TexasEq, Tex, patients);
 end
