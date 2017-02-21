@@ -271,6 +271,7 @@ module ProjectModule
   include("Distance.jl")
   include("DataStructs.jl")
   include("Counter1.jl")
+  include("Counter2.jl")
   #include("Reboot.jl")
 
 
@@ -378,6 +379,62 @@ module ProjectModule
   export CounterCleanResults
   export HHI 
 
+  # Export Counter2.jl functions 
+  export KeyCreate 
+  export CounterObjects
+  export DynStateCreate
+  export DynPatients 
+  export DetUtils 
+  export CounterWTP
+  export DSim 
+  export DS2 
+  export UpdateDUtil
+  export HUtil 
+  export UpdateCheck 
+  export NCheck 
+  export GetProbs 
+  export FixMainNs
+  export FixNN 
+  export PatientFind 
+  export GetProbCheck 
+  export FindWTP 
+  export CatchWTP 
+  export CatchWTPAll
+  export StartingVals
+  export ProbUpdate 
+  export PolicyUpdate
+  export WeightedProbUpdate 
+  export MD 
+  export DA 
+  export WProb 
+  export ContError 
+  export WhyNaN
+  export SinglePay
+  export ComputeR 
+  export RTuple 
+  export ValApprox 
+  export KeytoTuple 
+  export CheckConvergence 
+  export LogitCheck 
+  export AllDems 
+  export Halt 
+  export GetChunk 
+  export ChooseAction 
+  export ExCheck 
+  export PrintVisited 
+  export DemandGroup 
+  export EasyDemand 
+  export ThreeDemands 
+  export SimpleDemand 
+  export AvgAggState 
+  export AllAgg 
+  export FixNS 
+  export NeighborsCheck 
+  export VisitPrint 
+  export ProbChange 
+  export FindScale 
+  
+
 
   # Export types
   export EntireState
@@ -398,6 +455,16 @@ module ProjectModule
   export mkthistory
   export simrun
   export hyrec
+    # Counter2.jl types 
+  export nlrec
+  export hitcount 
+  export allvisits
+  export history 
+  export shortrec 
+  export cpats 
+  export cmkt 
+  export simh 
+  export DynState 
 
   println("Loaded Module")
 
