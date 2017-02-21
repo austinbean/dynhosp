@@ -376,6 +376,7 @@ module ProjectModule
   export RunCounter
   export CounterClean 
   export CounterCleanResults
+  export HHI 
 
 
   # Export types
