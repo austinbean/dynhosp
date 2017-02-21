@@ -1005,7 +1005,7 @@ Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists);
 """
-function FillState(Tex::EntireState, data::Matrix;
+function FillState(Tex::EntireState, data::Matrix, ns::Int64;
                    fidcol::Int64 = 4,
                    latcol::Int64 = 21,
                    longcol::Int64 = 22,
@@ -1034,10 +1034,10 @@ function FillState(Tex::EntireState, data::Matrix;
                   fips,
                   level,
                   level,
-                  Array{Int64,1}(), #volume
-                  Array{Int64, 1}(), #mortality
-                  Array{Float64,1}(), #ppayoff
-                  Array{Float64,1}(), #mpayoff
+                  Array{Int64,1}(ns), #volume
+                  Array{Int64, 1}(ns), #mortality
+                  Array{Float64,1}(ns), #ppayoff
+                  Array{Float64,1}(ns), #mpayoff
                     0    , # beds added later.
                   LBW(0,0,0,0,0,0), # LBW Infants.
                   false, # has intensive
@@ -1049,8 +1049,6 @@ function FillState(Tex::EntireState, data::Matrix;
     # push all hospital fid/ fips pairs into the directory.
     Tex.fipsdirectory[data[i, fidcol]] = fips # now for the whole state I can immediately figure out which market a hospital is in.
   end
-  #TODO - add the zero hospital at the zero market.
-  return Tex
 end
 
 
@@ -1058,12 +1056,17 @@ end
 """
 `CMakeIt(Tex::EntireState, fip::Vector)`
 Perhaps poor practice to use Eval in this way, but generates markets named m*fipscode* for any fipscode in the vector fip.
+
+  for f in fip
+    if f != 0
+      push!(Tex.ms, Market( Array{hospital,1}(), Dict{Int64, hospital}(), f, Dict{Int64, Bool}()))
+    end
+  end
 """
 function CMakeIt(Tex::EntireState, fip::Vector)
   for el in fip
     if el != 0
-      el = eval(parse("m$el = Market( Array{chospital,1}(), Dict{Int64, chospital}(), $el, Dict{Int64, Bool}())"))
-      push!(Tex.ms, el)
+      push!(Tex.ms, Market( Array{chospital,1}(), Dict{Int64, chospital}(), el, Dict{Int64, Bool}()))
     end
   end
   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
@@ -1171,15 +1174,16 @@ function WTPMap(pats::patientcollection, Tex::EntireState)
   for k1 in keys(Tex.fipsdirectory) # need a list of all fids to initialize the dictionary.
     outp[k1] = 0.0
   end 
-
   for zipc in keys(pats.zips)
     vals = CalcWTP(pats.zips[zipc]) #TODO - this allocates.  That's sort of dumb.  
     for el in keys(vals) 
+      if el != 0 # don't try to map the OO.
         if (vals[el]!=1)&(!isnan(vals[el])) # there should be no way for this to be 1 anyway.
           outp[el] += log(1/(1-vals[el]))
         elseif (vals[el] == 1)||(isnan(vals[el]))
             println(zipc, "  ", vals[el])
         end
+      end 
     end
   end
   return outp # gives a dict{fid, WTP} back
