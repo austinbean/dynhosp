@@ -529,6 +529,44 @@ end
 
 
 """
+`HHI(ch::counterhistory)`
+compute the HHI every year.  I should append... the mean and the variance in the HHI for each hospital, probably.
+         # lbwcount += ch.hist[k1].values[k2].hosprecord[k3].totlbw[i]
+         # vlbwcount += ch.hist[k1].values[k2].hosprecord[k3].totvlbw[i]
+
+"""
+function HHI(ch::counterhistory, T::Int64)
+  outp::Dict{Int64, Tuple{Float64, Float64}} = Dict{Int64, Tuple{Float64, Float64}}()
+  brcount::Int64 = 0
+  lbwcount::Int64 = 0
+  vlbwcount::Int64 = 0
+  hh::Float64 = 0.0
+  temparray::Array{Float64,1} = zeros(T) # allocate one array to be rewritten
+  for k1 in keys(ch.hist) #iterate over markets.
+    for k2 in keys(ch.hist[k1].values) #over hospitals in the market - this is the record when that facility was assigned the level 3
+      for i = 1:T # each entry here is a year - I want the year-level.
+        hh = 0.0
+        brcount = 0
+        for k3 in keys(ch.hist[k1].values[k2].hosprecord) # other records in that market in that year when k2 had the level 3
+          brcount += ch.hist[k1].values[k2].hosprecord[k3].totbr[i]
+        end 
+        for k3 in keys(ch.hist[k1].values[k2].hosprecord)
+          hh += (ch.hist[k1].values[k2].hosprecord[k3].totbr[i]/brcount)^2
+        end 
+        temparray[i] = hh 
+      end
+      outp[k2] = (mean(temparray), std(temparray)) 
+      for i = 1:length(temparray)
+        temparray[i] = 0.0
+      end 
+    end 
+  end 
+  return outp 
+end 
+
+
+
+"""
 `RunCounter1(T::Int64)`
 Run the first counterfactual and get the results.
 Specifically - runs a Baseline for T periods.  Then compares to the following scenarios:
