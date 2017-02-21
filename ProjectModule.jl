@@ -374,7 +374,9 @@ module ProjectModule
   export SimpleResultsPrint 
   export DemandChangeATX 
   export RunCounter
-  
+  export CounterClean 
+  export CounterCleanResults
+
 
   # Export types
   export EntireState
