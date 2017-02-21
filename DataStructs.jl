@@ -995,7 +995,7 @@ end
 
 
 """
-`FillState(Tex::EntireState)`
+`FillState(Tex::EntireState, data::Matrix, ns::Int64;fidcol::Int64 = 4,latcol::Int64 = 21,longcol::Int64 = 22,namecol::Int64 = 5,fipscol::Int64 = 7,intensivecol::Int64 = 11,intermediatecol::Int64 = 20))`
 fills the entire state record with elements of the chospital type
 for the counterfactual only.
 Note that this needs to be called AFTER the function `CMakeIt(Tex::EntireState, fip::Vector)` is called
