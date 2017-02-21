@@ -5,8 +5,6 @@
 
 # use the type neighbors !
 
-using Distributions
-using DataFrames
 
 """
 `type nlrec`
