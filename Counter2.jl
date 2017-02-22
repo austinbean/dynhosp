@@ -495,7 +495,6 @@ end
 
 
 
-
 """
 `DS2(c::cmkt, f::Int64)`
 This is going to compute a market share at the level of a zip or zip-drg.
@@ -507,6 +506,8 @@ each patient type in the same.
 function DS2(c::cmkt, f::Int64)
   pcount::patientcount = patientcount(0,0,0,0,0,0,0)
   mcount::patientcount = patientcount(0,0,0,0,0,0,0)
+  
+
 
 
 end
