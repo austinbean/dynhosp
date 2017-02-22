@@ -188,7 +188,6 @@ end
 Makes the counterfactual objects again.
 dyn = CounterObjects();
 
-#TODO - use CreateEmpty instead of MakeNew
 """
 function CounterObjects(T::Int64)
   TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, T);
@@ -207,7 +206,7 @@ Create the dynamic records from the existing state, don't bother doing it from s
 And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
-TexasEq = MakeNew(ProjectModule.fips, ProjectModule.alldists);
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists);
@@ -792,7 +791,7 @@ I'd like to know whether the ns actually changes and whether the neighbors get u
 How am I going to do that?
 """
 function GetProbCheck(d::DynState; nsim = 50, fi = ProjectModule.fips, da = ProjectModule.data05)
-  d2 = DynStateCreate(MakeNew(fi, da))
+  d2 = DynStateCreate(CreateEmpty(fi, da))
   for i = 1:nsim
     for el in d.all
       GetProb(el)
