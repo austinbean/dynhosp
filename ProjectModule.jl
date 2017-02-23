@@ -156,14 +156,14 @@ module ProjectModule
 
           #### NB: Demand-side Data Structures ######
 
-  type patientcount
-   count385::Int64
-   count386::Int64
-   count387::Int64
-   count388::Int64
-   count389::Int64
-   count390::Int64
-   count391::Int64
+  type patientcount{T<:Real}
+   count385::T
+   count386::T
+   count387::T
+   count388::T
+   count389::T
+   count390::T
+   count391::T
   end
 
   import Base.+
@@ -176,6 +176,7 @@ module ProjectModule
   end
 
   Base.start(::patientcount) = :count385
+  
   function Base.next(p::patientcount, state)
     if state == :count385
       return p.count385, :count386
