@@ -418,74 +418,75 @@ function DSim(c::cmkt, f::Int64; dist_μ = 0, dist_σ = 1, dist_ξ = 0, d = Dist
     # Threading possible *per loop* perhaps possible using the Threads.@threads annotation on each one?
     siz1 = size(el.putils[2,:],1) #siz1 and siz2 should always be the same.
     siz2 = size(el.mutils[2,:],1)
+    temparr = zeros(siz1)
     for i = 1:el.pcounts.count385
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count385 += 1
       end
     end
     for i = 1:el.pcounts.count386
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count386 += 1
       end
     end
     for i = 1:el.pcounts.count387
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count387 += 1
       end
     end
     for i = 1:el.pcounts.count388
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count388 += 1
       end
     end
     for i = 1:el.pcounts.count389
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count389 += 1
       end
     end
     for i = 1:el.pcounts.count390
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count390 += 1
       end
     end
     for i = 1:el.pcounts.count391
-      if el.putils[1,indmax( el.putils[2,:] +rand(d, siz1) )] == f
+      if el.putils[1,indmax( el.putils[2,:] +rand!(d, temparr) )] == f
         pcount.count391 += 1
       end
     end
     #NB: Medicaid patients here:
     for i = 1:el.mcounts.count385
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count385 += 1
       end
     end
     for i = 1:el.mcounts.count386
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count386 += 1
       end
     end
     for i = 1:el.mcounts.count387
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count387 += 1
       end
     end
     for i = 1:el.mcounts.count388
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count388 += 1
       end
     end
     for i = 1:el.mcounts.count389
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count389 += 1
       end
     end
     for i = 1:el.mcounts.count390
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count390 += 1
       end
     end
     for i = 1:el.mcounts.count391
-      if el.mutils[1,indmax( el.mutils[2,:] +rand(d, siz2) )] == f
+      if el.mutils[1,indmax( el.mutils[2,:] +rand!(d, temparr) )] == f
         mcount.count391 += 1
       end
     end
@@ -504,9 +505,11 @@ each patient type in the same.
 """
 
 function DS2(c::cmkt, f::Int64)
-  pcount::patientcount = patientcount(0,0,0,0,0,0,0)
-  mcount::patientcount = patientcount(0,0,0,0,0,0,0)
-  
+  pcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  mcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  for el in c.m
+    # this is iterating over zips in the market for that hospital.
+    # need to: compute the 
 
 
 
