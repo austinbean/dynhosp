@@ -497,6 +497,41 @@ end
 
 
 """
+`WTP2(c::cpats)`
+Another attempt at computing WTP.
+ Should this take a fid argument too?  
+ NB: this requires an array argument.  It does *not* allocate.  The array will have to be reset to zero 
+ every call.
+ This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
+"""
+function WTP2(c::cpats, arr::Array{Float64,2})
+  int_sum::Float64 = 0.0
+  for el in 1:size(c.putils,2)
+    arr[1,el] = c.putils[1,el]
+    int_sum += (arr[2,el] = exp(c.putils[2,el]))
+  end 
+  for i=1:size(c.putils,2)
+    arr[2,i]/=int_sum
+  end 
+end 
+
+
+"""
+`ArrayZero(arr::Array{Float64,2})
+This quickly sets the array used in WTP2 back to zero.  
+"""
+function ArrayZero(arr::Array{Float64,2})
+  dim1::Int64, dim2::Int64 = size(arr)
+  for i = 1:dim1
+    for j = 1:dim2
+      arr[i,j] = 0.0
+    end 
+  end 
+end 
+
+
+
+"""
 `DS2(c::cmkt, f::Int64)`
 This is going to compute a market share at the level of a zip or zip-drg.
 That formula exists.  The shares will be proportional to the deterministic
@@ -507,12 +542,16 @@ each patient type in the same.
 function DS2(c::cmkt, f::Int64)
   pcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   mcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  temparr::Array{Float64,2} = zeros(2, 11) #TODO - how many columns?  Max size over all of them.  
   for el in c.m
     # this is iterating over zips in the market for that hospital.
-    # need to: compute the 
+    # need to: compute the deterministic utility, then 
+    # take those as shares of the patients. 
+    # then add those up. 
 
 
-
+    ArrayZero(temparr)
+  end 
 end
 
 """
