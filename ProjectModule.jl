@@ -2,7 +2,7 @@
 #lis = addprocs(1)
 
 module ProjectModule
-  using DataFrames # this needs to be inside and outside the module?
+  #using DataFrames # this needs to be inside and outside the module?
   using Distributions
 
   dir = pwd()
