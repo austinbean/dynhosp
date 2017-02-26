@@ -26,29 +26,37 @@
   ###### Import the hospital data and convert to a matrix -
 
 
-    # TODO -
+# Data Concerning Hospital Choices.
 
   println("Importing Hosp Data")
-    dataf = DataFrames.readtable(pathdata*"TX Transition Probabilities.csv", header = true);
-    for i in names(dataf)
-        if ( typeof(dataf[i]) == DataArrays.DataArray{Float64,1} )
-            dataf[DataFrames.isna(dataf[i]), i] = 0
-        elseif (typeof(dataf[i]) == DataArrays.DataArray{Int64,1})
-            dataf[DataFrames.isna(dataf[i]), i] = 0
-        elseif typeof(dataf[i]) == DataArrays.DataArray{String,1} #Changed for 0.5
-            dataf[DataFrames.isna(dataf[i]), i] = "NONE"
-        elseif typeof(dataf[i]) == DataArrays.DataArray{String,1}
-              dataf[DataFrames.isna(dataf[i]), i] = "NONE"
-      end
-        if sum(size(dataf[DataFrames.isna(dataf[i]), i]))>0
-        print(i, "\n")
-      end
-    end
-    data = convert(Matrix, dataf);
-    dataf = 0; #set to zero to clear out.
 
+  data, datnames = readcsv(pathdata*"TX Transition Probabilities.csv", header = true, comments = false); # the use of the \# sign made the csvreader think there were comments.  
+  for j = 1:size(data,2) # covers the first row separately
+    if (data[1,j] == "")
+      if (typeof(data[1+1,j])<:AbstractString)&(length(data[1+1,j])>0)
+          data[1, j] = "NONE" # this branch never triggers for the array dat.
+        else 
+          data[1,j] = 0
+        end 
+    end 
+  end
+  for i = 2:size(data,1)
+    for j = 1:size(data,2)
+      if (data[i,j] == "")
+        if (typeof(data[i-1,j])<:AbstractString)&(length(data[i-1,j])>0)
+          if (data[i-1,j]=="0-5 Miles")||(data[i-1,j]=="5-15 Miles")||(data[i-1,j]=="15-25 Miles")
+            data[i, j] = data[i-1,j] # matches previous line.
+          else 
+            data[i,j]="NONE"
+          end 
+        else 
+          data[i,j] = 0
+        end 
+      end 
+    end 
+  end
 
-#DONE 
+#Model Coefficients for Privately Insured and Medicaid Patients.  
       medcoeffs, medcoeffsnames = readcsv(pathpeople*"TX 2005 Medicaid Model.csv", header = true);
 
       global const medicaiddistance_c = medcoeffs[1,2] 
@@ -59,7 +67,7 @@
       global const medicaiddistbed_c = medcoeffs[6,2]
       medicaiddemandmodelparameters = [medicaiddistance_c medicaiddistsq_c medicaidneoint_c medicaidsoloint_c medicaidclosest_c medicaiddistbed_c]
 
-      privcoeffs, privcoeffsnames = readcsv(pathpeople*"TX 2005 Private Ins Model.csv", header = true)
+      privcoeffs, privcoeffsnames = readcsv(pathpeople*"TX 2005 Private Ins Model.csv", header = true);
 
       global const privatedistance_c = privcoeffs[1,2]
       global const privatedistsq_c = privcoeffs[2,2]
@@ -69,29 +77,26 @@
       global const privatedistbed_c = privcoeffs[6,2]
       privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
 
-
-
-#DONE 
+#Medicaid Patients. 
     println("Importing Medicaid Patients") # use the infants only.
-    pmedicaid, medicaidnames = readcsv(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true)
+    pmedicaid, medicaidnames = readcsv(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true);
 
-    for i = 1:size(pinsured,1)
-        for j = 1:size(pinsured,2)
-            if typeof(pinsured[i,j])<:AbstractString
-                if (pinsured[i,j]=="")
-                    pinsured[i,j] = 0 # = 0
+    for i = 1:size(pmedicaid,1)
+        for j = 1:size(pmedicaid,2)
+            if typeof(pmedicaid[i,j])<:AbstractString
+                if (pmedicaid[i,j]=="")
+                    pmedicaid[i,j] = 0 # = 0
                 end 
             end
         end 
     end 
 
-    pmedicaid = convert(Array{Float32, 2}, pmedicaid)
+    pmedicaid = convert(Array{Float32, 2}, pmedicaid);
 
-
-#DONE 
+#Privately Insured Patients.  
     println("Importing Privately Insured Patients") #use the infants only.
     
-    pinsured, pinsurednames = readcsv(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true)
+    pinsured, pinsurednames = readcsv(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
 
 
     for i = 1:size(pinsured,1)
@@ -104,13 +109,15 @@
         end 
     end 
     # Note this change - I don't think there's anything that requires 64 bits.
-     pinsured= convert(Array{Float32, 2}, pinsured)
+     pinsured= convert(Array{Float32, 2}, pinsured);
 
 
-  # DONE 
-
+  # Zip Codes - a list of all of them.   
      zp = readcsv(pathprograms*"TXzipsonly.csv", header = false)
      TXzips = convert(Array{Int64,1}, zp[:,1])
+  #Zip Codes - a list of all of them 
+    zips = readcsv(pathprograms*"TXzipsonly.csv", header = false);
+    zips = convert(Array, zp[:,1]);
 
 
 
@@ -122,96 +129,71 @@
     global const yearloc = 75; # this also for hospital data, here imported as "data"
     global const fidloc = 74; # Also for hospital data, here as "data"
     global const idloc = 1; # Also for Hospital data, here as "data"
+
     # Collect FIDs
-    #DONE 
     allfids, txfnames = readcsv(pathprograms*"TXfidsonly.csv", header = true)
-    allfids = convert(Vector, allfids)
+    allfids = vec(convert(Array{Int64,2}, allfids))
 
-
-
-#DONE
-  zips = readcsv(pathprograms*"TXzipsonly.csv", header = false);
-  zips = convert(Array, zp[:,1]);
-
-
-
-
-  # the choices file above is not correct.  Load TX All Distances.csv instead:
   # Get this from hospitaldistancepair.py and TX Hospital Sets.do and hosplatlong.py
-  #TODO - replace all NA's with zeros.  Change all calls to ProjectModule.alldists which are dataframes to array.
   # 02/25/2017 - I am still loading both of these files even though they are redundant and it seems the second is wrong.
 
 
-  # TODO
-  alldists = DataFrames.readtable(pathdata*"TX Zip All Hospital Distances.csv", header = true);
-  for n in alldists.colindex.names
-    if typeof(alldists[n]) == DataArrays.DataArray{String,1}
-      alldists[ isna(alldists[n]),n] = "missing"
-      println("changed") # there are 3 places only where this is changed.  
-    else
-      alldists[ isna(alldists[n]), n] = 0
-    end
+# Distances 
+  alldists, alldlabs = readcsv(pathdata*"TX Zip All Hospital Distances.csv", header = true);
+
+  for j = 1:size(alldists,2) # covers the first row separately
+    if (alldists[1,j] == "")
+      alldists[1,j] = 0.0
+    end 
   end
-  alldists = convert(Array, alldists)
+  for i = 2:size(alldists,1)
+    for j = 1:size(alldists,2)
+      if (alldists[i,j] == "")
+        if (typeof(alldists[i-1,j])<:AbstractString)&(length(alldists[i-1,j])>0)
+          alldists[i, j] = "missing" # matches the previous importation strategy.
+        else 
+          alldists[i,j] = 0
+        end 
+      end 
+    end 
+  end 
 
-  alld, alldlabs = readcsv(pathdata*"TX Zip All Hospital Distances.csv", header = true);
+#Zip Code Choice Sets 
+  choices, chnames = readcsv(pathdata*"TX Zip Code Choice Sets.csv", header = true);
 
-  for i = 1:size(alld,1)
-    for j = 1:size(alld,2)
-      if alld[i,j] == ""
-        alld[i,j] = 0
+  for j = 1:size(choices,2) # covers the first row separately
+    if (choices[1,j] == "")
+      if (typeof(choices[1+1,j])<:AbstractString)&(length(choices[1+1,j])>0)
+          choices[1, j] = "Missing" # matches the previous importation strategy.
+        else 
+          choices[1,j] = 0
+        end 
+    end 
+  end
+  for i = 2:size(choices,1)
+    for j = 1:size(choices,2)
+      if (choices[i,j] == "")
+        if (typeof(choices[i-1,j])<:AbstractString)&(length(choices[i-1,j])>0)
+          choices[i, j] = "Missing" # matches the previous importation strategy.
+        else 
+          choices[i,j] = 0
+        end 
       end 
     end 
   end 
 
 
-diffs = Set()
-difflocs = Set()
-diffsandlocs = Set()
 
-for i = 1:size(alld,1)
-    for j = 1:size(alld,2)
-        if alld[i,j]!=alldists[i,j]
-            push!(diffs, (alld[i,j], alldists[i,j]))
-            push!(difflocs, (i,j))
-            push!(diffsandlocs, (i,j, alld[i,j], alldists[i,j]))
-        end 
-    end 
-end 
-
-
-
-
-
-
-
-
-
-
-  choices = DataFrames.readtable(pathdata*"TX Zip Code Choice Sets.csv", header = true);
-  for el in choices.colindex.names
-    #println(typeof(choices[el]), "  ", el)
-    if (typeof(choices[el]) == DataArrays.DataArray{Int64,1})|(typeof(choices[el]) == DataArrays.DataArray{Float64,1})
-      choices[isna(choices[:,el]) , el] = 0
-    elseif (typeof(choices[el]) == DataArrays.DataArray{String,1})
-      choices[isna(choices[:,el]), el] = "Missing"
-    end
-  end
-
-  choices = convert(Array{Any, 2}, choices);
-
-  # TODO  - Data
   fips = convert(Array{Int64}, union(unique(data[:,78]), unique(alldists[:,7])))
   data05 = 0 # data[(data[:,75].==2005), :] ; # NB - killing this because it has bad data and I want to find what is using it and change it.
 
-  #DONE  - 
-
+# Birthweight and NICU Admission Probs 
   bwp, bwplabel = readcsv(pathdata*"2005 Birth Weight Probabilities.csv", header = true);
 
   np, nplabel = readcsv(pathdata*"2005 NICU Admission Probabilities.csv", header = true);
 
-  weightprobs = zeros(size(bwprobs,1), 2)
-  nicuprobs = zeros(size(naprobs,1), 2)
+  weightprobs = zeros(size(bwp,1), 2)
+  nicuprobs = zeros(size(np,1), 2)
   for el = 1:size(bwp,1)
     weightprobs[el, 1] = el
     nicuprobs[el,1] = el
@@ -226,6 +208,22 @@ end
 #end # of "begin" block
 
 
+#=
+# checking differences between old and new import strategies.
+diffs = Set()
+difflocs = Set()
+diffsandlocs = Set()
+
+for i = 1:size(dat,1)
+    for j = 1:size(dat,2)
+        if dat[i,j]!=data[i,j]
+            push!(diffs, (dat[i,j], data[i,j]))
+            push!(difflocs, (i,j))
+            push!(diffsandlocs, (i,j, dat[i,j], data[i,j]))
+        end 
+    end 
+end 
+=#
 
 
 
