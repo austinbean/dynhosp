@@ -1,7 +1,6 @@
 # Logit Probs Estimator.
-#regcoeffs = DataFrames.readtable("/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv", header = true);
-regcoeffs = DataFrames.readtable(pathdata*"TX Choice Model.csv", header = true);
 
+regcoeffs, regnames = readcsv(pathdata*"TX Choice Model.csv", header = true);
 
 # Row Locations - enter by hand?
 # Choice specific
