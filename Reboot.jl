@@ -22,6 +22,10 @@
     global pathdata = "/home1/04179/abean/dynhosp/"
     global pathpeople = "/home1/04179/abean/dynhosp/"
     global pathprograms = "/home1/04179/abean/dynhosp/"
+  elseif (dir=="/work/04179/abean/dynhosp")
+    global pathdata = "/work/04179/abean/dynhosp"
+    global pathpeople = "/work/04179/abean/dynhosp"
+    global pathprogram = "/work/04179/abean/dynhosp"
   end
   ###### Import the hospital data and convert to a matrix -
 
