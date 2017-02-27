@@ -136,6 +136,7 @@ type ValueException <: Exception end
 
 # getting the values of the state variables here is the most annoying part.
 # and it's really, really fucking annoying.  Maybe will need three functions
+
 function states1(lev1::Int64, lev2::Int64, lev3::Int64)
   if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
     return ValueException
@@ -145,11 +146,10 @@ function states1(lev1::Int64, lev2::Int64, lev3::Int64)
     # st12 =  [0 1 max(lev1-1, 0) lev2+1 lev3]
     # st13 =  [1 0 max(lev1-1,0) lev2 lev3+1]
     # st1ex = [0 0 max(lev1-1,0) lev2 lev3]
-  d1_rename = Dict{Any, Any}(:x1 => :Intensive, :x2 => :Intermediate, :x3 => :Level1, :x4 => :Level2, :x5 => :Level3, )
-  Result = DataFrame([[0 0 lev1 lev2 lev3]; [0 1 max(lev1-1, 0) lev2+1 lev3]; [1 0 max(lev1-1,0) lev2 lev3+1]; [0 0 max(lev1-1,0) lev2 lev3]])
-  rename!(Result, d1_rename)
+  Result = [0 0 lev1 lev2 lev3; 0 1 max(lev1-1, 0) lev2+1 lev3; 1 0 max(lev1-1,0) lev2 lev3+1; 0 0 max(lev1-1,0) lev2 lev3]
   return Result
 end
+
 
 function states2(lev1::Int64, lev2::Int64, lev3::Int64)
   if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
@@ -160,11 +160,10 @@ function states2(lev1::Int64, lev2::Int64, lev3::Int64)
     # st22  = [0 1 lev1 lev2 lev3]
     # st23  = [1 0 lev1 max(lev2-1, 0) lev3]
     # st2ex = [0 0 lev1 max(lev2-1, 0) lev3]
-  d2_rename = Dict{Any, Any}(:x1 => :Intensive, :x2 => :Intermediate, :x3 => :Level1, :x4 => :Level2, :x5 => :Level3, )
-  Result = DataFrame([[0 0 lev1+1 max(lev2-1, 0) lev3]; [0 1 lev1 lev2 lev3]; [1 0 lev1 max(lev2-1, 0) lev3]; [0 0 lev1 max(lev2-1, 0) lev3]])
-  rename!(Result, d2_rename)
+  Result = [0 0 lev1+1 max(lev2-1, 0) lev3; 0 1 lev1 lev2 lev3; 1 0 lev1 max(lev2-1, 0) lev3; 0 0 lev1 max(lev2-1, 0) lev3]
   return Result
 end
+
 
 function states3(lev1::Int64, lev2::Int64, lev3::Int64)
   if !((lev1 >= 0) & (lev2 >= 0) & (lev3 >= 0))
@@ -175,11 +174,10 @@ function states3(lev1::Int64, lev2::Int64, lev3::Int64)
     # st32  = [0 1 lev1 lev2+1 max(lev3-1,0)]
     # st33  = [1 0 lev1 lev2 lev3]
     # st3ex = [0 0 lev1 lev2 max(lev3-1,0)]
-  d3_rename = Dict{Any, Any}(:x1 => :Intensive, :x2 => :Intermediate, :x3 => :Level1, :x4 => :Level2, :x5 => :Level3, )
-  Result = DataFrame([[0 0 lev1+1 lev2 max(lev3-1,0)]; [0 1 lev1 lev2+1 max(lev3-1,0)]; [1 0 lev1 lev2 lev3]; [0 0 lev1 lev2 max(lev3-1,0)]])
-  rename!(Result, d3_rename)
+  Result = [0 0 lev1+1 lev2 max(lev3-1,0); 0 1 lev1 lev2+1 max(lev3-1,0); 1 0 lev1 lev2 lev3; 0 0 lev1 lev2 max(lev3-1,0)]
   return Result
 end
+
 
 function poly( lev, coeffs)
   degree = maximum(size(coeffs))+1
@@ -190,7 +188,7 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   push!(neighbors,1) # adds a 1 at the end of the neighbors to handle the choice-specific constant.
   if ownlev == (0,0) #level 1
     # choices - continue, 12, 13, ex
-    retst1 = convert(Array, states1(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
+    retst1 = states1(lev1, lev2, lev3) 
     c11 = dot(vec(retst1[1,:]),vec(basic))  + poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 5], poly3)
     c12 = dot(vec(retst1[2,:]),vec(basic))  + poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 5], poly3) + dot(vec(case12),vec(neighbors))
     c13 = dot(vec(retst1[3,:]),vec(basic))  + poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 5], poly3) + dot(vec(case13),vec(neighbors))
@@ -203,7 +201,7 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
     return [p11 p12 p13 p1ex]
   elseif ownlev == (1,0) # level 2
     # choices - 21, continue, 23, ex
-    retst2 = convert(Array, states2(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
+    retst2 = states2(lev1, lev2, lev3) 
     c21 = dot(vec(retst2[1,:]),vec(basic))  + poly(retst2[1, 3], poly1) + poly(retst2[1, 4], poly2) + poly(retst2[1, 5], poly3) + dot(vec(case21),vec(neighbors))
     c22 = dot(vec(retst2[2,:]),vec(basic))  + poly(retst2[2, 3], poly1) + poly(retst2[2, 4], poly2) + poly(retst2[2, 5], poly3)
     c23 = dot(vec(retst2[3,:]),vec(basic))  + poly(retst2[3, 3], poly1) + poly(retst2[3, 4], poly2) + poly(retst2[3, 5], poly3) + dot(vec(case23),vec(neighbors))
@@ -216,7 +214,7 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
     return [p21 p22 p23 p2ex]
   elseif ownlev == (0,1) # level 3
     # choices - 31, 32, continue, ex
-    retst3 = convert(Array, states3(lev1, lev2, lev3)) #Why do I want this function to return a dataframe?
+    retst3 = states3(lev1, lev2, lev3) 
     c31 = dot(vec(retst3[1,:]),vec(basic))  + poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 5], poly3) + dot(vec(case31), vec(neighbors))
     c32 = dot(vec(retst3[2,:]),vec(basic))  + poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 5], poly3) + dot(vec(case32), vec(neighbors))
     c33 = dot(vec(retst3[3,:]),vec(basic))  + poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 5], poly3)
