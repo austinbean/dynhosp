@@ -4,6 +4,7 @@
 module ProjectModule
   #using DataFrames # this needs to be inside and outside the module?
   using Distributions
+  using StatsBase
 
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
