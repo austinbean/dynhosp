@@ -616,24 +616,20 @@ This is going to compute a market share at the level of a zip or zip-drg.
 That formula exists.  The shares will be proportional to the deterministic
 utility component.  We just need all of the utilities in the market and number of
 each patient type in the same.
+e.g., es.all[1].mk is the cmkt.  
+then es.all[1].mk.m[i] is the cpats.  
 """
-
-function DS2(c::cmkt, f::Int64)
-  # e.g., es.all[1].mk is the cmkt.  
-  # then es.all[1].mk.m[i] is the cpats.  
+function DSimNew(c::cmkt, f::Int64; maxh::Int64 = 12)
   pcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   mcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  temparr::Array{Float64,2} = zeros(2, 11) #TODO - how many columns?  Max size over all of them.  
+  temparr::Array{Float64,2} = zeros(2, maxh) 
   for el in c.m
-    # TODO - array zero is not being using.  Neither is temparr.
-    # this is doing the wrong thing.  putils can't be used directly.  Shares need to be used.
-    # This is wrong.  
     DemComp(el.putils, temparr, pcount, f, el, true)
     DemComp(el.mutils, temparr, mcount, f, el, false)
-    ArrayZero(temparr)
   end 
   return pcount, mcount 
 end
+
 
 """
 `UpdateDUtil(h::simh)`
