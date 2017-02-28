@@ -535,7 +535,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
     end 
   end 
   WTP2(inparr, temparr) # updates temparr 
-  if index!=0
+  if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private 
       for j in c.pcounts 
         if counter == 0
