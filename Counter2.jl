@@ -497,24 +497,103 @@ end
 
 
 """
-`WTP2(c::cpats)`
+`WTP2(c::Array{Float64,2}, arr::Array{Float64,2})`
 Another attempt at computing WTP.
- Should this take a fid argument too?  
- NB: this requires an array argument.  It does *not* allocate.  The array will have to be reset to zero 
- every call.
- This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
+Should this take a fid argument too?  
+NB: this requires an array argument.  It does *not* allocate.  The array will have to be reset to zero 
+every call.
+This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
+The size of arr is not that important since all unused values are zero AND they are ignored.  
 """
-function WTP2(c::cpats, arr::Array{Float64,2})
+function WTP2(c::Array{Float64,2}, arr::Array{Float64,2})
   int_sum::Float64 = 0.0
-  for el in 1:size(c.putils,2)
-    arr[1,el] = c.putils[1,el]
-    int_sum += (arr[2,el] = exp(c.putils[2,el]))
+  for el in 1:size(c,2)
+    if c[1,el]!=0.0
+      arr[1,el] = c[1,el]
+      int_sum += (arr[2,el] = exp(c[2,el]))
+    end 
   end 
-  for i=1:size(c.putils,2)
+  for i=1:size(c,2)
     arr[2,i]/=int_sum
   end 
 end 
 
+
+"""
+`DemComp(inparr::Array{Float64,2}, fid::Int64, c::cpats, p_or_m::Bool)`
+Takes a fid.  Finds the index in inparr.  Takes the share from inparr.
+Multiplies all of patient values in cpat by that number.
+Returns the value.  
+"""
+function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
+  # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.  
+  index::Int64 = 0
+  counter::Int64 = 0
+  for i = 1:size(inparr,2)
+    if inparr[1,i] == fid
+      index = i #reassign 
+    end 
+  end 
+  WTP2(inparr, temparr) # updates temparr 
+  if index!=0
+    if p_or_m # if true then private 
+      for j in c.pcounts 
+        if counter == 0
+          pp.count385 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 1
+          pp.count386 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 2
+          pp.count387 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 3
+          pp.count388 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 4
+          pp.count389 += temparr[2,index]*j 
+          counter += 1
+        elseif counter == 5
+          pp.count390 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 6
+          pp.count391 += temparr[2,index]*j
+          counter += 1
+        else 
+          println("eee")
+        end 
+      end 
+    else 
+      for j in c.mcounts
+        if counter == 0
+          pp.count385 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 1
+          pp.count386 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 2
+          pp.count387 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 3
+          pp.count388 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 4
+          pp.count389 += temparr[2,index]*j
+          counter += 1 
+        elseif counter == 5
+          pp.count390 += temparr[2,index]*j
+          counter += 1
+        elseif counter == 6
+          pp.count391 += temparr[2,index]*j
+          counter += 1
+        else 
+          println("eee")
+        end 
+      end 
+    end 
+  end 
+  ArrayZero(temparr)
+end 
 
 """
 `ArrayZero(arr::Array{Float64,2})
@@ -540,18 +619,20 @@ each patient type in the same.
 """
 
 function DS2(c::cmkt, f::Int64)
+  # e.g., es.all[1].mk is the cmkt.  
+  # then es.all[1].mk.m[i] is the cpats.  
   pcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   mcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   temparr::Array{Float64,2} = zeros(2, 11) #TODO - how many columns?  Max size over all of them.  
   for el in c.m
-    # this is iterating over zips in the market for that hospital.
-    # need to: compute the deterministic utility, then 
-    # take those as shares of the patients. 
-    # then add those up. 
-
-
+    # TODO - array zero is not being using.  Neither is temparr.
+    # this is doing the wrong thing.  putils can't be used directly.  Shares need to be used.
+    # This is wrong.  
+    DemComp(el.putils, temparr, pcount, f, el, true)
+    DemComp(el.mutils, temparr, mcount, f, el, false)
     ArrayZero(temparr)
   end 
+  return pcount, mcount 
 end
 
 """
