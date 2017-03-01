@@ -8,7 +8,7 @@ module ProjectModule
 
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
-  if dir == "/Users/austinbean/Desktop/dynhosp"
+  if (dir == "/Users/austinbean/Desktop/dynhosp")||(dir=="/Users/austinbean/julia6dev/julia")
     global pathdata = "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/"
     global pathpeople = "/Users/austinbean/Google Drive/Texas Inpatient Discharge/"
     global pathprograms = "/Users/austinbean/Desktop/dynhosp/"
