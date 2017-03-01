@@ -185,22 +185,22 @@ function poly( lev, coeffs)
 end
 
 
-function Poly(numlev::Int64, level::Int64;  # first arg is number of facs at the level, second is level.
+function NewPoly(numlev::Int64, level::Int64;  # first arg is number of facs at whatever level, second is level.
               coeffs3::Array{Float64,2} = [2.1085  -0.90306  0.233774  -0.0384249  0.00407243  -0.000278157  1.18195e-5  -2.83e-7  2.9e-9],
               coeffs2::Array{Float64,2} = [10.5749  -9.82811  4.88716  -1.40579  0.238834  -0.0235274  0.00123874  -2.69145e-5],
               coeffs1::Array{Float64,2} = [-0.344434  0.0463555  -0.0371076  0.0159125  -0.00313691  0.000333805  -1.99556e-5  6.31e-7  -8.22e-9])
   outp::Float64 = 0.0
   if level == 1
     for i = 1:maximum(size(coeffs1))
-      outp+=coeffs1[i]*lev^i
+      outp+=coeffs1[i]*numlev^(i+1)
     end 
   elseif level == 2
     for i = 1:maximum(size(coeffs2))
-      outp+=coeffs2[i]*lev^i
+      outp+=coeffs2[i]*numlev^(i+1)
     end 
   elseif level == 3
     for i = 1:maximum(size(coeffs3))
-      outp+=coeffs3[i]*lev^i
+      outp+=coeffs3[i]*numlev^(i+1)
     end     
   end 
   return outp
@@ -228,7 +228,7 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   push!(neighbors,1) # adds a 1 at the end of the neighbors to handle the choice-specific constant.
   if ownlev == (0,0) #level 1
     # choices - continue, 12, 13, ex
-    retst1 = states1(lev1, lev2, lev3) 
+    retst1 = states1(lev1, lev2, lev3) #TODO - replace all of these with NewPoly.  
     c11 = BasicProd(retst1[1,:])+poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 5], poly3)
     c12 = BasicProd(retst1[2,:])+poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 5], poly3) + NeighborsProd(case12,neighbors)
     c13 = BasicProd(retst1[3,:])+poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 5], poly3) + NeighborsProd(case13,neighbors)
