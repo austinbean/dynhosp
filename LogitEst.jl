@@ -184,15 +184,55 @@ function poly( lev, coeffs)
   return coeffs*(lev.^collect(2:degree))
 end
 
+
+function Poly(numlev::Int64, level::Int64;  # first arg is number of facs at the level, second is level.
+              coeffs3::Array{Float64,2} = [2.1085  -0.90306  0.233774  -0.0384249  0.00407243  -0.000278157  1.18195e-5  -2.83e-7  2.9e-9],
+              coeffs2::Array{Float64,2} = [10.5749  -9.82811  4.88716  -1.40579  0.238834  -0.0235274  0.00123874  -2.69145e-5],
+              coeffs1::Array{Float64,2} = [-0.344434  0.0463555  -0.0371076  0.0159125  -0.00313691  0.000333805  -1.99556e-5  6.31e-7  -8.22e-9])
+  outp::Float64 = 0.0
+  if level == 1
+    for i = 1:maximum(size(coeffs1))
+      outp+=coeffs1[i]*lev^i
+    end 
+  elseif level == 2
+    for i = 1:maximum(size(coeffs2))
+      outp+=coeffs2[i]*lev^i
+    end 
+  elseif level == 3
+    for i = 1:maximum(size(coeffs3))
+      outp+=coeffs3[i]*lev^i
+    end     
+  end 
+  return outp
+end 
+
+function BasicProd(states::Array{Int64}; coeffs::Array{Float64,2}=[5.52019  3.25336  2.86751  -1.74685  -4.2777]) # these are the coeffs in "basic" above.
+  outp::Float64 = 0.0
+  for i = 1:maximum(size(states))
+    outp += states[i]*coeffs[i]
+  end 
+  return outp
+end 
+
+function NeighborsProd(cases::Array{Float64,2}, neighbors::Array{Int64})
+  outp::Float64 = 0.0
+  for i = 1:maximum(size(cases))
+    outp += cases[i]*neighbors[i]
+  end 
+  return outp
+end 
+
+
+
 function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbors::Array )
   push!(neighbors,1) # adds a 1 at the end of the neighbors to handle the choice-specific constant.
   if ownlev == (0,0) #level 1
     # choices - continue, 12, 13, ex
     retst1 = states1(lev1, lev2, lev3) 
-    c11 = dot(vec(retst1[1,:]),vec(basic))  + poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 5], poly3)
-    c12 = dot(vec(retst1[2,:]),vec(basic))  + poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 5], poly3) + dot(vec(case12),vec(neighbors))
-    c13 = dot(vec(retst1[3,:]),vec(basic))  + poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 5], poly3) + dot(vec(case13),vec(neighbors))
-    c1ex = dot(vec(retst1[4,:]),vec(basic)) + poly(retst1[4, 3], poly1) + poly(retst1[4, 4], poly2) + poly(retst1[4, 5], poly3) + dot(vec(caseEX),vec(neighbors))
+    c11 = BasicProd(retst1[1,:])+poly(retst1[1, 3], poly1) + poly(retst1[1, 4], poly2) + poly(retst1[1, 5], poly3)
+    c12 = BasicProd(retst1[2,:])+poly(retst1[2, 3], poly1) + poly(retst1[2, 4], poly2) + poly(retst1[2, 5], poly3) + NeighborsProd(case12,neighbors)
+    c13 = BasicProd(retst1[3,:])+poly(retst1[3, 3], poly1) + poly(retst1[3, 4], poly2) + poly(retst1[3, 5], poly3) + NeighborsProd(case13,neighbors)
+    c1ex = BasicProd(retst1[4,:])+poly(retst1[4, 3], poly1) + poly(retst1[4, 4], poly2) + poly(retst1[4, 5], poly3) + NeighborsProd(caseEX,neighbors)
     # now compute all of these, but keep in mind that they are differenced.
     p12  = exp(c12 - c11)/(1+ exp(c12-c11) + exp(c13 - c11) + exp(c1ex - c11))
     p13  = exp(c13 - c11)/(1 + exp(c12-c11) + exp(c13-c11) + exp(c1ex - c11))
@@ -202,10 +242,10 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   elseif ownlev == (1,0) # level 2
     # choices - 21, continue, 23, ex
     retst2 = states2(lev1, lev2, lev3) 
-    c21 = dot(vec(retst2[1,:]),vec(basic))  + poly(retst2[1, 3], poly1) + poly(retst2[1, 4], poly2) + poly(retst2[1, 5], poly3) + dot(vec(case21),vec(neighbors))
-    c22 = dot(vec(retst2[2,:]),vec(basic))  + poly(retst2[2, 3], poly1) + poly(retst2[2, 4], poly2) + poly(retst2[2, 5], poly3)
-    c23 = dot(vec(retst2[3,:]),vec(basic))  + poly(retst2[3, 3], poly1) + poly(retst2[3, 4], poly2) + poly(retst2[3, 5], poly3) + dot(vec(case23),vec(neighbors))
-    c2ex = dot(vec(retst2[4,:]),vec(basic)) + poly(retst2[4, 3], poly1) + poly(retst2[4, 4], poly2) + poly(retst2[4, 5], poly3) + dot(vec(caseEX),vec(neighbors))
+    c21 = BasicProd(retst2[1,:])+poly(retst2[1, 3], poly1) + poly(retst2[1, 4], poly2) + poly(retst2[1, 5], poly3) + NeighborsProd(case21,neighbors)
+    c22 = BasicProd(retst2[2,:])+poly(retst2[2, 3], poly1) + poly(retst2[2, 4], poly2) + poly(retst2[2, 5], poly3)
+    c23 = BasicProd(retst2[3,:])+poly(retst2[3, 3], poly1) + poly(retst2[3, 4], poly2) + poly(retst2[3, 5], poly3) + NeighborsProd(case23,neighbors)
+    c2ex = BasicProd(retst2[4,:])+poly(retst2[4, 3], poly1) + poly(retst2[4, 4], poly2) + poly(retst2[4, 5], poly3) + NeighborsProd(caseEX,neighbors)
     # compute all of them:
     p21 = exp(c21 - c22)/(1 + exp(c21 - c22) + exp(c23 - c22) + exp(c2ex - c22))
     p23 = exp(c23 - c22)/(1 + exp(c21 - c22) + exp(c23 - c22) + exp(c2ex - c22))
@@ -215,10 +255,10 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
   elseif ownlev == (0,1) # level 3
     # choices - 31, 32, continue, ex
     retst3 = states3(lev1, lev2, lev3) 
-    c31 = dot(vec(retst3[1,:]),vec(basic))  + poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 5], poly3) + dot(vec(case31), vec(neighbors))
-    c32 = dot(vec(retst3[2,:]),vec(basic))  + poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 5], poly3) + dot(vec(case32), vec(neighbors))
-    c33 = dot(vec(retst3[3,:]),vec(basic))  + poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 5], poly3)
-    c3ex = dot(vec(retst3[4,:]),vec(basic)) + poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 5], poly3) + dot(vec(caseEX), vec(neighbors))
+    c31 = BasicProd(retst3[1,:])+poly(retst3[1, 3], poly1) + poly(retst3[1, 4], poly2) + poly(retst3[1, 5], poly3) + NeighborsProd(case31,neighbors)
+    c32 = BasicProd(retst3[2,:])+poly(retst3[2, 3], poly1) + poly(retst3[2, 4], poly2) + poly(retst3[2, 5], poly3) + NeighborsProd(case32,neighbors)
+    c33 = BasicProd(retst3[3,:])+poly(retst3[3, 3], poly1) + poly(retst3[3, 4], poly2) + poly(retst3[3, 5], poly3)
+    c3ex = BasicProd(retst3[4,:])+ poly(retst3[4, 3], poly1) + poly(retst3[4, 4], poly2) + poly(retst3[4, 5], poly3) + NeighborsProd(caseEX,neighbors)
     # compute:
     p31 = exp(c31 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
     p32 = exp(c32 - c33)/(1 + exp(c31 - c33) + exp(c32 - c33) + exp(c3ex - c33))
