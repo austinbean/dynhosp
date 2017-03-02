@@ -234,6 +234,7 @@ function logitest(ownlev::Tuple, lev1::Int64, lev2::Int64, lev3::Int64, neighbor
     c13 = BasicProd(retst1[3,:])+NewPoly(retst1[3, 3], 1) + NewPoly(retst1[3, 4], 2) + NewPoly(retst1[3, 5], 3) + NeighborsProd(case13,neighbors)
     c1ex = BasicProd(retst1[4,:])+NewPoly(retst1[4, 3], 1) + NewPoly(retst1[4, 4], 2) + NewPoly(retst1[4, 5], 3) + NeighborsProd(caseEX,neighbors)
     # now compute all of these, but keep in mind that they are differenced.
+    # dots don't actually make a difference here.
     p12  = exp.(c12 - c11)./(1.+exp.(c12-c11).+ exp.(c13 - c11).+exp.(c1ex - c11))
     p13  = exp.(c13 - c11)./(1.+exp.(c12-c11).+exp.(c13-c11).+exp.(c1ex - c11))
     p1ex = exp.(c1ex - c11)./(1.+exp.(c12-c11).+exp.(c13-c11).+exp.(c1ex - c11))
