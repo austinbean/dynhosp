@@ -295,6 +295,9 @@ module ProjectModule
   export states2
   export states3
   export poly
+  export NewPoly
+  export NeighborsProd
+  export BasicProd
   export perturb
   export distance
   export MakeIt
