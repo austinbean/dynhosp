@@ -6,173 +6,6 @@
 # use the type neighbors !
 
 
-"""
-`type nlrec`
-- aw::Dict{Int64,Float64}
-- psi::Array{Float64,2}
-- counter::Dict{Int64, Int64}
-First element stores {Action, Continuation Value Approximations}.  Second stores probabilities.  Third is an {Action, Hits} counter.
-Stored in a dictionary under a (neighbors, level) tuple-type key.
-"""
-type nlrec
-  aw::Dict{Int64,Float64}
-  psi::Array{Float64,2}
-  counter::Dict{Int64, Int64}
-end
-
-"""
-`type hitcount`
-- conf::neighbors
-- visits::Dict{Int64, Int64}
-"""
-type hitcount # this type will record visits to a state-action pair
-  conf::neighbors
-  visits::Dict{Int64,Int64}
-end
-
-
-"""
-`vrecord`
-- visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
-- totalcnt::Int64 # count all states
-Records which state-action pairs have been visited, plus the total iteration count.  The array length is fixed at
-1 million so only those state-action pairs are checked.
-"""
-type vrecord
-  visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
-  totalcnt::Int64 # count all states
-end
-
-
-"""
-`allvisits`
-- all::Dict{Int64, vrecord}
-Dictionary of {Fid, VRecord}, which records visits to state-action pairs.
-"""
-type allvisits
-  all::Dict{Int64, vrecord}
-end
-
-
-
-"""
-`type history`
--  path::Dict{neighbors, hitcount}
--  totalcount::Int64
-"""
-type history
-  path::Dict{neighbors, hitcount}
-  totalcount::Int64 # records total number of iterations
-end
-
-
-"""
-`type shortrec<:ProjectModule.Fac`
--  fid::Int64
--  lat::Float64
--  long::Float64
--  level::Int64
--  truelevel::Int64
--  beds::Int64
--  ns::neighbors
--  choices::Array{Int64, 2}
--  chprobs::WeightVec
--  tbu::Bool
-"""
-type shortrec<:ProjectModule.Fac
-  # needs to take location.  must measure distances.  need to update all of these every time, probably.
-  fid::Int64
-  lat::Float64
-  long::Float64
-  level::Int64
-  truelevel::Int64
-  beds::Int64
-  ns::neighbors
-  choices::Array{Int64, 2}
-  chprobs::WeightVec
-  tbu::Bool
-end
-
-#NB:  this array needs to include the WTP for each facility too!
-"""
-`type cpats`
--  zp::Int64
--  lat::Float64
--  long::Float64
--  putils::Array{Float64,2}
--  mutils::Array{Float64,2}
--  pwtp::Array{Float64,2}
--  facs::Array{shortrec,1}
--  pcounts::patientcount
--  mcounts::patientcount
-"""
-type cpats
-  zp::Int64
-  lat::Float64
-  long::Float64
-  putils::Array{Float64,2}
-  mutils::Array{Float64,2}
-  pwtp::Array{Float64,2}
-  facs::Array{shortrec,1}
-  pcounts::patientcount
-  mcounts::patientcount
-end
-
-
-"""
-`type cmkt`
--  fid::Int64
--  m::Array{cpats,1}
-"""
-type cmkt
-  fid::Int64
-  m::Array{cpats,1}
-end
-
-
-#NB: When the firm exits, can probably restart from the beginning, but keeping the elements in "visited".  We can keep approximating them.
-"""
-`type simh<:ProjectModule.Fac`
--  fid::Int64
--  lat::Float64
--  long::Float64
--  level::Int64
--  previous::Int64
--  actual::Int64
--  beds::Int64
--  cns::neighbors # must know what current neighbors look like.
--  visited::Dict{nl, nlrec} #possible given "isequal" and "hash" extended for "neighbors"
--  ns::Array{shortrec, 1}
--  mk::cmkt # putting the cmkt into the simh record itself.
--  exit::Bool # did it exit?
--  tbu::Bool # Does the record need to be updated ?
--  converged::Bool # has the hospital converged or not?
-"""
-type simh<:ProjectModule.Fac
-  fid::Int64
-  lat::Float64
-  long::Float64
-  level::Int64
-  previous::Int64
-  actual::Int64
-  beds::Int64
-  cns::neighbors # must know what current neighbors look like.
-  visited::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, nlrec} #change key to tuple of int64 composed of neighbors and level.
-  ns::Array{shortrec, 1}
-  mk::cmkt # putting the cmkt into the simh record itself.
-  exit::Bool
-  tbu::Bool
-  converged::Bool
-end
-
-"""
-`type DynState` # this should hold a collection of ALL of the hospitals, for the approximation.
--  all::Array{simh, 1}
-"""
-type DynState # this should hold a collection of ALL of the hospitals, for the approximation.
-  all::Array{simh, 1}
-end
-
 
 """
 `KeyCreate(n::neighbors, l::Int64)`
@@ -626,15 +459,12 @@ each patient type in the same.
 e.g., es.all[1].mk is the cmkt.  
 then es.all[1].mk.m[i] is the cpats.  
 """
-function DSimNew(c::cmkt, f::Int64; maxh::Int64 = 12)
-  pcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  mcount::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh) 
   for el in c.m
     DemComp(el.putils, temparr, pcount, f, el, true)
     DemComp(el.mutils, temparr, mcount, f, el, false)
   end 
-  return pcount, mcount 
 end
 
 
@@ -1114,12 +944,14 @@ function WProb(n::nlrec)
   return prd
 end
 
+
+
 """
 `ContError(n::nlrec)`
 Computes the continuation value of the error.
 """
 function ContError(n::nlrec)
-  return (eulergamma - dot(log(n.psi[2,:]), n.psi[2,:]))
+  return (eulergamma - dot(log.(n.psi[2,:]), n.psi[2,:])) #6devfix
 end
 
 
@@ -1281,6 +1113,28 @@ function RTuple(h::simh, a::Int64)
 end
 
 
+"""
+`PatientZero(mc::patientcount, pc::patientcount)`
+Simple function - returns the values of the patientcounts to zeros.  
+Faster to hard code this for exactly two patientcounts than to call it twice. 
+"""
+function PatientZero(mc::patientcount,  pc::patientcount)
+  mc.count385 = 0.0
+  mc.count386 = 0.0
+  mc.count387 = 0.0
+  mc.count388 = 0.0
+  mc.count389 = 0.0
+  mc.count390 = 0.0
+  mc.count391 = 0.0
+  pc.count385 = 0.0
+  pc.count386 = 0.0
+  pc.count387 = 0.0
+  pc.count388 = 0.0
+  pc.count389 = 0.0
+  pc.count390 = 0.0
+  pc.count391 = 0.0
+end 
+
 
 
 """
@@ -1294,19 +1148,18 @@ V = allvisits(Dict{Int64, vrecord}());
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
   converged::Bool = false
-  a::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
-  b::ProjectModule.patientcount = patientcount(0,0,0,0,0,0,0)
+  a::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   steadylevs = AllAgg(D, chunk)
+  Level::Int64 = 0
+  Action::Int64 = 0
   for el in chunk                                                          # creates a dictionary of visited records.
     V.all[D.all[el].fid] = vrecord( Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1}(), 1)
   end
   while (iterations<itlim)&&(!converged)
-    if iterations%1000 == 0
-      dems = AllDems(D, chunk; repcount = 10)                              # Recompute the demand set every 1000 iterations.
-    end
     for el in D.all[chunk]
       if !el.converged                                                     # only keep simulating with the ones which haven't converged
-        a, b = SimpleDemand(dems[el.fid], el.level)                        # Demand as a result of actions.
+        DSimNew(el.mk, el.fid, a, b)
         GetProb(el)                                                        # this chooses the action by the other firms
         # TODO: add a market size check here to do something more like oblivious in large markets.
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
@@ -1314,9 +1167,9 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 0 for k in ChoicesAvailable(el)) )
         end
         # TODO - get all cleanup actions at the end of the period here.
-        act::Int64 = ChooseAction(el)                                       # Takes an action and returns it.
+        ChooseAction(el, Action)                                            # Takes an action and returns it.
         ComputeR(el, a, b, act, iterations; debug = debug)                  # Computes the return to the action
-        level::Int64 = LevelFunction(el ,act)                               # Level may change with action, but for next period.
+        level::Int64 = LevelFunction(el, act)                                       # Level may change with action, but for next period.
         if iterations <= 1_000_000
           push!(V.all[el.fid].visited, RTuple(el, act))                     # Record the first million state-action pairs in a vector
         elseif iterations >1_000_000
@@ -1328,6 +1181,7 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         FixNN(el)                                                           # Fixes the firms neighbors.
         iterations += 1                                                     # Update iteration count - TODO: delete after debugging.
         V.all[el.fid].totalcnt += 1                                         # Update the iteration count within the visit records.
+        PatientZero(a,b) # resets both patientcounts to zero.  
       end
       #TODO - uncomment convergence test when that is debugged.
       # if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
@@ -1505,12 +1359,11 @@ end
 Chooses the action and returns it.
 Uses the choice probs implied by the estimated value functions at the state.
 """
-function ChooseAction(h::simh)
-  act = convert(Int64, sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:])))
+function ChooseAction(h::simh, act::Int64)
+  act = sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
   if act == 11
     h.exit = true
   end
-  return act
 end
 
 
