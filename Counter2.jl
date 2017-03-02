@@ -397,8 +397,10 @@ function CounterWTP(ar::Array{Float64})
   for i =1:maximum(size(ar))
     denom += (ar[i] = exp(ar[i]))
   end
-  return log(map(x->(1/(1-x)), ar./denom))
+  return log.(map(x->(1/(1-x)), ar./denom))
 end
+
+
 
 """
 `DSim(c::cmkt, f::Int64)`
@@ -497,7 +499,7 @@ end
 
 
 """
-`WTP2(c::Array{Float64,2}, arr::Array{Float64,2})`
+`WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})`
 Another attempt at computing WTP.
 Should this take a fid argument too?  
 NB: this requires an array argument.  It does *not* allocate.  The array will have to be reset to zero 
@@ -505,7 +507,7 @@ every call.
 This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
 The size of arr is not that important since all unused values are zero AND they are ignored.  
 """
-function WTP2(c::Array{Float64,2}, arr::Array{Float64,2})
+function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
   int_sum::Float64 = 0.0
   for el in 1:size(c,2)
     if c[1,el]!=0.0
@@ -534,7 +536,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
       index = i #reassign 
     end 
   end 
-  WTP2(inparr, temparr) # updates temparr 
+  WTPNew(inparr, temparr) # updates temparr 
   if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private 
       for j in c.pcounts 
@@ -597,7 +599,7 @@ end
 
 """
 `ArrayZero(arr::Array{Float64,2})
-This quickly sets the array used in WTP2 back to zero.  
+This quickly sets the array used in WTPNew back to zero.  
 """
 function ArrayZero(arr::Array{Float64,2})
   dim1::Int64, dim2::Int64 = size(arr)
