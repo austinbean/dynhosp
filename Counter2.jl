@@ -391,11 +391,16 @@ end
 `CounterWTP(ar::Array{Float64,2})`
 Will take the output of `DetUtils(z::zipc; switch)` and compute the WTP.
 This only needs to be done for the private patients!
+
+
+
 """
 function CounterWTP(ar::Array{Float64})
   denom::Float64 = 0.0
   for i =1:maximum(size(ar))
-    denom += (ar[i] = exp(ar[i]))
+    if ar[i]!=0.0
+      denom += (ar[i] = exp(ar[i]))
+    end 
   end
   return log.(map(x->(1/(1-x)), ar./denom))
 end
@@ -1035,10 +1040,14 @@ NB: When probs are 0, continuation value of error is problematic, since this is
 given by the log, so the value is constrained to be this small positive value.
 The problem is basically underflow: when returns are really high to staying in and
 much smaller to getting out, the estimated prob is zero.
+
+
 """
 function PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.000000001)
-  return max(exp(neww - maximum(neww)), ep)/sum(exp(neww-maximum(neww)))
+  return max.(exp.(neww-maximum(neww)), ep)/sum(exp.(neww-maximum(neww))) #6devfix
 end
+
+
 
 """
 `WeightedProbUpdate(aw::Dict{Int64,Float64}, its::Int64)`
