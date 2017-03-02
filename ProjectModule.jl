@@ -272,6 +272,175 @@ module ProjectModule
   end
 
 
+"""
+`type nlrec`
+- aw::Dict{Int64,Float64}
+- psi::Array{Float64,2}
+- counter::Dict{Int64, Int64}
+First element stores {Action, Continuation Value Approximations}.  Second stores probabilities.  Third is an {Action, Hits} counter.
+Stored in a dictionary under a (neighbors, level) tuple-type key.
+"""
+type nlrec
+  aw::Dict{Int64,Float64}
+  psi::Array{Float64,2}
+  counter::Dict{Int64, Int64}
+end
+
+"""
+`type hitcount`
+- conf::neighbors
+- visits::Dict{Int64, Int64}
+"""
+type hitcount # this type will record visits to a state-action pair
+  conf::neighbors
+  visits::Dict{Int64,Int64}
+end
+
+
+"""
+`vrecord`
+- visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
+- totalcnt::Int64 # count all states
+Records which state-action pairs have been visited, plus the total iteration count.  The array length is fixed at
+1 million so only those state-action pairs are checked.
+"""
+type vrecord
+  visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
+  totalcnt::Int64 # count all states
+end
+
+
+"""
+`allvisits`
+- all::Dict{Int64, vrecord}
+Dictionary of {Fid, VRecord}, which records visits to state-action pairs.
+"""
+type allvisits
+  all::Dict{Int64, vrecord}
+end
+
+
+
+"""
+`type history`
+-  path::Dict{neighbors, hitcount}
+-  totalcount::Int64
+"""
+type history
+  path::Dict{neighbors, hitcount}
+  totalcount::Int64 # records total number of iterations
+end
+
+
+"""
+`type shortrec<:ProjectModule.Fac`
+-  fid::Int64
+-  lat::Float64
+-  long::Float64
+-  level::Int64
+-  truelevel::Int64
+-  beds::Int64
+-  ns::neighbors
+-  choices::Array{Int64, 2}
+-  chprobs::WeightVec
+-  tbu::Bool
+"""
+type shortrec<:ProjectModule.Fac
+  # needs to take location.  must measure distances.  need to update all of these every time, probably.
+  fid::Int64
+  lat::Float64
+  long::Float64
+  level::Int64
+  truelevel::Int64
+  beds::Int64
+  ns::neighbors
+  choices::Array{Int64, 2}
+  chprobs::WeightVec
+  tbu::Bool
+end
+
+#NB:  this array needs to include the WTP for each facility too!
+"""
+`type cpats`
+-  zp::Int64
+-  lat::Float64
+-  long::Float64
+-  putils::Array{Float64,2}
+-  mutils::Array{Float64,2}
+-  pwtp::Array{Float64,2}
+-  facs::Array{shortrec,1}
+-  pcounts::patientcount
+-  mcounts::patientcount
+"""
+type cpats
+  zp::Int64
+  lat::Float64
+  long::Float64
+  putils::Array{Float64,2}
+  mutils::Array{Float64,2}
+  pwtp::Array{Float64,2}
+  facs::Array{shortrec,1}
+  pcounts::patientcount
+  mcounts::patientcount
+end
+
+
+"""
+`type cmkt`
+-  fid::Int64
+-  m::Array{cpats,1}
+"""
+type cmkt
+  fid::Int64
+  m::Array{cpats,1}
+end
+
+
+#NB: When the firm exits, can probably restart from the beginning, but keeping the elements in "visited".  We can keep approximating them.
+"""
+`type simh<:ProjectModule.Fac`
+-  fid::Int64
+-  lat::Float64
+-  long::Float64
+-  level::Int64
+-  previous::Int64
+-  actual::Int64
+-  beds::Int64
+-  cns::neighbors # must know what current neighbors look like.
+-  visited::Dict{nl, nlrec} #possible given "isequal" and "hash" extended for "neighbors"
+-  ns::Array{shortrec, 1}
+-  mk::cmkt # putting the cmkt into the simh record itself.
+-  exit::Bool # did it exit?
+-  tbu::Bool # Does the record need to be updated ?
+-  converged::Bool # has the hospital converged or not?
+"""
+type simh<:ProjectModule.Fac
+  fid::Int64
+  lat::Float64
+  long::Float64
+  level::Int64
+  previous::Int64
+  actual::Int64
+  beds::Int64
+  cns::neighbors # must know what current neighbors look like.
+  visited::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, nlrec} #change key to tuple of int64 composed of neighbors and level.
+  ns::Array{shortrec, 1}
+  mk::cmkt # putting the cmkt into the simh record itself.
+  exit::Bool
+  tbu::Bool
+  converged::Bool
+end
+
+"""
+`type DynState` # this should hold a collection of ALL of the hospitals, for the approximation.
+-  all::Array{simh, 1}
+"""
+type DynState # this should hold a collection of ALL of the hospitals, for the approximation.
+  all::Array{simh, 1}
+end
+
+
+
 
   include("LogitEst.jl")
   include("Distance.jl")
@@ -447,7 +616,7 @@ module ProjectModule
   export DSimNew
   export DemComp
   export GetProb 
-  
+
   
 
 
@@ -480,6 +649,9 @@ module ProjectModule
   export cmkt 
   export simh 
   export DynState 
+  export vrecord 
+  export hitcount
+  export nlrec
 
   println("Loaded Module")
 
