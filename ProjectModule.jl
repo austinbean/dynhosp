@@ -97,7 +97,7 @@ module ProjectModule
     neighbors(n1.level105+n2.level105, n1.level205+n2.level205, n1.level305+n2.level305, n1.level1515+n2.level1515, n1.level2515+n2.level2515, n1.level3515+n2.level3515, n1.level11525+n2.level11525, n1.level21525+n2.level21525, n1.level31525+n2.level31525)
   end
 
-  abstract Fac
+  abstract type Fac end
 
   immutable initial
     level::Int64
@@ -442,6 +442,10 @@ module ProjectModule
   export VisitPrint 
   export ProbChange 
   export FindScale 
+  export ArrayZero
+  export WTPNew
+  export DSimNew
+  export DemComp
   
 
 
