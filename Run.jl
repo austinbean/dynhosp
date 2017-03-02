@@ -7,7 +7,7 @@ loc = pwd()
 
 using ProjectModule
 
-res = OuterSim(2; T1 = 1)
+res = OuterSim(6; T1 = 6)
 
 println("Estimation Done - Saving")
 
