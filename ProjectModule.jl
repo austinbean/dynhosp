@@ -616,6 +616,7 @@ end
   export DSimNew
   export DemComp
   export GetProb 
+  export PatientZero
 
   
 
