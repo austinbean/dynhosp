@@ -1168,12 +1168,12 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         end
         # TODO - get all cleanup actions at the end of the period here.
         ChooseAction(el, Action)                                            # Takes an action and returns it.
-        ComputeR(el, a, b, act, iterations; debug = debug)                  # Computes the return to the action
-        level::Int64 = LevelFunction(el, act)                                       # Level may change with action, but for next period.
+        ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
+        level::Int64 = LevelFunction(el, Action)                                       # Level may change with action, but for next period.
         if iterations <= 1_000_000
-          push!(V.all[el.fid].visited, RTuple(el, act))                     # Record the first million state-action pairs in a vector
+          push!(V.all[el.fid].visited, RTuple(el, Action))                     # Record the first million state-action pairs in a vector
         elseif iterations >1_000_000
-          V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, act)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
+          V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, Action)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
         end
         el.previous = el.level                                              # Reassign current level to previous.
         el.level = level                                                    # Reassign current level, if it has changed or not.
@@ -1181,7 +1181,8 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         FixNN(el)                                                           # Fixes the firms neighbors.
         iterations += 1                                                     # Update iteration count - TODO: delete after debugging.
         V.all[el.fid].totalcnt += 1                                         # Update the iteration count within the visit records.
-        PatientZero(a,b) # resets both patientcounts to zero.  
+        PatientZero(a,b) # resets both patientcounts to zero. 
+        Action = 0 #resets action to 0 - should reveal errors above. 
       end
       #TODO - uncomment convergence test when that is debugged.
       # if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
