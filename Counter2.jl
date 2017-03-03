@@ -1141,9 +1141,13 @@ end
 `ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
 
+TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.  
+
 To start:
 dyn = CounterObjects();
 V = allvisits(Dict{Int64, vrecord}());
+ValApprox(dyn, V, 100_000 ; chunk = [2]) # just doing one hospital.  
+22.001426 seconds (281.50 M allocations: 5.099 GiB, 6.99% gc time)
 """
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
@@ -1152,7 +1156,6 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   steadylevs = AllAgg(D, chunk)
   Level::Int64 = 0
-  Action::Int64 = 0
   for el in chunk                                                          # creates a dictionary of visited records.
     V.all[D.all[el].fid] = vrecord( Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1}(), 1)
   end
@@ -1166,8 +1169,7 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           println("adding new counter")
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 0 for k in ChoicesAvailable(el)) )
         end
-        # TODO - get all cleanup actions at the end of the period here.
-        ChooseAction(el, Action)                                            # Takes an action and returns it.
+        Action = ChooseAction(el)                                              # Takes an action and returns it.
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
         level::Int64 = LevelFunction(el, Action)                                       # Level may change with action, but for next period.
         if iterations <= 1_000_000
@@ -1182,12 +1184,11 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         iterations += 1                                                     # Update iteration count - TODO: delete after debugging.
         V.all[el.fid].totalcnt += 1                                         # Update the iteration count within the visit records.
         PatientZero(a,b) # resets both patientcounts to zero. 
-        Action = 0 #resets action to 0 - should reveal errors above. 
       end
-      #TODO - uncomment convergence test when that is debugged.
-      # if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
-      #   CheckConvergence(el)
-      # end
+      # TODO - uncomment convergence test when that is debugged.
+      if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
+        CheckConvergence(el) # FIXME - this is the wrong signature for this function.  
+      end
     end
   end
   converged = Halt(D, chunk)                                                # Check to see if all firms in "chunk" have converged, then halt if they have.
@@ -1359,12 +1360,16 @@ end
 `ChooseAction(h::simh)`
 Chooses the action and returns it.
 Uses the choice probs implied by the estimated value functions at the state.
+
+TODO - this does not actually update the value of the int action.
+
 """
-function ChooseAction(h::simh, act::Int64)
-  act = sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
+function ChooseAction(h::simh)
+  act::Int64 = sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
   if act == 11
     h.exit = true
   end
+  return act 
 end
 
 
