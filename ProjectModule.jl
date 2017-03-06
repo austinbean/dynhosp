@@ -556,6 +556,7 @@ end
   export CounterClean 
   export CounterCleanResults
   export HHI 
+  export RunCounter1
 
   # Export Counter2.jl functions 
   export KeyCreate 
