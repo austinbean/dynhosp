@@ -569,11 +569,34 @@ end
 """
 `ProfitChange`
 
+- res - counterhistory
+- res.hist[FIPS] -> what market are we doing?
+- res.hist[FIPS].values[key] → a simrun for the FIPS. Key will be a FID for the hospital with the facility.
+- res.hist[FIPS].values[FID] → What FID has the level III ?  
+- res.hist[FIPS].values[FID] → This is now a "simrun"
+- res.hist[FIPS].values[FID].hosprecord[FID2] → append the results of the simulation for ALL HOSPITALS to the dict of hyrecs in hosprecord
+- res.hist[FIPS].values[FID].hosprecord[FID2] → the record for FID2 consists of totbr, totvlbw, deats, profits.
+
+
 """
 
 function ProfitChange(ch::counterhistory, T::Int64)
-
-
+  outp::Dict{Int64, Array{Float64, 1}} = Dict{Int64, Array{Float64, 1}}() # fid, (facility, nofac) ? -> What do I want out of this?
+  hasfac::Float64 =0.0
+  nofac::Float64 = 0.0
+  count::Int64 = 0 # how many times does it appear? TODO - not N-1 for N firms in the market.  Something more than that, right?
+  for k1 in keys(ch.hist) # keys of ch are FIPS 
+    for k2 in keys(ch.hist[k1].values) # keys of values are FIDs
+      for k3 in keys(ch.hist[k1].values[k2].hosprecord) # k3 are fids too. Now I am looking at the hyrecs
+        if k3 == ch.hist[k1].values[k2].hasfac  # this is the facility with the fid.
+          out[k3][1] += mean(ch.hist[k1].values[k2].hosprecord[k3].profit)
+        else 
+          out[k3][2] += mean(ch.hist[k1].values[k2].hosprecord[k3].profit) # this one needs to be divided at the end 
+        end 
+      end 
+    end 
+  end 
+  return outp
 end 
 
 
