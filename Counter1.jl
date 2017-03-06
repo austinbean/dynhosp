@@ -645,7 +645,7 @@ end
 
 #=
 
-Documentation of Record Types:
+Documentation of Record Types for Counter 1:
 
 - Top level: RunCounter1 returns three "counterhistory" objects.  Call this "CH".
 - Counterhistory CH has one field: a dict called "hist"
@@ -658,7 +658,7 @@ Documentation of Record Types:
 - CH.hist[FIPS key].values[FID key] returns the "simrun" SR
 - Each "simrun" SR is a collection: a fips code, hosprecord dict{Int64, hyrec}, yeartot, and hasfac (an Int64)
 - SR.fips::Int64 is a fipscode, 
-- SR.hosprecord::Dict{Int64, hyrec} is a collection of hospital records
+- SR.hosprecord::Dict{Int64, hyrec} is a collection of hyrecs (hospital-year records)
 - SR.yeartot::Float64 records total mortality in the year 
 - SR.hasfac::Int64 is a fid
 - hyrec HY is a collection of: a fid, totbr total births, totlbw total low birth weight, totvlbw total low birth weight, deaths and profit
@@ -672,7 +672,17 @@ Documentation of Record Types:
 - Two cases: transferring and no transferring.  Under transferring all VLBW are counted and sent to hospital with facility
 - Else every hospital gets a record.  How stored?  
 - res.hist[FID].values[currentfac[el]].hosprecord[k] 
-- k is the FID of a hospital w/ the facility.  
+- currentfac[el] is the FID of a hospital w/ the facility.  
+- k is the fid of the hospital whose record is being created (which may or may not be the hospital with the facility)
+- res - counterhistory
+- res.hist[FIPS] -> what market are we doing?
+- res.hist[FIPS].values[key] → a simrun for the FIPS. Key will be a FID for the hospital with the facility.
+- res.hist[FIPS].values[FID] → What FID has the level III ?  
+- res.hist[FIPS].values[FID] → This is now a "simrun"
+- res.hist[FIPS].values[FID].hosprecord[FID2] → append the results of the simulation for ALL HOSPITALS to the dict of hyrecs in hosprecord
+- res.hist[FIPS].values[FID].hosprecord[FID2] → the record for FID2 consists of totbr, totvlbw, deats, profits.
+
+TODO - getting Δ profits, costs, HHI depends on these comparisons.  But now I know how they can be done.  
 
 
 
