@@ -254,7 +254,8 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
     wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
-      #TODO - Clean these dictionaries up later.    
+      #TODO - Clean these dictionaries up later. 
+      #TODO - these are not being reset to 0.  ???   
       GenPChoices(pats, d1, arry1)
       GenMChoices(pats, d2, arry2)
       #TODO - don't reallocate demand every period - clean up 
@@ -535,11 +536,12 @@ compute the HHI every year.  I should append... the mean and the variance in the
          # vlbwcount += ch.hist[k1].values[k2].hosprecord[k3].totvlbw[i]
 
 """
-function HHI(ch::counterhistory, T::Int64)
+function HHI(ch::counterhistory, baseline::counterhistory, T::Int64)
   outp::Dict{Int64, Tuple{Float64, Float64}} = Dict{Int64, Tuple{Float64, Float64}}()
-  brcount::Int64 = 0
-  lbwcount::Int64 = 0
-  vlbwcount::Int64 = 0
+  out2::Dict{Int64, Tuple{Float64, Float64}} = Dict{Int64, Tuple{Float64, Float64}}()
+  brcount::Float64 = 0
+  lbwcount::Float64 = 0
+  vlbwcount::Float64 = 0
   hh::Float64 = 0.0
   temparray::Array{Float64,1} = zeros(T) # allocate one array to be rewritten
   for k1 in keys(ch.hist) #iterate over markets.
@@ -555,13 +557,53 @@ function HHI(ch::counterhistory, T::Int64)
         end 
         temparray[i] = hh 
       end
-      outp[k2] = (mean(temparray), std(temparray)) 
+      outp[k1] = (mean(temparray), std(temparray)) 
       for i = 1:length(temparray)
         temparray[i] = 0.0
       end 
     end 
   end 
-  return outp 
+  # Do the baseline case: 
+  for k1 in keys(baseline.hist) #these are fipscodes
+    for i = 1:T
+      brcount = 0.0
+      hh = 0.0
+      for k2 in keys(baseline.hist[k1].values[0].hosprecord) # these are fids. Recall that the baseline is recorded with key 0
+        brcount += mean(baseline.hist[k1].values[0].hosprecord[k2].totbr[i])
+      end 
+      for k2 in keys(baseline.hist[k1].values[0].hosprecord)
+        hh = (mean(baseline.hist[k1].values[0].hosprecord[k2].totbr[i])/brcount)^2
+      end 
+      temparray[i] = hh 
+    end 
+    out2[k1] = (mean(temparray), std(temparray))
+    for i = 1:length(temparray)
+      temparray[i] = 0.0
+    end 
+  end 
+  return outp, out2
+end 
+
+
+
+
+"""
+`HHIDiff` 
+takes two dicts of HHI's by the market fips code and returns a dict of the differences, when the 
+markets are non-monopoly.  Also retuns a float of the average 
+"""
+function HHIDiff(baselined::Dict{Int64, Tuple{Float64, Float64}}, counterd::Dict{Int64, Tuple{Float64,Float64}})
+  mkts::Int64 = 0
+  hhidiff::Float64 = 0
+  out::Dict{Int64, Float64} = Dict{Int64, Float64}()
+  for k in keys(baselined)
+    if (baselined[k][1] != 1)&(counterd[k][1]!=1)&(!isnan(baselined[k][1]))&(!(isnan(counterd[k][1])))
+      hhidiff += baselined[k][1] - counterd[k][1]
+      mkts += 1
+    end 
+  end 
+  println("non monopoly markets ", mkts)
+  return hhidiff/mkts, out 
 end 
 
 
@@ -604,12 +646,24 @@ function ProfitChange(ch::counterhistory)
   return outp
 end 
 
-function ProfitMeanVar(d1::Dict{Int64,Array{Float64,1}}; max_h::Int64 = 29)
-  meanarr::Array{Float64,1} = zeros(max_h)
+"""
+`ProfitMeanVar(d1::Dict{Int64, Float64})`
+This is just the mean of the percentage change in profits in profits
+when the hospital does not have the facility.  
+TODO - no variance is computed correctly yet.  See below.    
+
+"""
+function ProfitMeanVar(d1::Dict{Int64,Array{Float64,1}})
   outp1::Dict{Int64, Float64} = Dict{Int64, Float64}()
-  
-
-
+  outp2::Dict{Int64, Float64} = Dict{Int64, Float64}()
+  for k1 in keys(d1)
+    outp1[k1] = mean((d1[k1][1].-d1[k1])./d1[k1][1])
+  end 
+  # TODO - this needs to be debugged. Returns nothing at the moment 
+  for k1 in keys(d1)
+    outp2[k1] = std((d1[k1][1].-d1[k1][2:end])./d1[k1][2:end])
+  end 
+  return outp1 #, outp2
 end 
 
 
