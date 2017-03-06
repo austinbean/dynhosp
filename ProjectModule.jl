@@ -557,6 +557,8 @@ end
   export CounterCleanResults
   export HHI 
   export RunCounter1
+  export ProfitChange
+  export ProfitMeanVar
 
   # Export Counter2.jl functions 
   export KeyCreate 
