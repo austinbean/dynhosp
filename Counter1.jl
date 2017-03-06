@@ -580,24 +580,38 @@ end
 
 """
 
-function ProfitChange(ch::counterhistory, T::Int64)
+function ProfitChange(ch::counterhistory)
   outp::Dict{Int64, Array{Float64, 1}} = Dict{Int64, Array{Float64, 1}}() # fid, (facility, nofac) ? -> What do I want out of this?
+  
   hasfac::Float64 =0.0
   nofac::Float64 = 0.0
-  count::Int64 = 0 # how many times does it appear? TODO - not N-1 for N firms in the market.  Something more than that, right?
+  cnt::Int64 = 0 # how many times does it appear? TODO - not N-1 for N firms in the market.  Something more than that, right?
   for k1 in keys(ch.hist) # keys of ch are FIPS 
+    cnt = ch.hist[k1].values.count # count facilities, since this determines array length.
     for k2 in keys(ch.hist[k1].values) # keys of values are FIDs
       for k3 in keys(ch.hist[k1].values[k2].hosprecord) # k3 are fids too. Now I am looking at the hyrecs
+        if !haskey(outp, k3)
+          outp[k3] = Array{Float64,1}(1) # this is going to be much slower than allocating in advance
+        end 
         if k3 == ch.hist[k1].values[k2].hasfac  # this is the facility with the fid.
-          out[k3][1] += mean(ch.hist[k1].values[k2].hosprecord[k3].profit)
+          outp[k3][1] = mean(ch.hist[k1].values[k2].hosprecord[k3].profit)
         else 
-          out[k3][2] += mean(ch.hist[k1].values[k2].hosprecord[k3].profit) # this one needs to be divided at the end 
+          push!(outp[k3], mean(ch.hist[k1].values[k2].hosprecord[k3].profit)) 
         end 
       end 
     end 
   end 
   return outp
 end 
+
+function ProfitMeanVar(d1::Dict{Int64,Array{Float64,1}}; max_h::Int64 = 29)
+  meanarr::Array{Float64,1} = zeros(max_h)
+  outp1::Dict{Int64, Float64} = Dict{Int64, Float64}()
+  
+
+
+end 
+
 
 
 """
@@ -658,12 +672,12 @@ function RunCounter1(T::Int64)
   #   patients = NewPatients(Tex);
   #   c1all = Baseline(T, Tex, patients; levelchange = true, level = 1)
   #   outc1all = BestOutcome(c1all, bl)
-  return bl, c1, c1nr, outc1, outc1nr, outc3all, outc2all, outc1all
+  return bl, c1, c1nr, outc1, outc1nr #, outc3all, outc2all, outc1all
 end
 
 
-
- baseline, c1, c1nr, outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1(5)
+# baseline, c1, c1nr, outc1, outc1nr = RunCounter1(1)
+# baseline, c1, c1nr, outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1(5)
 
 
 #=
