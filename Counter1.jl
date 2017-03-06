@@ -567,6 +567,17 @@ end
 
 
 """
+`ProfitChange`
+
+"""
+
+function ProfitChange(ch::counterhistory, T::Int64)
+
+
+end 
+
+
+"""
 `RunCounter1(T::Int64)`
 Run the first counterfactual and get the results.
 Specifically - runs a Baseline for T periods.  Then compares to the following scenarios:
@@ -581,7 +592,7 @@ function RunCounter1(T::Int64)
     println("Setting up")
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.alldists);
+    FillState(Tex, ProjectModule.alldists, 50);
     patients = NewPatients(Tex);
   # Run the baseline then run the counter where each county gets a single level 1 and there *are* transfers.
     println("Running Baseline")
@@ -593,46 +604,83 @@ function RunCounter1(T::Int64)
   # Run the counterfactual where there are no transfers
     Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
     CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.alldists);
+    FillState(Tex, ProjectModule.alldists, 50);
     patients = NewPatients(Tex);
     println("Running Single level 3 w/ out transfers")
     c1nr = CounterSim(T, Tex, patients; reassign = false)
     outc1nr = BestOutcome(c1nr, bl)
-  # Run the counterfactual where everyone has level 3 (SetLevel fixes the level.)
-    println("*********")
-    println("Do not trust these results until the adjusted mortality rate is in use!")
-    println("Assigning everyone to level 3")
-    Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
-    CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.alldists);
-    patients = NewPatients(Tex);
-    c3 = Baseline(T, Tex, patients; levelchange = true, level = 3)
-    outc3all = BestOutcome(c3, bl)
-  # Run the counterfactual where everyone but the special guy has level 2
-    println("assigning everyone except the special fac to level 2")
-    Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
-    CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.alldists);
-    patients = NewPatients(Tex);
-    c2 = Baseline(T, Tex, patients; levelchange = true, level = 2)
-    outc2all = BestOutcome(c2, bl)
-  # Run a counterfactual with everyone at level 1
-    println("Assigning everyone to level 1")
-    Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
-    CMakeIt(Tex, ProjectModule.fips);
-    FillState(Tex, ProjectModule.alldists);
-    patients = NewPatients(Tex);
-    c1all = Baseline(T, Tex, patients; levelchange = true, level = 1)
-    outc1all = BestOutcome(c1all, bl)
-  return bl, outc1, outc1nr, outc3all, outc2all, outc1all
+  # # Run the counterfactual where everyone has level 3 (SetLevel fixes the level.)
+  #   println("*********")
+  #   println("Do not trust these results until the adjusted mortality rate is in use!")
+  #   println("Assigning everyone to level 3")
+  #   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  #   CMakeIt(Tex, ProjectModule.fips);
+  #   FillState(Tex, ProjectModule.alldists, 50);
+  #   patients = NewPatients(Tex);
+  #   c3 = Baseline(T, Tex, patients; levelchange = true, level = 3)
+  #   outc3all = BestOutcome(c3, bl)
+  # # Run the counterfactual where everyone but the special guy has level 2
+  #   println("assigning everyone except the special fac to level 2")
+  #   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  #   CMakeIt(Tex, ProjectModule.fips);
+  #   FillState(Tex, ProjectModule.alldists, 50);
+  #   patients = NewPatients(Tex);
+  #   c2 = Baseline(T, Tex, patients; levelchange = true, level = 2)
+  #   outc2all = BestOutcome(c2, bl)
+  # # Run a counterfactual with everyone at level 1
+  #   println("Assigning everyone to level 1")
+  #   Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+  #   CMakeIt(Tex, ProjectModule.fips);
+  #   FillState(Tex, ProjectModule.alldists, 50);
+  #   patients = NewPatients(Tex);
+  #   c1all = Baseline(T, Tex, patients; levelchange = true, level = 1)
+  #   outc1all = BestOutcome(c1all, bl)
+  return bl, c1, c1nr, outc1, outc1nr, outc3all, outc2all, outc1all
 end
 
 
 
-# baseline, outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1(50)
+ baseline, c1, c1nr, outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1(5)
 
 
 #=
+
+Documentation of Record Types:
+
+- Top level: RunCounter1 returns three "counterhistory" objects.  Call this "CH".
+- Counterhistory CH has one field: a dict called "hist"
+- CH.hist[key] to access. 
+- The keys of "CH.hist" are FIPS codes.
+- Each CH.hist[key] is a "mkthistory" type object.
+- mkthistory MH has fields fips::Int64 and values::Dict{Int64, simrun}
+- MH.fips::Int64 is a fipscode
+- MH.values[key] is a "simrun", where MH is CH.hist[fipscode]
+- CH.hist[FIPS key].values[FID key] returns the "simrun" SR
+- Each "simrun" SR is a collection: a fips code, hosprecord dict{Int64, hyrec}, yeartot, and hasfac (an Int64)
+- SR.fips::Int64 is a fipscode, 
+- SR.hosprecord::Dict{Int64, hyrec} is a collection of hospital records
+- SR.yeartot::Float64 records total mortality in the year 
+- SR.hasfac::Int64 is a fid
+- hyrec HY is a collection of: a fid, totbr total births, totlbw total low birth weight, totvlbw total low birth weight, deaths and profit
+- HY.fid::Array{Int64,1}
+- HY.totbr::Array{Int64,1}
+- HY.totvlbw::Array{Int64,1}
+- HY.deaths::Array{Int64,1}
+- HY.profit::Array{Float64,1}
+- Or this can be accessed with HY replaced with: CH.hist[FIPSCODE].values[FID].hosprecord[FID]
+- What happens in a simulation?  See the CounterSim function in the section starting "from i = 1:T"
+- Two cases: transferring and no transferring.  Under transferring all VLBW are counted and sent to hospital with facility
+- Else every hospital gets a record.  How stored?  
+- res.hist[FID].values[currentfac[el]].hosprecord[k] 
+- k is the FID of a hospital w/ the facility.  
+
+
+
+
+
+
+
+
 Do what with that?
 - Run BaselineCheck on baseline: (dictionary of deaths per county , total deaths, variances across markets) = BaselineCheck(baseline)
 -
