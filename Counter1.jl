@@ -598,6 +598,7 @@ function HHIDiff(baselined::Dict{Int64, Tuple{Float64, Float64}}, counterd::Dict
   out::Dict{Int64, Float64} = Dict{Int64, Float64}()
   for k in keys(baselined)
     if (baselined[k][1] != 1)&(counterd[k][1]!=1)&(!isnan(baselined[k][1]))&(!(isnan(counterd[k][1])))
+      out[k] = baselined[k][1] - counterd[k][1]
       hhidiff += baselined[k][1] - counterd[k][1]
       mkts += 1
     end 
@@ -624,10 +625,9 @@ end
 
 function ProfitChange(ch::counterhistory)
   outp::Dict{Int64, Array{Float64, 1}} = Dict{Int64, Array{Float64, 1}}() # fid, (facility, nofac) ? -> What do I want out of this?
-  
   hasfac::Float64 =0.0
   nofac::Float64 = 0.0
-  cnt::Int64 = 0 # how many times does it appear? TODO - not N-1 for N firms in the market.  Something more than that, right?
+  cnt::Int64 = 0 # how many times does it appear? TODO -  N-1 for N firms in the market.  Something more than that, right?
   for k1 in keys(ch.hist) # keys of ch are FIPS 
     cnt = ch.hist[k1].values.count # count facilities, since this determines array length.
     for k2 in keys(ch.hist[k1].values) # keys of values are FIDs
@@ -645,6 +645,8 @@ function ProfitChange(ch::counterhistory)
   end 
   return outp
 end 
+
+
 
 """
 `ProfitMeanVar(d1::Dict{Int64, Float64})`
