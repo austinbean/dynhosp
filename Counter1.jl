@@ -82,7 +82,7 @@ function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int6
                 gamma_1_388::Float64 = 26561.8688,
                 gamma_2_388::Float64 = 20895.5001,
                 gamma_3_388::Float64 = 29775.8381,
-                gamma_1_389::Float64 = 20653.5821, 
+                gamma_1_389::Float64 = 20653.5821,
                 gamma_2_389::Float64 = 20102.2097,
                 gamma_3_389::Float64 = 8279.774,
                 gamma_1_390::Float64 = 7372.3301,
@@ -95,8 +95,8 @@ function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int6
   for k1 in keys(ppats) # put the dictionary together.
     if k1 != 0 # don't add OO.
       outp[k1] = 0.0
-    end 
-  end 
+    end
+  end
   for k in keys(ppats) # multiplied by patient volumes or not?
     if k != 0 # don't include OO.
       if Tex.mkts[Tex.fipsdirectory[k]].collection[k].level == 1
@@ -106,7 +106,7 @@ function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int6
       else # level is 3
         outp[k] = alf3*wtp[k]*(sum(ppats[k])+sum(mpats[k])) - gamma_3_385*ppats[k].count385 - gamma_3_385*mpats[k].count385 - gamma_3_386*ppats[k].count386 - gamma_3_386*mpats[k].count386 - gamma_3_387*ppats[k].count387 - gamma_3_387*mpats[k].count387 - gamma_3_388*mpats[k].count388 - gamma_3_388*ppats[k].count388 - gamma_3_389*mpats[k].count389 - gamma_3_389*ppats[k].count389 - gamma_3_390*ppats[k].count390 - gamma_3_390*mpats[k].count390 - gamma_3_391*ppats[k].count391 - gamma_3_391*mpats[k].count391
       end
-    end 
+    end
   end
   return outp
 end
@@ -218,7 +218,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
   arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
   res = counterhistory(Dict{Int64, mkthistory}())                                                            # the output - a counterfactual history
-  #TODO 02/20/2017 - remove dict comprehension.  
+  #TODO 02/20/2017 - remove dict comprehension.
   res.hist = Dict(k => mkthistory(k, Dict{Int64,simrun}()) for k in keys(Tex.mkts))                          # Fill the dictionary with the fids via a comprehension.
   for mk in keys(Tex.mkts) #these are fipscodes
     res.hist[mk].values = Dict( k=>simrun(mk, Dict{Int64,hyrec}(), 0.0, k) for k in keys(Tex.mkts[mk].collection)) # for each FID in the market, a simrun record element.
@@ -254,11 +254,11 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
     wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
     for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
-      #TODO - Clean these dictionaries up later. 
-      #TODO - these are not being reset to 0.  ???   
+      #TODO - Clean these dictionaries up later.
+      #TODO - these are not being reset to 0.  ???
       GenPChoices(pats, d1, arry1)
       GenMChoices(pats, d2, arry2)
-      #TODO - don't reallocate demand every period - clean up 
+      #TODO - don't reallocate demand every period - clean up
       mappeddemand, drgp, drgm = PatientDraw(d1, d2, Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
       pdict = Payoff(drgp, drgm, Tex, wtpc)
       if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
@@ -304,7 +304,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             res.hist[el].values[currentfac[el]].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
             res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]
             res.hist[el].values[currentfac[el]].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
-            res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k] + MeanCost(sharedvlbw[k],3) 
+            res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k] + MeanCost(sharedvlbw[k],3)
             mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
           end
           res.hist[el].values[currentfac[el]].yeartot = mortcount
@@ -349,11 +349,11 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
       res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T)) for k2 in keys(Tex.mkts[mk].collection))
     end
   end
-  CounterCleanResults(res)  
+  CounterCleanResults(res)
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
   wtpc = WTPMap(pats, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
-  for i = 1:T    
-    GenPChoices(pats, d1, arry1)  
+  for i = 1:T
+    GenPChoices(pats, d1, arry1)
     GenMChoices(pats, d2, arry2)                                                                                      # T is now the sim periods, not sequential choices.
     mappeddemand, drgp, drgm = PatientDraw(d1,  d1,  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
     pdict = Payoff(drgp, drgm, Tex, wtpc)
@@ -551,46 +551,46 @@ function HHI(ch::counterhistory, baseline::counterhistory, T::Int64)
         brcount = 0
         for k3 in keys(ch.hist[k1].values[k2].hosprecord) # other records in that market in that year when k2 had the level 3
           brcount += ch.hist[k1].values[k2].hosprecord[k3].totbr[i]
-        end 
+        end
         for k3 in keys(ch.hist[k1].values[k2].hosprecord)
           hh += (ch.hist[k1].values[k2].hosprecord[k3].totbr[i]/brcount)^2
-        end 
-        temparray[i] = hh 
+        end
+        temparray[i] = hh
       end
-      outp[k1] = (mean(temparray), std(temparray)) 
+      outp[k1] = (mean(temparray), std(temparray))
       for i = 1:length(temparray)
         temparray[i] = 0.0
-      end 
-    end 
-  end 
-  # Do the baseline case: 
+      end
+    end
+  end
+  # Do the baseline case:
   for k1 in keys(baseline.hist) #these are fipscodes
     for i = 1:T
       brcount = 0.0
       hh = 0.0
       for k2 in keys(baseline.hist[k1].values[0].hosprecord) # these are fids. Recall that the baseline is recorded with key 0
         brcount += mean(baseline.hist[k1].values[0].hosprecord[k2].totbr[i])
-      end 
+      end
       for k2 in keys(baseline.hist[k1].values[0].hosprecord)
         hh = (mean(baseline.hist[k1].values[0].hosprecord[k2].totbr[i])/brcount)^2
-      end 
-      temparray[i] = hh 
-    end 
+      end
+      temparray[i] = hh
+    end
     out2[k1] = (mean(temparray), std(temparray))
     for i = 1:length(temparray)
       temparray[i] = 0.0
-    end 
-  end 
+    end
+  end
   return outp, out2
-end 
+end
 
 
 
 
 """
-`HHIDiff` 
-takes two dicts of HHI's by the market fips code and returns a dict of the differences, when the 
-markets are non-monopoly.  Also retuns a float of the average 
+`HHIDiff`
+takes two dicts of HHI's by the market fips code and returns a dict of the differences, when the
+markets are non-monopoly.  Also retuns a float of the average
 """
 function HHIDiff(baselined::Dict{Int64, Tuple{Float64, Float64}}, counterd::Dict{Int64, Tuple{Float64,Float64}})
   mkts::Int64 = 0
@@ -601,11 +601,11 @@ function HHIDiff(baselined::Dict{Int64, Tuple{Float64, Float64}}, counterd::Dict
       out[k] = baselined[k][1] - counterd[k][1]
       hhidiff += baselined[k][1] - counterd[k][1]
       mkts += 1
-    end 
-  end 
+    end
+  end
   println("non monopoly markets ", mkts)
-  return hhidiff/mkts, out 
-end 
+  return hhidiff/mkts, out
+end
 
 
 
@@ -615,7 +615,7 @@ end
 - res - counterhistory
 - res.hist[FIPS] -> what market are we doing?
 - res.hist[FIPS].values[key] → a simrun for the FIPS. Key will be a FID for the hospital with the facility.
-- res.hist[FIPS].values[FID] → What FID has the level III ?  
+- res.hist[FIPS].values[FID] → What FID has the level III ?
 - res.hist[FIPS].values[FID] → This is now a "simrun"
 - res.hist[FIPS].values[FID].hosprecord[FID2] → append the results of the simulation for ALL HOSPITALS to the dict of hyrecs in hosprecord
 - res.hist[FIPS].values[FID].hosprecord[FID2] → the record for FID2 consists of totbr, totvlbw, deats, profits.
@@ -628,45 +628,54 @@ function ProfitChange(ch::counterhistory)
   hasfac::Float64 =0.0
   nofac::Float64 = 0.0
   cnt::Int64 = 0 # how many times does it appear? TODO -  N-1 for N firms in the market.  Something more than that, right?
-  for k1 in keys(ch.hist) # keys of ch are FIPS 
+  for k1 in keys(ch.hist) # keys of ch are FIPS
     cnt = ch.hist[k1].values.count # count facilities, since this determines array length.
     for k2 in keys(ch.hist[k1].values) # keys of values are FIDs
       for k3 in keys(ch.hist[k1].values[k2].hosprecord) # k3 are fids too. Now I am looking at the hyrecs
         if !haskey(outp, k3)
           outp[k3] = Array{Float64,1}(1) # this is going to be much slower than allocating in advance
-        end 
+        end
         if k3 == ch.hist[k1].values[k2].hasfac  # this is the facility with the fid.
           outp[k3][1] = mean(ch.hist[k1].values[k2].hosprecord[k3].profit)
-        else 
-          push!(outp[k3], mean(ch.hist[k1].values[k2].hosprecord[k3].profit)) 
-        end 
-      end 
-    end 
-  end 
+        else
+          push!(outp[k3], mean(ch.hist[k1].values[k2].hosprecord[k3].profit))
+        end
+      end
+    end
+  end
   return outp
-end 
+end
 
 
 
 """
 `ProfitMeanVar(d1::Dict{Int64, Float64})`
 This is just the mean of the percentage change in profits in profits
-when the hospital does not have the facility.  
-TODO - no variance is computed correctly yet.  See below.    
+when the hospital does not have the facility.
+TODO - no variance is computed correctly yet.  See below.
 
 """
 function ProfitMeanVar(d1::Dict{Int64,Array{Float64,1}})
   outp1::Dict{Int64, Float64} = Dict{Int64, Float64}()
-  outp2::Dict{Int64, Float64} = Dict{Int64, Float64}()
+  #outp2::Dict{Int64, Float64} = Dict{Int64, Float64}()
   for k1 in keys(d1)
+    println(k1)
     outp1[k1] = mean((d1[k1][1].-d1[k1])./d1[k1][1])
-  end 
-  # TODO - this needs to be debugged. Returns nothing at the moment 
-  for k1 in keys(d1)
-    outp2[k1] = std((d1[k1][1].-d1[k1][2:end])./d1[k1][2:end])
-  end 
-  return outp1 #, outp2
-end 
+  end
+  # # TODO - this needs to be debugged. Returns nothing at the moment
+  # for k1 in keys(d1)
+  #   outp2[k1] = std((d1[k1][1].-d1[k1][2:end])./d1[k1][2:end])
+  # end
+  # count::Int64 = 0
+  # tot::Float64 = 0.0
+  # for k1 in keys(outp1)
+  #   if (outp1[k1]!=0)&(!isnan(outp1[k1]))
+  #     count += 1
+  #     tot += outp1[k1]
+  #   end
+  # end
+  #return outp1 #, count, tot  #, outp2
+end
 
 
 
@@ -732,7 +741,7 @@ function RunCounter1(T::Int64)
 end
 
 
-# baseline, c1, c1nr, outc1, outc1nr = RunCounter1(1)
+# baseline, c1, c1nr, outc1, outc1nr = RunCounter1(3)
 # baseline, c1, c1nr, outc1, outc1nr, outc3all, outc2all, outc1all = RunCounter1(5)
 
 
@@ -742,7 +751,7 @@ Documentation of Record Types for Counter 1:
 
 - Top level: RunCounter1 returns three "counterhistory" objects.  Call this "CH".
 - Counterhistory CH has one field: a dict called "hist"
-- CH.hist[key] to access. 
+- CH.hist[key] to access.
 - The keys of "CH.hist" are FIPS codes.
 - Each CH.hist[key] is a "mkthistory" type object.
 - mkthistory MH has fields fips::Int64 and values::Dict{Int64, simrun}
@@ -750,9 +759,9 @@ Documentation of Record Types for Counter 1:
 - MH.values[key] is a "simrun", where MH is CH.hist[fipscode]
 - CH.hist[FIPS key].values[FID key] returns the "simrun" SR
 - Each "simrun" SR is a collection: a fips code, hosprecord dict{Int64, hyrec}, yeartot, and hasfac (an Int64)
-- SR.fips::Int64 is a fipscode, 
+- SR.fips::Int64 is a fipscode,
 - SR.hosprecord::Dict{Int64, hyrec} is a collection of hyrecs (hospital-year records)
-- SR.yeartot::Float64 records total mortality in the year 
+- SR.yeartot::Float64 records total mortality in the year
 - SR.hasfac::Int64 is a fid
 - hyrec HY is a collection of: a fid, totbr total births, totlbw total low birth weight, totvlbw total low birth weight, deaths and profit
 - HY.fid::Array{Int64,1}
@@ -763,19 +772,19 @@ Documentation of Record Types for Counter 1:
 - Or this can be accessed with HY replaced with: CH.hist[FIPSCODE].values[FID].hosprecord[FID]
 - What happens in a simulation?  See the CounterSim function in the section starting "from i = 1:T"
 - Two cases: transferring and no transferring.  Under transferring all VLBW are counted and sent to hospital with facility
-- Else every hospital gets a record.  How stored?  
-- res.hist[FID].values[currentfac[el]].hosprecord[k] 
-- currentfac[el] is the FID of a hospital w/ the facility.  
+- Else every hospital gets a record.  How stored?
+- res.hist[FID].values[currentfac[el]].hosprecord[k]
+- currentfac[el] is the FID of a hospital w/ the facility.
 - k is the fid of the hospital whose record is being created (which may or may not be the hospital with the facility)
 - res - counterhistory
 - res.hist[FIPS] -> what market are we doing?
 - res.hist[FIPS].values[key] → a simrun for the FIPS. Key will be a FID for the hospital with the facility.
-- res.hist[FIPS].values[FID] → What FID has the level III ?  
+- res.hist[FIPS].values[FID] → What FID has the level III ?
 - res.hist[FIPS].values[FID] → This is now a "simrun"
 - res.hist[FIPS].values[FID].hosprecord[FID2] → append the results of the simulation for ALL HOSPITALS to the dict of hyrecs in hosprecord
 - res.hist[FIPS].values[FID].hosprecord[FID2] → the record for FID2 consists of totbr, totvlbw, deats, profits.
 
-TODO - getting Δ profits, costs, HHI depends on these comparisons.  But now I know how they can be done.  
+TODO - getting Δ profits, costs, HHI depends on these comparisons.  But now I know how they can be done.
 
 
 
