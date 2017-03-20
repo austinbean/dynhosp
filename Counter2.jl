@@ -233,7 +233,7 @@ function CounterWTP(ar::Array{Float64})
   for i =1:maximum(size(ar))
     if ar[i]!=0.0
       denom += (ar[i] = exp(ar[i]))
-    end 
+    end
   end
   return log.(map(x->(1/(1-x)), ar./denom))
 end
@@ -339,11 +339,11 @@ end
 """
 `WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})`
 Another attempt at computing WTP.
-Should this take a fid argument too?  
-NB: this requires an array argument.  It does *not* allocate.  The array will have to be reset to zero 
+Should this take a fid argument too?
+NB: this requires an array argument.  It does *not* allocate.  The array will have to be reset to zero
 every call.
 This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
-The size of arr is not that important since all unused values are zero AND they are ignored.  
+The size of arr is not that important since all unused values are zero AND they are ignored.
 """
 function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
   int_sum::Float64 = 0.0
@@ -351,33 +351,33 @@ function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
     if c[1,el]!=0.0
       arr[1,el] = c[1,el]
       int_sum += (arr[2,el] = exp(c[2,el]))
-    end 
-  end 
+    end
+  end
   for i=1:size(c,2)
     arr[2,i]/=int_sum
-  end 
-end 
+  end
+end
 
 
 """
 `DemComp(inparr::Array{Float64,2}, fid::Int64, c::cpats, p_or_m::Bool)`
 Takes a fid.  Finds the index in inparr.  Takes the share from inparr.
 Multiplies all of patient values in cpat by that number.
-Returns the value.  
+Returns the value.
 """
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
-  # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.  
+  # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
   counter::Int64 = 0
   for i = 1:size(inparr,2)
     if inparr[1,i] == fid
-      index = i #reassign 
-    end 
-  end 
-  WTPNew(inparr, temparr) # updates temparr 
+      index = i #reassign
+    end
+  end
+  WTPNew(inparr, temparr) # updates temparr
   if index!=0 # don't look for a facility that isn't there.
-    if p_or_m # if true then private 
-      for j in c.pcounts 
+    if p_or_m # if true then private
+      for j in c.pcounts
         if counter == 0
           pp.count385 += temparr[2,index]*j
           counter += 1
@@ -391,7 +391,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
           pp.count388 += temparr[2,index]*j
           counter += 1
         elseif counter == 4
-          pp.count389 += temparr[2,index]*j 
+          pp.count389 += temparr[2,index]*j
           counter += 1
         elseif counter == 5
           pp.count390 += temparr[2,index]*j
@@ -399,11 +399,11 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
         elseif counter == 6
           pp.count391 += temparr[2,index]*j
           counter += 1
-        else 
+        else
           println("eee")
-        end 
-      end 
-    else 
+        end
+      end
+    else
       for j in c.mcounts
         if counter == 0
           pp.count385 += temparr[2,index]*j
@@ -419,34 +419,34 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
           counter += 1
         elseif counter == 4
           pp.count389 += temparr[2,index]*j
-          counter += 1 
+          counter += 1
         elseif counter == 5
           pp.count390 += temparr[2,index]*j
           counter += 1
         elseif counter == 6
           pp.count391 += temparr[2,index]*j
           counter += 1
-        else 
+        else
           println("eee")
-        end 
-      end 
-    end 
-  end 
+        end
+      end
+    end
+  end
   ArrayZero(temparr)
-end 
+end
 
 """
 `ArrayZero(arr::Array{Float64,2})
-This quickly sets the array used in WTPNew back to zero.  
+This quickly sets the array used in WTPNew back to zero.
 """
 function ArrayZero(arr::Array{Float64,2})
   dim1::Int64, dim2::Int64 = size(arr)
   for i = 1:dim1
     for j = 1:dim2
       arr[i,j] = 0.0
-    end 
-  end 
-end 
+    end
+  end
+end
 
 
 
@@ -456,15 +456,15 @@ This is going to compute a market share at the level of a zip or zip-drg.
 That formula exists.  The shares will be proportional to the deterministic
 utility component.  We just need all of the utilities in the market and number of
 each patient type in the same.
-e.g., es.all[1].mk is the cmkt.  
-then es.all[1].mk.m[i] is the cpats.  
+e.g., es.all[1].mk is the cmkt.
+then es.all[1].mk.m[i] is the cpats.
 """
 function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
-  temparr::Array{Float64,2} = zeros(2, maxh) 
+  temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
     DemComp(el.putils, temparr, pcount, f, el, true)
     DemComp(el.mutils, temparr, mcount, f, el, false)
-  end 
+  end
 end
 
 
@@ -1115,8 +1115,8 @@ end
 
 """
 `PatientZero(mc::patientcount, pc::patientcount)`
-Simple function - returns the values of the patientcounts to zeros.  
-Faster to hard code this for exactly two patientcounts than to call it twice. 
+Simple function - returns the values of the patientcounts to zeros.
+Faster to hard code this for exactly two patientcounts than to call it twice.
 """
 function PatientZero(mc::patientcount,  pc::patientcount)
   mc.count385 = 0.0
@@ -1133,7 +1133,7 @@ function PatientZero(mc::patientcount,  pc::patientcount)
   pc.count389 = 0.0
   pc.count390 = 0.0
   pc.count391 = 0.0
-end 
+end
 
 
 
@@ -1141,12 +1141,12 @@ end
 `ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
 
-TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.  
+TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.
 
 To start:
 dyn = CounterObjects();
 V = allvisits(Dict{Int64, vrecord}());
-ValApprox(dyn, V, 100_000 ; chunk = [2]) # just doing one hospital.  
+ValApprox(dyn, V, 100_000 ; chunk = [2]) # just doing one hospital.
 22.001426 seconds (281.50 M allocations: 5.099 GiB, 6.99% gc time)
 """
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
@@ -1183,11 +1183,11 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         FixNN(el)                                                           # Fixes the firms neighbors.
         iterations += 1                                                     # Update iteration count - TODO: delete after debugging.
         V.all[el.fid].totalcnt += 1                                         # Update the iteration count within the visit records.
-        PatientZero(a,b) # resets both patientcounts to zero. 
+        PatientZero(a,b) # resets both patientcounts to zero.
       end
       # TODO - uncomment convergence test when that is debugged.
       if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
-        CheckConvergence(el) # FIXME - this is the wrong signature for this function.  
+        CheckConvergence(el) # FIXME - this is the wrong signature for this function.
       end
     end
   end
@@ -1212,14 +1212,14 @@ Check the convergence criterion in Collard-Wexler or Pakes McGuire.
 This can be checked every million iterations.  When that happens,
 reset the counters for every state in "visited".
 "Visited" accessed by V.all[fid].visited
-- Convergence should be assessed at *visited* states, something like unique(V), not all of them.  
+- Convergence should be assessed at *visited* states, something like unique(V), not all of them.
 """
 function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64},1}; draws::Int64 = 1000, disc::Float64 = 0.95, debug::Bool = true)
   outp::Array{Float64,1} = Array{Float64, 1}()
   pairs::Array{Tuple{Float64,Float64},1} = Array{Tuple{Float64, Float64},1}()
   totvisits::Int64 = 0
   a::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0) 
+  b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
   for k in unique(V)                                                                                              # only check this set of values visited in the last million iterations.
@@ -1251,7 +1251,7 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
       end
       h.level = origlevel                                                                                 # reset the level to the original value.
       approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
-      PatientZero(a,b) # resets both patientcounts to zero. 
+      PatientZero(a,b) # resets both patientcounts to zero.
    end
    push!(outp, (approxim/draws - h.visited[k1].aw[k2])^2)                                                 # TODO - replace this with a sum when confidence is reached in the outcome..
    push!(pairs, (approxim/draws, h.visited[k1].aw[k2]))
@@ -1374,7 +1374,7 @@ function ChooseAction(h::simh)
   if act == 11
     h.exit = true
   end
-  return act 
+  return act
 end
 
 
