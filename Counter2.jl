@@ -436,7 +436,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
 end
 
 """
-`ArrayZero(arr::Array{Float64,2})
+`ArrayZero(arr::Array{Float64,2})`
 This quickly sets the array used in WTPNew back to zero.
 """
 function ArrayZero(arr::Array{Float64,2})
@@ -1133,6 +1133,37 @@ function PatientZero(mc::patientcount,  pc::patientcount)
   pc.count389 = 0.0
   pc.count390 = 0.0
   pc.count391 = 0.0
+end
+
+
+"""
+`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
+Computes the exact solution for smaller markets.  1 - 5 firms at most.
+
+entries to consideR: 1-15 are all.
+Here number of neighbors and entry (dyn.all[x])
+1 1
+1 4
+1 5
+
+0 6
+0 7
+0 8
+
+4 13
+4 14
+4 15
+"""
+
+function ExactVal(D::DynState, V::allvists, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)
+  for n in chunk
+    if sum(D[n].cns)>5
+      println("noooo - too big.")
+    end
+  end
+
+
+
 end
 
 
