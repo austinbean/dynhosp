@@ -1167,6 +1167,32 @@ function ExactVal(D::DynState, V::allvists, itlim::Int64, chunk::Array{Int64,1};
 end
 
 
+"""
+`StateEnumerate(c::ProjectModule.neighbors)`
+Enumerates all possible neighbor states.
+Note that the number of combinations at each x-x+n distance is given by
+the combinatoric ( hospitals + levels - 1, hospitals).  (Google "Stars and Bars")
+The total number of state elements is 4*total, since we have three levels and an
+exit state. (?)  Probably.
+"""
+function StateEnumerate(c::ProjectModule.neighbors)
+  n05::Int64 = c.level105 + c.level205 + c.level305
+  n515::Int64 = c.level1515 + c.level2515 + c.level3515
+  n1525::Int64 = c.level11525 + c.level21525 + c.level31525
+  total::Int64 = binomial(n05+2, n05)*binomial(n515+2, n515)*binomial(n1525+2,n1525)
+
+  return total
+end
+
+"""
+`EnumerLevel(n::Int64)`
+Make the relevant combinations.
+"""
+function EnumerLevel(n::Int64)
+
+end
+
+
 
 """
 `ValApprox(D::DynState)`
