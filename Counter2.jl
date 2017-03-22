@@ -1173,15 +1173,30 @@ Enumerates all possible neighbor states.
 Note that the number of combinations at each x-x+n distance is given by
 the combinatoric ( hospitals + levels - 1, hospitals).  (Google "Stars and Bars")
 The total number of state elements is 4*total, since we have three levels and an
-exit state. (?)  Probably.
+exit state. Perhaps not - there is no need for actions at an exit state.
+
+#NB: There are more states than this - what about exit states and entry states?
+#NB: use the Pkg. Iterators.
 """
-function StateEnumerate(c::ProjectModule.neighbors)
+function StateEnumerate(c::ProjectModule.neighbors; levels::Int64 = 3)
   n05::Int64 = c.level105 + c.level205 + c.level305
   n515::Int64 = c.level1515 + c.level2515 + c.level3515
   n1525::Int64 = c.level11525 + c.level21525 + c.level31525
   total::Int64 = binomial(n05+2, n05)*binomial(n515+2, n515)*binomial(n1525+2,n1525)
+  # plan -
+  # the above need to be enumerated as tuples
+  # then the tuples need the level appended to the end.
+  # these are the keys for the dict.
+  # then write out the options available, using the level.
+  # these items are a dict too.
+  # this object will be the dict which should be in "visited" in each hospital record.
+  outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }() #
+  for i = 1:levels
+    for i = 1:n05 # product( XXX n05, XXX n515, XXX n1525)
 
-  return total
+    end
+  end
+  return outp
 end
 
 """
