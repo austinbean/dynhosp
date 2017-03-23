@@ -1155,7 +1155,7 @@ Here number of neighbors and entry (dyn.all[x])
 4 15
 """
 
-function ExactVal(D::DynState, V::allvists, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)
+function ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)
   for n in chunk
     if sum(D[n].cns)>5
       println("noooo - too big.")
@@ -1202,9 +1202,25 @@ end
 """
 `EnumerLevel(n::Int64)`
 Make the relevant combinations.
+Why shouldn't this directly take some tuple arguments?  I know that's what I want
+in the end.
 """
-function EnumerLevel(n::Int64)
+function EnumerLevel(n::NTuple{3,Int64})
+  firstnonzero::Int64 = findfirst(n)
+  if firstnonzero == 0
+    t1::NTuple{3,Int64}=(n[1], n[2], n[3]+1)
+    t2::NTuple{3,Int64}=(n[1], n[2]+1, n[3])
+    t3::NTuple{3,Int64}=(n[1]+1, n[2], n[3])
+    return t1, t2, t3
+  elseif firstnonzero == 1
 
+  elseif firstnonzero == 2
+
+  end
+  # each call returns up to three copies
+  c1 = copy(n)
+  c2 = copy(n)
+  c3 = copy(n)
 end
 
 
