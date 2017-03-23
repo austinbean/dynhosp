@@ -1176,13 +1176,13 @@ The total number of state elements is 4*total, since we have three levels and an
 exit state. Perhaps not - there is no need for actions at an exit state.
 
 #NB: There are more states than this - what about exit states and entry states?
-#NB: use the Pkg. Iterators.
+#NB: use the Pkg. Iterators.  using Iterators
 """
-function StateEnumerate(c::ProjectModule.neighbors; levels::Int64 = 3)
+function StateEnumerate(c::ProjectModule.neighbors,levels::Int64)
   n05::Int64 = c.level105 + c.level205 + c.level305
   n515::Int64 = c.level1515 + c.level2515 + c.level3515
   n1525::Int64 = c.level11525 + c.level21525 + c.level31525
-  total::Int64 = binomial(n05+2, n05)*binomial(n515+2, n515)*binomial(n1525+2,n1525)
+  total::Int64 = binomial(n05+(levels-1), n05)*binomial(n515+(levels-1), n515)*binomial(n1525+(levels-1),n1525)
   # plan -
   # the above need to be enumerated as tuples
   # then the tuples need the level appended to the end.
@@ -1191,9 +1191,11 @@ function StateEnumerate(c::ProjectModule.neighbors; levels::Int64 = 3)
   # these items are a dict too.
   # this object will be the dict which should be in "visited" in each hospital record.
   outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }() #
-  for i = 1:levels
-    for i = 1:n05 # product( XXX n05, XXX n515, XXX n1525)
-
+  for i in EnumerLevel()  #  1:n05  product( XXX n05, XXX n515, XXX n1525)
+    for j in EnumerLevel()
+      for k in EnumerLevel()
+        println(TupleSmash(i, j, k, level))
+      end
     end
   end
   return outp
@@ -1207,21 +1209,30 @@ in the end.
 """
 function EnumerLevel(n::NTuple{3,Int64})
   firstnonzero::Int64 = findfirst(n)
-  if firstnonzero == 0
-    t1::NTuple{3,Int64}=(n[1], n[2], n[3]+1)
-    t2::NTuple{3,Int64}=(n[1], n[2]+1, n[3])
-    t3::NTuple{3,Int64}=(n[1]+1, n[2], n[3])
+  t1::NTuple{3,Int64}=(n[1], n[2], n[3]+1)
+  t2::NTuple{3,Int64}=(n[1], n[2]+1, n[3])
+  t3::NTuple{3,Int64}=(n[1]+1, n[2], n[3])
+  if firstnonzero == 0 || firstnonzero==3
     return t1, t2, t3
   elseif firstnonzero == 1
-
+    return t2, t3
   elseif firstnonzero == 2
-
+    return t3
   end
-  # each call returns up to three copies
-  c1 = copy(n)
-  c2 = copy(n)
-  c3 = copy(n)
 end
+
+
+"""
+`TupleSmash(n1::Tuple{3,Int64}, n2::NTuple{3,Int64}, n3::NTuple{3,Int64}, level::Int64)`
+Takes three tuples of ints and combines them into one giant tuple, adds a level at the end.
+Could in principle take NTuples of arbitrary length by removing "3" from the type above.
+"""
+function TupleSmash(n1::NTuple{3,Int64}, n2::NTuple{3,Int64}, n3::NTuple{3,Int64}, level::Int64)
+  return tuple(n1...,n2...,n3...,level)
+end
+
+
+
 
 
 
