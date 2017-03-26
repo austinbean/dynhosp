@@ -1177,8 +1177,12 @@ exit state. Perhaps not - there is no need for actions at an exit state.
 
 #NB: There are more states than this - what about exit states and entry states?
 #NB: use the Pkg. Iterators.  using Iterators
+dyn = CounterObjects(10);
+outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}()
+outp[(0,0,0,0,0,0,0,0,0,1)] = Dict(1=>0.0, 2=>0.0)
+StateEnumerate(dyn.all[1].cns, 3, outp)
 """
-function StateEnumerate(c::ProjectModule.neighbors,levels::Int64)
+function StateEnumerate(c::ProjectModule.neighbors,levels::Int64, inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} })
   n05::Int64 = c.level105 + c.level205 + c.level305
   n515::Int64 = c.level1515 + c.level2515 + c.level3515
   n1525::Int64 = c.level11525 + c.level21525 + c.level31525
@@ -1190,15 +1194,26 @@ function StateEnumerate(c::ProjectModule.neighbors,levels::Int64)
   # then write out the options available, using the level.
   # these items are a dict too.
   # this object will be the dict which should be in "visited" in each hospital record.
-  outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }() #
-  for i in EnumerLevel()  #  1:n05  product( XXX n05, XXX n515, XXX n1525)
-    for j in EnumerLevel()
-      for k in EnumerLevel()
-        println(TupleSmash(i, j, k, level))
+  outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64}}()
+  for k1 in keys(inp)
+    for i in EnumerLevel(k1[1:3])
+      for j in EnumerLevel(k1[4:6])
+        for k in EnumerLevel(k1[7:9])
+          println("i: ", i," j: ", j, " k: ", k)
+          if !haskey(outp, TupleSmash(i,j,k,1)) # NB: level fixed at 1 right now.  Goal is: add state if it isn't there.
+            outp[TupleSmash(i,j,k,1)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
+          end
+          if !haskey(outp, TupleSmash(i,j,k,2))
+            outp[TupleSmash(i,j,k,2)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
+          end
+          if !haskey(outp, TupleSmash(i,j,k,3))
+            outp[TupleSmash(i,j,k,3)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
+          end
+        end
       end
     end
   end
-  return outp
+  merge!(inp, outp) # merge the dicts.  Does not return anything explicitly.
 end
 
 """
@@ -1217,7 +1232,7 @@ function EnumerLevel(n::NTuple{3,Int64})
   elseif firstnonzero == 1
     return t2, t3
   elseif firstnonzero == 2
-    return t3
+    return (t3,) # NB: must return a tuple else the iteration in StateEnumerate won't work.
   end
 end
 
