@@ -1181,6 +1181,11 @@ dyn = CounterObjects(10);
 outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}()
 outp[(0,0,0,0,0,0,0,0,0,1)] = Dict(1=>0.0, 2=>0.0)
 StateEnumerate(dyn.all[1].cns, 3, outp)
+
+#TODO - right now what this doesn't do is stop.
+Levels are enumerated by repeated calls to this, but that isn't right.
+What this needs to do is only call the elements that sum to n neighbors at that
+distance.
 """
 function StateEnumerate(c::ProjectModule.neighbors,levels::Int64, inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} })
   n05::Int64 = c.level105 + c.level205 + c.level305
@@ -1199,7 +1204,6 @@ function StateEnumerate(c::ProjectModule.neighbors,levels::Int64, inp::Dict{NTup
     for i in EnumerLevel(k1[1:3])
       for j in EnumerLevel(k1[4:6])
         for k in EnumerLevel(k1[7:9])
-          println("i: ", i," j: ", j, " k: ", k)
           if !haskey(outp, TupleSmash(i,j,k,1)) # NB: level fixed at 1 right now.  Goal is: add state if it isn't there.
             outp[TupleSmash(i,j,k,1)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
           end
@@ -1246,6 +1250,24 @@ function TupleSmash(n1::NTuple{3,Int64}, n2::NTuple{3,Int64}, n3::NTuple{3,Int64
   return tuple(n1...,n2...,n3...,level)
 end
 
+# FIXME - this does not terminate.
+function EnumUp(nsum::Int64)
+  outp::Array{NTuple{3, Int64}} = Array{NTuple{3,Int64}, 1}()
+  push!(outp,(0,0,0)) # start empty.
+  #if sum(outp[end]) < nsum
+    # shouldn't this be doable in recursive way?  Check if nsum > 1 and then call on n-1?
+  if (sum(outp[end]) < nsum)&(nsum > 1)
+
+  else
+    for el in outp # is this going to never end? Indeed.  This goes forever.
+      for nt in EnumerLevel(el)
+        println(nt)
+        push!(outp, nt)
+      end
+    end
+  end
+  return outp
+end
 
 
 
