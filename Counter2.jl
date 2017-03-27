@@ -1250,21 +1250,43 @@ function TupleSmash(n1::NTuple{3,Int64}, n2::NTuple{3,Int64}, n3::NTuple{3,Int64
   return tuple(n1...,n2...,n3...,level)
 end
 
-# FIXME - this does not terminate.
-function EnumUp(nsum::Int64)
-  outp::Array{NTuple{3, Int64}} = Array{NTuple{3,Int64}, 1}()
-  push!(outp,(0,0,0)) # start empty.
-  #if sum(outp[end]) < nsum
-    # shouldn't this be doable in recursive way?  Check if nsum > 1 and then call on n-1?
-  if (sum(outp[end]) < nsum)&(nsum > 1)
 
-  else
-    for el in outp # is this going to never end? Indeed.  This goes forever.
-      for nt in EnumerLevel(el)
-        println(nt)
+"""
+`EnumUp(nsum::Int64, outp::Array{NTuple{3, Int64},1})`
+
+Takes a dictionary argument and returns a list of all states possible from that one.
+Lists all UP TO states with that many elements.
+
+outp = Array{NTuple{3,Int64}, 1}()
+push!(outp,(0,0,0)) # start empty.
+outp = EnumUp(4)
+
+
+Test it:
+find( x->isequal(x,(3,0,0)), outp) # replace with any tuple for (3,0,0)
+"""
+
+function EnumUp(nsum::Int64)
+  termflag::Bool = true
+  outp::Array{NTuple{3, Int64},1} = Array{NTuple{3,Int64},1}()
+  push!(outp, (0,0,0))
+  strt::Int64 = 1
+  while termflag
+    l = length(outp)
+    println("start ", strt, " l ", l)
+    for el in strt:l
+      for nt in EnumerLevel(outp[el])
         push!(outp, nt)
       end
     end
+    if sum(outp[end]) == nsum
+      termflag = false
+    end
+    println("length is: ", length(outp))
+    println("l is: ", l)
+
+    strt = l # reassign.
+    println("start is: ", strt)
   end
   return outp
 end
