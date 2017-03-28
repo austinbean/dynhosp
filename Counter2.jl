@@ -1160,7 +1160,8 @@ Here number of neighbors and entry (dyn.all[x])
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1};
                   debug::Bool = true,
-                  beta::Float64 = 0.95)
+                  beta::Float64 = 0.95,
+                  conv::Float64 = 0.0001)
   for n in chunk
     if sum(D.all[n].cns)>1 # only monopoly right now.
       println("not yet.")
@@ -1168,13 +1169,19 @@ function ExactVal(D::DynState,
   end
   # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states, {Actions, values}}
   # maybe it makes sense to define another structure for this.
-  # this is the collection of results - values at states by firm FID.
+    # this is the collection of results - values at states by firm FID.
   outvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
+    # one must store results to report, the other keeps them temporarily.  
+  tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
+
   for el in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
+    tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid]) #TODO - starting values here.
+    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid]) #this does NOT need starting values.  
   end
   # Updating process...
+  # TODO - need to store the values of all current states and actions, THEN write them out to outvals.  Damn.  
 
 
   # Convergence Test...
@@ -1183,6 +1190,32 @@ function ExactVal(D::DynState,
   # Return equilibrium values...
   return outvals
 end
+
+"""
+`ExactConvergence(fid::Int64, )`
+
+This will check convergence.  
+Should return a set of... fids?  Indices?  Something  
+"""
+function ExactConvergence(fid::Int64, current::Dict, stable::Dict )
+  return nothing
+end 
+
+
+"""
+`DictClean`
+In ExactVal there is a dict which stores the values of current continuations to return 
+and another in a temporary.  This cleans the temporary.  
+"""
+function DictClean(d::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
+  for k1 in keys(d) # these are fids 
+    for k2 in keys(d[k1]) # these are neighbor state/level keys at the hospital level.  
+      for k3 in keys(d[k1][k2]) # these are actions at the state/level combination.  
+        d[k1][k2][k3] = 0.0 # this should return all values to zero.  
+      end 
+    end 
+  end 
+end 
 
 
 """
