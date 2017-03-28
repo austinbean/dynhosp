@@ -1270,12 +1270,18 @@ function EnumUp(nsum::Int64)
   termflag::Bool = true
   outp::Array{NTuple{3, Int64},1} = Array{NTuple{3,Int64},1}()
   push!(outp, (0,0,0))
-  strt::Int64 = 1
+  strt = 1 # this must be an array to reassign?
   while termflag
     l = length(outp)
     println("start ", strt, " l ", l)
-    for el in strt:l
-      for nt in EnumerLevel(outp[el])
+    if strt>1
+      for el in strt+1:l # won't doublecount, but won't work on first round.
+        for nt in EnumerLevel(outp[el])
+          push!(outp, nt)
+        end
+      end
+    else
+      for nt in EnumerLevel(outp[1])
         push!(outp, nt)
       end
     end
@@ -1284,12 +1290,13 @@ function EnumUp(nsum::Int64)
     end
     println("length is: ", length(outp))
     println("l is: ", l)
-
     strt = l # reassign.
     println("start is: ", strt)
   end
   return outp
 end
+
+
 
 
 
