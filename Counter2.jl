@@ -1234,9 +1234,9 @@ function EnumerLevel(n::NTuple{3,Int64})
   if firstnonzero == 0 || firstnonzero==3
     return t1, t2, t3
   elseif firstnonzero == 1
-    return t2, t3
-  elseif firstnonzero == 2
     return (t3,) # NB: must return a tuple else the iteration in StateEnumerate won't work.
+  elseif firstnonzero == 2
+    return t3,t2
   end
 end
 
@@ -1264,34 +1264,38 @@ outp = EnumUp(4)
 
 Test it:
 find( x->isequal(x,(3,0,0)), outp) # replace with any tuple for (3,0,0)
+find( x->isequal(x,(4,1,0)), outp)
+OR:
+length(outp)==length(unique(outp)) # works up to 25
+for i = 1:25
+  outp = EnumUp(15);
+  println(length(outp)==length(unique(outp)))
+end
 """
 
 function EnumUp(nsum::Int64)
   termflag::Bool = true
   outp::Array{NTuple{3, Int64},1} = Array{NTuple{3,Int64},1}()
   push!(outp, (0,0,0))
-  strt = 1 # this must be an array to reassign?
+  strt = 1 
   while termflag
-    l = length(outp)
-    println("start ", strt, " l ", l)
-    if strt>1
-      for el in strt+1:l # won't doublecount, but won't work on first round.
+    lng = length(outp)
+    if lng > 1
+      for el in strt+1:lng # won't doublecount, but won't work on first round.
         for nt in EnumerLevel(outp[el])
           push!(outp, nt)
         end
       end
-    else
+    else # this should be the length 1 case only.
       for nt in EnumerLevel(outp[1])
         push!(outp, nt)
       end
+      strt = length(outp)
     end
     if sum(outp[end]) == nsum
       termflag = false
     end
-    println("length is: ", length(outp))
-    println("l is: ", l)
-    strt = l # reassign.
-    println("start is: ", strt)
+    strt = lng # reassign.
   end
   return outp
 end
