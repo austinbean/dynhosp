@@ -1172,47 +1172,32 @@ end
 Enumerates all possible neighbor states.
 Note that the number of combinations at each x-x+n distance is given by
 the combinatoric ( hospitals + levels - 1, hospitals).  (Google "Stars and Bars")
-The total number of state elements is 4*total, since we have three levels and an
-exit state. Perhaps not - there is no need for actions at an exit state.
+The total number of state elements is given below by EnumUp(n05) * EnumUp(n515) * EnumUp(n1525) * 3
 
-#NB: There are more states than this - what about exit states and entry states?
-#NB: use the Pkg. Iterators.  using Iterators
 dyn = CounterObjects(10);
-outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}()
-outp[(0,0,0,0,0,0,0,0,0,1)] = Dict(1=>0.0, 2=>0.0)
-StateEnumerate(dyn.all[1].cns, 3, outp)
-
-#TODO - right now what this doesn't do is stop.
-Levels are enumerated by repeated calls to this, but that isn't right.
-What this needs to do is only call the elements that sum to n neighbors at that
-distance.
+outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}();
+outp[(0,0,0,0,0,0,0,0,0,27)] = Dict(1=>0.0, 2=>0.0); # tests that current entries are not overwritten.
+StateEnumerate(dyn.all[1].cns, outp);
+Will not do exact computations for very large markets, but...
+For a big market, see dyn.all[50].cns, which generates around 2 million states.
+#TODO - for the future: better guesses here about the initial values, not zero.  
 """
-function StateEnumerate(c::ProjectModule.neighbors,levels::Int64, inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} })
+function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} })
   n05::Int64 = c.level105 + c.level205 + c.level305
   n515::Int64 = c.level1515 + c.level2515 + c.level3515
   n1525::Int64 = c.level11525 + c.level21525 + c.level31525
-  total::Int64 = binomial(n05+(levels-1), n05)*binomial(n515+(levels-1), n515)*binomial(n1525+(levels-1),n1525)
-  # plan -
-  # the above need to be enumerated as tuples
-  # then the tuples need the level appended to the end.
-  # these are the keys for the dict.
-  # then write out the options available, using the level.
-  # these items are a dict too.
-  # this object will be the dict which should be in "visited" in each hospital record.
   outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64}}()
-  for k1 in keys(inp)
-    for i in EnumerLevel(k1[1:3])
-      for j in EnumerLevel(k1[4:6])
-        for k in EnumerLevel(k1[7:9])
-          if !haskey(outp, TupleSmash(i,j,k,1)) # NB: level fixed at 1 right now.  Goal is: add state if it isn't there.
-            outp[TupleSmash(i,j,k,1)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
-          end
-          if !haskey(outp, TupleSmash(i,j,k,2))
-            outp[TupleSmash(i,j,k,2)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
-          end
-          if !haskey(outp, TupleSmash(i,j,k,3))
-            outp[TupleSmash(i,j,k,3)] = Dict{Int64, Float64}(1=>0.0, 10=>0.0, 11=>0.0) # Later add correct actions.
-          end
+  for i in EnumUp(n05)
+    for j in EnumUp(n515)
+      for k in EnumUp(n1525)
+        if !haskey(outp, TupleSmash(i,j,k,1))
+          outp[TupleSmash(i,j,k,1)] = Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
+        end
+        if !haskey(outp, TupleSmash(i,j,k,2))
+          outp[TupleSmash(i,j,k,2)] = Dict{Int64, Float64}(5=>0.0, 10=>0.0, 6=>0.0, 11=>0.0)
+        end
+        if !haskey(outp, TupleSmash(i,j,k,3))
+          outp[TupleSmash(i,j,k,3)] = Dict{Int64, Float64}(4=>0.0, 3=>0.0, 10=>0.0, 11=>0.0)
         end
       end
     end
@@ -1257,18 +1242,13 @@ end
 Takes a dictionary argument and returns a list of all states possible from that one.
 Lists all UP TO states with that many elements.
 
-outp = Array{NTuple{3,Int64}, 1}()
-push!(outp,(0,0,0)) # start empty.
-outp = EnumUp(4)
-
-
 Test it:
 find( x->isequal(x,(3,0,0)), outp) # replace with any tuple for (3,0,0)
 find( x->isequal(x,(4,1,0)), outp)
 OR:
 length(outp)==length(unique(outp)) # works up to 25
-for i = 1:25
-  outp = EnumUp(15);
+for i = 0:25
+  outp = EnumUp(i);
   println(length(outp)==length(unique(outp)))
 end
 """
@@ -1277,25 +1257,27 @@ function EnumUp(nsum::Int64)
   termflag::Bool = true
   outp::Array{NTuple{3, Int64},1} = Array{NTuple{3,Int64},1}()
   push!(outp, (0,0,0))
-  strt = 1 
-  while termflag
-    lng = length(outp)
-    if lng > 1
-      for el in strt+1:lng # won't doublecount, but won't work on first round.
-        for nt in EnumerLevel(outp[el])
+  strt = 1
+  if nsum > 0
+    while termflag
+      lng = length(outp)
+      if lng > 1
+        for el in strt+1:lng # won't doublecount, but won't work on first round.
+          for nt in EnumerLevel(outp[el])
+            push!(outp, nt)
+          end
+        end
+      else # this should be the length 1 case only.
+        for nt in EnumerLevel(outp[1])
           push!(outp, nt)
         end
+        strt = length(outp)
       end
-    else # this should be the length 1 case only.
-      for nt in EnumerLevel(outp[1])
-        push!(outp, nt)
+      if sum(outp[end]) == nsum
+        termflag = false
       end
-      strt = length(outp)
+      strt = lng # reassign.
     end
-    if sum(outp[end]) == nsum
-      termflag = false
-    end
-    strt = lng # reassign.
   end
   return outp
 end
