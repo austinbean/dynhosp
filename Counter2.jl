@@ -1146,24 +1146,42 @@ Here number of neighbors and entry (dyn.all[x])
 1 4
 1 5
 
-0 6
-0 7
-0 8
+0 6 (monopoly)
+0 7 (monopoly)
+0 8 (monopoly)
 
 4 13
 4 14
 4 15
+
+#NB: consider an "itlim" ceiling
 """
 
-function ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)
+function ExactVal(D::DynState,
+                  chunk::Array{Int64,1};
+                  debug::Bool = true,
+                  beta::Float64 = 0.95)
   for n in chunk
-    if sum(D[n].cns)>5
-      println("noooo - too big.")
+    if sum(D.all[n].cns)>1 # only monopoly right now.
+      println("not yet.")
     end
   end
+  # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states, {Actions, values}}
+  # maybe it makes sense to define another structure for this.
+  # this is the collection of results - values at states by firm FID.
+  outvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
+  for el in chunk
+    outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
+    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid]) #TODO - starting values here.
+  end
+  # Updating process...
 
 
+  # Convergence Test...
 
+
+  # Return equilibrium values...
+  return outvals
 end
 
 
@@ -1180,7 +1198,7 @@ outp[(0,0,0,0,0,0,0,0,0,27)] = Dict(1=>0.0, 2=>0.0); # tests that current entrie
 StateEnumerate(dyn.all[1].cns, outp);
 Will not do exact computations for very large markets, but...
 For a big market, see dyn.all[50].cns, which generates around 2 million states.
-#TODO - for the future: better guesses here about the initial values, not zero.  
+#TODO - for the future: better guesses here about the initial values, not zero.
 """
 function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} })
   n05::Int64 = c.level105 + c.level205 + c.level305
