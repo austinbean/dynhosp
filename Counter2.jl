@@ -1186,6 +1186,10 @@ function ExactVal(D::DynState,
 
   # Convergence Test...
 
+  # Copy the values and clean up.
+  DictCopy(outvals, tempvals)
+  DictClean(tempvals)
+
 
   # Return equilibrium values...
   return outvals
@@ -1216,6 +1220,23 @@ function DictClean(d::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} 
     end 
   end 
 end 
+
+
+"""
+`DictCopy`
+Copy results from the temporary to the permanent.
+Let d1 be the permanent and d2 be the temporary.  
+"""
+function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, d2::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
+  for k1 in keys(d1) # these are fids 
+    for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
+      for k3 in keys(d1[k1][k2]) # these are actions at the state/level combination.  
+        d1[k1][k2][k3] = d2[k1][k2][k3] # this should copy from the temp to the permanent.    
+      end 
+    end 
+  end 
+end 
+
 
 
 """
