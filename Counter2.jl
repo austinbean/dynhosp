@@ -1186,6 +1186,7 @@ function ExactVal(D::DynState,
 
   # Convergence Test...
 
+
   # Copy the values and clean up.
   DictCopy(outvals, tempvals)
   DictClean(tempvals)
@@ -1201,8 +1202,34 @@ end
 This will check convergence.  
 Should return a set of... fids?  Indices?  Something  
 """
-function ExactConvergence(fid::Int64, current::Dict, stable::Dict )
-  return nothing
+function ExactConvergence(fid::Int64, current::Dict, stable::Dict; toler::Float64 =0.001 , debug::Bool = true )
+  converge::Bool = false 
+  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
+  newchunk::Array{Int64,1} = Array{Int64,1}()        # empty array to return the next set of fids to do.  
+  for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.
+    maxdiff::Float64 = 0.0 
+    for state in keys(current[fid])                  # states available to the firm.
+      for action in keys(current[fid][state])        # actions available 
+        if abs(current[fid][state][action] - stable[fid][state][action]) > maxdiff # we want MAX difference.  
+          maxdiff = abs(current[fid][state][action] - stable[fid][state][action])
+        end 
+      end 
+    end 
+    diffs[fid] = maxdiff                             # keep track of the max diff.  
+  end 
+  if debug 
+    println("current differences ")
+    print(diffs)
+  end 
+  # Check for convergence - look at the maximum difference across states for each firm.  
+  for k1 in keys(diffs)
+    converge = converge&(diffs[k1]<toler)
+    if diffs[k1] > toler # not converged yet 
+      push!(newchunk, )
+    end 
+  end 
+  # NOTE - convergence should return list of undone facilities.  
+  return converge, 
 end 
 
 
