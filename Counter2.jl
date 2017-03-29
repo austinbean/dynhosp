@@ -1136,6 +1136,10 @@ function PatientZero(mc::patientcount,  pc::patientcount)
 end
 
 
+
+#### Below this line... Exact Value development ### 
+
+
 """
 `ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
 Computes the exact solution for smaller markets.  1 - 5 firms at most.
@@ -1197,12 +1201,30 @@ function ExactVal(D::DynState,
 end
 
 """
-`ExactConvergence(fid::Int64, )`
+`ExactConvergence( )`
+This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
+for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
+Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
 
-This will check convergence.  
-Should return a set of... fids?  Indices?  Something  
+Testing: 
+dyn = CounterObjects(10);
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
+test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+test2[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
+StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
+
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20 #assign a value.
+ExactConvergence(test1, test2)
+
+ExactConvergence(test1, test2; debug = false)
+(false, [4450450]) # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
 """
-function ExactConvergence(fid::Int64, current::Dict, stable::Dict; toler::Float64 =0.001 , debug::Bool = true )
+function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
+                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; 
+                          toler::Float64 =0.001, 
+                          debug::Bool = true )
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
   newchunk::Array{Int64,1} = Array{Int64,1}()        # empty array to return the next set of fids to do.  
@@ -1225,11 +1247,11 @@ function ExactConvergence(fid::Int64, current::Dict, stable::Dict; toler::Float6
   for k1 in keys(diffs)
     converge = converge&(diffs[k1]<toler)
     if diffs[k1] > toler # not converged yet 
-      push!(newchunk, )
+      push!(newchunk, k1)
     end 
   end 
-  # NOTE - convergence should return list of undone facilities.  
-  return converge, 
+  # NOTE - convergence should return list of undone facilities. 
+  return converge, newchunk
 end 
 
 
@@ -1237,6 +1259,18 @@ end
 `DictClean`
 In ExactVal there is a dict which stores the values of current continuations to return 
 and another in a temporary.  This cleans the temporary.  
+
+Testing: 
+dyn = CounterObjects(10);
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20 #assign a value.
+DictClean(test1)
+
+# should return: 
+test1[4450450][(0,0,0,0,0,0,0,0,0,1)][10] = 0.0
+
 """
 function DictClean(d::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
   for k1 in keys(d) # these are fids 
@@ -1383,7 +1417,7 @@ end
 
 
 
-
+### Above this line... Exact Value development ###
 
 
 
