@@ -1201,7 +1201,28 @@ function ExactVal(D::DynState,
 end
 
 """
-`ExactConvergence( )`
+`ExactChoice`
+What action should the firm choose?
+Takes two dictionaries, the DynState, computes the best action, returns the value of the action.
+Needs to: 
+- compute the demand in expectation at EACH possible level.
+- compute the profit at EACH possible level.
+- state will be recorded in the dyn record. 
+- But the key thing is: return the VALUE of the state.   
+
+"""
+
+function ExactChoice(stable::Dict, temp::Dict, D::DynState, )
+
+
+end 
+
+
+
+
+
+"""
+`ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; toler::Float64 =0.001, debug::Bool = true  )`
 This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
 for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
 Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
@@ -1287,8 +1308,25 @@ end
 `DictCopy`
 Copy results from the temporary to the permanent.
 Let d1 be the permanent and d2 be the temporary.  
+
+Testing: 
+dyn = CounterObjects(10);
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
+test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+test2[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
+StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
+
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20 #assign a value.
+
+DictCopy(test2, test1)
+
+test2[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20.0 # should return 20.
+
 """
-function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, d2::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
+function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
+                  d2::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
   for k1 in keys(d1) # these are fids 
     for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
       for k3 in keys(d1[k1][k2]) # these are actions at the state/level combination.  
