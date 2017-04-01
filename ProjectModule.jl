@@ -220,6 +220,8 @@ module ProjectModule
     # can add extras
   end
 
+
+  #TODO - change the name of this: it overwrites the very useful "zip" function.  Just call it zipcode.
   type zip{T<:Fac}
    code::Int64
    phr::Int64 # may have coefficients differing by PHR

@@ -209,6 +209,12 @@
   np = 0;
 
 
+
+  # Add counts of patients per zip and DRG.
+
+  pcount, pcountnames = readcsv(pathprograms*"All Zips Patient Count by DRG.csv", header = true, comments = false);
+
+
 #end # of "begin" block
 
 

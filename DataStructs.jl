@@ -669,7 +669,7 @@ Note that this indexes into the Array according to the column zipcol.
 Testing:
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists);
+FillState(Tex, ProjectModule.alldists, 50);
 zipcheck = CreateZips(ProjectModule.alldists, Tex);
 
 """
