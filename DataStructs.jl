@@ -683,14 +683,14 @@ function CreateZips(alld::Array,
                     dat::Array{Any,2} = ProjectModule.alldists,
                     datfidloc::Int64 = 4,
                     bedmean::Float64 = round(mean(alld[:,bedcol])))
-  ppatients::patientcollection = patientcollection( Dict{Int64, zip}() )
+  ppatients::patientcollection = patientcollection( Dict{Int64, zipcode}() )
   # unfound = Array{Int64,1}()
   # found = Array{Int64,1}()
   # names = Array{AbstractString, 1}()
   fids = unique(dat[:,fidcol])
   matched::Int64 = 0
   # TODO - this comprehension is slow.  
-  ppatients.zips = Dict(k=> zip(k, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
+  ppatients.zips = Dict(k=> zipcode(k, 0, Dict{Int64,ProjectModule.Fac}(), Dict{Int64,Float64}(),                                                                              # zipcode, public health region, facilities, hospital FE's.
                            Dict{Int64,Float64}(), Dict{Int64, Float64}(),                                                                                     # private det utilities, medicaid det utilities.
                            0.0, 0.0,
                            coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),
@@ -744,7 +744,7 @@ There is now one zip which patients are in but which is not in pats as construct
 #Testing -
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = CreateZips(ProjectModule.alldists, Texas);
-FillPPatients(patients , ProjectModule.pinsured)
+FillPPatients(patients , ProjectModule.pinsured);
 
 Timing:
 0.012576 seconds (71 allocations: 619.688 KB)
@@ -851,7 +851,7 @@ Has been written to accomodate hospital FE's when available.
 Allocations come here from accessing the fields.  18-20 per call.
 0.000014 seconds (18 allocations: 384 bytes) -> this is one call in one of the lines below, not the whole thing.
 """
-function ComputeDetUtil(zipc::zip, fid::Int64, p_or_m::Bool)
+function ComputeDetUtil(zipc::zipcode, fid::Int64, p_or_m::Bool)
   dist = distance(zipc.facilities[fid].lat, zipc.facilities[fid].long, zipc.lat, zipc.long)
   if p_or_m #if TRUE private
     if zipc.facilities[fid].level == 1
@@ -886,11 +886,11 @@ Computes the deterministic component of the utility - updates every firm every t
 Is called during the Eq and Non-eq simulations.
 0.043695 seconds (483.33 k allocations: 7.605 MB)
 """
-function UpdateDeterministic(collect::patientcollection)
-  for el in keys(collect.zips) #iterates over zips
-    for fid in keys(collect.zips[el].facilities) # iterates over dict of facilities within zip.
-      ComputeDetUtil(collect.zips[el], fid, false)
-      ComputeDetUtil(collect.zips[el], fid, true)
+function UpdateDeterministic(collt::patientcollection)
+  for el in keys(collt.zips) #iterates over zips
+    for fid in keys(collt.zips[el].facilities) # iterates over dict of facilities within zip.
+      ComputeDetUtil(collt.zips[el], fid, false)
+      ComputeDetUtil(collt.zips[el], fid, true)
     end
   end
 end
@@ -1181,7 +1181,7 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 
 """
-function CalcWTP(zipc::zip)
+function CalcWTP(zipc::zipcode)
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}()
   interim::Float64 = 0.0
   for el in keys(zipc.pdetutils)
