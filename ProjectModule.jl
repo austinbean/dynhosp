@@ -161,7 +161,7 @@ module ProjectModule
 
           #### NB: Demand-side Data Structures ######
 
-  type patientcount{T<:Real}
+  mutable struct patientcount{T<:Real}
    count385::T
    count386::T
    count387::T
@@ -209,8 +209,55 @@ module ProjectModule
     end
   end
 
+  mutable struct patientrange
+    l385::Int64 
+    u385::Int64
+    l386::Int64 
+    u386::Int64    
+    l387::Int64 
+    u387::Int64    
+    l388::Int64 
+    u388::Int64    
+    l389::Int64 
+    u389::Int64    
+    l390::Int64 
+    u390::Int64    
+    l391::Int64 
+    u391::Int64
+  end 
 
-  type coefficients
+  import Base.+
+  function +(p1::patientrange, p2::patientrange)
+    return patientrange(p1.l385 + p2.l385, p1.u385 + p2.u385, p1.l386 + p2.l386, p1.u386 + p2.l386, p1.l387 + p2.l387, p1.u387 + p2.l387, p1.l388 + p2.l388, p1.u388 + p2.l388, p1.l389 + p2.l389, p1.u389 + p2.l389, p1.l390 + p2.l390, p1.u390 + p2.l390, p1.l391 + p2.l391, p1.u391 + p2.l391)
+  end 
+
+  function DrawPatients(p::patientrange, i::Int64)::Int64
+    if i == 385
+      return rand(p.l385:p.u385)
+    elseif i == 386
+      return rand(p.l386:p.u386)
+    elseif i == 387
+      return rand(p.l387:p.u387)
+    elseif i == 388
+      return rand(p.l388:p.u388)
+    elseif i == 389
+      return rand(p.l389:p.u389)
+    elseif i == 390
+      return rand(p.l390:p.u390)
+    elseif i == 391
+      return rand(p.l391:p.u391)
+    else 
+      return 0
+    end 
+  end 
+
+
+
+
+
+
+  # 04 02 17 - was "type."  
+  immutable coefficients
     distance::Float64
     distsq::Float64
     inten::Float64
@@ -221,8 +268,7 @@ module ProjectModule
   end
 
 
-  #TODO - change the name of this: it overwrites the very useful "zip" function.  Just call it zipcode.
-  type zip{T<:Fac}
+  type zipcode{T<:Fac}
    code::Int64
    phr::Int64 # may have coefficients differing by PHR
    facilities::Dict{Int64, T}
@@ -238,7 +284,7 @@ module ProjectModule
   end
 
   type patientcollection
-   zips::Dict{Int64, zip}
+   zips::Dict{Int64, zipcode}
   end
 
   # Counterfactual-related items:
@@ -540,6 +586,7 @@ end
   export CleanDemandHistory
   export RemoveEntrant
   export RecordCopy
+  export DrawPatients 
 
   # Export Counter1.jl Functions 
   export CategoryReminder
@@ -631,7 +678,7 @@ end
   export chospital
   export LBW
   export patientcollection
-  export zip
+  export zipcode
   export coefficients
   export patientcount
   export EntireState
@@ -645,6 +692,7 @@ end
   export mkthistory
   export simrun
   export hyrec
+  export patientrange
     # Counter2.jl types 
   export nlrec
   export hitcount 
