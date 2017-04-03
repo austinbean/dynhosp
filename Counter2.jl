@@ -210,7 +210,7 @@ Top row will be the collection of fids
 and the bottom row will be the utilities themselves.
 Outside option is added here as [0, 0].
 """
-function DetUtils(z::zip; switch::Bool = false)
+function DetUtils(z::zipcode; switch::Bool = false)
   if switch
     return  hcat(hcat([[k, z.pdetutils[k]] for k in keys(z.pdetutils)]...),[0,0])
   else
