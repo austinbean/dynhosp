@@ -1455,6 +1455,41 @@ end
 
 
 
+"""
+`HospitalDemand(pats::ProjectModule.patientcollection, )`
+Takes a patientcollection and a whole state.
+Makes a dict of every hospital's patients.
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = CreateZips(ProjectModule.alldists, Texas);
+FillPPatients(patients , ProjectModule.pinsured); # this line probably not necessary.
+HospitalDemand(patients);
+"""
+function HospitalDemand(pats::ProjectModule.patientcollection; 
+                        mat1::Array{Float64,2} = ProjectModule.pcount
+                        -- ADD COLUMNS --)
+  inter::Dict{Int64, Array{Int64,1}} = Dict{Int64, Array{Int64,1}}()
+  outp_p::Dict{Int64, ProjectModule.patientrange} = Dict{Int64, ProjectModule.patientrange}()
+  outp_m::Dict{Int64, ProjectModule.patientrange} = Dict{Int64, ProjectModule.patientrange}()
+  # creates the objects to be mapped back
+  for zp in keys(pats.zips) # these are zips
+    for fid in keys(pats.zips[zp].facilities) # these are hospital fids
+      if haskey(inter, fid)
+        push!(inter[fid], zp)
+      else 
+        inter[fid] = Array{Int64,1}()
+        push!(inter[fid], zp)
+      end 
+    end 
+  end 
+  # do some pre-processing on the pcount matrix - can write each zip as a dict
+
+
+  return inter, outp_p, outp_m
+end 
+
+
+
 ### Above this line... Exact Value development ###
 
 
