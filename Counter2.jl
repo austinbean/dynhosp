@@ -1466,8 +1466,7 @@ FillPPatients(patients , ProjectModule.pinsured); # this line probably not neces
 HospitalDemand(patients);
 """
 function HospitalDemand(pats::ProjectModule.patientcollection; 
-                        mat1::Array{Float64,2} = ProjectModule.pcount
-                        -- ADD COLUMNS --)
+                        mat1::Array{Float64,2} = ProjectModule.pcount)
   inter::Dict{Int64, Array{Int64,1}} = Dict{Int64, Array{Int64,1}}()
   outp_p::Dict{Int64, ProjectModule.patientrange} = Dict{Int64, ProjectModule.patientrange}()
   outp_m::Dict{Int64, ProjectModule.patientrange} = Dict{Int64, ProjectModule.patientrange}()
@@ -1483,9 +1482,58 @@ function HospitalDemand(pats::ProjectModule.patientcollection;
     end 
   end 
   # do some pre-processing on the pcount matrix - can write each zip as a dict
+  d_p_l::Dict{Int64, patientcount} = Dict{Int64, patientcount}() # private, low 
+  d_p_h::Dict{Int64, patientcount} = Dict{Int64, patientcount}() # private, high
+  d_m_l::Dict{Int64, patientcount} = Dict{Int64, patientcount}() # medicaid, low 
+  d_m_h::Dict{Int64, patientcount} = Dict{Int64, patientcount}() # medicaid, high
+  for r in 1:7:size(mat1, 1) # skips by seven over DRGs
+    d_p_l[mat1[r,1]] = patientcount(mat1[r,41],mat1[r+1,41],mat1[r+2,41],mat1[r+3,41],mat1[r+4,41],mat1[r+5,41],mat1[r+6,41]) # contains zipmin_p
+    d_p_h[mat1[r,1]] = patientcount(mat1[r,40],mat1[r+1,40],mat1[r+2,40],mat1[r+3,40],mat1[r+4,40],mat1[r+5,40],mat1[r+6,40]) # contains zipmax_p
+    d_m_l[mat1[r,1]] = patientcount(mat1[r,45],mat1[r+1,45],mat1[r+2,45],mat1[r+3,45],mat1[r+4,45],mat1[r+5,45],mat1[r+6,45]) # contains zipmin_m
+    d_m_h[mat1[r,1]] = patientcount(mat1[r,44],mat1[r+1,44],mat1[r+2,44],mat1[r+3,44],mat1[r+4,44],mat1[r+5,44],mat1[r+6,44]) # contains zipmax_m
+  end 
 
-
-  return inter, outp_p, outp_m
+  # Now create the patientranges from these sets.  
+  for k1 in keys(inter) # this is a Dict{Fid, Array{zip}}, so these are fids.
+    for el in inter[k1] # this is an array of zip codes 
+      println(inter[k1])
+      if (haskey(d_p_l, el))&(haskey(d_p_h, el))&(haskey(d_m_l, el))&(haskey(d_m_h, el))
+          # Privately insured.
+        outp_p[el].l385 += d_p_l[el].count385
+        outp_p[el].u385 += d_p_h[el].count385
+        outp_p[el].l386 += d_p_l[el].count386
+        outp_p[el].u386 += d_p_h[el].count386
+        outp_p[el].l387 += d_p_l[el].count387
+        outp_p[el].u387 += d_p_h[el].count387
+        outp_p[el].l388 += d_p_l[el].count388
+        outp_p[el].u388 += d_p_h[el].count388
+        outp_p[el].l389 += d_p_l[el].count389
+        outp_p[el].u389 += d_p_h[el].count389
+        outp_p[el].l390 += d_p_l[el].count390
+        outp_p[el].u390 += d_p_h[el].count390
+        outp_p[el].l391 += d_p_l[el].count391
+        outp_p[el].u391 += d_p_h[el].count391
+          # Medicaid Patients 
+        outp_m[el].l385 += d_m_l[el].count385
+        outp_m[el].u385 += d_m_h[el].count385
+        outp_m[el].l386 += d_m_l[el].count386
+        outp_m[el].u386 += d_m_h[el].count386
+        outp_m[el].l387 += d_m_l[el].count387
+        outp_m[el].u387 += d_m_h[el].count387
+        outp_m[el].l388 += d_m_l[el].count388
+        outp_m[el].u388 += d_m_h[el].count388
+        outp_m[el].l389 += d_m_l[el].count389
+        outp_m[el].u389 += d_m_h[el].count389
+        outp_m[el].l390 += d_m_l[el].count390
+        outp_m[el].u390 += d_m_h[el].count390
+        outp_m[el].l391 += d_m_l[el].count391
+        outp_m[el].u391 += d_m_h[el].count391
+      else
+        println("zip not found ",el) 
+      end 
+    end 
+  end 
+  return inter, outp_p, outp_m, d_p_l, d_p_h, d_m_l, d_m,h
 end 
 
 
