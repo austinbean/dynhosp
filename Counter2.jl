@@ -1203,8 +1203,8 @@ function ExactVal(D::DynState,
     for ky1 in keys(totest) # this tests every facility every time, but that's ok. 
       converge = converge&totest[ky1] # 
     end   
-    # Return equilibrium values...
   end 
+  # Return equilibrium values...
   return outvals
 end
 
@@ -1217,11 +1217,39 @@ Needs to:
 - compute the profit at EACH possible level.
 - state will be recorded in the dyn record. 
 - But the key thing is: return the VALUE of the state.   
-
+NB - level won't change.  I can compute the value of being in all of these states depending on the level. 
 """
 
-function ExactChoice(temp::Dict, stable::Dict, fid::Int64, D::DynState)
-
+function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
+                     stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
+                     fid::Int64, 
+                     D::DynState; 
+                     ϕ13::Float64 = ,
+                     ϕ12::Float64 = ,
+                     ϕ1EX::Float64 = ,
+                     ϕ23::Float64 = ,
+                     ϕ21::Float64 = ,
+                     ϕ2EX::Float64 = ,
+                     ϕ31::Float64 = ,
+                     ϕ32::Float64 = ,
+                     ϕ3EX::Float64 = ) # this weight is arbitrary, change it later with the iteration 
+  excost::Float64 = 0.0 
+  # TODO - 
+  # - where are the patient volumes coming from?
+  # - what are the probabilities of various outcomes?  this is the important one.
+  # there are several actions to compute
+  if D.all[fid].level = 1
+    # a bunch of states have to be written out to temp. 
+    # but these can easily be enumerated since there are only four actions. 
+    # the value of being in the state is not action dependent in the sense that the action adds another dependence.  
+    temp[TupleSmash(D.all[fid].cns, 1)] = maximum(ϕ1EX, maximum([ , , ]))
+  elseif D.all[fid].level = 2
+    temp[TupleSmash(D.all[fid].cns, 2)] = maximum(ϕ2EX, maximum([ , , ]) )
+  elseif D.all[fid].level = 3
+    temp[TupleSmash(D.all[fid].cns, 3)] = maximum(ϕ3EX, maximum([ , , ]) )
+  end 
+   
+  max
 
 end 
 
