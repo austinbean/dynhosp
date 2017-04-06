@@ -1459,11 +1459,14 @@ end
 `HospitalDemand(pats::ProjectModule.patientcollection, )`
 Takes a patientcollection and a whole state.
 Makes a dict of every hospital's patients.
+#TODO - does not take level into consideration.  FIX
 
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = CreateZips(ProjectModule.alldists, Texas);
 FillPPatients(patients , ProjectModule.pinsured); # this line probably not necessary.
-HospitalDemand(patients);
+hzips, privrange, medrange,  unfound = HospitalDemand(patients);
+
+# lowdempriv, hidempriv, lowdemmed, highdemmed,
 """
 function HospitalDemand(pats::ProjectModule.patientcollection; 
                         mat1::Array{Float64,2} = ProjectModule.pcount)
@@ -1540,8 +1543,11 @@ function HospitalDemand(pats::ProjectModule.patientcollection;
       end 
     end 
   end 
-  return inter, outp_p, outp_m, d_p_l, d_p_h, d_m_l, d_m_h, unfound
+  return inter, outp_p, outp_m, unfound
 end 
+
+
+
 
 
 
