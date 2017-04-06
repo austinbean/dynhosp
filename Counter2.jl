@@ -1468,6 +1468,7 @@ HospitalDemand(patients);
 function HospitalDemand(pats::ProjectModule.patientcollection; 
                         mat1::Array{Float64,2} = ProjectModule.pcount)
   inter::Dict{Int64, Array{Int64,1}} = Dict{Int64, Array{Int64,1}}()
+  # These must have the fid keys added to them.  
   outp_p::Dict{Int64, ProjectModule.patientrange} = Dict{Int64, ProjectModule.patientrange}()
   outp_m::Dict{Int64, ProjectModule.patientrange} = Dict{Int64, ProjectModule.patientrange}()
   # creates the objects to be mapped back
@@ -1494,46 +1495,52 @@ function HospitalDemand(pats::ProjectModule.patientcollection;
   end 
 
   # Now create the patientranges from these sets.  
+  unfound = Set{Int64}()
   for k1 in keys(inter) # this is a Dict{Fid, Array{zip}}, so these are fids.
+    if !haskey(outp_p, k1)
+      outp_p[k1] = patientrange(0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    end 
+    if !haskey(outp_m, k1)
+      outp_m[k1] = patientrange(0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    end 
     for el in inter[k1] # this is an array of zip codes 
-      println(inter[k1])
       if (haskey(d_p_l, el))&(haskey(d_p_h, el))&(haskey(d_m_l, el))&(haskey(d_m_h, el))
           # Privately insured.
-        outp_p[el].l385 += d_p_l[el].count385
-        outp_p[el].u385 += d_p_h[el].count385
-        outp_p[el].l386 += d_p_l[el].count386
-        outp_p[el].u386 += d_p_h[el].count386
-        outp_p[el].l387 += d_p_l[el].count387
-        outp_p[el].u387 += d_p_h[el].count387
-        outp_p[el].l388 += d_p_l[el].count388
-        outp_p[el].u388 += d_p_h[el].count388
-        outp_p[el].l389 += d_p_l[el].count389
-        outp_p[el].u389 += d_p_h[el].count389
-        outp_p[el].l390 += d_p_l[el].count390
-        outp_p[el].u390 += d_p_h[el].count390
-        outp_p[el].l391 += d_p_l[el].count391
-        outp_p[el].u391 += d_p_h[el].count391
+        outp_p[k1].l385 += d_p_l[el].count385
+        outp_p[k1].u385 += d_p_h[el].count385
+        outp_p[k1].l386 += d_p_l[el].count386
+        outp_p[k1].u386 += d_p_h[el].count386
+        outp_p[k1].l387 += d_p_l[el].count387
+        outp_p[k1].u387 += d_p_h[el].count387
+        outp_p[k1].l388 += d_p_l[el].count388
+        outp_p[k1].u388 += d_p_h[el].count388
+        outp_p[k1].l389 += d_p_l[el].count389
+        outp_p[k1].u389 += d_p_h[el].count389
+        outp_p[k1].l390 += d_p_l[el].count390
+        outp_p[k1].u390 += d_p_h[el].count390
+        outp_p[k1].l391 += d_p_l[el].count391
+        outp_p[k1].u391 += d_p_h[el].count391
           # Medicaid Patients 
-        outp_m[el].l385 += d_m_l[el].count385
-        outp_m[el].u385 += d_m_h[el].count385
-        outp_m[el].l386 += d_m_l[el].count386
-        outp_m[el].u386 += d_m_h[el].count386
-        outp_m[el].l387 += d_m_l[el].count387
-        outp_m[el].u387 += d_m_h[el].count387
-        outp_m[el].l388 += d_m_l[el].count388
-        outp_m[el].u388 += d_m_h[el].count388
-        outp_m[el].l389 += d_m_l[el].count389
-        outp_m[el].u389 += d_m_h[el].count389
-        outp_m[el].l390 += d_m_l[el].count390
-        outp_m[el].u390 += d_m_h[el].count390
-        outp_m[el].l391 += d_m_l[el].count391
-        outp_m[el].u391 += d_m_h[el].count391
+        outp_m[k1].l385 += d_m_l[el].count385
+        outp_m[k1].u385 += d_m_h[el].count385
+        outp_m[k1].l386 += d_m_l[el].count386
+        outp_m[k1].u386 += d_m_h[el].count386
+        outp_m[k1].l387 += d_m_l[el].count387
+        outp_m[k1].u387 += d_m_h[el].count387
+        outp_m[k1].l388 += d_m_l[el].count388
+        outp_m[k1].u388 += d_m_h[el].count388
+        outp_m[k1].l389 += d_m_l[el].count389
+        outp_m[k1].u389 += d_m_h[el].count389
+        outp_m[k1].l390 += d_m_l[el].count390
+        outp_m[k1].u390 += d_m_h[el].count390
+        outp_m[k1].l391 += d_m_l[el].count391
+        outp_m[k1].u391 += d_m_h[el].count391
       else
-        println("zip not found ",el) 
+        push!(unfound,el) 
       end 
     end 
   end 
-  return inter, outp_p, outp_m, d_p_l, d_p_h, d_m_l, d_m,h
+  return inter, outp_p, outp_m, d_p_l, d_p_h, d_m_l, d_m_h, unfound
 end 
 
 
