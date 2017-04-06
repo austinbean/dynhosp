@@ -1173,30 +1173,38 @@ function ExactVal(D::DynState,
   end
   # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states, {Actions, values}}
   # maybe it makes sense to define another structure for this.
-    # this is the collection of results - values at states by firm FID.
+  # this is the collection of results - values at states by firm FID.
   outvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
-    # one must store results to report, the other keeps them temporarily.  
+  # one must store results to report, the other keeps them temporarily.  
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
-
+  totest::Dict{Int64,Bool} = Dict{Int64,Bool}()
   for el in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
-    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid]) #TODO - starting values here.
-    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid]) #this does NOT need starting values.  
+    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])        # TODO - starting values here.
+    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])       # this does NOT need starting values.  
+    totest[D.all[el].fid] = false                                # all facilities to do initially set to false.  
   end
   # Updating process...
-  # TODO - need to store the values of all current states and actions, THEN write them out to outvals.  Damn.  
-
-
-  # Convergence Test...
-
-
-  # Copy the values and clean up.
-  DictCopy(outvals, tempvals)
-  DictClean(tempvals)
-
-
-  # Return equilibrium values...
+  converge = false
+  while !converge # if true keep going.
+    converge = true                                              # reassign, to catch when it terminates.
+    for k in keys(totest)
+      if !totest[k] # only run those for which false.
+        ExactChoice(tempvals, outvals, k, D) #TODO - what other arguments.  
+      end 
+    end
+    # Convergence Test...
+    # TODO - think about this.  Needs to return a list.  
+    converge, list = ExactConvergence(tempvals, outvals, totest, list)  # NB: temporary is FIRST argument.  
+    # Copy the values and clean up.
+    DictCopy(outvals, tempvals)
+    DictClean(tempvals) # sets up for rewriting.
+    for ky1 in keys(totest) # this tests every facility every time, but that's ok. 
+      converge = converge&totest[ky1] # 
+    end   
+    # Return equilibrium values...
+  end 
   return outvals
 end
 
@@ -1212,7 +1220,7 @@ Needs to:
 
 """
 
-function ExactChoice(stable::Dict, temp::Dict, D::DynState, )
+function ExactChoice(temp::Dict, stable::Dict, fid::Int64, D::DynState)
 
 
 end 
@@ -1243,18 +1251,20 @@ ExactConvergence(test1, test2; debug = false)
 (false, [4450450]) # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
 """
 function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
-                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; 
+                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } },
+                          totest::Dict{Int64,Bool}; 
                           toler::Float64 =0.001, 
                           debug::Bool = true )
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
-  newchunk::Array{Int64,1} = Array{Int64,1}()        # empty array to return the next set of fids to do.  
-  for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.
-    maxdiff::Float64 = 0.0 
-    for state in keys(current[fid])                  # states available to the firm.
-      for action in keys(current[fid][state])        # actions available 
-        if abs(current[fid][state][action] - stable[fid][state][action]) > maxdiff # we want MAX difference.  
-          maxdiff = abs(current[fid][state][action] - stable[fid][state][action])
+  for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
+    if !totest[fid] # keys in totest for which false (i.e., not converged)
+      maxdiff::Float64 = 0.0 
+      for state in keys(current[fid])                  # states available to the firm.
+        for action in keys(current[fid][state])        # actions available 
+          if abs(current[fid][state][action] - stable[fid][state][action]) > maxdiff # we want MAX difference.  
+            maxdiff = abs(current[fid][state][action] - stable[fid][state][action])
+          end 
         end 
       end 
     end 
@@ -1269,6 +1279,8 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int
     converge = converge&(diffs[k1]<toler)
     if diffs[k1] > toler # not converged yet 
       push!(newchunk, k1)
+    else 
+      totest[k1] = true 
     end 
   end 
   # NOTE - convergence should return list of undone facilities. 
