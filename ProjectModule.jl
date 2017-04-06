@@ -209,21 +209,21 @@ module ProjectModule
     end
   end
 
-  mutable struct patientrange
-    l385::Int64 
-    u385::Int64
-    l386::Int64 
-    u386::Int64    
-    l387::Int64 
-    u387::Int64    
-    l388::Int64 
-    u388::Int64    
-    l389::Int64 
-    u389::Int64    
-    l390::Int64 
-    u390::Int64    
-    l391::Int64 
-    u391::Int64
+  mutable struct patientrange{T<:Real}
+    l385::T 
+    u385::T
+    l386::T 
+    u386::T    
+    l387::T 
+    u387::T    
+    l388::T 
+    u388::T    
+    l389::T 
+    u389::T    
+    l390::T 
+    u390::T    
+    l391::T 
+    u391::T
   end 
 
   import Base.+
@@ -249,6 +249,29 @@ module ProjectModule
     else 
       return 0
     end 
+  end 
+
+
+  function PatExp(priv::patientrange, med::patientrange)
+    outp_p::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    outp_m::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+      # private expected output
+    outp_p.count385 = (priv.u385-priv.l385)/2
+    outp_p.count386 = (priv.u386-priv.l386)/2
+    outp_p.count387 = (priv.u387-priv.l387)/2
+    outp_p.count388 = (priv.u388-priv.l388)/2
+    outp_p.count389 = (priv.u389-priv.l389)/2
+    outp_p.count390 = (priv.u390-priv.l390)/2
+    outp_p.count391 = (priv.u391-priv.l391)/2
+      # medicaid expected output
+    outp_m.count385 = (med.u385-med.l385)/2
+    outp_m.count386 = (med.u386-med.l386)/2
+    outp_m.count387 = (med.u387-med.l387)/2
+    outp_m.count388 = (med.u388-med.l388)/2
+    outp_m.count389 = (med.u389-med.l389)/2
+    outp_m.count390 = (med.u390-med.l390)/2
+    outp_m.count391 = (med.u391-med.l391)/2
+    return outp_p, outp_m
   end 
 
 
@@ -587,6 +610,7 @@ end
   export RemoveEntrant
   export RecordCopy
   export DrawPatients 
+  export PatExp
 
   # Export Counter1.jl Functions 
   export CategoryReminder
@@ -669,6 +693,15 @@ end
   export DemComp
   export GetProb 
   export PatientZero
+  export TupleSmash
+  export EnumerLevel
+  export StateEnumerate
+  export DictCopy
+  export DictClean
+  export ExactConvergence
+  export ExactVal
+  export EnumUp
+  export HospitalDemand
 
   
 
