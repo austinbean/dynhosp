@@ -1241,12 +1241,15 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
   if D.all[fid].level = 1
     # a bunch of states have to be written out to temp. 
     # but these can easily be enumerated since there are only four actions. 
-    # the value of being in the state is not action dependent in the sense that the action adds another dependence.  
-    temp[TupleSmash(D.all[fid].cns, 1)] = maximum(ϕ1EX, maximum([ , , ]))
+    # the value of being in the state is not action dependent in the sense that the action adds another dependence. 
+    #TODO - this function TupleSmash is not correct for this application.   
+    temp[TupleSmash(D.all[fid].cns, 1)] = maximum(ϕ1EX, CURRENTPROFIT + β*maximum([  +β*(), - ϕ12 +β*() , -ϕ13 +β*() ]))
   elseif D.all[fid].level = 2
-    temp[TupleSmash(D.all[fid].cns, 2)] = maximum(ϕ2EX, maximum([ , , ]) )
+    #TODO - this function TupleSmash is not correct for this application.  
+    temp[TupleSmash(D.all[fid].cns, 2)] = maximum(ϕ2EX, CURRENTPROFIT + β*maximum([ - ϕ21 +β*(),  +β*() , -ϕ23 +β*() ]) )
   elseif D.all[fid].level = 3
-    temp[TupleSmash(D.all[fid].cns, 3)] = maximum(ϕ3EX, maximum([ , , ]) )
+    #TODO - this function TupleSmash is not correct for this application.  
+    temp[TupleSmash(D.all[fid].cns, 3)] = maximum(ϕ3EX, CURRENTPROFIT + β*maximum([ - ϕ31 +β*() , - ϕ32 +β*() ,  +β*() ]) )
   end 
    
   max
