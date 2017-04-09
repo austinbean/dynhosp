@@ -1224,30 +1224,30 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
                      stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
                      fid::Int64, 
                      D::DynState; 
-                     ϕ13::Float64 = ,
-                     ϕ12::Float64 = ,
-                     ϕ1EX::Float64 = ,
-                     ϕ23::Float64 = ,
-                     ϕ21::Float64 = ,
-                     ϕ2EX::Float64 = ,
-                     ϕ31::Float64 = ,
-                     ϕ32::Float64 = ,
-                     ϕ3EX::Float64 = ) # this weight is arbitrary, change it later with the iteration 
+                     ϕ13::Float64 = 0.0,
+                     ϕ12::Float64 = 0.0,
+                     ϕ1EX::Float64 = 0.0,
+                     ϕ23::Float64 = 0.0,
+                     ϕ21::Float64 = 0.0,
+                     ϕ2EX::Float64 = 0.0,
+                     ϕ31::Float64 = 0.0,
+                     ϕ32::Float64 = 0.0,
+                     ϕ3EX::Float64 = 0.0) # this weight is arbitrary, change it later with the iteration 
   excost::Float64 = 0.0 
   # TODO - 
   # - where are the patient volumes coming from?
   # - what are the probabilities of various outcomes?  this is the important one.
   # there are several actions to compute
-  if D.all[fid].level = 1
+  if (D.all[fid].level == 1)
     # a bunch of states have to be written out to temp. 
     # but these can easily be enumerated since there are only four actions. 
     # the value of being in the state is not action dependent in the sense that the action adds another dependence. 
     #TODO - this function TupleSmash is not correct for this application.   
     temp[TupleSmash(D.all[fid].cns, 1)] = maximum(ϕ1EX, CURRENTPROFIT + β*maximum([  +β*(), - ϕ12 +β*() , -ϕ13 +β*() ]))
-  elseif D.all[fid].level = 2
+  elseif (D.all[fid].level == 2)
     #TODO - this function TupleSmash is not correct for this application.  
     temp[TupleSmash(D.all[fid].cns, 2)] = maximum(ϕ2EX, CURRENTPROFIT + β*maximum([ - ϕ21 +β*(),  +β*() , -ϕ23 +β*() ]) )
-  elseif D.all[fid].level = 3
+  elseif (D.all[fid].level == 3)
     #TODO - this function TupleSmash is not correct for this application.  
     temp[TupleSmash(D.all[fid].cns, 3)] = maximum(ϕ3EX, CURRENTPROFIT + β*maximum([ - ϕ31 +β*() , - ϕ32 +β*() ,  +β*() ]) )
   end 
