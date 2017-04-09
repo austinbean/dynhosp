@@ -430,7 +430,6 @@ type shortrec<:ProjectModule.Fac
   tbu::Bool
 end
 
-#NB:  this array needs to include the WTP for each facility too!
 """
 `type cpats`
 -  zp::Int64
@@ -494,6 +493,7 @@ type simh<:ProjectModule.Fac
   actual::Int64
   beds::Int64
   cns::neighbors # must know what current neighbors look like.
+  nfids::Array{Int64,1} # add neighbor fids.  
   visited::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, nlrec} #change key to tuple of int64 composed of neighbors and level.
   ns::Array{shortrec, 1}
   mk::cmkt # putting the cmkt into the simh record itself.
