@@ -19,7 +19,7 @@ end
 """
 `CounterObjects()`
 Makes the counterfactual objects again.
-dyn = CounterObjects();
+dyn = CounterObjects(10);
 
 """
 function CounterObjects(T::Int64)
@@ -39,10 +39,10 @@ Create the dynamic records from the existing state, don't bother doing it from s
 And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists);
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists);
+FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, Tex, patients);
@@ -62,6 +62,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      Tex.mkts[k1].collection[hk].level,
                      convert(Int64, Tex2.mkts[k1].collection[hk].bedcount),
                      neighbors(0,0,0,0,0,0,0,0,0),
+                     Array{Int64,1}(),
                      Dict{Tuple{Int64}, nlrec}(),
                      Array{shortrec,1}(),
                      DynPatients(p, Tex.mkts[k1].collection[hk].fid), # should create the patient collection as a subelement of the hospital record.
@@ -84,6 +85,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                                          ChoicesAvailable(Tex.mkts[k2].collection[hk2]),
                                          Tex.mkts[k2].collection[hk2].chprobability,
                                          false))
+              push!(newsimh.nfids, Tex.mkts[k2].collection[hk2].fid)
               if (d1>0)&(d1<5)
                 if Tex.mkts[k2].collection[hk2].level == 1
                   newsimh.cns.level105 += 1
@@ -451,7 +453,7 @@ end
 
 
 """
-`DS2(c::cmkt, f::Int64)`
+`DSimNew(c::cmkt, f::Int64)`
 This is going to compute a market share at the level of a zip or zip-drg.
 That formula exists.  The shares will be proportional to the deterministic
 utility component.  We just need all of the utilities in the market and number of
@@ -1223,6 +1225,7 @@ NB - level won't change.  I can compute the value of being in all of these state
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
                      fid::Int64, 
+                     competitors::Array{Int64,1},
                      D::DynState; 
                      ϕ13::Float64 = 0.0,
                      ϕ12::Float64 = 0.0,
@@ -1238,24 +1241,35 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
   # - where are the patient volumes coming from?
   # - what are the probabilities of various outcomes?  this is the important one.
   # there are several actions to compute
-  if (D.all[fid].level == 1)
-    # a bunch of states have to be written out to temp. 
-    # but these can easily be enumerated since there are only four actions. 
-    # the value of being in the state is not action dependent in the sense that the action adds another dependence. 
-    #TODO - this function TupleSmash is not correct for this application.   
-    temp[TupleSmash(D.all[fid].cns, 1)] = maximum(ϕ1EX, CURRENTPROFIT + β*maximum([  +β*(), - ϕ12 +β*() , -ϕ13 +β*() ]))
-  elseif (D.all[fid].level == 2)
-    #TODO - this function TupleSmash is not correct for this application.  
-    temp[TupleSmash(D.all[fid].cns, 2)] = maximum(ϕ2EX, CURRENTPROFIT + β*maximum([ - ϕ21 +β*(),  +β*() , -ϕ23 +β*() ]) )
-  elseif (D.all[fid].level == 3)
-    #TODO - this function TupleSmash is not correct for this application.  
-    temp[TupleSmash(D.all[fid].cns, 3)] = maximum(ϕ3EX, CURRENTPROFIT + β*maximum([ - ϕ31 +β*() , - ϕ32 +β*() ,  +β*() ]) )
-  end 
-   
-  max
+  # a bunch of states have to be written out to temp. 
+  # but these can easily be enumerated since there are only four actions. 
+  # the value of being in the state is not action dependent in the sense that the action adds another dependence. 
+  #TODO - this function TupleSmash is not correct for this application.  
+  # stick to two to start.  Randomness from other outcome. 
+  # new function make prob. 
+  # there must be persistent randomness.  
+  # TODO - uses the function Payoff from Counter1.jl   
+  # Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64}
 
+  if (D.all[fid].level == 1)
+    temp[] = maximum([ϕ1EX, Payoff()+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+  elseif (D.all[fid].level == 2)
+    temp[] = maximum([ϕ2EX, Payoff()+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+  elseif (D.all[fid].level == 3)
+    temp[T] = maximum([ϕ3EX, Payoff()+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+  end 
 end 
 
+
+
+"""
+`FindComps(fid::Int64, D::DynState)
+"""
+function FindComps(h::simh, D::DynState)
+    # takes a state and finds me the neighbors.
+
+
+end 
 
 
 
