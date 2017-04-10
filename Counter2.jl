@@ -1156,13 +1156,23 @@ dyn = DynStateCreate(TexasEq, Tex, patients);
 
 entries to consideR: 1-15 are all.
 Here number of neighbors and entry (dyn.all[x])
-1 1
-1 4
-1 5
+Duopoly:
+1
+4
+5
+9
 
 0 6 (monopoly)
 0 7 (monopoly)
 0 8 (monopoly)
+
+triopoly:
+18
+20
+21
+24
+25
+26
 
 4 13
 4 14
@@ -1261,32 +1271,32 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
                      ϕ3EX::Float64 = 0.0)  
   excost::Float64 = 0.0 
   # TODO - 
-  # - where are the patient volumes coming from?
   # - what are the probabilities of various outcomes?  this is the important one.
-  # there are several actions to compute
   # a bunch of states have to be written out to temp. 
   # but these can easily be enumerated since there are only four actions. 
   # the value of being in the state is not action dependent in the sense that the action adds another dependence. 
-  #TODO - this function TupleSmash is not correct for this application.  
   # stick to two to start.  Randomness from other outcome. 
   # new function make prob. 
   # there must be persistent randomness.  
-  # TODO - uses the function Payoff from Counter1.jl   
-  # DSimNew for demand.
   # SinglePay(s::simh,mpats::ProjectModule.patientcount,ppats::ProjectModule.patientcount,action::Int64;
-  DSimNew( D[location], fid, p1, p2) # Computes the demand.   
-  if (D.all[fid].level == 1)
+  # Update value at Level 1
+    D.all[location].level = 1
+    # TODO Update deterministic.
+    DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
     temp[StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
-    temp[StateKey(D.all[location],2)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 2 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
-    temp[StateKey(D.all[location],3)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 1 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
-  elseif (D.all[fid].level == 2)
-    temp[StateKey(D.all[location],1)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 5 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    D.all[location].level = D.all[location].actual
+  # Update value at Level 2
+    D.all[location].level = 2
+    # TODO Update deterministic.
+    DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
     temp[StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
-    temp[StateKey(D.all[location],3)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 6 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
-  elseif (D.all[fid].level == 3)
-    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 4 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
-    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 3 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    D.all[location].level = D.all[location].actual
+  # Update value at Level 3
+    D.all[location].level = 3
+    # TODO Update deterministic.
+    DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
     temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    D.all[location].level = D.all[location].actual
   end 
 end 
 
