@@ -1278,26 +1278,28 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
   # stick to two to start.  Randomness from other outcome. 
   # new function make prob. 
   # there must be persistent randomness.  
-  # SinglePay(s::simh,mpats::ProjectModule.patientcount,ppats::ProjectModule.patientcount,action::Int64;
   # Update value at Level 1
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     D.all[location].level = 1
-    # TODO Update deterministic.
+    UpdateD(D.all[location])
     DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
     temp[StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
     D.all[location].level = D.all[location].actual
+    UtilDown(D.all[location])   
   # Update value at Level 2
     D.all[location].level = 2
-    # TODO Update deterministic.
+    UpdateD(D.all[location])
     DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
     temp[StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
     D.all[location].level = D.all[location].actual
+    UtilDown(D.all[location])
   # Update value at Level 3
     D.all[location].level = 3
-    # TODO Update deterministic.
+    UpdateD(D.all[location])
     DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
     temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
     D.all[location].level = D.all[location].actual
+    UtilDown(D.all[location])
   end 
 end 
 
@@ -1413,11 +1415,11 @@ function UpdateD(h::simh)
     if h.level == 1
       if h.actual == 3
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-
+          UtilUp(h.mk.m[el], h.fid, 3, 1)
         end 
       elseif h.actual == 2
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-
+          UtilUp(h.mk.m[el], h.fid, 2,1) 
         end 
       else # h.actual == 1
         # do nothing.
@@ -1425,11 +1427,11 @@ function UpdateD(h::simh)
     elseif h.level == 2
       if h.actual == 1
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-
+          UtilUp(h.mk.m[el], h.fid, 1, 2)
         end 
       elseif h.actual == 3
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-
+          UtilUp(h.mk.m[el], h.fid, 3, 2)
         end       
       else # h.actual == 2
         # do nothing. 
@@ -1437,11 +1439,11 @@ function UpdateD(h::simh)
     else #h.level == 3
       if h.actual == 1
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-
+          UtilUp(h.mk.m[el], h.fid, 1, 3)
         end 
       elseif h.actual == 2
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-
+          UtilUp(h.mk.m[el], h.fid, 2,3)
         end 
       else # h.actual == 3
         # do nothing.
@@ -1451,45 +1453,102 @@ end
 
 
 
+"""
+`UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64;
+                 inteninter_med::Float64 = -0.572397,
+                 interinten_med::Float64 = 0.572397,
+                 inten_med::Float64 = 1.34994,
+                 inter_med::Float64 = 0.777542,
+                 inteninter_p::Float64 = 0.3197218,
+                 interinten_p::Float64 = -0.3197218,
+                 inten_p::Float64 = 1.18599,
+                 inter_p::Float64 = 0.866268) `
+Updates the deterministic component of the utility quickly.  
+"""
 function UtilUp( c::cpats, 
                  fid::Int64, 
                  actual::Int64, 
                  current::Int64; 
-                 inteninter_med::Float64 = ,
-                 interinten_med::Float64 = ,
+                 inteninter_med::Float64 = -0.572397,
+                 interinten_med::Float64 = 0.572397,
                  inten_med::Float64 = 1.34994,
                  inter_med::Float64 = 0.777542,
-                 inteninter_p::Float64 = ,
-                 interinten_p::Float64 = ,
+                 inteninter_p::Float64 = 0.3197218,
+                 interinten_p::Float64 = -0.3197218,
                  inten_p::Float64 = 1.18599,
                  inter_p::Float64 = 0.866268)
   indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   indx_p::Int64 = findfirst(c.putils[1,:], fid)
-  if actual == 1 & current == 1
+  if (actual == 1)&(current == 1)
     # do nothing.
-  elseif actual == 1 & current == 2
-    c.putils[2,indx_p] +=
-    c.mutils[2,indx_m] += 
-  elseif actual == 1 & current == 3
-    c.putils[2,indx_p] +=
-    c.mutils[2,indx_m] += 
-  elseif actual == 2 & current == 1
-    c.putils[2,indx_p] +=
-    c.mutils[2,indx_m] += 
-  elseif actual == 2 & current == 2
+  elseif (actual == 1)&(current == 2)
+    c.putils[2,indx_p] += inter_p
+    c.mutils[2,indx_m] += inter_med
+  elseif (actual == 1)&(current == 3)
+    c.putils[2,indx_p] += inten_p
+    c.mutils[2,indx_m] += inten_med 
+  elseif (actual == 2)&(current == 1)
+    c.putils[2,indx_p] -= inter_p
+    c.mutils[2,indx_m] -= inter_med
+  elseif (actual == 2)&(current == 2)
     # do nothing.
-  elseif actual == 2 & current == 3
-    c.putils[2,indx_p] +=
-    c.mutils[2,indx_m] += 
-  elseif actual == 3 & current == 1
-    c.putils[2,indx_p] +=
-    c.mutils[2,indx_m] += 
-  elseif actual == 3 & current == 2
-    c.putils[2,indx_p] +=
-    c.mutils[2,indx_m] += 
-  elseif actual == 3 & current == 3
+  elseif (actual == 2)&(current == 3)
+    c.putils[2,indx_p] += inteninter_p 
+    c.mutils[2,indx_m] += inteninter_med
+  elseif (actual == 3)&(current == 1)
+    c.putils[2,indx_p] -= inten_p 
+    c.mutils[2,indx_m] -= inten_med 
+  elseif (actual == 3)&(current == 2)
+    c.putils[2,indx_p] -= interinten_p
+    c.mutils[2,indx_m] -= interinten_med 
+  elseif (actual == 3)&(current == 3)
     # do nothing.
   end 
+end 
+
+
+"""
+`UtilDown(h::simh)`
+Adjusts the deterministic utility back down.  
+"""
+function UtilDown(h::simh)
+    if h.level == 1
+      if h.actual == 3
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+          UtilUp(h.mk.m[el], h.fid, 1, 3)
+        end 
+      elseif h.actual == 2
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+          UtilUp(h.mk.m[el], h.fid, 1,2) 
+        end 
+      else # h.actual == 1
+        # do nothing.
+      end 
+    elseif h.level == 2
+      if h.actual == 1
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+          UtilUp(h.mk.m[el], h.fid, 2, 1)
+        end 
+      elseif h.actual == 3
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+          UtilUp(h.mk.m[el], h.fid, 2, 3)
+        end       
+      else # h.actual == 2
+        # do nothing. 
+      end
+    else #h.level == 3
+      if h.actual == 1
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+          UtilUp(h.mk.m[el], h.fid, 3, 1)
+        end 
+      elseif h.actual == 2
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+          UtilUp(h.mk.m[el], h.fid, 3,2)
+        end 
+      else # h.actual == 3
+        # do nothing.
+      end
+    end 
 end 
 
 
