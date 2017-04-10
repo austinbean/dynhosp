@@ -81,6 +81,46 @@ module ProjectModule
     level31525::Int64
   end
 
+ Base.start(::neighbors) = :level105
+
+function Base.next(n::neighbors, state)
+  if state == :level105
+    return n.level105, :level205
+  elseif state == :level205
+    return n.level205, :level305
+  elseif state == :level305
+    return n.level305, :level1515
+  elseif state == :level1515
+    return n.level1515, :level2515
+  elseif state == :level2515
+    return n.level2515, :level3515
+  elseif state == :level3515
+    return n.level3515, :level15125
+  elseif state == :level15125
+    return n.level11525, :level21525
+  elseif state == :level21525
+    return n.level21525, :level31525
+  elseif state == :level31525
+    return n.level31525, :level4
+  else
+    return :level4
+  end
+end
+
+function Base.done(n::neighbors, state)
+  if state == :level4
+    return true
+  else
+    return false
+  end
+end
+
+
+
+
+
+
+
   function Base.isequal(n1::neighbors, n2::neighbors)::Bool
     n1.level105 == n2.level105 && n1.level205 == n2.level205 && n1.level305 == n2.level305 && n1.level1515 == n2.level1515 && n1.level2515 == n2.level2515 && n1.level3515 == n2.level3515 && n1.level11525 == n2.level11525 && n1.level21525 == n2.level21525 && n1.level31525 == n2.level31525
   end
