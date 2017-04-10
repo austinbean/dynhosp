@@ -1280,6 +1280,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
   # there must be persistent randomness.  
   # SinglePay(s::simh,mpats::ProjectModule.patientcount,ppats::ProjectModule.patientcount,action::Int64;
   # Update value at Level 1
+    neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     D.all[location].level = 1
     # TODO Update deterministic.
     DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
@@ -1402,6 +1403,96 @@ function FindComps(h::simh, D::DynState)
     end 
     return outp 
 end 
+
+
+"""
+`UpdateD(h::simh)`
+Updates the utility component.  The deterministic part.
+"""
+function UpdateD(h::simh)
+    if h.level == 1
+      if h.actual == 3
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+
+        end 
+      elseif h.actual == 2
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+
+        end 
+      else # h.actual == 1
+        # do nothing.
+      end 
+    elseif h.level == 2
+      if h.actual == 1
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+
+        end 
+      elseif h.actual == 3
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+
+        end       
+      else # h.actual == 2
+        # do nothing. 
+      end
+    else #h.level == 3
+      if h.actual == 1
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+
+        end 
+      elseif h.actual == 2
+        for el in 1:size(h.mk.m,1) # this is an array of cpats
+
+        end 
+      else # h.actual == 3
+        # do nothing.
+      end
+    end 
+end 
+
+
+
+function UtilUp( c::cpats, 
+                 fid::Int64, 
+                 actual::Int64, 
+                 current::Int64; 
+                 inteninter_med::Float64 = ,
+                 interinten_med::Float64 = ,
+                 inten_med::Float64 = 1.34994,
+                 inter_med::Float64 = 0.777542,
+                 inteninter_p::Float64 = ,
+                 interinten_p::Float64 = ,
+                 inten_p::Float64 = 1.18599,
+                 inter_p::Float64 = 0.866268)
+  indx_m::Int64 = findfirst(c.mutils[1,:], fid)
+  indx_p::Int64 = findfirst(c.putils[1,:], fid)
+  if actual == 1 & current == 1
+    # do nothing.
+  elseif actual == 1 & current == 2
+    c.putils[2,indx_p] +=
+    c.mutils[2,indx_m] += 
+  elseif actual == 1 & current == 3
+    c.putils[2,indx_p] +=
+    c.mutils[2,indx_m] += 
+  elseif actual == 2 & current == 1
+    c.putils[2,indx_p] +=
+    c.mutils[2,indx_m] += 
+  elseif actual == 2 & current == 2
+    # do nothing.
+  elseif actual == 2 & current == 3
+    c.putils[2,indx_p] +=
+    c.mutils[2,indx_m] += 
+  elseif actual == 3 & current == 1
+    c.putils[2,indx_p] +=
+    c.mutils[2,indx_m] += 
+  elseif actual == 3 & current == 2
+    c.putils[2,indx_p] +=
+    c.mutils[2,indx_m] += 
+  elseif actual == 3 & current == 3
+    # do nothing.
+  end 
+end 
+
+
 
 
 
