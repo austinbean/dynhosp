@@ -672,6 +672,8 @@ end
   export RunCounter1
   export ProfitChange
   export ProfitMeanVar
+  export StateKey
+  export FindComps
 
   # Export Counter2.jl functions 
   export KeyCreate 
