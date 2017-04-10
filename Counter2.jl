@@ -1146,6 +1146,14 @@ end
 `ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
 Computes the exact solution for smaller markets.  1 - 5 firms at most.
 
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
+
 entries to consideR: 1-15 are all.
 Here number of neighbors and entry (dyn.all[x])
 1 1
@@ -1164,7 +1172,9 @@ Here number of neighbors and entry (dyn.all[x])
 """
 
 function ExactVal(D::DynState,
-                  chunk::Array{Int64,1};
+                  chunk::Array{Int64,1},
+                  p1::patientcount,
+                  p2::patientcount;
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
@@ -1180,12 +1190,14 @@ function ExactVal(D::DynState,
   # one must store results to report, the other keeps them temporarily.  
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()
+  locs::Dict{Int64,Int64} = Dict{Int64, Int64}()
   for el in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])        # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])       # this does NOT need starting values.  
     totest[D.all[el].fid] = false                                # all facilities to do initially set to false.  
+    locs[D.all[el].fid] = el # stores a fid,location value
   end
   # Updating process...
   converge = false
@@ -1193,7 +1205,7 @@ function ExactVal(D::DynState,
     converge = true                                              # reassign, to catch when it terminates.
     for k in keys(totest)
       if !totest[k] # only run those for which false.
-        ExactChoice(tempvals, outvals, k, D) #TODO - what other arguments.  
+        ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D) #TODO - what other arguments.  
       end 
     end
     # Convergence Test...
@@ -1225,6 +1237,9 @@ NB - level won't change.  I can compute the value of being in all of these state
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
                      fid::Int64, 
+                     location::Int64,
+                     p1::patientcount,
+                     p2::patientcount;
                      competitors::Array{Int64,1},
                      D::DynState; 
                      ϕ13::Float64 = 0.0,
@@ -1235,7 +1250,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
                      ϕ2EX::Float64 = 0.0,
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
-                     ϕ3EX::Float64 = 0.0) # this weight is arbitrary, change it later with the iteration 
+                     ϕ3EX::Float64 = 0.0)  
   excost::Float64 = 0.0 
   # TODO - 
   # - where are the patient volumes coming from?
@@ -1249,26 +1264,49 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
   # new function make prob. 
   # there must be persistent randomness.  
   # TODO - uses the function Payoff from Counter1.jl   
-  # Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64}
-
+  # DSimNew for demand.
+  # SinglePay(s::simh,mpats::ProjectModule.patientcount,ppats::ProjectModule.patientcount,action::Int64;
+  DSimNew( D[location], fid, p1, p2) # Computes the demand.   
   if (D.all[fid].level == 1)
-    temp[] = maximum([ϕ1EX, Payoff()+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    temp[StateKey(D.all[location],1)] = maximum([ϕ1EX, SinglePay(D[location],p1,p2, action )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    temp[StateKey(D.all[location],2)] = maximum([ϕ1EX, SinglePay(D[location],p1,p2, action )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    temp[StateKey(D.all[location],3)] = maximum([ϕ1EX, SinglePay(D[location],p1,p2, action )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
   elseif (D.all[fid].level == 2)
-    temp[] = maximum([ϕ2EX, Payoff()+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    temp[StateKey(D.all[location],1)] = maximum([ϕ2EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    temp[StateKey(D.all[location],2)] = maximum([ϕ2EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    temp[StateKey(D.all[location],3)] = maximum([ϕ2EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
   elseif (D.all[fid].level == 3)
-    temp[T] = maximum([ϕ3EX, Payoff()+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
   end 
 end 
 
 
+"""
+`StateKey(h::simh)`
+Returns a tuple of the neighbors and level to use in `ExactVal()`
+"""
+function StateKey(h::simh, a::Int64)
+  return (h.cns.level105, h.cns.level205, h.cns.level305, h.cns.level1515, h.cns.level2515, h.cns.level3515, h.cns.level11525, h.cns.level21525, h.cns.level31525, a)
+end 
+
 
 """
-`FindComps(fid::Int64, D::DynState)
+`FindComps(h::simh, D::DynState)`
+Finds the locations of the neighbors in the DynState.  
 """
 function FindComps(h::simh, D::DynState)
     # takes a state and finds me the neighbors.
-
-
+    outp::Array{Int64,1} = Array{Int64,1}()
+    for el in h.nfids
+      for loc in 1:size(D.all,1) 
+        if D.all[loc].fid == el 
+          push!(outp, loc)
+        end  
+      end 
+    end 
+    return outp 
 end 
 
 
