@@ -1262,11 +1262,12 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
 d1[3490795] = Dict{NTuple{10,Int64}, Float64}()
 d1[3490795][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
-d1[3490795][StateKey(dyn.all[1], 2)] = 1.0
-d1[3490795][StateKey(dyn.all[1], 3)] = 2.0
+d1[3490795][StateKey(dyn.all[1], 2)] = 0.0
+d1[3490795][StateKey(dyn.all[1], 3)] = 0.0
 
 
 ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
+d1[3490795]
 
 """
 
@@ -1279,7 +1280,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      competitors::Array{Int64,1},
                      D::DynState; 
                      β::Float64 = 0.95,
-                     ϕ13::Float64 = 0.0,
+                     ϕ13::Float64 = 0.0, # scale these!
                      ϕ12::Float64 = 0.0,
                      ϕ1EX::Float64 = 0.0,
                      ϕ23::Float64 = 0.0,
@@ -1297,27 +1298,28 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # new function make prob. 
   # there must be persistent randomness.  
   # Update value at Level 1
+  # ϕxy terms need to be scaled!
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     D.all[location].level = 1
-    UpdateD(D.all[location])
-    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
-    temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2, 10 )+β*maximum([β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
-    D.all[location].level = D.all[location].actual
-    UtilDown(D.all[location]) 
-    PatientZero(p1, p2)  
-  # Update value at Level 2
+    UpdateD(D.all[location])                                  # updates the utility for a new level 
+    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.   
+    temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    D.all[location].level = D.all[location].actual            # resets the level 
+    UtilDown(D.all[location])                                 # resets the utility
+    PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
+  # Update value at Level 2 (repeats steps above!)
     D.all[location].level = 2
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
-    temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2, 10 )+β*maximum([-ϕ21+β*(0),β*(0),-ϕ23+β*(0)])])
+    temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(0),β*(0),-ϕ23+β*(0)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
   # Update value at Level 3
     D.all[location].level = 3
     UpdateD(D.all[location])
-    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
-    temp[fid][StateKey(D.all[location],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2, 10 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),β*(0)])])
+    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.
+    temp[fid][StateKey(D.all[location],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),β*(0)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
@@ -1395,14 +1397,14 @@ function PatientRev(s::simh,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
-    if s.level == 1&(action!=11)
+    if s.level == 1
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
-    elseif s.level == 2&(action!=11)
+    elseif s.level == 2
       outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
-    elseif s.level == 3&(action!=11)
+    elseif s.level == 3
       outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     else # level = -999 (exit)
-      outp = 0.0
+      outp = pi*scalefact
     end
     return outp/scalefact
 end
