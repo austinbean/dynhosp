@@ -672,12 +672,7 @@ end
   export RunCounter1
   export ProfitChange
   export ProfitMeanVar
-  export StateKey
-  export FindComps
-  export PatientRev 
-  export UpdateD 
-  export UtilUp
-  export UtilDown 
+
 
   # Export Counter2.jl functions 
   export KeyCreate 
@@ -748,7 +743,13 @@ end
   export ExactVal
   export EnumUp
   export HospitalDemand
-
+  export StateKey
+  export FindComps
+  export PatientRev 
+  export UpdateD 
+  export UtilUp
+  export UtilDown 
+  #export ExactChoice
   
 
 
