@@ -1239,7 +1239,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
-                     p2::patientcount;
+                     p2::patientcount,
                      competitors::Array{Int64,1},
                      D::DynState; 
                      ϕ13::Float64 = 0.0,
