@@ -453,7 +453,7 @@ end
 
 
 """
-`DSimNew(c::cmkt, f::Int64)`
+`DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)`
 This is going to compute a market share at the level of a zip or zip-drg.
 That formula exists.  The shares will be proportional to the deterministic
 utility component.  We just need all of the utilities in the market and number of
@@ -1304,11 +1304,15 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
 dyn = DynStateCreate(TexasEq, Tex, patients); 
 
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+DSimNew(dyn.all[1].mk, dyn.all[1].fid, p1, p2)
+
+PatientRev(dyn.all[1], p1, p2, 10) # recall that the scale factor is large so this should be small.
 """
 function PatientRev(s::simh,
                     mpats::ProjectModule.patientcount,
