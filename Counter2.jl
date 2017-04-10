@@ -1231,7 +1231,15 @@ Needs to:
 - compute the profit at EACH possible level.
 - state will be recorded in the dyn record. 
 - But the key thing is: return the VALUE of the state.   
-NB - level won't change.  I can compute the value of being in all of these states depending on the level. 
+NB - level won't change.  I can compute the value of being in all of these states depending on the level.
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients); 
 """
 
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
@@ -1268,19 +1276,91 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
   # SinglePay(s::simh,mpats::ProjectModule.patientcount,ppats::ProjectModule.patientcount,action::Int64;
   DSimNew( D[location], fid, p1, p2) # Computes the demand.   
   if (D.all[fid].level == 1)
-    temp[StateKey(D.all[location],1)] = maximum([ϕ1EX, SinglePay(D[location],p1,p2, action )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
-    temp[StateKey(D.all[location],2)] = maximum([ϕ1EX, SinglePay(D[location],p1,p2, action )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
-    temp[StateKey(D.all[location],3)] = maximum([ϕ1EX, SinglePay(D[location],p1,p2, action )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    temp[StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    temp[StateKey(D.all[location],2)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 2 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    temp[StateKey(D.all[location],3)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 1 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
   elseif (D.all[fid].level == 2)
-    temp[StateKey(D.all[location],1)] = maximum([ϕ2EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
-    temp[StateKey(D.all[location],2)] = maximum([ϕ2EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
-    temp[StateKey(D.all[location],3)] = maximum([ϕ2EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    temp[StateKey(D.all[location],1)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 5 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    temp[StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    temp[StateKey(D.all[location],3)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 6 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
   elseif (D.all[fid].level == 3)
-    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
-    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
-    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, SinglePay(D[location],p1,p2, action )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 4 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 3 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
   end 
 end 
+
+
+
+
+"""
+`PatientRev(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
+Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
+This one does *not* include fixed costs of changing level.  Otherwise it is identical to `SinglePay`
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+dyn = DynStateCreate(TexasEq, Tex, patients); 
+
+"""
+function PatientRev(s::simh,
+                    mpats::ProjectModule.patientcount,
+                    ppats::ProjectModule.patientcount,
+                    action::Int64;
+                    scalefact::Float64 = 3.0e9,
+                    alf1::Float64 = 8336.17,
+                    alf2::Float64 = 36166.6,
+                    alf3::Float64 = 16309.47,
+                    gamma_1_385::Float64 = 20680.0, # ✓
+                    gamma_2_385::Float64 = 42692.37, # ✓
+                    gamma_3_385::Float64 = 20962.97, # ✓
+                    gamma_1_386::Float64 = 81918.29, # X
+                    gamma_2_386::Float64 = 74193.4, # X
+                    gamma_3_386::Float64 = 99065.79, # X
+                    gamma_1_387::Float64 = 30405.32, # X
+                    gamma_2_387::Float64 = 49801.84, # X
+                    gamma_3_387::Float64 = 22376.8, # X
+                    gamma_1_388::Float64 = 10051.55, # ✓
+                    gamma_2_388::Float64 = 19019.18, # X
+                    gamma_3_388::Float64 = 33963.5, # X
+                    gamma_1_389::Float64 = 29122.89, # X
+                    gamma_2_389::Float64 = 14279.58, # X
+                    gamma_3_389::Float64 = 20708.15, # X
+                    gamma_1_390::Float64 = 22830.05, # X
+                    gamma_2_390::Float64 = 6754.76, # X
+                    gamma_3_390::Float64 = 3667.42, # ✓
+                    gamma_1_391::Float64 = 9089.77, # X
+                    gamma_2_391::Float64 = 8120.85, # X
+                    gamma_3_391::Float64 = 1900.5, # ✓
+                    mcaid385::Float64 = 151380.0,
+                    mcaid386::Float64 = 48417.0,
+                    mcaid387::Float64 = 18845.0,
+                    mcaid388::Float64 = 7507.0,
+                    mcaid389::Float64 = 9424.0,
+                    mcaid390::Float64 = 4623.0,
+                    mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+    outp::Float64 = 0.0
+    wtp::Float64 = FindWTP(s)
+    if s.level == 1&(action!=11)
+      outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
+    elseif s.level == 2&(action!=11)
+      outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
+    elseif s.level == 3&(action!=11)
+      outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
+    else # level = -999 (exit)
+      outp = 0.0
+    end
+    return outp/scalefact
+end
+
+
 
 
 """
