@@ -674,6 +674,10 @@ end
   export ProfitMeanVar
   export StateKey
   export FindComps
+  export PatientRev 
+  export UpdateD 
+  export UtilUp
+  export UtilDown 
 
   # Export Counter2.jl functions 
   export KeyCreate 
