@@ -1250,16 +1250,35 @@ FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, Tex, patients); 
+
+To Run:
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+#fid = 3490795;
+#location = 1;
+
+d1[3490795] = Dict{NTuple{10,Int64}, Float64}()
+d1[3490795][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
+d1[3490795][StateKey(dyn.all[1], 2)] = 1.0
+d1[3490795][StateKey(dyn.all[1], 3)] = 2.0
+
+
+ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
+
 """
 
-function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
-                     stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
+function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                     stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
                      p2::patientcount,
                      competitors::Array{Int64,1},
                      D::DynState; 
+                     β::Float64 = 0.95,
                      ϕ13::Float64 = 0.0,
                      ϕ12::Float64 = 0.0,
                      ϕ1EX::Float64 = 0.0,
@@ -1269,7 +1288,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
-  excost::Float64 = 0.0 
   # TODO - 
   # - what are the probabilities of various outcomes?  this is the important one.
   # a bunch of states have to be written out to temp. 
@@ -1282,26 +1300,38 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Floa
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     D.all[location].level = 1
     UpdateD(D.all[location])
-    DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
-    temp[StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([0+β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
+    temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2, 10 )+β*maximum([β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
     D.all[location].level = D.all[location].actual
-    UtilDown(D.all[location])   
+    UtilDown(D.all[location]) 
+    PatientZero(p1, p2)  
   # Update value at Level 2
     D.all[location].level = 2
     UpdateD(D.all[location])
-    DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
-    temp[StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ21+β*(0),0+β*(0),-ϕ23+β*(0)])])
+    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
+    temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2, 10 )+β*maximum([-ϕ21+β*(0),β*(0),-ϕ23+β*(0)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
+    PatientZero(p1, p2)
   # Update value at Level 3
     D.all[location].level = 3
     UpdateD(D.all[location])
-    DSimNew( D.all[location], fid, p1, p2) # Computes the demand.   
-    temp[StateKey(D.all[location],)] = maximum([ϕ3EX, PatientRev(D[location],p1,p2, 10 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),0+β*(0)])])
+    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
+    temp[fid][StateKey(D.all[location],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2, 10 )+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),β*(0)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
-  end 
+    PatientZero(p1, p2)
 end 
+
+
+function ContVal(neighbors::Array{Int64,1}, 
+                 level::Int64, 
+                 nlocs::Array{Int64,1},
+                 stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
+  
+
+end
+
 
 
 
