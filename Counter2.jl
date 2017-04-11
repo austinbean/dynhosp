@@ -1303,13 +1303,13 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     recs = StateRecord(neighbors, location, D)
     for el in keys(recs)
       if !haskey( stable[el], TAddLevel(recs[el], 1) )
-        stable[el][TAddLevel(recs[el], 1)]
+        stable[el][TAddLevel(recs[el], 1)] = 0.0
       end 
       if !haskey( stable[el], TAddLevel(recs[el], 2) )
-        stable[el][TAddLevel(recs[el], 2)]
+        stable[el][TAddLevel(recs[el], 2)] = 0.0
       end 
       if !haskey( stable[el], TAddLevel(recs[el], 3) )
-        stable[el][TAddLevel(recs[el], 3)]
+        stable[el][TAddLevel(recs[el], 3)] = 0.0
       end 
     end 
     D.all[location].level = 1
@@ -1347,6 +1347,7 @@ function ContVal(neighbors::Array{Int64,1},
                  stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
   # assume that I have the values.  
   # *How* do I look up in the dict?  We will store with the correct state relative to the firm for which eq is computed.
+  # Now these are present via TAddLevel and StateRecord.  
 
 end
 
