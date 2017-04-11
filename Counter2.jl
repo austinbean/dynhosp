@@ -1436,7 +1436,7 @@ The whole difficulty is enumerating the stupid state elements correctly.
 """
 
 function CombineProbs(D::DynState, 
-                      nlocs::Array{Int64,1}
+                      nlocs::Array{Int64,1},
                       location::Int64, 
                       contprobs::Dict{Int64,Array{Float64,1}};
                       actions::Array{Int64,1} = [1, 2, 3])
