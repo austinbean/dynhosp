@@ -1390,6 +1390,12 @@ ContProbs(recs, location, d1, dyn)
 
 # need a test for two firms as well.  
 
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
 d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
@@ -1441,36 +1447,111 @@ function CombineProbs(D::DynState,
                       contprobs::Dict{Int64,Array{Float64,1}};
                       actions::Array{Int64,1} = [1, 2, 3])
   outp::Dict{ NTuple{9, Int64}, Float64} = Dict{NTuple{9,Int64}, Float64}()
-  # Ok this is stupid, but... to do this one facility at a time, it may make sense to return the state as a mutable vector, rather than an immutable tuple.
-
-  inter::Dict{ Array{Int64,1}, Float64} = Dict{Array{Int64,1}, Float64}()
   ds::Dict{Int64, Float64} = Dict{Int64, Float64}() # how far away are the firms?
-  cnts::Dict{Int64,Int64} = Dict{Int64,Int64}() # how many firms are in each distance group?
-  cnts[5] = 0; cnts[15] = 0; cnts[25] = 0;
-  for el in nlocs 
-    d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[el].lat, D.all[el].long)
-    ds[D.all[el].fid] =  
-    if (d1>0)&(d1<5)
-      cnts[5] += 1
-    elseif (d1>=5)&(d1<15)
-      cnts[15] += 1
-    elseif (d1>=15)&(d1<25)
-      cnts[25] += 1
-    else 
-    end 
-  end 
-  kys = collect(keys(contprobs)) # collection of other fids
-  for el in 1:length(kys) # this enumerates the other firms around
+  StateEnumerate(D.all[location].cns, outp; fxd = true) # this lists states which must be done. 
+  l1::Int64 = D.all[1].cns.level105 + D.all[1].cns.level205 + D.all[1].cns.level305
+  l2::Int64 = D.all[1].cns.level1515 + D.all[1].cns.level2515 + D.all[1].cns.level3515
+  l3::Int64 = D.all[1].cns.level11525 + D.all[1].cns.level21525 + D.all[1].cns.level31525
+  for el in nlocs # this enumerates the other firms around
+    dcat::Int64 = 0
+    indx::Int64 = 0
+    d1 = distance(D.all[location].lat, D.all[location].long, D.all[el].lat, D.all[el].long) # compute the distance.  
     for level in actions
-      if el == 1 # add elements ONLY for the first key 
-
-      else # el > 1
-
+      if (d1>0)&(d1<5)
+        dcat = l1 - 1
+        indx = 1
+      elseif (d1>=5)&(d1<15)
+        dcat = l2 - 1
+        indx = 2
+      elseif (d1>=15)&(d1<25)
+        dcat = l3 - 1
+        indx = 3
+      else 
+        #do nothing
       end 
+      for enms in EnumUp(dcat; fixed = true) # enumerates all states with exactly dcat firms.
+        for ky1 in keys(outp)
+          if PMatch(ky1, enms, indx)
+            # this is not quite right.  I am enumerating with one less than the right number.  But I must search with the right number.  
+
+          end 
+        end 
+      end  
     end 
   end 
   return outp 
 end 
+
+"""
+`PMatch(k1::NTuple{9, Int64}, k2::NTuple{3, Int64}, ind::Int64)`
+facilitates partial key match.
+
+k1 = (1,2,3,4,5,6,7,8,9)
+PMatch(k1, (1,2,3), 1) # true 
+PMatch(k1, (1,2,3), 2) # false 
+PMatch(k1, (4,5,6), 3) # false 
+"""
+function PMatch(k1::NTuple{9, Int64}, k2::NTuple{3, Int64}, ind::Int64)
+  if ind == 1
+    return (k1[1]==k2[1])&(k1[2]==k2[2])&(k1[3]==k2[3])
+  elseif ind == 2
+    return (k1[4]==k2[1])&(k1[5]==k2[2])&(k1[6]==k2[3])
+  elseif ind == 3
+    return (k1[7]==k2[1])&(k1[8]==k2[2])&(k1[9]==k2[3])
+  else 
+    return false 
+  end 
+end 
+
+
+
+function NewCombine(D::DynState, 
+                    nlocs::Array{Int64,1},
+                    location::Int64, 
+                    contprobs::Dict{Int64,Array{Float64,1}};
+                    actions::Array{Int64,1} = [1, 2, 3])
+  outp = Dict{Array{Int64,1}, Array{Float64,1}}()
+  for k1 in FindComps(D.all[location],D) # locations of competitors
+    d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
+    lev::Int64 = D.all[k1].level # get the level.
+
+
+
+
+
+end 
+
+
+"""
+`CombineV(args...; len = 3)`
+Takes a set of vectors of length 3.
+Returns a count of the max element across vectors.
+Multiplies that max element and returns as prob.
+
+# Testing:
+CombineV( [1/2 0 0], [1/2 0 0], [0 0 2])
+((2, 0, 1), 0.5)
+
+"""
+function CombineV(args...; len = 3)
+  outp::Array{Int64,1} = zeros(Int64, 3)
+  prob::Float64 = 1.0
+  for (i, arg) in enumerate(args)
+    if length(arg)==len 
+      val, indx = findmax(arg)
+      outp[indx] += 1
+      prob *= val 
+    end 
+  end 
+  return Tuple(outp), prob 
+end 
+
+
+
+
+
+
+
 
 
 
@@ -1959,18 +2040,25 @@ dyn = CounterObjects(10);
 outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}();
 outp[(0,0,0,0,0,0,0,0,0,27)] = Dict(1=>0.0, 2=>0.0); # tests that current entries are not overwritten.
 StateEnumerate(dyn.all[1].cns, outp);
+
+# second test:
+outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}();
+outp[(0,0,0,0,0,0,0,0,0,27)] = Dict(1=>0.0, 2=>0.0); # tests that current entries are not overwritten.
+StateEnumerate(dyn.all[1].cns, outp; fxd = true);
+
+
 Will not do exact computations for very large markets, but...
 For a big market, see dyn.all[50].cns, which generates around 2 million states.
 #TODO - for the future: better guesses here about the initial values, not zero.
 """
-function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} })
+function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} }; fxd::Bool = false)
   n05::Int64 = c.level105 + c.level205 + c.level305
   n515::Int64 = c.level1515 + c.level2515 + c.level3515
   n1525::Int64 = c.level11525 + c.level21525 + c.level31525
   outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64}}()
-  for i in EnumUp(n05)
-    for j in EnumUp(n515)
-      for k in EnumUp(n1525)
+  for i in EnumUp(n05; fixed = fxd)
+    for j in EnumUp(n515; fixed = fxd)
+      for k in EnumUp(n1525; fixed = fxd)
         if !haskey(outp, TupleSmash(i,j,k,1))
           outp[TupleSmash(i,j,k,1)] = Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
         end
