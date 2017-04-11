@@ -750,6 +750,8 @@ end
   export UtilUp
   export UtilDown 
   #export ExactChoice
+  export StateRecord 
+  export TAddLevel 
   
 
 
