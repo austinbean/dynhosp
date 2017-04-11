@@ -2018,10 +2018,11 @@ end
 
 
 """
-`EnumUp(nsum::Int64, outp::Array{NTuple{3, Int64},1})`
+`EnumUp(nsum::Int64; fixed::Bool = false)`
 
 Takes a dictionary argument and returns a list of all states possible from that one.
-Lists all UP TO states with that many elements.
+Lists all UP TO states with that many elements.  If fixed = true, returns elements which have 
+elements summing to nsum ONLY.  
 
 Test it:
 find( x->isequal(x,(3,0,0)), outp) # replace with any tuple for (3,0,0)
@@ -2032,9 +2033,10 @@ for i = 0:25
   outp = EnumUp(i);
   println(length(outp)==length(unique(outp)))
 end
+OR: 
+EnumUp(3; fixed = true) # will return 10 elements, instead of 20.  
 """
-
-function EnumUp(nsum::Int64)
+function EnumUp(nsum::Int64; fixed::Bool = false)
   termflag::Bool = true
   outp::Array{NTuple{3, Int64},1} = Array{NTuple{3,Int64},1}()
   push!(outp, (0,0,0))
@@ -2060,7 +2062,11 @@ function EnumUp(nsum::Int64)
       strt = lng # reassign.
     end
   end
-  return outp
+  if !fixed
+    return outp
+  else 
+    return filter(x->sum(x)==nsum, outp) # this should only return elements with exactly the sum nsum.
+  end 
 end
 
 
