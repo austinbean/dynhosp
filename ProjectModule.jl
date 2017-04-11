@@ -5,6 +5,7 @@ module ProjectModule
   #using DataFrames # this needs to be inside and outside the module?
   using Distributions
   using StatsBase
+  using Combinatorics
 
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
@@ -753,6 +754,9 @@ end
   export ContProbs
   export StateRecord 
   export TAddLevel 
+  export CombineV
+  export PMatch
+  export 
   
 
 
