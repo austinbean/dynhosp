@@ -1390,6 +1390,27 @@ ContProbs(recs, location, d1, dyn)
 
 # need a test for two firms as well.  
 
+d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
+location2 = FindComps(dyn.all[18], dyn) # locations are 19 and 152
+recs2 = StateRecord(dyn.all[18].nfids, 18, dyn)
+
+d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 2)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 3)] = 0.0
+
+d1[dyn.all[152].fid] = Dict{NTuple{10, Int64}, Float64}()
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 0.0
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 0.0
+
+ContProbs(recs2, location2, d1, dyn)
+
+# should return: Dict{Int64,Array{Float64,1}} with 2 entries:  672285 => [0.333333, 0.333333, 0.333333] 373510 => [0.333333, 0.333333, 0.333333]
+
 """
 function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
                   nlocs::Array{Int64,1}, # locations of neighbors.
@@ -1402,6 +1423,36 @@ function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
   end 
   return outp
 end
+
+"""
+`CombineProbs()`
+This function will take the output of ContProbs and combine the probs, creating all combinations.  
+These need to be recorded with the correct state element.  What is returned should be a dict of the following form:
+Dict{ NTuple{9, Int64}, Float64}
+the first element is a state.  The second is a prob. 
+The whole difficulty is enumerating the stupid state elements correctly.  
+- For each other firm, we need a distance.
+- Then set three options PER FIRM, w/ each of three probs.
+"""
+
+function CombineProbs(D::DynState, 
+                      nlocs::Array{Int64,1}
+                      location::Int64, 
+                      contprobs::Dict{Int64,Array{Float64,1}};
+                      actions::Array{Int64,1} = [1, 2, 3])
+  outp::Dict{ NTuple{9, Int64}, Float64} = Dict{NTuple{9,Int64}, Float64}()
+  ds::Dict{Int64, Float64} = Dict{Int64, Float64}() # how far away are the firms?
+  for el in nlocs 
+    ds[D.all[el].fid] = distance(D.all[location].lat, D.all[location].long, D.all[el].lat, D.all[el].long) 
+  end 
+  for el in keys(contprobs) # this enumerates the other firms around
+    for level in actions
+
+    end 
+  end 
+  return outp 
+end 
+
 
 
 """
