@@ -1441,13 +1441,32 @@ function CombineProbs(D::DynState,
                       contprobs::Dict{Int64,Array{Float64,1}};
                       actions::Array{Int64,1} = [1, 2, 3])
   outp::Dict{ NTuple{9, Int64}, Float64} = Dict{NTuple{9,Int64}, Float64}()
-  ds::Dict{Int64, Float64} = Dict{Int64, Float64}() # how far away are the firms?
-  for el in nlocs 
-    ds[D.all[el].fid] = distance(D.all[location].lat, D.all[location].long, D.all[el].lat, D.all[el].long) 
-  end 
-  for el in keys(contprobs) # this enumerates the other firms around
-    for level in actions
+  # Ok this is stupid, but... to do this one facility at a time, it may make sense to return the state as a mutable vector, rather than an immutable tuple.
 
+  inter::Dict{ Array{Int64,1}, Float64} = Dict{Array{Int64,1}, Float64}()
+  ds::Dict{Int64, Float64} = Dict{Int64, Float64}() # how far away are the firms?
+  cnts::Dict{Int64,Int64} = Dict{Int64,Int64}() # how many firms are in each distance group?
+  cnts[5] = 0; cnts[15] = 0; cnts[25] = 0;
+  for el in nlocs 
+    d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[el].lat, D.all[el].long)
+    ds[D.all[el].fid] =  
+    if (d1>0)&(d1<5)
+      cnts[5] += 1
+    elseif (d1>=5)&(d1<15)
+      cnts[15] += 1
+    elseif (d1>=15)&(d1<25)
+      cnts[25] += 1
+    else 
+    end 
+  end 
+  kys = collect(keys(contprobs)) # collection of other fids
+  for el in 1:length(kys) # this enumerates the other firms around
+    for level in actions
+      if el == 1 # add elements ONLY for the first key 
+
+      else # el > 1
+
+      end 
     end 
   end 
   return outp 
