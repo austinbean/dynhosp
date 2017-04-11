@@ -1376,11 +1376,14 @@ d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
+location = FindComps(dyn.all[1], dyn)
+recs = StateRecord(dyn.all[1].nfids, 1, dyn)
+
 
 
 ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
 d1[dyn.all[1].fid]
-   
+
 """
 function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
                   nlocs::Array{Int64,1}, # locations of neighbors.
@@ -1402,8 +1405,8 @@ Ugh.  What this function does is compute the state of neighboring facilities REL
 which we are computing the eq.  Imagine Hosp A has one neighbor B at 25 miles, but B has more neighbors at 10 further miles 
 distant.  I want the state for B to reflect ONLY the existence of A.  I think this is the right thing to do.  
 """
-function StateRecord(neighbors::Array{Int64,1},
-                     location::Int64,
+function StateRecord(neighbors::Array{Int64,1}, # an array of fids 
+                     location::Int64, # the location of the main hospital in dyn.all[]
                      D::DynState)
   outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
   locs = FindComps(D.all[location], D) # where are the neighbors 
