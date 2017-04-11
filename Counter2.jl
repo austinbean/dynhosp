@@ -85,7 +85,8 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                                          ChoicesAvailable(Tex.mkts[k2].collection[hk2]),
                                          Tex.mkts[k2].collection[hk2].chprobability,
                                          false))
-              push!(newsimh.nfids, Tex.mkts[k2].collection[hk2].fid)
+              # FIXME - there is a problem here in that not all neighbors get pushed to this list.  
+              push!(newsimh.nfids, Tex.mkts[k2].collection[hk2].fid) # should add neighboring facs to the nfids list
               if (d1>0)&(d1<5)
                 if Tex.mkts[k2].collection[hk2].level == 1
                   newsimh.cns.level105 += 1
@@ -1379,10 +1380,15 @@ d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
 location = FindComps(dyn.all[1], dyn)
 recs = StateRecord(dyn.all[1].nfids, 1, dyn)
 
+d1[1391330] = Dict{NTuple{10, Int64}, Float64}()
+d1[1391330][TAddLevel(recs[1391330], 1)] = 0.0
+d1[1391330][TAddLevel(recs[1391330], 2)] = 0.0
+d1[1391330][TAddLevel(recs[1391330], 3)] = 0.0
 
+ContProbs(recs, location, d1, dyn)
+# should return: Dict{Int64,Array{Float64,1}} with 1 entry: 1391330 => [0.333333, 0.333333, 0.333333]
 
-ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
-d1[dyn.all[1].fid]
+# need a test for two firms as well.  
 
 """
 function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
@@ -1391,7 +1397,7 @@ function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
                   D::DynState)
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
   for el in nlocs # these index the locations of neighbors in the array.
-    outp[D.all[el].fid] = [stable_vals[TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[TAddLevel(state_recs[D.all[el].fid],3)]]
+    outp[D.all[el].fid] = exp.([stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],3)]])
     outp[D.all[el].fid]./=(sum(outp[D.all[el].fid]))
   end 
   return outp
