@@ -1300,10 +1300,23 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 1
   # ϕxy terms need to be scaled!
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
+    recs = StateRecord(neighbors, location, D)
+    for el in keys(recs)
+      if !haskey( stable[el], TAddLevel(recs[el], 1) )
+        stable[el][TAddLevel(recs[el], 1)]
+      end 
+      if !haskey( stable[el], TAddLevel(recs[el], 2) )
+        stable[el][TAddLevel(recs[el], 2)]
+      end 
+      if !haskey( stable[el], TAddLevel(recs[el], 3) )
+        stable[el][TAddLevel(recs[el], 3)]
+      end 
+    end 
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.   
     temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(0),-ϕ12+β*(0),-ϕ13+β*(0)])])
+    # that key must be mapped out for the firms in neighbors too.  Into stable. 
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
@@ -1312,6 +1325,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
     temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(0),β*(0),-ϕ23+β*(0)])])
+  # that key must be mapped out for the firms in neighbors too.
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
@@ -1320,6 +1334,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.
     temp[fid][StateKey(D.all[location],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(0),-ϕ32+β*(0),β*(0)])])
+  # that key must be mapped out for the firms in neighbors too.
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
@@ -1327,13 +1342,114 @@ end
 
 
 function ContVal(neighbors::Array{Int64,1}, 
-                 level::Int64, 
-                 nlocs::Array{Int64,1},
-                 stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
-  
+                 level::Int64, # this is firm's own level.
+                 nlocs::Array{Int64,1}, # locations of neighbors.
+                 stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
+  # assume that I have the values.  
+  # *How* do I look up in the dict?  We will store with the correct state relative to the firm for which eq is computed.
 
 end
 
+
+"""
+`StateRecord(neighbors::Array{Int64,1}, location::Int64, D::DynState)`
+
+Ugh.  What this function does is compute the state of neighboring facilities RELATIVE to the organization of the fac for 
+which we are computing the eq.  Imagine Hosp A has one neighbor B at 25 miles, but B has more neighbors at 10 further miles 
+distant.  I want the state for B to reflect ONLY the existence of A.  I think this is the right thing to do.  
+"""
+function StateRecord(neighbors::Array{Int64,1},
+                     location::Int64,
+                     D::DynState)
+  outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
+  locs = FindComps(D.all[location], D) # where are the neighbors 
+  for el1 in locs # vector of locations of neighbors
+      intermed::Array{Int64,1} = zeros(Int64,9)
+      d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[el1].lat, D.all[el1].long)
+      if (d1>0)&(d1<=5)
+        if D.all[location].level == 1
+          intermed[1]+=1
+        elseif D.all[location].level == 2
+          intermed[2]+=1
+        elseif D.all[location].level == 3
+          intermed[3]+=1
+        else
+          #do nothing 
+        end 
+      elseif (d1>5)&(d1<=15)
+        if D.all[location].level == 1
+          intermed[4]+=1
+        elseif D.all[location].level == 2
+          intermed[5]+=1
+        elseif D.all[location].level == 3
+          intermed[6]+=1
+        else
+          #do nothing 
+        end 
+      elseif (d1>15)&(d1<25)
+        if D.all[location].level == 1
+          intermed[7]+=1
+        elseif D.all[location].level == 2
+          intermed[8]+=1
+        elseif D.all[location].level == 3
+          intermed[9]+=1
+        else
+          #do nothing 
+        end 
+      else 
+        # do nothing 
+      end 
+      for el2 in locs 
+        if el1!=el2
+          d2::Float64 = distance(D.all[el1].lat, D.all[el1].long, D.all[el2].lat, D.all[el2].long)
+          if (d2>0)&(d2<=5)
+            if D.all[el2].level == 1
+              intermed[1]+=1
+            elseif D.all[el2].level == 2
+              intermed[2]+=1
+            elseif D.all[el2].level == 3
+              intermed[3]+=1
+            else
+              #do nothing 
+            end 
+          elseif (d2>5)&(d2<=15)
+            if D.all[el2].level == 1
+              intermed[4]+=1
+            elseif D.all[el2].level == 2
+              intermed[5]+=1
+            elseif D.all[el2].level == 3
+              intermed[6]+=1
+            else
+              #do nothing 
+            end 
+          elseif (d2>15)&(d2<25)
+            if D.all[el2].level == 1
+              intermed[7]+=1
+            elseif D.all[el2].level == 2
+              intermed[8]+=1
+            elseif D.all[el2].level == 3
+              intermed[9]+=1
+            else
+              #do nothing 
+            end 
+          else 
+            # do nothing 
+          end 
+        end 
+      end
+      outp[D.all[el1].fid] = Tuple(intermed)
+  end 
+  return outp 
+end 
+
+
+"""
+`TAddLevel(t1::NTuple{9,Int64}, l::Int64)`
+Just adds another element l to the end of the tuple t1.
+"""
+function TAddLevel(t1::NTuple{9,Int64}, l::Int64)
+  return (t1..., l)
+end 
 
 
 
