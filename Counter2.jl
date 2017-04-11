@@ -1251,7 +1251,7 @@ patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, Tex, patients); 
 
-To Run:
+# To Run:
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1260,14 +1260,14 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 #fid = 3490795;
 #location = 1;
 
-d1[3490795] = Dict{NTuple{10,Int64}, Float64}()
-d1[3490795][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
-d1[3490795][StateKey(dyn.all[1], 2)] = 0.0
-d1[3490795][StateKey(dyn.all[1], 3)] = 0.0
+d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
 
 
 ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
-d1[3490795]
+d1[dyn.all[1].fid]
 
 """
 
@@ -1300,8 +1300,11 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 1
   # ϕxy terms need to be scaled!
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
-    recs = StateRecord(neighbors, location, D)
-    for el in keys(recs)
+    recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors.  
+    for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
+      if !haskey(stable, el)
+        stable[el] = Dict{NTuple{10,Int64}, Float64}()
+      end
       if !haskey( stable[el], TAddLevel(recs[el], 1) )
         stable[el][TAddLevel(recs[el], 1)] = 0.0
       end 
@@ -1341,14 +1344,54 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
 end 
 
 
-function ContVal(neighbors::Array{Int64,1}, 
-                 level::Int64, # this is firm's own level.
-                 nlocs::Array{Int64,1}, # locations of neighbors.
-                 stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
-  # assume that I have the values.  
-  # *How* do I look up in the dict?  We will store with the correct state relative to the firm for which eq is computed.
-  # Now these are present via TAddLevel and StateRecord.  
+"""
+`ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
+                  nlocs::Array{Int64,1}, # locations of neighbors.
+                  stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
+                  D::DynState)`
 
+Picks out the probabilities of actions from opponents values.
+
+#FIXME - this still needs testing. 
+
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients); 
+
+# To Run:
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+#fid = 3490795;
+#location = 1;
+
+d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
+
+
+ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
+d1[dyn.all[1].fid]
+   
+"""
+function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
+                  nlocs::Array{Int64,1}, # locations of neighbors.
+                  stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
+                  D::DynState)
+  outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
+  for el in nlocs # these index the locations of neighbors in the array.
+    outp[D.all[el].fid] = [stable_vals[TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[TAddLevel(state_recs[D.all[el].fid],3)]]
+    outp[D.all[el].fid]./=(sum(outp[D.all[el].fid]))
+  end 
+  return outp
 end
 
 
