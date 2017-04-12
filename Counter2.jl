@@ -1354,6 +1354,40 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
 end 
 
 
+
+"""
+`ContVal( futures::Dict{}, stable::Dict{}, lev::Int64)`
+
+Takes the states of other firms in the Dict futures, computes continuation vals using the Dict stable, 
+then returns a float of the CV.  
+"""
+
+function ContVal( futures::Dict{}, stable::Dict{}, lev::Int64)
+  outp::Float64 = 0.0
+  if lev == 1 
+    for k1 in keys(futures)
+      outp += 
+    end 
+  elseif lev == 2
+    for k1 in keys(futures)
+      outp +=
+    end 
+  elseif lev == 3
+    for k1 in keys(futures)
+      outp +=
+    end
+  else 
+    #do nothing.  
+  end 
+  return outp 
+end 
+
+
+
+
+
+
+
 """
 `ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
                   nlocs::Array{Int64,1}, # locations of neighbors.
