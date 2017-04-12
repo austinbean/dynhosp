@@ -750,7 +750,7 @@ end
   export UpdateD 
   export UtilUp
   export UtilDown 
-  #export ExactChoice
+  export ExactChoice
   export ContProbs
   export StateRecord 
   export TAddLevel 
