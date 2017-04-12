@@ -369,7 +369,9 @@ Multiplies all of patient values in cpat by that number.
 Returns the value.
 
 - FIXME Note: Can't compute demand when # of patients is zero! 
+- This is an issue of the shares.  
 """
+# FIXME - there is a share issue here.  The problem is in inparr.  Maybe something goes wrong with WTPnew?  In temparr?
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
   # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
