@@ -756,7 +756,11 @@ end
   export TAddLevel 
   export CombineV
   export PMatch
-  #export 
+  export TotalCombine
+  export CombineVInput
+  export GenStates
+  export PartialCombine 
+   
   
 
 
