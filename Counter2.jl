@@ -1180,8 +1180,13 @@ triopoly:
 4 15
 
 #NB: consider an "itlim" ceiling
-"""
 
+# testing: 
+ch = [1] # first element
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ExactVal(dyn, ch, p1, p2)
+"""
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1},
                   p1::patientcount,
@@ -1189,22 +1194,23 @@ function ExactVal(D::DynState,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
-  for n in chunk
-    if sum(D.all[n].cns)>1 # only monopoly right now.
-      println("not yet.")
-    end
-  end
   # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states, {Actions, values}}
   # maybe it makes sense to define another structure for this.
   # this is the collection of results - values at states by firm FID.
-  outvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
+  outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   # one must store results to report, the other keeps them temporarily.  
-  tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } } = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }()
-  totest::Dict{Int64,Bool} = Dict{Int64,Bool}()
-  locs::Dict{Int64,Int64} = Dict{Int64, Int64}()
+  tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+  totest::Dict{Int64,Bool} = Dict{Int64,Bool}() # will record convergence 
+  locs::Dict{Int64,Int64} = Dict{Int64, Int64}() # will record the locations of competitors 
+  its::Int64 = 0
   for el in chunk
-    outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
-    tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }()
+    neighbors::Array{Int64,1} = FindComps(D.all[el], D)
+    outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    for el2 in neighbors # adds keys for the neighbors to the temp dict.  
+      tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64} ,Float64}()
+      totest[D.all[el2].fid] = true # don't test convergence of neighbors temporarily.  FIXME 
+    end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])        # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])       # this does NOT need starting values.  
     totest[D.all[el].fid] = false                                # all facilities to do initially set to false.  
@@ -1212,7 +1218,7 @@ function ExactVal(D::DynState,
   end
   # Updating process...
   converge = false
-  while !converge # if true keep going.
+  while (!converge)&(its<10000) # if true keep going.
     converge = true                                              # reassign, to catch when it terminates.
     for k in keys(totest)
       if !totest[k] # only run those for which false.
@@ -1221,20 +1227,29 @@ function ExactVal(D::DynState,
     end
     # Convergence Test...
     # TODO - think about this.  Needs to return a list.  
-    converge, list = ExactConvergence(tempvals, outvals, totest, list)  # NB: temporary is FIRST argument.  
+    converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals) # sets up for rewriting.
     for ky1 in keys(totest) # this tests every facility every time, but that's ok. 
       converge = converge&totest[ky1] # 
     end   
+    its += 1
+    println(its)
   end 
   # Return equilibrium values...
   return outvals
 end
 
 """
-`ExactChoice`
+`ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                     stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
+                     fid::Int64, 
+                     location::Int64,
+                     p1::patientcount,
+                     p2::patientcount,
+                     competitors::Array{Int64,1},
+                     D::DynState; )`
 What action should the firm choose?
 Takes two dictionaries, the DynState, computes the best action, returns the value of the action.
 Needs to: 
@@ -1267,7 +1282,7 @@ d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
 
 
-ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2, dyn.all[1].nfids, dyn)
+ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2,  dyn)
 d1[dyn.all[1].fid]
 
 """
@@ -1278,7 +1293,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      location::Int64,
                      p1::patientcount,
                      p2::patientcount,
-                     competitors::Array{Int64,1},
                      D::DynState; 
                      β::Float64 = 0.95,
                      ϕ13::Float64 = 0.0, # scale these!
@@ -2151,38 +2165,46 @@ Operates on two dictionaries: one the permanent ("stable") and the other the tem
 
 Testing: 
 dyn = CounterObjects(10);
-test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
-test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
-test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
-test2[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
+test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
 StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
 StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
 
-test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20 #assign a value.
-ExactConvergence(test1, test2)
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
+totest = Dict{Int64,Bool}()
+totest[dyn.all[6].fid] = false 
+ExactConvergence(test1, test2, totest)
 
-ExactConvergence(test1, test2; debug = false)
+ExactConvergence(test1, test2, totest; debug = false)
 (false, [4450450]) # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
 """
-function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
-                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } },
+function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                           totest::Dict{Int64,Bool}; 
                           toler::Float64 =0.001, 
                           debug::Bool = true )
+println(keys(totest))
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
+  newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
   for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
     if !totest[fid] # keys in totest for which false (i.e., not converged)
       maxdiff::Float64 = 0.0 
       for state in keys(current[fid])                  # states available to the firm.
-        for action in keys(current[fid][state])        # actions available 
-          if abs(current[fid][state][action] - stable[fid][state][action]) > maxdiff # we want MAX difference.  
-            maxdiff = abs(current[fid][state][action] - stable[fid][state][action])
+        if haskey(stable[fid], state)
+          if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference.  
+            maxdiff = abs(current[fid][state] - stable[fid][state])
           end 
+        else 
+          if abs(current[fid][state]) > maxdiff # we want MAX difference.  
+            maxdiff = abs(current[fid][state])
+          end
         end 
-      end 
+      end
+      diffs[fid] = maxdiff                             # keep track of the max diff.  
     end 
-    diffs[fid] = maxdiff                             # keep track of the max diff.  
   end 
   if debug 
     println("current differences ")
@@ -2192,7 +2214,7 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int
   for k1 in keys(diffs)
     converge = converge&(diffs[k1]<toler)
     if diffs[k1] > toler # not converged yet 
-      push!(newchunk, k1)
+      newchunk[k1] = false 
     else 
       totest[k1] = true 
     end 
@@ -2209,22 +2231,20 @@ and another in a temporary.  This cleans the temporary.
 
 Testing: 
 dyn = CounterObjects(10);
-test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
-test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
 StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
-test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20 #assign a value.
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
 DictClean(test1)
 
 # should return: 
-test1[4450450][(0,0,0,0,0,0,0,0,0,1)][10] = 0.0
+test1[4450450][(0,0,0,0,0,0,0,0,0,1)] == 0.0
 
 """
-function DictClean(d::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
+function DictClean(d::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } })
   for k1 in keys(d) # these are fids 
     for k2 in keys(d[k1]) # these are neighbor state/level keys at the hospital level.  
-      for k3 in keys(d[k1][k2]) # these are actions at the state/level combination.  
-        d[k1][k2][k3] = 0.0 # this should return all values to zero.  
-      end 
+      d[k1][k2] = 0.0 # this should return all values to zero.  
     end 
   end 
 end 
@@ -2237,27 +2257,29 @@ Let d1 be the permanent and d2 be the temporary.
 
 Testing: 
 dyn = CounterObjects(10);
-test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
-test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }();
-test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
-test2[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Dict{Int64, Float64} }();
+test1 = Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }();
+test2 = Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Float64 }();
+test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
 StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
 StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
 
-test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20 #assign a value.
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
 
 DictCopy(test2, test1)
 
-test2[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)][10] = 20.0 # should return 20.
+test2[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] == 20.0 # should return true
 
 """
-function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, 
-                  d2::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } })
+function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                  d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  })
   for k1 in keys(d1) # these are fids 
     for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
-      for k3 in keys(d1[k1][k2]) # these are actions at the state/level combination.  
-        d1[k1][k2][k3] = d2[k1][k2][k3] # this should copy from the temp to the permanent.    
-      end 
+      if !haskey(d2[k1],k2 ) # if the temporary doesn't have the key 
+        # do nothing???  
+      else 
+        d1[k1][k2] = d2[k1][k2] # this should copy from the temp to the permanent.   
+      end  
     end 
   end 
 end 
@@ -2286,22 +2308,22 @@ Will not do exact computations for very large markets, but...
 For a big market, see dyn.all[50].cns, which generates around 2 million states.
 #TODO - for the future: better guesses here about the initial values, not zero.
 """
-function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} }; fxd::Bool = false)
+function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64},  Float64 }; fxd::Bool = false)
   n05::Int64 = c.level105 + c.level205 + c.level305
   n515::Int64 = c.level1515 + c.level2515 + c.level3515
   n1525::Int64 = c.level11525 + c.level21525 + c.level31525
-  outp::Dict{NTuple{10, Int64}, Dict{Int64, Float64} } = Dict{NTuple{10, Int64}, Dict{Int64, Float64}}()
+  outp::Dict{NTuple{10, Int64}, Float64 } = Dict{NTuple{10, Int64}, Float64}()
   for i in EnumUp(n05; fixed = fxd)
     for j in EnumUp(n515; fixed = fxd)
       for k in EnumUp(n1525; fixed = fxd)
         if !haskey(outp, TupleSmash(i,j,k,1))
-          outp[TupleSmash(i,j,k,1)] = Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,1)] = 0.0 #Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
         end
         if !haskey(outp, TupleSmash(i,j,k,2))
-          outp[TupleSmash(i,j,k,2)] = Dict{Int64, Float64}(5=>0.0, 10=>0.0, 6=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,2)] = 0.0#Dict{Int64, Float64}(5=>0.0, 10=>0.0, 6=>0.0, 11=>0.0)
         end
         if !haskey(outp, TupleSmash(i,j,k,3))
-          outp[TupleSmash(i,j,k,3)] = Dict{Int64, Float64}(4=>0.0, 3=>0.0, 10=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,3)] = 0.0 #Dict{Int64, Float64}(4=>0.0, 3=>0.0, 10=>0.0, 11=>0.0)
         end
       end
     end
