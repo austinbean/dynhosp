@@ -1295,7 +1295,10 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 1
   # ϕxy terms need to be scaled!
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
-    recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors.  
+    recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors. 
+    if !haskey(stable, fid) # this should not be necessary when this is debugged.  
+      stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
+    end 
     for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
       if !haskey(stable, el)
         stable[el] = Dict{NTuple{10,Int64}, Float64}()
@@ -1328,7 +1331,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
-    CV3::Float64 = ContVal(nstates, fid, stable ,3)    
+    CV3::Float64 = ContVal(nstates, fid, stable ,3)   
+    println("CV's: ", CV1, " ", CV2, " ", CV3) 
     temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     # that key must be mapped out for the firms in neighbors too.  Into stable. 
     D.all[location].level = D.all[location].actual            # resets the level 
@@ -1362,10 +1366,10 @@ end
 
 Takes the states of other firms in the Dict futures, computes continuation vals using the Dict stable, 
 then returns a float of the CV.  
-futures should be the dict returned by TotalCombine
-stable is the dict of values 
-level is the level at which we are computing CV 
-fid is the dyn.all[xxx].fid
+futures should be the dict returned by TotalCombine - this is a set of probabilities of various outcomes.
+stable is the dict of values - i.e., the continuation values of the firms
+level is the level for the firm for which we are computing CV 
+fid is the dyn.all[xxx].fid - the firm for which we are computing the CV.
 
 
 
@@ -1406,15 +1410,26 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
   outp::Float64 = 0.0
   if lev == 1 
     for k1 in keys(futures)
-      outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
+      if haskey(stable[fid],TAddLevel(k1,lev) )
+        outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
+      else 
+        stable[fid][TAddLevel(k1,lev)] = 0.0
+      end 
     end 
   elseif lev == 2
     for k1 in keys(futures)
-      outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
-    end 
+      if haskey(stable[fid],TAddLevel(k1,lev) )
+        outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
+      else 
+        stable[fid][TAddLevel(k1,lev)] = 0.0
+      end     end 
   elseif lev == 3
     for k1 in keys(futures)
-      outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
+      if haskey(stable[fid],TAddLevel(k1,lev) )
+        outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
+      else 
+        stable[fid][TAddLevel(k1,lev)] = 0.0
+      end 
     end
   else 
     #do nothing.  
