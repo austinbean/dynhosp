@@ -1505,20 +1505,87 @@ end
 
 
 
-function NewCombine(D::DynState, 
-                    nlocs::Array{Int64,1},
-                    location::Int64, 
-                    contprobs::Dict{Int64,Array{Float64,1}};
-                    actions::Array{Int64,1} = [1, 2, 3])
-  outp = Dict{Array{Int64,1}, Array{Float64,1}}()
-  for k1 in FindComps(D.all[location],D) # locations of competitors
-    d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
-    lev::Int64 = D.all[k1].level # get the level.
-    # TODO - these need to be put somewhere and held on to.  
-    loc1 = contprobs[D.all[k1].fid][1]
-    loc2 = contprobs[D.all[k1].fid][2]
+"""
+`NewCombine(D::DynState, nlocs::Array{Int64,1},location::Int64, contprobs::Dict{Int64,Array{Float64,1}};actions::Array{Int64,1} = [1, 2, 3])`
+
+Ok. Should take the output of contprobs and return the right output.
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
+location2 = FindComps(dyn.all[18], dyn) # locations are 19 and 152
+recs2 = StateRecord(dyn.all[18].nfids, 18, dyn)
+
+d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 2)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 3)] = 0.0
+
+d1[dyn.all[152].fid] = Dict{NTuple{10, Int64}, Float64}()
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 1.0
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 2.0
+
+cp = ContProbs(recs2, location2, d1, dyn)
+dyn.all[19].nfids = [672285, 373510] # this correction should not be necessary.  
+PartialCombine([672285, 373510], cp )
+"""
+function PartialCombine(fids::Array{Int64,1},
+                        contprobs::Dict{Int64,Array{Float64,1}})
+  outp::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
+  push!(outp, ([0, 0, 0], 1)) #initialize the array.  
+  for k1 in fids # locations of competitors
+    loc1 = [0.0 0.0 0.0]; loc1[1] = contprobs[k1][1];
+    loc2 = [0.0 0.0 0.0]; loc2[2] = contprobs[k1][2];
+    loc3 = [0.0 0.0 0.0]; loc3[3] = contprobs[k1][3];
+    outp = GenStates(outp, loc1, loc2, loc3)
   end 
+  return outp 
 end 
+
+
+"""
+`TotalCombine`
+This will do what I want.  
+Return all of the states  
+"""
+
+function TotalCombine(D::DynState,
+                      nfids::Array{Int64,1},
+                      contprobs::Dict{Int64,Array{Float64,1}})
+  # Create the outputs
+  out05::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
+  push!(out05, ([0, 0, 0], 1.0))
+  out515::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
+  push!(out515, ([0, 0, 0], 1.0))
+  out1525::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
+  push!(out1525, ([0, 0, 0], 1.0))
+  # Measure the distances, apply GenStates to relevant segment.  
+  for k1 in 
+    d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
+    if (d1>0)&(d1<5)
+      out05 = GenStates(out05, loc1, loc2, loc3)
+    elseif (d1>=5)&(d1<15)
+      out515 = GenStates(out515, loc1, loc2, loc3)
+    elseif (d1>=15)&(d1<25)
+      out1525 = GenStates(out1525, loc1, loc2, loc3)
+    else 
+      # do nothing 
+    end 
+  return out05, out515, out1525
+end 
+
+
+
+
+
+
 
 
 """
@@ -1547,26 +1614,60 @@ end
 
 
 """
-`CombineVInput` 
+`CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)` 
 Similar to CombineV but takes a vector and float input 
 
 # testing 
-CombineVInput([1, 0, 0], 0.5, [0, 0.3, 0])
-# ([1, 1, 0], 0.15)
+CombineVInput([1, 0, 0], 0.5, [0, 0.3, 0]) == ([1, 1, 0], 0.15)
+# 
+CombineVInput([1, 0, 0], 0.5, [0, 0.3, 0], [0, 0.3, 0]) == ([1, 2, 0], 0.045)
+This modifies the vector inpt. 
 
+#NOTE - this copies the input and returns a new vector.  That may be the best way but does allocate more.   
 """
 function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
+  outp::Array{Int64,1} = zeros(Int64, size(inpt))
+  fl::Float64 = pr
+  for i = 1:length(inpt)
+    outp[i] = inpt[i]
+  end   
   for (i, arg) in enumerate(args)
     if length(arg)==length(inpt)
       val, indx = findmax(arg)
-      inpt[indx] += 1
-      pr *= val 
+      outp[indx] += 1
+      fl *= val 
     end 
   end 
-  return inpt, pr 
+  return outp, fl  
 end 
 
 
+"""
+`GenStates(inp::Array{Tuple{Array{Int64,1}, Float64}, 1}, args... )`
+Takes a collection of Tuples{ Array{Int64,1}, Float64} and a list of args and 
+applies CombineVInput to each element.  Returns a new collection of the same.
+The number of elements should be growing with EACH call, according to something like 
+ size(inp)*number of "args"
+
+
+#Testing 
+
+in1 = [([1,0,0], 1.0)]
+GenStates(in1, [0,0.5,0], [0,0,0.5], [0.3, 0, 0])
+
+# would like: ([1 1 0], 0.5), ([1 0 1], 0.5), ([2 0 0], 0.3)
+# the issue might be that inpt above is getting modified!
+# I need to keep that element constant and evaluate these elements on it.  
+"""
+function GenStates(inp::Array{Tuple{Array{Int64,1}, Float64}, 1}, args... )
+  outp::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
+  for (i, arg) in enumerate(args)
+    for el in inp # this is a Tuple, Float 
+      push!(outp, CombineVInput(el[1], el[2], arg))
+    end 
+  end 
+  return outp 
+end
 
 
 
