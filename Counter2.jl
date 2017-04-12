@@ -1218,7 +1218,14 @@ function ExactVal(D::DynState,
   end
   # Updating process...
   converge = false
-  while (!converge)&(its<10000) # if true keep going.
+  for k1 in keys(outvals)
+    for k2 in keys(outvals[k1])
+      if isnan(outvals[k1][k2])|isnan(tempvals[k1][k2])
+        println("ffffffffffff")
+      end 
+    end 
+  end 
+  while (!converge)&(its<10) # if true keep going.
     converge = true                                              # reassign, to catch when it terminates.
     for k in keys(totest)
       if !totest[k] # only run those for which false.
@@ -1227,7 +1234,7 @@ function ExactVal(D::DynState,
     end
     # Convergence Test...
     # TODO - think about this.  Needs to return a list.  
-    converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
+   # converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals) # sets up for rewriting.
@@ -1235,7 +1242,7 @@ function ExactVal(D::DynState,
       converge = converge&totest[ky1] # 
     end   
     its += 1
-    println(its)
+    println("iteration ", its)
   end 
   # Return equilibrium values...
   return outvals
@@ -1304,10 +1311,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
-  # new function make prob. 
   # there must be persistent randomness.  
-  # Update value at Level 1
-  # ϕxy terms need to be scaled!
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors. 
     if !haskey(stable, fid) # this should not be necessary when this is debugged.  
@@ -1326,16 +1330,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
       if !haskey( stable[el], TAddLevel(recs[el], 3) )
         stable[el][TAddLevel(recs[el], 3)] = 0.0
       end 
-    end 
-    # Now all components of CV are ready.
-    # - Get the competitors locations from those in nfids.
-    # - Take the continuation probabilities from ContProbs 
-    # - Take the outcomes from TotalCombine 
-    # - That returns a Dict of other firm state/prob of getting there.
-    # - To each of those, append a level.  
-    # - Look it up to find the value 
-    # - these will add to the components in the Maximum below.
-    # - then you are done.  
+    end  
+    # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
@@ -1426,8 +1422,14 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
     for k1 in keys(futures)
       if haskey(stable[fid],TAddLevel(k1,lev) )
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
+          if isnan(futures[k1])
+           println("futures is nan ", futures[k1])
+          end
+          if isnan(stable[fid][TAddLevel(k1,lev)]) 
+            println("stable is nan ", stable[fid][TAddLevel(k1,lev)])
+          end 
       else 
-        stable[fid][TAddLevel(k1,lev)] = 0.0
+        stable[fid][TAddLevel(k1,lev)] = 0.5
       end 
     end 
   elseif lev == 2
@@ -1435,14 +1437,14 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
       if haskey(stable[fid],TAddLevel(k1,lev) )
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
       else 
-        stable[fid][TAddLevel(k1,lev)] = 0.0
+        stable[fid][TAddLevel(k1,lev)] = 0.5
       end     end 
   elseif lev == 3
     for k1 in keys(futures)
       if haskey(stable[fid],TAddLevel(k1,lev) )
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
       else 
-        stable[fid][TAddLevel(k1,lev)] = 0.0
+        stable[fid][TAddLevel(k1,lev)] = 0.5
       end 
     end
   else 
@@ -1535,6 +1537,9 @@ function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
   for el in nlocs # these index the locations of neighbors in the array.
     outp[D.all[el].fid] = exp.([stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],3)]])
     outp[D.all[el].fid]./=(sum(outp[D.all[el].fid]))
+    if sum(outp[D.all[el].fid]) == 0
+      println("ContProbs problem.")
+    end   
   end 
   return outp
 end
@@ -2183,9 +2188,11 @@ ExactConvergence(test1, test2, totest; debug = false)
 function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                           stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                           totest::Dict{Int64,Bool}; 
-                          toler::Float64 =0.001, 
+                          toler::Float64 =0.1, 
                           debug::Bool = true )
-println(keys(totest))
+  println("test ", keys(totest))
+  println("current ", keys(current))
+  println("stable ", keys(stable))
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
   newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
@@ -2200,6 +2207,7 @@ println(keys(totest))
         else 
           if abs(current[fid][state]) > maxdiff # we want MAX difference.  
             maxdiff = abs(current[fid][state])
+            stable[fid][state] = 0.5 # add a new value at the state if it isn't in the dict.
           end
         end 
       end
@@ -2317,13 +2325,13 @@ function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}
     for j in EnumUp(n515; fixed = fxd)
       for k in EnumUp(n1525; fixed = fxd)
         if !haskey(outp, TupleSmash(i,j,k,1))
-          outp[TupleSmash(i,j,k,1)] = 0.0 #Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,1)] = 0.5 #Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
         end
         if !haskey(outp, TupleSmash(i,j,k,2))
-          outp[TupleSmash(i,j,k,2)] = 0.0#Dict{Int64, Float64}(5=>0.0, 10=>0.0, 6=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,2)] = 0.5#Dict{Int64, Float64}(5=>0.0, 10=>0.0, 6=>0.0, 11=>0.0)
         end
         if !haskey(outp, TupleSmash(i,j,k,3))
-          outp[TupleSmash(i,j,k,3)] = 0.0 #Dict{Int64, Float64}(4=>0.0, 3=>0.0, 10=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,3)] = 0.5 #Dict{Int64, Float64}(4=>0.0, 3=>0.0, 10=>0.0, 11=>0.0)
         end
       end
     end
