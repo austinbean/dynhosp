@@ -1385,7 +1385,7 @@ d1[1391330][TAddLevel(recs[1391330], 1)] = 0.0
 d1[1391330][TAddLevel(recs[1391330], 2)] = 0.0
 d1[1391330][TAddLevel(recs[1391330], 3)] = 0.0
 
-ContProbs(recs, location, d1, dyn)
+cp = ContProbs(recs, location, d1, dyn)
 # should return: Dict{Int64,Array{Float64,1}} with 1 entry: 1391330 => [0.333333, 0.333333, 0.333333]
 
 # need a test for two firms as well.  
@@ -1430,57 +1430,6 @@ function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
   return outp
 end
 
-"""
-`CombineProbs()`
-This function will take the output of ContProbs and combine the probs, creating all combinations.  
-These need to be recorded with the correct state element.  What is returned should be a dict of the following form:
-Dict{ NTuple{9, Int64}, Float64}
-the first element is a state.  The second is a prob. 
-The whole difficulty is enumerating the stupid state elements correctly.  
-- For each other firm, we need a distance.
-- Then set three options PER FIRM, w/ each of three probs.
-"""
-
-function CombineProbs(D::DynState, 
-                      nlocs::Array{Int64,1},
-                      location::Int64, 
-                      contprobs::Dict{Int64,Array{Float64,1}};
-                      actions::Array{Int64,1} = [1, 2, 3])
-  outp::Dict{ NTuple{9, Int64}, Float64} = Dict{NTuple{9,Int64}, Float64}()
-  ds::Dict{Int64, Float64} = Dict{Int64, Float64}() # how far away are the firms?
-  StateEnumerate(D.all[location].cns, outp; fxd = true) # this lists states which must be done. 
-  l1::Int64 = D.all[1].cns.level105 + D.all[1].cns.level205 + D.all[1].cns.level305
-  l2::Int64 = D.all[1].cns.level1515 + D.all[1].cns.level2515 + D.all[1].cns.level3515
-  l3::Int64 = D.all[1].cns.level11525 + D.all[1].cns.level21525 + D.all[1].cns.level31525
-  for el in nlocs # this enumerates the other firms around
-    dcat::Int64 = 0
-    indx::Int64 = 0
-    d1 = distance(D.all[location].lat, D.all[location].long, D.all[el].lat, D.all[el].long) # compute the distance.  
-    for level in actions
-      if (d1>0)&(d1<5)
-        dcat = l1 - 1
-        indx = 1
-      elseif (d1>=5)&(d1<15)
-        dcat = l2 - 1
-        indx = 2
-      elseif (d1>=15)&(d1<25)
-        dcat = l3 - 1
-        indx = 3
-      else 
-        #do nothing
-      end 
-      for enms in EnumUp(dcat; fixed = true) # enumerates all states with exactly dcat firms.
-        for ky1 in keys(outp)
-          if PMatch(ky1, enms, indx)
-            # this is not quite right.  I am enumerating with one less than the right number.  But I must search with the right number.  
-
-          end 
-        end 
-      end  
-    end 
-  end 
-  return outp 
-end 
 
 """
 `PMatch(k1::NTuple{9, Int64}, k2::NTuple{3, Int64}, ind::Int64)`
@@ -1553,10 +1502,64 @@ end
 """
 `TotalCombine`
 This will do what I want.  
-Return all of the states  
+Return all of the states, with the associated probabilities.  
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+#fid = 3490795;
+#location = 1;
+
+d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
+location = FindComps(dyn.all[1], dyn)
+recs = StateRecord(dyn.all[1].nfids, 1, dyn)
+
+d1[1391330] = Dict{NTuple{10, Int64}, Float64}()
+d1[1391330][TAddLevel(recs[1391330], 1)] = 0.0
+d1[1391330][TAddLevel(recs[1391330], 2)] = 0.0
+d1[1391330][TAddLevel(recs[1391330], 3)] = 0.0
+cp = ContProbs(recs, location, d1, dyn)
+
+TotalCombine(dyn, 1, dyn.all[1].nfids, cp)
+
+
+# try with two firms...
+
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
+location2 = FindComps(dyn.all[18], dyn) # locations are 19 and 152
+recs2 = StateRecord(dyn.all[18].nfids, 18, dyn)
+
+d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 2)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 3)] = 0.0
+
+d1[dyn.all[152].fid] = Dict{NTuple{10, Int64}, Float64}()
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 1.0
+d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 2.0
+
+cp2 = ContProbs(recs2, location2, d1, dyn)
+dyn.all[19].nfids = [672285, 373510] # this correction should not be necessary.
+TotalCombine(dyn, 18, dyn.all[18].nfids, cp2)
+
 """
 
 function TotalCombine(D::DynState,
+                      location::Int64,
                       nfids::Array{Int64,1},
                       contprobs::Dict{Int64,Array{Float64,1}})
   # Create the outputs
@@ -1566,9 +1569,18 @@ function TotalCombine(D::DynState,
   push!(out515, ([0, 0, 0], 1.0))
   out1525::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
   push!(out1525, ([0, 0, 0], 1.0))
-  # Measure the distances, apply GenStates to relevant segment.  
-  for k1 in 
+  lastout::Dict{NTuple{9, Int64}, Float64} = Dict{NTuple{9, Int64}, Float64}()
+  # Competitors' locations: 
+  comps::Array{Int64,1} = FindComps(D.all[location], D)
+  # Measure the distances, apply GenStates to relevant segment.
+  loc1 = [0.0 0.0 0.0]; 
+  loc2 = [0.0 0.0 0.0];
+  loc3 = [0.0 0.0 0.0];   
+  for k1 in comps 
     d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
+    loc1[1] = contprobs[D.all[k1].fid][1];
+    loc2[2] = contprobs[D.all[k1].fid][2];
+    loc3[3] = contprobs[D.all[k1].fid][3];
     if (d1>0)&(d1<5)
       out05 = GenStates(out05, loc1, loc2, loc3)
     elseif (d1>=5)&(d1<15)
@@ -1578,7 +1590,16 @@ function TotalCombine(D::DynState,
     else 
       # do nothing 
     end 
-  return out05, out515, out1525
+    loc1[1] = 0.0; loc2[2] = 0.0; loc3[3] = 0.0; # reassign to 0.
+  end 
+  for el1 in out05
+    for el2 in out515
+      for el3 in out1525
+        lastout[Tuple((el1[1]..., el2[1]..., el3[1]...))] = el1[2]*el2[2]*el3[2] 
+      end 
+    end 
+  end 
+  return lastout 
 end 
 
 
