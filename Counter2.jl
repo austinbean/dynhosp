@@ -1413,7 +1413,7 @@ d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
 d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 0.0
 d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 0.0
 
-ContProbs(recs2, location2, d1, dyn)
+cp = ContProbs(recs2, location2, d1, dyn)
 
 # should return: Dict{Int64,Array{Float64,1}} with 2 entries:  672285 => [0.333333, 0.333333, 0.333333] 373510 => [0.333333, 0.333333, 0.333333]
 
@@ -1514,11 +1514,10 @@ function NewCombine(D::DynState,
   for k1 in FindComps(D.all[location],D) # locations of competitors
     d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
     lev::Int64 = D.all[k1].level # get the level.
-
-
-
-
-
+    # TODO - these need to be put somewhere and held on to.  
+    loc1 = contprobs[D.all[k1].fid][1]
+    loc2 = contprobs[D.all[k1].fid][2]
+  end 
 end 
 
 
@@ -1530,7 +1529,7 @@ Multiplies that max element and returns as prob.
 
 # Testing:
 CombineV( [1/2 0 0], [1/2 0 0], [0 0 2])
-((2, 0, 1), 0.5)
+# ((2, 0, 1), 0.5)
 
 """
 function CombineV(args...; len = 3)
@@ -1547,6 +1546,25 @@ function CombineV(args...; len = 3)
 end 
 
 
+"""
+`CombineVInput` 
+Similar to CombineV but takes a vector and float input 
+
+# testing 
+CombineVInput([1, 0, 0], 0.5, [0, 0.3, 0])
+# ([1, 1, 0], 0.15)
+
+"""
+function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
+  for (i, arg) in enumerate(args)
+    if length(arg)==length(inpt)
+      val, indx = findmax(arg)
+      inpt[indx] += 1
+      pr *= val 
+    end 
+  end 
+  return inpt, pr 
+end 
 
 
 
