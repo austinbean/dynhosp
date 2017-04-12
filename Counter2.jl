@@ -1316,6 +1316,15 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
         stable[el][TAddLevel(recs[el], 3)] = 0.0
       end 
     end 
+    # Now all components of CV are ready.
+    # - Get the competitors locations from those in nfids.
+    # - Take the continuation probabilities from ContProbs 
+    # - Take the outcomes from TotalCombine 
+    # - That returns a Dict of other firm state/prob of getting there.
+    # - To each of those, append a level.  
+    # - Look it up to find the value 
+    # - these will add to the components in the Maximum below.
+    # - then you are done.  
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.   
