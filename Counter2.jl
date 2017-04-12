@@ -367,6 +367,8 @@ end
 Takes a fid.  Finds the index in inparr.  Takes the share from inparr.
 Multiplies all of patient values in cpat by that number.
 Returns the value.
+
+- FIXME Note: Can't compute demand when # of patients is zero! 
 """
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
   # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.
@@ -381,7 +383,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
   if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private
       for j in c.pcounts
-        if counter == 0
+        if counter == 0 # FIXME - every line here: add if pp.count385 > 0  Next section too.  
           pp.count385 += temparr[2,index]*j
           counter += 1
         elseif counter == 1
@@ -1182,10 +1184,20 @@ triopoly:
 #NB: consider an "itlim" ceiling
 
 # testing: 
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ExactVal(dyn, ch, p1, p2)
+
+PatientZero(p1, p2)
 """
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1},
@@ -1218,14 +1230,7 @@ function ExactVal(D::DynState,
   end
   # Updating process...
   converge = false
-  for k1 in keys(outvals)
-    for k2 in keys(outvals[k1])
-      if isnan(outvals[k1][k2])|isnan(tempvals[k1][k2])
-        println("ffffffffffff")
-      end 
-    end 
-  end 
-  while (!converge)&(its<10) # if true keep going.
+  while (!converge)&(its<100) # if true keep going.
     converge = true                                              # reassign, to catch when it terminates.
     for k in keys(totest)
       if !totest[k] # only run those for which false.
@@ -1322,13 +1327,13 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
         stable[el] = Dict{NTuple{10,Int64}, Float64}()
       end
       if !haskey( stable[el], TAddLevel(recs[el], 1) )
-        stable[el][TAddLevel(recs[el], 1)] = 0.0
+        stable[el][TAddLevel(recs[el], 1)] = 0.5
       end 
       if !haskey( stable[el], TAddLevel(recs[el], 2) )
-        stable[el][TAddLevel(recs[el], 2)] = 0.0
+        stable[el][TAddLevel(recs[el], 2)] = 0.5
       end 
       if !haskey( stable[el], TAddLevel(recs[el], 3) )
-        stable[el][TAddLevel(recs[el], 3)] = 0.0
+        stable[el][TAddLevel(recs[el], 3)] = 0.5
       end 
     end  
     # Update value at Level 1
@@ -1344,6 +1349,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     CV3::Float64 = ContVal(nstates, fid, stable ,3)   
     println("CV's: ", CV1, " ", CV2, " ", CV3) 
     temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
+    println("the max was ", temp[fid][StateKey(D.all[location],1)])
+    println("the rev was ", PatientRev(D.all[location],p1,p2,10))
     # that key must be mapped out for the firms in neighbors too.  Into stable. 
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
