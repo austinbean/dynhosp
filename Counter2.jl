@@ -370,6 +370,21 @@ Returns the value.
 
 - FIXME Note: Can't compute demand when # of patients is zero! 
 - This is an issue of the shares.  
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+temparr = zeros(2, 12) # 12 is max # of facilities. 
+
+
+DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
 """
 # FIXME - there is a share issue here.  The problem is in inparr.  Maybe something goes wrong with WTPnew?  In temparr?
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
@@ -465,6 +480,18 @@ utility component.  We just need all of the utilities in the market and number o
 each patient type in the same.
 e.g., es.all[1].mk is the cmkt.
 then es.all[1].mk.m[i] is the cpats.
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
+
 """
 function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh)
