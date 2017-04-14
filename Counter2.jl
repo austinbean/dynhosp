@@ -2471,7 +2471,6 @@ patients = CreateZips(ProjectModule.alldists, Texas);
 FillPPatients(patients , ProjectModule.pinsured); # this line probably not necessary.
 hzips, privrange, medrange,  unfound = HospitalDemand(patients);
 
-# lowdempriv, hidempriv, lowdemmed, highdemmed,
 """
 function HospitalDemand(pats::ProjectModule.patientcollection; 
                         mat1::Array{Float64,2} = ProjectModule.pcount)
