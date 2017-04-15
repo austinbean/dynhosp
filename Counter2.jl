@@ -1227,16 +1227,21 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ExactVal(dyn, ch, p1, p2)
 
 PatientZero(p1, p2)
+
+NOTES on current problems:
+- currently not updating the values of neighbors.
+- not testing convergence yet.  
+
 """
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1},
                   p1::patientcount,
                   p2::patientcount;
+                  itlim::Int64 = 100,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
-  # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states, {Actions, values}}
-  # maybe it makes sense to define another structure for this.
+  # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states,  values}
   # this is the collection of results - values at states by firm FID.
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   # one must store results to report, the other keeps them temporarily.  
@@ -1257,18 +1262,19 @@ function ExactVal(D::DynState,
     totest[D.all[el].fid] = false                                # all facilities to do initially set to false.  
     locs[D.all[el].fid] = el # stores a fid,location value
   end
+  println(keys(totest))
   # Updating process...
   converge = false
-  while (!converge)&(its<100) # if true keep going.
+  while (!converge)&(its<itlim) # if true keep going.  TODO - remove iteration limit later.  
     converge = true                                              # reassign, to catch when it terminates.
-    for k in keys(totest)
+    for k in keys(totest) # is this getting competitors?  TODO - not updating the competitors.
       if !totest[k] # only run those for which false.
         ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D) #TODO - what other arguments.  
       end 
     end
     # Convergence Test...
-    # TODO - think about this.  Needs to return a list.  
-   # converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
+    # TODO - convergence test is still not testing the neighbor.  Why not?
+    converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals) # sets up for rewriting.
