@@ -1256,6 +1256,8 @@ function ExactVal(D::DynState,
     for el2 in neighbors # adds keys for the neighbors to the temp dict.  
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64} ,Float64}()
       totest[D.all[el2].fid] = true # don't test convergence of neighbors temporarily.  FIXME 
+      # TODO - might as well add all of the states from the neighbors point of view to the dict.
+      # StateEnumerate( , outvals[D.all[el2].fid]) XXX - first argument should be neighbors type but not necessarily of the actual neighbor.
     end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])        # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])       # this does NOT need starting values.  
