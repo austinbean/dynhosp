@@ -1275,7 +1275,9 @@ function ExactVal(D::DynState,
       end 
     end
     # Convergence Test...
-    # TODO - convergence test is still not testing the neighbor.  Why not?
+    # TODO - the convergence should not check the other firms.  Determine convergence w/in the market.
+    # But what that won't do is update the neighbors probabilities.  
+    # This cannot be the right thing to do.  These must update, but at the restricted states.  
     converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
