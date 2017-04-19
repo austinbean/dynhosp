@@ -1253,9 +1253,13 @@ function ExactVal(D::DynState,
     neighbors::Array{Int64,1} = FindComps(D.all[el], D)
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-    for el2 in neighbors # adds keys for the neighbors to the temp dict.  
+    stdict = StateRecord(D.all[el], el, D) # returns the restricted state.    
+    for el2 in neighbors # adds keys for the neighbors to the temp dict. 
+      # TODO - now in here take the restricted state from stdict and write out those to outvals and tempvals 
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64} ,Float64}()
       totest[D.all[el2].fid] = true # don't test convergence of neighbors temporarily.  FIXME 
+      StateEnumerate( FIXME - here the cns from the restricted state, outvals[D.all[el2].fid])
+      StateEnumerate( FIXME - here the cns from the restricted state, tempvals[D.all[el2].fid])
       # TODO - might as well add all of the states from the neighbors point of view to the dict.
       # StateEnumerate( , outvals[D.all[el2].fid]) XXX - first argument should be neighbors type but not necessarily of the actual neighbor.
     end 
