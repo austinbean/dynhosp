@@ -1242,6 +1242,7 @@ function ExactVal(D::DynState,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
   # one dict must store results to report, the other keeps them temporarily.  
+  println("from exactval")
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}() # will record convergence 
@@ -1256,9 +1257,9 @@ function ExactVal(D::DynState,
       # TODO - now in here take the restricted state from stdict and write out those to outvals and tempvals 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}()
-      totest[D.all[el2].fid] = true # don't test convergence of neighbors temporarily.  FIXME 
-      StateEnumerate( TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid])
-      StateEnumerate( TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
+      totest[D.all[el2].fid] = false # don't test convergence of neighbors temporarily.  FIXME 
+      StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid])
+      StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       # TODO - might as well add all of the states from the neighbors point of view to the dict.
       # StateEnumerate( , outvals[D.all[el2].fid]) XXX - first argument should be neighbors type but not necessarily of the actual neighbor.
     end 
@@ -1273,13 +1274,18 @@ function ExactVal(D::DynState,
     converge = true                                              # reassign, to catch when it terminates.
     for k in keys(totest) # is this getting competitors?  TODO - not updating the competitors.
       if !totest[k] # only run those for which false.
+        println("here?")
+        # TODO - some problem exists in this... but why?  
+        # and why doesn't it tell me the problem is in exactchoice?  
         ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D) #TODO - what other arguments.  
+        println("gets here")
       end 
     end
     # Convergence Test...
     # TODO - the convergence should not check the other firms.  Determine convergence w/in the market.
     # But what that won't do is update the neighbors probabilities.  
-    # This cannot be the right thing to do.  These must update, but at the restricted states.  
+    # This cannot be the right thing to do.  These must update, but at the restricted states. 
+    println("near convergence") 
     converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
@@ -1352,7 +1358,7 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
   end 
   if debug 
     println("current differences ")
-    print(diffs)
+    println(diffs)
   end 
   # Check for convergence - look at the maximum difference across states for each firm.  
   for k1 in keys(diffs)
