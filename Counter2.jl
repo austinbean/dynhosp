@@ -1241,25 +1241,24 @@ function ExactVal(D::DynState,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
-  # NB: this is a dumb object - a dict of {FID, Dict}, where the latter contains {states,  values}
-  # this is the collection of results - values at states by firm FID.
+  # one dict must store results to report, the other keeps them temporarily.  
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-  # one must store results to report, the other keeps them temporarily.  
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}() # will record convergence 
   locs::Dict{Int64,Int64} = Dict{Int64, Int64}() # will record the locations of competitors 
-  its::Int64 = 0
+  its::Int64 = 0 # records iterations, but will be dropped after debugging.
   for el in chunk
-    neighbors::Array{Int64,1} = FindComps(D.all[el], D)
+    neighbors::Array{Int64,1} = FindComps(D.all[el], D) # these are addresses of fids.
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-    stdict = StateRecord(D.all[el], el, D) # returns the restricted state.    
+    stdict = StateRecord(D.all[el].nfids, el, D) # returns the restricted state.
     for el2 in neighbors # adds keys for the neighbors to the temp dict. 
       # TODO - now in here take the restricted state from stdict and write out those to outvals and tempvals 
-      tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64} ,Float64}()
+      outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
+      tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}()
       totest[D.all[el2].fid] = true # don't test convergence of neighbors temporarily.  FIXME 
-      StateEnumerate( FIXME - here the cns from the restricted state, outvals[D.all[el2].fid])
-      StateEnumerate( FIXME - here the cns from the restricted state, tempvals[D.all[el2].fid])
+      StateEnumerate( TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid])
+      StateEnumerate( TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       # TODO - might as well add all of the states from the neighbors point of view to the dict.
       # StateEnumerate( , outvals[D.all[el2].fid]) XXX - first argument should be neighbors type but not necessarily of the actual neighbor.
     end 
@@ -1268,7 +1267,6 @@ function ExactVal(D::DynState,
     totest[D.all[el].fid] = false                                # all facilities to do initially set to false.  
     locs[D.all[el].fid] = el # stores a fid,location value
   end
-  println(keys(totest))
   # Updating process...
   converge = false
   while (!converge)&(its<itlim) # if true keep going.  TODO - remove iteration limit later.  
@@ -1295,6 +1293,83 @@ function ExactVal(D::DynState,
   # Return equilibrium values...
   return outvals
 end
+
+
+
+
+"""
+`ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; toler::Float64 =0.001, debug::Bool = true  )`
+This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
+for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
+Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
+
+Testing: 
+dyn = CounterObjects(10);
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
+test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
+StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
+StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
+
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
+totest = Dict{Int64,Bool}()
+totest[dyn.all[6].fid] = false 
+ExactConvergence(test1, test2, totest)
+
+ExactConvergence(test1, test2, totest; debug = false)
+(false, [4450450]) # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
+"""
+function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
+                          totest::Dict{Int64,Bool}; 
+                          toler::Float64 =0.1, 
+                          debug::Bool = true )
+  println("From Exact Convergence: ")
+  println("test ", keys(totest))
+  println("current ", keys(current))
+  println("stable ", keys(stable))
+  converge::Bool = false 
+  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
+  newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
+  for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
+    if !totest[fid] # keys in totest for which false (i.e., not converged)
+      maxdiff::Float64 = 0.0 
+      for state in keys(current[fid])                  # states available to the firm.
+        if haskey(stable[fid], state)
+          if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference.  
+            maxdiff = abs(current[fid][state] - stable[fid][state])
+          end 
+        else 
+          if abs(current[fid][state]) > maxdiff # we want MAX difference.  
+            maxdiff = abs(current[fid][state])
+            stable[fid][state] = 0.5 # add a new value at the state if it isn't in the dict.
+          end
+        end 
+      end
+      diffs[fid] = maxdiff                             # keep track of the max diff.  
+    end 
+  end 
+  if debug 
+    println("current differences ")
+    print(diffs)
+  end 
+  # Check for convergence - look at the maximum difference across states for each firm.  
+  for k1 in keys(diffs)
+    converge = converge&(diffs[k1]<toler)
+    if diffs[k1] > toler # not converged yet 
+      newchunk[k1] = false 
+    else 
+      totest[k1] = true 
+    end 
+  end 
+  # NOTE - convergence should return list of undone facilities. 
+  return converge, newchunk
+end 
+
+
+
+
 
 """
 `ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
@@ -1360,6 +1435,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
   # there must be persistent randomness.  
+    println("From Exact Choice ")
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors. 
     if !haskey(stable, fid) # this should not be necessary when this is debugged.  
@@ -1960,6 +2036,16 @@ function TAddLevel(t1::NTuple{9,Int64}, l::Int64)
 end 
 
 
+"""
+`TupletoCNS(NTuple{9, Int64})`
+Takes a tuple of Ints and returns the same as type neighbors 
+This is for use with the output of StateRecord.
+"""
+function TupletoCNS(n::NTuple{9,Int64})
+  return ProjectModule.neighbors(n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[8], n[9])
+end 
+
+
 
 
 """
@@ -2213,76 +2299,6 @@ end
 
 
 """
-`ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; toler::Float64 =0.001, debug::Bool = true  )`
-This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
-for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
-Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
-
-Testing: 
-dyn = CounterObjects(10);
-test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
-test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
-test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
-test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
-StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
-StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
-
-test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
-totest = Dict{Int64,Bool}()
-totest[dyn.all[6].fid] = false 
-ExactConvergence(test1, test2, totest)
-
-ExactConvergence(test1, test2, totest; debug = false)
-(false, [4450450]) # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
-"""
-function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
-                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
-                          totest::Dict{Int64,Bool}; 
-                          toler::Float64 =0.1, 
-                          debug::Bool = true )
-  println("test ", keys(totest))
-  println("current ", keys(current))
-  println("stable ", keys(stable))
-  converge::Bool = false 
-  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
-  newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
-  for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
-    if !totest[fid] # keys in totest for which false (i.e., not converged)
-      maxdiff::Float64 = 0.0 
-      for state in keys(current[fid])                  # states available to the firm.
-        if haskey(stable[fid], state)
-          if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference.  
-            maxdiff = abs(current[fid][state] - stable[fid][state])
-          end 
-        else 
-          if abs(current[fid][state]) > maxdiff # we want MAX difference.  
-            maxdiff = abs(current[fid][state])
-            stable[fid][state] = 0.5 # add a new value at the state if it isn't in the dict.
-          end
-        end 
-      end
-      diffs[fid] = maxdiff                             # keep track of the max diff.  
-    end 
-  end 
-  if debug 
-    println("current differences ")
-    print(diffs)
-  end 
-  # Check for convergence - look at the maximum difference across states for each firm.  
-  for k1 in keys(diffs)
-    converge = converge&(diffs[k1]<toler)
-    if diffs[k1] > toler # not converged yet 
-      newchunk[k1] = false 
-    else 
-      totest[k1] = true 
-    end 
-  end 
-  # NOTE - convergence should return list of undone facilities. 
-  return converge, newchunk
-end 
-
-
-"""
 `DictClean`
 In ExactVal there is a dict which stores the values of current continuations to return 
 and another in a temporary.  This cleans the temporary.  
@@ -2345,11 +2361,12 @@ end
 
 
 """
-`StateEnumerate(c::ProjectModule.neighbors)`
+`StateEnumerate(c::ProjectModule.neighbors, inp::Dict{NTuple{10, Int64},  Float64 }; fxd::Bool = false)`
 Enumerates all possible neighbor states.
 Note that the number of combinations at each x-x+n distance is given by
 the combinatoric ( hospitals + levels - 1, hospitals).  (Google "Stars and Bars")
 The total number of state elements is given below by EnumUp(n05) * EnumUp(n515) * EnumUp(n1525) * 3
+If fxd == true, then EnumUp( ; fixed = true)
 
 dyn = CounterObjects(10);
 outp = Dict{NTuple{10,Int64}, Dict{Int64,Float64}}();
