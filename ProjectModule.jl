@@ -760,6 +760,7 @@ end
   export CombineVInput
   export GenStates
   export PartialCombine 
+  export TupleToCNS
    
   
 
