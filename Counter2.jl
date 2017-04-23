@@ -1237,12 +1237,13 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1},
                   p1::patientcount,
                   p2::patientcount;
+                  messages::Bool = false,
                   itlim::Int64 = 100,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
   # one dict must store results to report, the other keeps them temporarily.  
-  println("from exactval")
+  if messages println("from exactval") end
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}() # will record convergence 
@@ -1260,6 +1261,7 @@ function ExactVal(D::DynState,
       totest[D.all[el2].fid] = false # don't test convergence of neighbors temporarily.  FIXME 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid])
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
+      locs[D.all[el2].fid] = el2
       # TODO - might as well add all of the states from the neighbors point of view to the dict.
       # StateEnumerate( , outvals[D.all[el2].fid]) XXX - first argument should be neighbors type but not necessarily of the actual neighbor.
     end 
@@ -1274,18 +1276,19 @@ function ExactVal(D::DynState,
     converge = true                                              # reassign, to catch when it terminates.
     for k in keys(totest) # is this getting competitors?  TODO - not updating the competitors.
       if !totest[k] # only run those for which false.
-        println("here?")
         # TODO - some problem exists in this... but why?  
         # and why doesn't it tell me the problem is in exactchoice?  
+        if messages println("tempvals keys: ", keys(tempvals)) end
+        if messages println("outvals keys: ", keys(outvals)) end
+        if messages println("locs keys: ", keys(locs)) end# this one is the problem. 
         ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D) #TODO - what other arguments.  
-        println("gets here")
       end 
     end
     # Convergence Test...
     # TODO - the convergence should not check the other firms.  Determine convergence w/in the market.
     # But what that won't do is update the neighbors probabilities.  
     # This cannot be the right thing to do.  These must update, but at the restricted states. 
-    println("near convergence") 
+    if messages println("near convergence") end 
     converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
@@ -1329,12 +1332,13 @@ ExactConvergence(test1, test2, totest; debug = false)
 function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                           stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                           totest::Dict{Int64,Bool}; 
+                          messages::Bool = true,
                           toler::Float64 =0.1, 
                           debug::Bool = true )
-  println("From Exact Convergence: ")
-  println("test ", keys(totest))
-  println("current ", keys(current))
-  println("stable ", keys(stable))
+  if messages println("From Exact Convergence: ") end
+  if messages println("test ", keys(totest)) end
+  if messages println("current ", keys(current)) end
+  if messages println("stable ", keys(stable)) end
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
   newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
@@ -1360,7 +1364,8 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
     println("current differences ")
     println(diffs)
   end 
-  # Check for convergence - look at the maximum difference across states for each firm.  
+  # Check for convergence - look at the maximum difference across states for each firm. 
+  if messages println("diffs keys are: ", keys(diffs)) end 
   for k1 in keys(diffs)
     converge = converge&(diffs[k1]<toler)
     if diffs[k1] > toler # not converged yet 
