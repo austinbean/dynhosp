@@ -1231,6 +1231,8 @@ PatientZero(p1, p2)
 NOTES on current problems:
 - currently not updating the values of neighbors.
 - not testing convergence yet.  
+- additional fids in "stable"  - Extra Keys are being added in ExactChoice.  This probably happens b/c I run exactChoice on 
+all of the firms.  
 
 """
 function ExactVal(D::DynState,
@@ -1278,10 +1280,13 @@ function ExactVal(D::DynState,
       if !totest[k] # only run those for which false.
         # TODO - some problem exists in this... but why?  
         # and why doesn't it tell me the problem is in exactchoice?  
-        if messages println("tempvals keys: ", keys(tempvals)) end
-        if messages println("outvals keys: ", keys(outvals)) end
-        if messages println("locs keys: ", keys(locs)) end# this one is the problem. 
-        ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D) #TODO - what other arguments.  
+        if messages println("tempvals keys before: ", keys(tempvals)) end
+        if messages println("outvals keys before: ", keys(outvals)) end
+        if messages println("locs keys before: ", keys(locs)) end# this one is the problem. 
+        ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D; messages = true) #TODO - what other arguments.  
+        if messages println("tempvals keys after: ", keys(tempvals)) end
+        if messages println("outvals keys after: ", keys(outvals)) end
+        if messages println("locs keys after: ", keys(locs)) end# this one is the problem. 
       end 
     end
     # Convergence Test...
@@ -1289,7 +1294,7 @@ function ExactVal(D::DynState,
     # But what that won't do is update the neighbors probabilities.  
     # This cannot be the right thing to do.  These must update, but at the restricted states. 
     if messages println("near convergence") end 
-    converge, totest = ExactConvergence(tempvals, outvals, totest)  # NB: temporary is FIRST argument.  
+    converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)  # NB: temporary is FIRST argument.  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals) # sets up for rewriting.
@@ -1438,6 +1443,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      p1::patientcount,
                      p2::patientcount,
                      D::DynState; 
+                     messages::Bool = false, 
                      β::Float64 = 0.95,
                      ϕ13::Float64 = 0.0, # scale these!
                      ϕ12::Float64 = 0.0,
@@ -1449,12 +1455,18 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
   # there must be persistent randomness.  
-    println("From Exact Choice ")
+    if messages println("From Exact Choice ") end
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
     recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors. 
+    if messages println(" temp keys before",keys(temp)) end 
+    if messages println("stable keys before", keys(stable)) end
+    # FIXME - here is a problem.  Keys are being added to these dicts inconsistently.  Don't add all of them.  Why 
+    # are these needed anyway? 
+    # I want to *not* add these.  What will that break?   
     if !haskey(stable, fid) # this should not be necessary when this is debugged.  
       stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
     end 
+    # this section I need.  
     for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
       if !haskey(stable, el)
         stable[el] = Dict{NTuple{10,Int64}, Float64}()
@@ -1469,6 +1481,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
         stable[el][TAddLevel(recs[el], 3)] = 0.5
       end 
     end  
+    if messages println(" temp keys after",keys(temp)) end 
+    if messages println("stable keys after", keys(stable)) end
     # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
@@ -1480,17 +1494,17 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)   
-    println("CV's: ", CV1, " ", CV2, " ", CV3) 
+    if messages  println("CV's: ", CV1, " ", CV2, " ", CV3) end
     temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
-    println("the max was ", temp[fid][StateKey(D.all[location],1)])
-    println("the rev was ", PatientRev(D.all[location],p1,p2,10))
+    if messages println("the max was ", temp[fid][StateKey(D.all[location],1)]) end
+    if messages println("the rev was ", PatientRev(D.all[location],p1,p2,10)) end
     # that key must be mapped out for the firms in neighbors too.  Into stable. 
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
   # Update value at Level 2 (repeats steps above!)
     D.all[location].level = 2
-    UpdateD(D.all[location])
+    UpdateD(D.all[location]) # Updates deterministic part of utility.  
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
     temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
   # that key must be mapped out for the firms in neighbors too.
