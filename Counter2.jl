@@ -1232,7 +1232,7 @@ NOTES on current problems:
 - currently not updating the values of neighbors.
 - not testing convergence yet.  
 - additional fids in "stable"  - Extra Keys are being added in ExactChoice.  This probably happens b/c I run exactChoice on 
-all of the firms.  
+all of the firms.  There is a problem with a dict in ContProbs.  
 
 """
 function ExactVal(D::DynState,
@@ -1463,24 +1463,23 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     # FIXME - here is a problem.  Keys are being added to these dicts inconsistently.  Don't add all of them.  Why 
     # are these needed anyway? 
     # I want to *not* add these.  What will that break?   
-    if !haskey(stable, fid) # this should not be necessary when this is debugged.  
-      stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
-    end 
-    # this section I need.  
-    for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
-      if !haskey(stable, el)
-        stable[el] = Dict{NTuple{10,Int64}, Float64}()
-      end
-      if !haskey( stable[el], TAddLevel(recs[el], 1) )
-        stable[el][TAddLevel(recs[el], 1)] = 0.5
-      end 
-      if !haskey( stable[el], TAddLevel(recs[el], 2) )
-        stable[el][TAddLevel(recs[el], 2)] = 0.5
-      end 
-      if !haskey( stable[el], TAddLevel(recs[el], 3) )
-        stable[el][TAddLevel(recs[el], 3)] = 0.5
-      end 
-    end  
+    # if !haskey(stable, fid) # this should not be necessary when this is debugged.  
+    #   stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
+    # end 
+    # for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
+    #   if !haskey(stable, el)
+    #     stable[el] = Dict{NTuple{10,Int64}, Float64}()
+    #   end
+    #   if !haskey( stable[el], TAddLevel(recs[el], 1) )
+    #     stable[el][TAddLevel(recs[el], 1)] = 0.5
+    #   end 
+    #   if !haskey( stable[el], TAddLevel(recs[el], 2) )
+    #     stable[el][TAddLevel(recs[el], 2)] = 0.5
+    #   end 
+    #   if !haskey( stable[el], TAddLevel(recs[el], 3) )
+    #     stable[el][TAddLevel(recs[el], 3)] = 0.5
+    #   end 
+    # end  
     if messages println(" temp keys after",keys(temp)) end 
     if messages println("stable keys after", keys(stable)) end
     # Update value at Level 1
@@ -1684,9 +1683,9 @@ cp = ContProbs(recs2, location2, d1, dyn)
 
 """
 function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
-                  nlocs::Array{Int64,1}, # locations of neighbors.
-                  stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-                  D::DynState)
+                   nlocs::Array{Int64,1}, # locations of neighbors.
+                   stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
+                   D::DynState)
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
   for el in nlocs # these index the locations of neighbors in the array.
     outp[D.all[el].fid] = exp.([stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],3)]])
