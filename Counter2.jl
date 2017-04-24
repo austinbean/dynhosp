@@ -1351,6 +1351,7 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
             maxdiff = abs(current[fid][state] - stable[fid][state])
           end 
         else 
+          if messages println("a state wasn't found ") end # check if this is messing anything up
           if abs(current[fid][state]) > maxdiff # we want MAX difference.  
             maxdiff = abs(current[fid][state])
             stable[fid][state] = 0.5 # add a new value at the state if it isn't in the dict.
@@ -1368,6 +1369,8 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
   if messages println("diffs keys are: ", keys(diffs)) end 
   for k1 in keys(diffs)
     converge = converge&(diffs[k1]<toler)
+    if messages println("diffs key is: ", k1) end
+    if messages println(keys(newchunk)) end
     if diffs[k1] > toler # not converged yet 
       newchunk[k1] = false 
     else 
