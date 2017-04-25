@@ -1231,7 +1231,7 @@ PatientZero(p1, p2)
 NOTES on current problems:
 - currently not updating the values of neighbors.
 - not testing convergence yet.  
-- additional fids in "stable"  - Extra Keys are being added in ExactChoice.  This probably happens b/c I run exactChoice on 
+- 04/24/2017: additional fids in "stable"  - Extra Keys are being added in ExactChoice.  This probably happens b/c I run exactChoice on 
 all of the firms.  There is a problem with a dict in ContProbs.  
 
 """
@@ -1575,13 +1575,14 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
     for k1 in keys(futures)
       if haskey(stable[fid],TAddLevel(k1,lev) )
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
-          if isnan(futures[k1])
-           println("futures is nan ", futures[k1])
-          end
-          if isnan(stable[fid][TAddLevel(k1,lev)]) 
-            println("stable is nan ", stable[fid][TAddLevel(k1,lev)])
-          end 
+          # if isnan(futures[k1])
+          #  println("futures is nan ", futures[k1])
+          # end
+          # if isnan(stable[fid][TAddLevel(k1,lev)]) 
+          #   println("stable is nan ", stable[fid][TAddLevel(k1,lev)])
+          # end 
       else 
+        # FIXME - here is the problem.  This is added, but should not be.  See three more times below.  
         stable[fid][TAddLevel(k1,lev)] = 0.5
       end 
     end 
