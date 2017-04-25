@@ -1229,10 +1229,8 @@ ExactVal(dyn, ch, p1, p2)
 PatientZero(p1, p2)
 
 NOTES on current problems:
-- currently not updating the values of neighbors.
-- not testing convergence yet.  
-- 04/24/2017: additional fids in "stable"  - Extra Keys are being added in ExactChoice.  This probably happens b/c I run exactChoice on 
-all of the firms.  There is a problem with a dict in ContProbs.  
+- 04/25: what I need is something like: full update and partial update.  
+- some firms  
 
 """
 function ExactVal(D::DynState,
@@ -1244,67 +1242,58 @@ function ExactVal(D::DynState,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
-  # one dict must store results to report, the other keeps them temporarily.  
   if messages println("from exactval") end
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-  totest::Dict{Int64,Bool} = Dict{Int64,Bool}() # will record convergence 
-  locs::Dict{Int64,Int64} = Dict{Int64, Int64}() # will record the locations of competitors 
-  its::Int64 = 0 # records iterations, but will be dropped after debugging.
+  totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
+  locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                      # will record the locations of competitors 
+  its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk
-    neighbors::Array{Int64,1} = FindComps(D.all[el], D) # these are addresses of fids.
+    neighbors::Array{Int64,1} = FindComps(D.all[el], D)                               #  these are addresses of fids.
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-    stdict = StateRecord(D.all[el].nfids, el, D) # returns the restricted state.
-    for el2 in neighbors # adds keys for the neighbors to the temp dict. 
-      # TODO - now in here take the restricted state from stdict and write out those to outvals and tempvals 
+    stdict = StateRecord(D.all[el].nfids, el, D)                                      # returns the restricted state.
+    for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}()
-      totest[D.all[el2].fid] = false # don't test convergence of neighbors temporarily.  FIXME 
+      totest[D.all[el2].fid] = false                                                  # don't test convergence of neighbors temporarily.  FIXME 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid])
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       locs[D.all[el2].fid] = el2
-      # TODO - might as well add all of the states from the neighbors point of view to the dict.
-      # StateEnumerate( , outvals[D.all[el2].fid]) XXX - first argument should be neighbors type but not necessarily of the actual neighbor.
     end 
-    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])        # TODO - starting values here.
-    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])       # this does NOT need starting values.  
-    totest[D.all[el].fid] = false                                # all facilities to do initially set to false.  
-    locs[D.all[el].fid] = el # stores a fid,location value
+    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                             # TODO - starting values here.
+    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
+    totest[D.all[el].fid] = false                                                     # all facilities to do initially set to false.  
+    locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
-  # Updating process...
+  # Updating process:
   converge = false
-  while (!converge)&(its<itlim) # if true keep going.  TODO - remove iteration limit later.  
-    converge = true                                              # reassign, to catch when it terminates.
-    for k in keys(totest) # is this getting competitors?  TODO - not updating the competitors.
-      if !totest[k] # only run those for which false.
-        # TODO - some problem exists in this... but why?  
-        # and why doesn't it tell me the problem is in exactchoice?  
+  while (!converge)&(its<itlim)                                                       # if true keep going.    
+    converge = true                                                                   # reassign, to catch when it terminates.
+    for k in keys(totest)                                                             # is this getting competitors?  TODO - not updating the competitors.
+      if !totest[k]                                                                   # only run those for which false.
         if messages println("tempvals keys before: ", keys(tempvals)) end
         if messages println("outvals keys before: ", keys(outvals)) end
-        if messages println("locs keys before: ", keys(locs)) end# this one is the problem. 
-        ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D; messages = true) #TODO - what other arguments.  
+        if messages println("locs keys before: ", keys(locs)) end 
+        ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D; messages = true)  
         if messages println("tempvals keys after: ", keys(tempvals)) end
         if messages println("outvals keys after: ", keys(outvals)) end
-        if messages println("locs keys after: ", keys(locs)) end# this one is the problem. 
+        if messages println("locs keys after: ", keys(locs)) end 
       end 
     end
-    # Convergence Test...
-    # TODO - the convergence should not check the other firms.  Determine convergence w/in the market.
-    # But what that won't do is update the neighbors probabilities.  
-    # This cannot be the right thing to do.  These must update, but at the restricted states. 
+    # Convergence Test:
     if messages println("near convergence") end 
-    converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)  # NB: temporary is FIRST argument.  
+    converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
-    DictClean(tempvals) # sets up for rewriting.
-    for ky1 in keys(totest) # this tests every facility every time, but that's ok. 
-      converge = converge&totest[ky1] # 
+    DictClean(tempvals)                                                               # sets up for rewriting.
+    for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
+      converge = converge&totest[ky1]  
     end   
     its += 1
     println("iteration ", its)
   end 
-  # Return equilibrium values...
+  # Return equilibrium values:
   return outvals
 end
 
@@ -1345,10 +1334,10 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
   if messages println("current ", keys(current)) end
   if messages println("stable ", keys(stable)) end
   converge::Bool = false 
-  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}() # check only the guys still being done.
+  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()   # check only the guys still being done.
   newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
-  for fid in keys(current)                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
-    if !totest[fid] # keys in totest for which false (i.e., not converged)
+  for fid in keys(current)                             # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
+    if !totest[fid]                                    # keys in totest for which false (i.e., not converged)
       maxdiff::Float64 = 0.0 
       for state in keys(current[fid])                  # states available to the firm.
         if haskey(stable[fid], state)
@@ -1357,9 +1346,9 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
           end 
         else 
           if messages println("a state wasn't found ") end # check if this is messing anything up
-          if abs(current[fid][state]) > maxdiff # we want MAX difference.  
+          if abs(current[fid][state]) > maxdiff        # we want MAX difference.  
             maxdiff = abs(current[fid][state])
-            stable[fid][state] = 0.5 # add a new value at the state if it isn't in the dict.
+            stable[fid][state] = 0.5                   # add a new value at the state if it isn't in the dict.
           end
         end 
       end
@@ -1382,7 +1371,6 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
       totest[k1] = true 
     end 
   end 
-  # NOTE - convergence should return list of undone facilities. 
   return converge, newchunk
 end 
 
@@ -1486,8 +1474,11 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
-    nloc = FindComps(D.all[location], D)
-    rec = StateRecord(D.all[location].nfids, location, D)  
+    # FIXME - think about the next line: finds the competitors' locations for the main firm.  But what about the neighbors?
+    # it will find them too. But I don't want to look for them.  I do need to compute the CV, but I do not want to do this
+    # for the "neighbors of the neighbors".  I want to identify and separately handle these firms.  
+    nloc = FindComps(D.all[location], D) # NB - this could be the problem?  
+    rec = StateRecord(D.all[location].nfids, location, D)     # this is computing the state from the point of view of... the main fac.  
     cps::Dict{Int64,Array{Float64,1}} = ContProbs(rec, nloc, stable, D)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
@@ -1563,6 +1554,8 @@ dyn.all[19].nfids = [672285, 373510] # this correction should not be necessary.
 compprobs = TotalCombine(dyn, 18, dyn.all[18].nfids, cp2)
 
 ContVal(compprobs, dyn.all[18].fid, d1, 1)
+
+# FIXME - competitors are being added here who should not be.  
 
 """
 
