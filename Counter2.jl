@@ -1247,6 +1247,7 @@ function ExactVal(D::DynState,
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
   locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                      # will record the locations of competitors 
+  nbs::Dict{Int64, Bool} = Dict{Int64, Bool}()
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk
     neighbors::Array{Int64,1} = FindComps(D.all[el], D)                               #  these are addresses of fids.
@@ -1255,30 +1256,32 @@ function ExactVal(D::DynState,
     stdict = StateRecord(D.all[el].nfids, el, D)                                      # returns the restricted state.
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
-      tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}()
-      totest[D.all[el2].fid] = false                                                  # don't test convergence of neighbors temporarily.  FIXME 
+      tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
+      totest[D.all[el2].fid] = true                                                   # don't test convergence of neighbors temporarily.  FIXME 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid])
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       locs[D.all[el2].fid] = el2
+      nbs[D.all[el2].fid] = true # is it a neighbor?  Yes.
     end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                             # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
-    totest[D.all[el].fid] = false                                                     # all facilities to do initially set to false.  
+    totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
     locs[D.all[el].fid] = el                                                          # stores a fid,location value
+    nbs[D.all[el].fid] = false   # is it a neighbor? No.  
   end
   # Updating process:
   converge = false
   while (!converge)&(its<itlim)                                                       # if true keep going.    
     converge = true                                                                   # reassign, to catch when it terminates.
-    for k in keys(totest)                                                             # is this getting competitors?  TODO - not updating the competitors.
-      if !totest[k]                                                                   # only run those for which false.
+    for k in keys(totest)                                                             # TODO - not updating the competitors.
+      if totest[k]                                                                    # only run those for which true.
         if messages println("tempvals keys before: ", keys(tempvals)) end
         if messages println("outvals keys before: ", keys(outvals)) end
         if messages println("locs keys before: ", keys(locs)) end 
-        ExactChoice(tempvals, outvals, k, locs[k], p1, p2, D; messages = true)  
-        if messages println("tempvals keys after: ", keys(tempvals)) end
-        if messages println("outvals keys after: ", keys(outvals)) end
-        if messages println("locs keys after: ", keys(locs)) end 
+        ExactChoice(tempvals, outvals, nbs, k, locs[k], p1, p2, D; messages = true)  
+        # if messages println("tempvals keys after: ", keys(tempvals)) end
+        # if messages println("outvals keys after: ", keys(outvals)) end
+        # if messages println("locs keys after: ", keys(locs)) end 
       end 
     end
     # Convergence Test:
@@ -1395,7 +1398,11 @@ Needs to:
 - state will be recorded in the dyn record. 
 - But the key thing is: return the VALUE of the state.   
 NB - level won't change.  I can compute the value of being in all of these states depending on the level.
+ Ok - the thing is that this must be done for Both facilities and their neighbors, but the notion of the state 
+ for neighbors is different. This is important. 
 
+
+##### TESTING ######
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
@@ -1422,18 +1429,43 @@ d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
 ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2,  dyn)
 d1[dyn.all[1].fid]
 
+
+EXTRA: 
+
+                # FIXME - here is a problem.  Keys are being added to these dicts inconsistently.  Don't add all of them.  Why 
+                # are these needed anyway? 
+                # I want to *not* add these.  What will that break?   
+                # if !haskey(stable, fid) # this should not be necessary when this is debugged.  
+                #   stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
+                # end 
+                # for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
+                #   if !haskey(stable, el)
+                #     stable[el] = Dict{NTuple{10,Int64}, Float64}()
+                #   end
+                #   if !haskey( stable[el], TAddLevel(recs[el], 1) )
+                #     stable[el][TAddLevel(recs[el], 1)] = 0.5
+                #   end 
+                #   if !haskey( stable[el], TAddLevel(recs[el], 2) )
+                #     stable[el][TAddLevel(recs[el], 2)] = 0.5
+                #   end 
+                #   if !haskey( stable[el], TAddLevel(recs[el], 3) )
+                #     stable[el][TAddLevel(recs[el], 3)] = 0.5
+                #   end 
+                # end 
+
 """
 
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
+                     nbs::Dict{Int64, Bool},
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
                      p2::patientcount,
                      D::DynState; 
-                     messages::Bool = false, 
+                     messages::Bool = true, 
                      β::Float64 = 0.95,
-                     ϕ13::Float64 = 0.0, # scale these!
+                     ϕ13::Float64 = 0.0, # substitute values and scale these!
                      ϕ12::Float64 = 0.0,
                      ϕ1EX::Float64 = 0.0,
                      ϕ23::Float64 = 0.0,
@@ -1442,53 +1474,48 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
-  # there must be persistent randomness.  
-    if messages println("From Exact Choice ") end
+    # FIXME - I don't want to FindComps when this is a neighbor.
+    # should I permanently take as arguments all of the neighbors I want to do?  
+    # think about the 2-3 firm case... especially with non-overlapping sets of neighbors.  
     neighbors::Array{Int64,1} = FindComps(D.all[location], D) # find the competitors.  
-    recs = StateRecord(neighbors, location, D)                # generates the correct level for the competitors. 
-    if messages println(" temp keys before",keys(temp)) end 
-    if messages println("stable keys before", keys(stable)) end
-    # FIXME - here is a problem.  Keys are being added to these dicts inconsistently.  Don't add all of them.  Why 
-    # are these needed anyway? 
-    # I want to *not* add these.  What will that break?   
-    # if !haskey(stable, fid) # this should not be necessary when this is debugged.  
-    #   stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
-    # end 
-    # for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
-    #   if !haskey(stable, el)
-    #     stable[el] = Dict{NTuple{10,Int64}, Float64}()
-    #   end
-    #   if !haskey( stable[el], TAddLevel(recs[el], 1) )
-    #     stable[el][TAddLevel(recs[el], 1)] = 0.5
-    #   end 
-    #   if !haskey( stable[el], TAddLevel(recs[el], 2) )
-    #     stable[el][TAddLevel(recs[el], 2)] = 0.5
-    #   end 
-    #   if !haskey( stable[el], TAddLevel(recs[el], 3) )
-    #     stable[el][TAddLevel(recs[el], 3)] = 0.5
-    #   end 
-    # end  
-    if messages println(" temp keys after",keys(temp)) end 
-    if messages println("stable keys after", keys(stable)) end
-    # Update value at Level 1
-    D.all[location].level = 1
-    UpdateD(D.all[location])                                  # updates the utility for a new level 
-    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
+    recs = StateRecord(neighbors, location, D) # this returns the dict of the state for the firm whose value is being computed from point of view of the main firm.
+    nloc = Array{Int64,1}() # initialize empty.
+    if nbs[D.all[location].fid] # this will be true when this is a "neighbor" only, not a real facility.  
+      nloc = FindComps(D.all[location], D) 
+    else
+      nloc = Array{Int64,1}() # I guess this array will be empty when the firm is the neighbor.  
+    end 
     # FIXME - think about the next line: finds the competitors' locations for the main firm.  But what about the neighbors?
     # it will find them too. But I don't want to look for them.  I do need to compute the CV, but I do not want to do this
     # for the "neighbors of the neighbors".  I want to identify and separately handle these firms.  
-    nloc = FindComps(D.all[location], D) # NB - this could be the problem?  
+    # here fix the fact that only the neighbors of the simulated firm need to be looked up.
     rec = StateRecord(D.all[location].nfids, location, D)     # this is computing the state from the point of view of... the main fac.  
+    # FIXME 04/25/2017 - the call to ContProbs already fs up because its looking for something that isn't there. 
+    println("state record ", rec)
+    println("nlocs: ", nloc)
     cps::Dict{Int64,Array{Float64,1}} = ContProbs(rec, nloc, stable, D)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)   
-    if messages  println("CV's: ", CV1, " ", CV2, " ", CV3) end
     temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
-    if messages println("the max was ", temp[fid][StateKey(D.all[location],1)]) end
-    if messages println("the rev was ", PatientRev(D.all[location],p1,p2,10)) end
-    # that key must be mapped out for the firms in neighbors too.  Into stable. 
+    
+    if messages 
+      println("From Exact Choice ") 
+      println("the fid: ", fid)
+      println("set of neighbors: ", neighbors)
+      println("Exact Choice nbs: ", nbs)
+      println(" temp keys before",keys(temp))  
+      println("stable keys before", keys(stable))  
+      println("CV's: ", CV1, " ", CV2, " ", CV3) 
+      println("the max was ", temp[fid][StateKey(D.all[location],1)]) 
+      println("the rev was ", PatientRev(D.all[location],p1,p2,10)) 
+    end
+
+  # Update value at Level 1
+    D.all[location].level = 1
+    UpdateD(D.all[location])                                  # updates the utility for a new level 
+    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level. 
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
@@ -1497,7 +1524,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
     temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
-  # that key must be mapped out for the firms in neighbors too.
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
@@ -1506,7 +1532,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.
     temp[fid][StateKey(D.all[location],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
-  # that key must be mapped out for the firms in neighbors too.
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
