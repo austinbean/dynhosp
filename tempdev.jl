@@ -1,6 +1,6 @@
 
 function ExactVal(D::DynState,
-                  chunk::Array{Int64,1},
+                  chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
                   messages::Bool = false,
@@ -16,34 +16,18 @@ function ExactVal(D::DynState,
   nbs::Dict{Int64, Bool} = Dict{Int64, Bool}()
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
-    # this is doing it wrong?  Is el getting reassigned?
-    println("first el: ", el)
-    neighbors::Array{Int64,1} = FindComps(D.all[el], D)                               #  these are addresses of fids.
-    println("Competitors are: ", neighbors) # but this is printed in the next line?
-    println("main fid is: ", D.all[el].fid)
-    for el2 in neighbors
-      println("printing out fid of neighbors: ", D.all[el2].fid) # this should find 1.
-    end 
-    println("second el: ", el)
+    # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
+    neighbors::Array{Int64,1} = FindComps(D.all[el], D)                             #  these are addresses of fids.
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-    println("the el is: ", el)
-    println("call to StateRecord: ", D.all[el].nfids) # this has too many elements in it? Or what? 
-    # why does this return something with three keys?  WTF?  
+        # nothing needs to be changed in the next line for the neighbor problem.
     stdict = StateRecord(D.all[el].nfids, el, D)                                      # returns the restricted state.
-    println("st dict: ", keys(stdict))
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
-      println("the fid ", D.all[el2].fid)
-      println("the keys of outvals: ", keys(outvals))
-      println("the keys of tempvals: ", keys(tempvals))
-      println("keys of stdict: ", keys(stdict))
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
       totest[D.all[el2].fid] = true                                                   # don't test convergence of neighbors temporarily.  FIXME 
-      println("err1")
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
-      println("err2")
       locs[D.all[el2].fid] = el2
       nbs[D.all[el2].fid] = true # is it a neighbor?  Yes.
     end 
@@ -52,6 +36,7 @@ function ExactVal(D::DynState,
     totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
     locs[D.all[el].fid] = el                                                          # stores a fid,location value
     nbs[D.all[el].fid] = false   # is it a neighbor? No.  
+    push!(neighbors, el) # now this contains the location in D.all from chunk.
   end
   # Updating process:
   converge = false
@@ -83,3 +68,41 @@ function ExactVal(D::DynState,
   # Return equilibrium values:
   return outvals
 end
+
+
+
+
+#=
+    if messages println("first el: ", el) end
+
+    if messages println("Competitors are: ", neighbors) end # but this is printed in the next line?
+
+    if messages println("main fid is: ", D.all[el].fid) end
+
+    if messages 
+
+        for el2 in neighbors
+
+          println("printing out fids: ", D.all[el2].fid) # this should find 1.
+
+        end 
+
+    end 
+
+    if messages println("call to StateRecord: ", D.all[el].nfids) end # this has too many elements in it? Or what? 
+
+    if messages println("st dict: ", keys(stdict)) end
+
+      if messages println("the fid ", D.all[el2].fid) end
+
+      if messages println("the keys of outvals: ", keys(outvals)) end
+
+      if messages println("the keys of tempvals: ", keys(tempvals)) end
+
+      if messages println("keys of stdict: ", keys(stdict)) end
+
+      if messages println("err1") end
+
+      if messages println("err2") end
+
+=#
