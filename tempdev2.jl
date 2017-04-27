@@ -1,6 +1,6 @@
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
-                     nbs::Dict{Int64, Bool},
+                     nbs::Dict{Int64, Int64},
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
