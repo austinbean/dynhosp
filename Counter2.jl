@@ -1849,6 +1849,27 @@ end
 Ugh.  What this function does is compute the state of neighboring facilities RELATIVE to the organization of the fac for 
 which we are computing the eq.  Imagine Hosp A has one neighbor B at 25 miles, but B has more neighbors at 10 further miles 
 distant.  I want the state for B to reflect ONLY the existence of A.  I think this is the right thing to do.  
+
+
+NOTE - this probably needs to be rewritten to just include the actual neighbors I want to consider.  
+If neighbors is instead a dict{Int64, Int64} = {fid, location} this changes little, but maybe with 
+keys(neighbors) in the first loop.
+
+# Testing: 
+
+StateRecord(dyn.all[4].nfids, 4, dyn)
+
+StateRecord(dyn.all[11].nfids, 11, dyn)
+Dict{Int64,NTuple{9,Int64}} with 4 entries:
+  3396057 => (0, 0, 1, 0, 0, 2, 1, 0, 0)
+  3390720 => (0, 0, 0, 0, 1, 1, 1, 0, 1)
+  3396327 => (0, 1, 0, 0, 0, 1, 1, 0, 1)
+  3396189 => (0, 0, 0, 0, 1, 0, 1, 0, 2)
+
+StateRecord(dyn.all[1].nfids, 1, dyn)
+
+Dict{Int64,NTuple{9,Int64}} with 1 entry:
+  1391330 => (0, 0, 0, 0, 0, 0, 1, 0, 0)
 """
 function StateRecord(neighbors::Array{Int64,1}, # an array of fids 
                      location::Int64, # the location of the main hospital in dyn.all[]
@@ -1933,6 +1954,120 @@ function StateRecord(neighbors::Array{Int64,1}, # an array of fids
   end 
   return outp 
 end 
+
+
+
+"""
+The idea would be that this would take a dict of fids and ints (locations) and then 
+return a dict of fids/states, as StateRecord above does.
+This would take the dict "locs" from ExactVal
+This needs to catch the "special" value, I think.  That should be in "location".
+FindComps(dyn.all[11], dyn) == [ 195, 196, 197, 198]
+
+
+testd = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
+
+WANT: 
+
+Dict{Int64,NTuple{9,Int64}} with 4 entries:
+  3396057 => (0, 0, 1, 0, 0, 2, 1, 0, 0)
+  3390720 => (0, 0, 0, 0, 1, 1, 1, 0, 1)
+  3396327 => (0, 1, 0, 0, 0, 1, 1, 0, 1)
+  3396189 => (0, 0, 0, 0, 1, 0, 1, 0, 2)
+
+StateR2(testd, 11, dyn)
+
+"""
+function StateR2(neighbors::Dict{Int64,Int64}, # an array of fids 
+                     location::Int64, # the location of the main hospital in dyn.all[]
+                     D::DynState)
+  outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
+  # FIXME - don't use this next line.  This is definitely not what I want.  
+  locs = FindComps(D.all[location], D) # where are the neighbors 
+  # FIXME - this is backwards.  The keys are the fids.  This is wrong.  
+  for el1 in keys(neighbors) # vector of locations of neighbors
+      intermed::Array{Int64,1} = zeros(Int64,9)
+      d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[neighbors[el1]].lat, D.all[neighbors[el1]].long)
+      if (d1>0)&(d1<=5)
+        if D.all[location].level == 1
+          intermed[1]+=1
+        elseif D.all[location].level == 2
+          intermed[2]+=1
+        elseif D.all[location].level == 3
+          intermed[3]+=1
+        else
+          #do nothing 
+        end 
+      elseif (d1>5)&(d1<=15)
+        if D.all[location].level == 1
+          intermed[4]+=1
+        elseif D.all[location].level == 2
+          intermed[5]+=1
+        elseif D.all[location].level == 3
+          intermed[6]+=1
+        else
+          #do nothing 
+        end 
+      elseif (d1>15)&(d1<25)
+        if D.all[location].level == 1
+          intermed[7]+=1
+        elseif D.all[location].level == 2
+          intermed[8]+=1
+        elseif D.all[location].level == 3
+          intermed[9]+=1
+        else
+          #do nothing 
+        end 
+      else 
+        # do nothing 
+      end 
+      for el2 in keys(location) #XXX - this is actually wrong.  But this was the only place locs was used.   
+        if el1!=el2
+          d2::Float64 = distance(D.all[el1].lat, D.all[el1].long, D.all[el2].lat, D.all[el2].long)
+          if (d2>0)&(d2<=5)
+            if D.all[el2].level == 1
+              intermed[1]+=1
+            elseif D.all[el2].level == 2
+              intermed[2]+=1
+            elseif D.all[el2].level == 3
+              intermed[3]+=1
+            else
+              #do nothing 
+            end 
+          elseif (d2>5)&(d2<=15)
+            if D.all[el2].level == 1
+              intermed[4]+=1
+            elseif D.all[el2].level == 2
+              intermed[5]+=1
+            elseif D.all[el2].level == 3
+              intermed[6]+=1
+            else
+              #do nothing 
+            end 
+          elseif (d2>15)&(d2<25)
+            if D.all[el2].level == 1
+              intermed[7]+=1
+            elseif D.all[el2].level == 2
+              intermed[8]+=1
+            elseif D.all[el2].level == 3
+              intermed[9]+=1
+            else
+              #do nothing 
+            end 
+          else 
+            # do nothing 
+          end 
+        end 
+      end
+      outp[D.all[el1].fid] = Tuple(intermed)
+  end 
+  return outp 
+end 
+
+
+
+
+
 
 
 """
