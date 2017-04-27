@@ -13,10 +13,10 @@ function ExactVal(D::DynState,
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
   locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                      # will record the locations of competitors 
-  nbs::Dict{Int64, Bool} = Dict{Int64, Bool}()
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
+    # consider rewriting FindComps to return a Dict{Int64, Int64} = {Fid, Loc}.  To replace locs.  
     neighbors::Array{Int64,1} = FindComps(D.all[el], D)                             #  these are addresses of fids.
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
@@ -29,15 +29,14 @@ function ExactVal(D::DynState,
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       locs[D.all[el2].fid] = el2
-      nbs[D.all[el2].fid] = true # is it a neighbor?  Yes.
     end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                             # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
     totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
     locs[D.all[el].fid] = el                                                          # stores a fid,location value
-    nbs[D.all[el].fid] = false   # is it a neighbor? No.  
     push!(neighbors, el) # now this contains the location in D.all from chunk.
   end
+  println(keys(locs))
   # Updating process:
   converge = false
   while (!converge)&(its<itlim)                                                       # if true keep going.    
@@ -47,7 +46,7 @@ function ExactVal(D::DynState,
         if messages println("tempvals keys before: ", keys(tempvals)) end
         if messages println("outvals keys before: ", keys(outvals)) end
         if messages println("locs keys before: ", keys(locs)) end 
-        ExactChoice(tempvals, outvals, nbs, k, locs[k], p1, p2, D; messages = true)  
+        ExactChoice(tempvals, outvals, locs, k, locs[k], p1, p2, D; messages = true)  
         # if messages println("tempvals keys after: ", keys(tempvals)) end
         # if messages println("outvals keys after: ", keys(outvals)) end
         # if messages println("locs keys after: ", keys(locs)) end 
