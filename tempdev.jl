@@ -1,4 +1,3 @@
-
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
@@ -8,7 +7,6 @@ function ExactVal(D::DynState,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
-  if messages println("from exactval") end
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
@@ -17,7 +15,7 @@ function ExactVal(D::DynState,
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
     # consider rewriting FindComps to return a Dict{Int64, Int64} = {Fid, Loc}.  To replace locs.  
-    neighbors::Array{Int64,1} = FindComps(D.all[el], D)                             #  these are addresses of fids.
+    neighbors::Array{Int64,1} = FindComps(D, D.all[el])                             #  these are addresses of fids.
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
         # nothing needs to be changed in the next line for the neighbor problem.
@@ -72,36 +70,68 @@ end
 
 
 #=
-    if messages println("first el: ", el) end
 
-    if messages println("Competitors are: ", neighbors) end # but this is printed in the next line?
 
-    if messages println("main fid is: ", D.all[el].fid) end
+"""
+`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
+Computes the exact solution for smaller markets.  1 - 5 firms at most.
 
-    if messages 
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
 
-        for el2 in neighbors
+dyn = DynStateCreate(TexasEq, Tex, patients);
 
-          println("printing out fids: ", D.all[el2].fid) # this should find 1.
+entries to consideR: 1-15 are all.
+Here number of neighbors and entry (dyn.all[x])
+Duopoly:
+1
+4
+5
+9
 
-        end 
+0 6 (monopoly)
+0 7 (monopoly)
+0 8 (monopoly)
 
-    end 
+triopoly:
+18
+20
+21
+24
+25
+26
 
-    if messages println("call to StateRecord: ", D.all[el].nfids) end # this has too many elements in it? Or what? 
+4 13
+4 14
+4 15
 
-    if messages println("st dict: ", keys(stdict)) end
+#NB: consider an "itlim" ceiling
 
-      if messages println("the fid ", D.all[el2].fid) end
+# testing: 
 
-      if messages println("the keys of outvals: ", keys(outvals)) end
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
 
-      if messages println("the keys of tempvals: ", keys(tempvals)) end
+dyn = DynStateCreate(TexasEq, Tex, patients);
+ch = [1] # first element
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ExactVal(dyn, ch, p1, p2)
 
-      if messages println("keys of stdict: ", keys(stdict)) end
+PatientZero(p1, p2)
 
-      if messages println("err1") end
+NOTES on current problems:
+- some firms  are getting added... that is, fids are getting added which I don't want added.  Where does that happen?  
 
-      if messages println("err2") end
+"""
+
+
+
 
 =#
