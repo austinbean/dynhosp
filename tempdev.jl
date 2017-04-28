@@ -19,6 +19,7 @@ function ExactVal(D::DynState,
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
         # nothing needs to be changed in the next line for the neighbor problem.
+        # NOTE - now StateRecord returns a Dict{Int64, NTuple{9, Int64}}
     stdict = StateRecord(D.all[el].nfids, el, D)                                      # returns the restricted state.
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
