@@ -1174,152 +1174,15 @@ end
 #### Below this line... Exact Value development ### 
 
 
-"""
-`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
-Computes the exact solution for smaller markets.  1 - 5 firms at most.
-
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients);
-
-entries to consideR: 1-15 are all.
-Here number of neighbors and entry (dyn.all[x])
-Duopoly:
-1
-4
-5
-9
-
-0 6 (monopoly)
-0 7 (monopoly)
-0 8 (monopoly)
-
-triopoly:
-18
-20
-21
-24
-25
-26
-
-4 13
-4 14
-4 15
-
-#NB: consider an "itlim" ceiling
-
-# testing: 
-
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients);
-ch = [1] # first element
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ExactVal(dyn, ch, p1, p2)
-
-PatientZero(p1, p2)
-
-NOTES on current problems:
-- 04/25: what I need is something like: full update and partial update.  
-- some firms  are getting added... that is, fids are getting added which I don't want added.  Where does that happen?  
-
-"""
 
 
-
-##### PLACEHOLDER ######
+##### PLACEHOLDER EXACT VAL ######
 
 
 
 
-"""
-`ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
-                     stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
-                     fid::Int64, 
-                     location::Int64,
-                     p1::patientcount,
-                     p2::patientcount,
-                     competitors::Array{Int64,1},
-                     D::DynState; )`
-What action should the firm choose?
-Takes two dictionaries, the DynState, computes the best action, returns the value of the action.
-Needs to: 
-- compute the demand in expectation at EACH possible level.
-- compute the profit at EACH possible level.
-- state will be recorded in the dyn record. 
-- But the key thing is: return the VALUE of the state.   
-NB - level won't change.  I can compute the value of being in all of these states depending on the level.
- Ok - the thing is that this must be done for Both facilities and their neighbors, but the notion of the state 
- for neighbors is different. This is important. 
 
-
-##### TESTING ######
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients); 
-
-# To Run:
-
-d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-#fid = 3490795;
-#location = 1;
-
-d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
-d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
-d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
-
-
-ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2,  dyn)
-d1[dyn.all[1].fid]
-
-
-EXTRA: 
-
-                # FIXME - here is a problem.  Keys are being added to these dicts inconsistently.  Don't add all of them.  Why 
-                # are these needed anyway? 
-                # I want to *not* add these.  What will that break?   
-                # if !haskey(stable, fid) # this should not be necessary when this is debugged.  
-                #   stable[fid] = Dict{NTuple{10, Int64},  Float64 }()
-                # end 
-                # for el in keys(recs) # this adds a record for each of the (state,level) options.  They are put in the stable dict.  
-                #   if !haskey(stable, el)
-                #     stable[el] = Dict{NTuple{10,Int64}, Float64}()
-                #   end
-                #   if !haskey( stable[el], TAddLevel(recs[el], 1) )
-                #     stable[el][TAddLevel(recs[el], 1)] = 0.5
-                #   end 
-                #   if !haskey( stable[el], TAddLevel(recs[el], 2) )
-                #     stable[el][TAddLevel(recs[el], 2)] = 0.5
-                #   end 
-                #   if !haskey( stable[el], TAddLevel(recs[el], 3) )
-                #     stable[el][TAddLevel(recs[el], 3)] = 0.5
-                #   end 
-                # end 
-
-    # FIXME - I don't want to FindComps when this is a neighbor.
-    # should I permanently take as arguments all of the neighbors I want to do?  
-    # think about the 2-3 firm case... especially with non-overlapping sets of neighbors.  
-"""
-
-
-#### PLACEHOLDER ######
+#### PLACEHOLDER EXACT CHOICE ######
 
 
 
@@ -1875,7 +1738,7 @@ function StateRecord(neighbors::Array{Int64,1}, # an array of fids
                      location::Int64, # the location of the main hospital in dyn.all[]
                      D::DynState)
   outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
-  locs = FindComps(D.all[location], D) # where are the neighbors 
+  locs = FindComps(D, D.all[location]) # where are the neighbors 
   for el1 in locs # vector of locations of neighbors
       intermed::Array{Int64,1} = zeros(Int64,9)
       d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[el1].lat, D.all[el1].long)
@@ -1965,7 +1828,7 @@ This needs to catch the "special" value, I think.  That should be in "location".
 FindComps(dyn.all[11], dyn) == [ 195, 196, 197, 198]
 
 
-testd = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
+testd = Dict(195=>3396057, 196=>3390720 , 197=>3396327 , 198=>3396189)
 
 WANT: 
 
@@ -1975,7 +1838,7 @@ Dict{Int64,NTuple{9,Int64}} with 4 entries:
   3396327 => (0, 1, 0, 0, 0, 1, 1, 0, 1)
   3396189 => (0, 0, 0, 0, 1, 0, 1, 0, 2)
 
-StateR2(testd, 11, dyn)
+StateR2(testd, 11, dyn)  
 
 """
 function StateR2(neighbors::Dict{Int64,Int64}, # an array of fids 
@@ -1983,7 +1846,7 @@ function StateR2(neighbors::Dict{Int64,Int64}, # an array of fids
                      D::DynState)
   outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
   # FIXME - don't use this next line.  This is definitely not what I want.  
-  locs = FindComps(D.all[location], D) # where are the neighbors 
+  locs = FindComps(D, D.all[location]) # where are the neighbors 
   # FIXME - this is backwards.  The keys are the fids.  This is wrong.  
   for el1 in keys(neighbors) # vector of locations of neighbors
       intermed::Array{Int64,1} = zeros(Int64,9)
@@ -2021,7 +1884,7 @@ function StateR2(neighbors::Dict{Int64,Int64}, # an array of fids
       else 
         # do nothing 
       end 
-      for el2 in keys(location) #XXX - this is actually wrong.  But this was the only place locs was used.   
+      for el2 in keys(locs)   
         if el1!=el2
           d2::Float64 = distance(D.all[el1].lat, D.all[el1].long, D.all[el2].lat, D.all[el2].long)
           if (d2>0)&(d2<=5)
