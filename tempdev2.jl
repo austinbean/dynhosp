@@ -1,6 +1,6 @@
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
-                     nbs::Dict{Int64, Int64},
+                     nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict, I think.  
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
@@ -17,18 +17,14 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
+
     # Also this is getting neighbors of the neighbor, which I do not want. 
     # use the Dict in nbs.    
 #    recs = StateRecord(neighbors, location, D) # this returns the dict of the state for the firm whose value is being computed from point of view of the main firm.
-    rec = StateRecord(D.all[location].nfids, location, D)     # this is computing the state from the point of view of... the main fac. 
+    # Correct Call from Exact VaL: stdict = StateRecord(CompsDict(neighbors, D), D)  
+    # No this can work as written.  It will be called sequentially on all of the elements of nbs.                                
+    rec = StateRecord(nbs, location, D)     # this is computing the state from the point of view of... the main fac. 
     println("From Exact Choice ") 
-    println("keys of stable: ", keys(stable)) 
-    println(" temp keys: ",keys(temp))
-    println("state record ", rec)    
-    println("the fid: ", fid)
-    println("set of neighbors: ", neighbors)
-    println("Exact Choice nbs: ", nbs)
-
 
 # FIXME - here there is nothing called nloc anymore.  
 
