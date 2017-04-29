@@ -1438,11 +1438,13 @@ cp = ContProbs(recs2, location2, d1, dyn)
 # should return: Dict{Int64,Array{Float64,1}} with 2 entries:  672285 => [0.333333, 0.333333, 0.333333] 373510 => [0.333333, 0.333333, 0.333333]
 # FIXME - this is a problem too.  It's iterating over all of these keys.  Why?  OR - what keys and why do I want them?
 
+
 """
 function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
                    nlocs::Array{Int64,1}, # locations of neighbors.
                    stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
                    D::DynState)
+# FIXME - this should no longer take an array nlocs, but instead a dict{Fid, Int64}.
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
   for el in nlocs # these index the locations of neighbors in the array.
     outp[D.all[el].fid] = exp.([stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],3)]])
@@ -1453,6 +1455,24 @@ function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
   end 
   return outp
 end
+
+
+
+function CP2(state_recs::Dict{Int64,NTuple{9,Int64}},
+                   nlocs::Array{Int64,1}, # locations of neighbors.
+                   stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
+                   D::DynState)
+
+
+return nothing 
+
+end 
+
+
+
+
+
+
 
 
 """
@@ -1748,8 +1768,9 @@ patients = NewPatients(Tex);
 dyn = DynStateCreate(TexasEq, Tex, patients);
 
 test2 = Dict(3396057=>195, 3390720=>196 , 3396327=>197 , 3396189=>198, 2910645 => 11)
+out_1 = Dict{Int64,NTuple{9,Int64}}()
 
-StateR2(test2, dyn)  
+StateRecord(test2, dyn,out_1)  
 
 Dict{Int64,NTuple{9,Int64}} with 4 entries:
   3396057 => (0, 0, 1, 0, 0, 2, 1, 0, 0)
@@ -1760,8 +1781,8 @@ Dict{Int64,NTuple{9,Int64}} with 4 entries:
 
 
 """
-function StateRecord(neighbors::Dict{Int64,Int64},  D::DynState)
-  outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
+function StateRecord(neighbors::Dict{Int64,Int64},  D::DynState, outp::Dict{Int64,NTuple{9,Int64}})
+  #outp::Dict{Int64, NTuple{9,Int64}} = Dict{Int64, NTuple{9,Int64}}() # records the neighbors of competing firms, relative to the firm we are computing EQ for, 
   for fid1 in keys(neighbors) # vector of locations of neighbors
     el1 = neighbors[fid1] # this is the location 
     intermed::Array{Int64,1} = zeros(Int64,9) 
@@ -1806,7 +1827,7 @@ function StateRecord(neighbors::Dict{Int64,Int64},  D::DynState)
     end 
     outp[D.all[el1].fid] = Tuple(intermed)
   end 
-  return outp 
+  #return outp 
 end 
 
 
@@ -1940,16 +1961,14 @@ end
 
 
 """
-`CompsDict(arr1::Array{Int64,1}, D::DynState)`
+`CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})`
 Takes and array of ints which are locations in D.all and returns 
 a dict{Fid, Location}.  For use with FindComps, which returns an array.
 """
-function CompsDict(arr1::Array{Int64,1}, D::DynState)
-  outp::Dict{Int64,Int64} = Dict{Int64,Int64}()
+function CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})
   for el in arr1
     outp[D.all[el].fid] = el
   end
-  return outp  
 end 
 
 
