@@ -762,6 +762,7 @@ end
   export GenStates
   export PartialCombine 
   export TupletoCNS
+  export CompsDict
    
   
 
