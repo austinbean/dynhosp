@@ -1,6 +1,7 @@
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
                      nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict, I think.  
+                     st_recs::Dict{Int64,NTuple{9,Int64}},
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
@@ -23,12 +24,12 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
 #    recs = StateRecord(neighbors, location, D) # this returns the dict of the state for the firm whose value is being computed from point of view of the main firm.
     # Correct Call from Exact VaL: stdict = StateRecord(CompsDict(neighbors, D), D)  
     # No this can work as written.  It will be called sequentially on all of the elements of nbs.                                
-    rec = StateRecord(nbs, location, D)     # this is computing the state from the point of view of... the main fac. 
+    #rec = StateRecord(nbs, location, D)     # this is computing the state from the point of view of... the main fac. 
     println("From Exact Choice ") 
 
 # FIXME - here there is nothing called nloc anymore.  
 
-    cps::Dict{Int64,Array{Float64,1}} = ContProbs(rec, nloc, stable, D)  
+    cps::Dict{Int64,Array{Float64,1}} = ContProbs(st_recs, nloc, stable, D)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
