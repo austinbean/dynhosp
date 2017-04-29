@@ -1397,7 +1397,7 @@ d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
-location = FindComps(dyn.all[1], dyn)
+location = FindComps(dyn, dyn.all[1])
 recs = StateRecord(dyn.all[1].nfids, 1, dyn)
 
 d1[1391330] = Dict{NTuple{10, Int64}, Float64}()
@@ -1420,8 +1420,9 @@ d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
-location2 = FindComps(dyn.all[18], dyn) # locations are 19 and 152
-recs2 = StateRecord(dyn.all[18].nfids, 18, dyn)
+location2 = FindComps(dyn, dyn.all[18]) # locations are 19 and 152
+testcp = Dict(672285 => 19, 373510 => 152)
+recs2 = StateRecord(testcp,  dyn) NOT WORKING YET. 
 
 d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
 d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
@@ -1437,7 +1438,8 @@ cp = ContProbs(recs2, location2, d1, dyn)
 
 # should return: Dict{Int64,Array{Float64,1}} with 2 entries:  672285 => [0.333333, 0.333333, 0.333333] 373510 => [0.333333, 0.333333, 0.333333]
 # FIXME - this is a problem too.  It's iterating over all of these keys.  Why?  OR - what keys and why do I want them?
-
+How did this work without knowing which value it was computing?   It didn't matter, because it had the set nlocs ONLY, when this was just the neighbors.
+Now this needs to check against... other fids only?  something like that.  
 
 """
 function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
@@ -1458,13 +1460,22 @@ end
 
 
 
-function CP2(state_recs::Dict{Int64,NTuple{9,Int64}},
-                   nlocs::Array{Int64,1}, # locations of neighbors.
-                   stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-                   D::DynState)
+function CP2(fid::Int64,
+             state_recs::Dict{Int64,NTuple{9,Int64}},
+             nlocs::Array{Int64,1}, # locations of neighbors.
+             stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
+             D::DynState)
+  outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
+  for el in keys(nlocs) # these should be all the fids.
+    if el != fid  # there is something weird here... 
+      outp[D.all[].fid] = exp.()
+      outp[D.all[].fid] ./=(sum())
+
+    end 
+  end 
 
 
-return nothing 
+return  nothing 
 
 end 
 
@@ -1758,7 +1769,7 @@ The idea would be that this would take a dict of fids and ints (locations) and t
 return a dict of fids/states, as StateRecord above does.
 This would take the dict "locs" from ExactVal
 This needs to catch the "special" value, I think.  That should be in "location".
-
+  #### TESTS ####
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
@@ -1769,15 +1780,18 @@ dyn = DynStateCreate(TexasEq, Tex, patients);
 
 test2 = Dict(3396057=>195, 3390720=>196 , 3396327=>197 , 3396189=>198, 2910645 => 11)
 out_1 = Dict{Int64,NTuple{9,Int64}}()
-
 StateRecord(test2, dyn,out_1)  
+out_1 == Dict(3396057 => (0, 0, 1, 0, 0, 2, 1, 0, 0),3390720 => (0, 0, 0, 0, 1, 1, 1, 0, 1),3396327 => (0, 1, 0, 0, 0, 1, 1, 0, 1),3396189 => (0, 0, 0, 0, 1, 0, 1, 0, 2),2910645 => (0, 0, 0, 0, 0, 0, 0, 1, 3) ) # returns true 
 
-Dict{Int64,NTuple{9,Int64}} with 4 entries:
-  3396057 => (0, 0, 1, 0, 0, 2, 1, 0, 0)
-  3390720 => (0, 0, 0, 0, 1, 1, 1, 0, 1)
-  3396327 => (0, 1, 0, 0, 0, 1, 1, 0, 1)
-  3396189 => (0, 0, 0, 0, 1, 0, 1, 0, 2)
-  2910645 => (0, 0, 0, 0, 0, 0, 0, 1, 3)
+v1 = FindComps(dyn, dyn.all[18])
+push!(v1, 18)
+d1 = Dict{Int64,Int64}()
+test1 = Dict{Int64, NTuple{9,Int64}}()
+CompsDict(v1, dyn, d1)
+StateRecord(d1, dyn, test1)
+
+test1 == Dict(670132 => (0, 0, 0, 1, 0, 0, 1, 0, 0),672285 => (0, 0, 0, 1, 0, 0, 0, 0, 0),373510 => (0, 0, 0, 0, 0, 0, 1, 0, 0)) # returns true. 
+
 
 
 """
