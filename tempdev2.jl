@@ -28,8 +28,9 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     println("From Exact Choice ") 
 
 # FIXME - here there is nothing called nloc anymore.  
+# ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}}, nlocs::Array{Int64,1}, # locations of neighbors. stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
 
-    cps::Dict{Int64,Array{Float64,1}} = ContProbs(st_recs, nloc, stable, D)  
+    cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, nloc, stable, D)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
