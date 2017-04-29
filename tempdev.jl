@@ -42,9 +42,8 @@ function ExactVal(D::DynState,
     for k in keys(totest)                                                             # TODO - not updating the competitors.
       if totest[k]                                                                    # only run those for which true.
         # NB - this can work as written, because it just needs to be run on the elements of stdict.
-        # arguments to ExactChoice: 
-        # tempdict::Dict{}, stabledict::Dict{}, nbs::Dict{Fid,Loc}, 
-        # fid::Int64 (special fid), location::Int64 (special loc), p1::patientcount, p2::patientcount, D::DynState 
+        # What is the goal of this?  Compute the value of each action at each state. 
+        # this works ONE firm at a time. 
         ExactChoice(tempvals, outvals, all_locs, k, all_locs[k], p1, p2, D; messages = true)  
       end 
     end
