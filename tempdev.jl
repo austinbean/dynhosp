@@ -10,7 +10,8 @@ function ExactVal(D::DynState,
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
-  #locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                      # will record the locations of competitors 
+  all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                  # will record the locations of competitors
+  st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                # will record the states of all firms from the point of view of el.
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
@@ -18,8 +19,8 @@ function ExactVal(D::DynState,
     push!(neighbors, el)                                                            # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-    all_locs = CompsDict(neighbors, D)                                                # now this is Dict{Fid, Location}
-    stdict = StateRecord(all_locs, D)                                                 # returns the restricted state.
+    CompsDict(neighbors, D, all_locs)                                                 # now this is Dict{Fid, Location}
+    StateRecord(all_locs, D, st_dict)                                                 # returns the restricted state.
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
@@ -34,6 +35,7 @@ function ExactVal(D::DynState,
     #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
   # Updating process:
+  # NOTE - totest contains only the firms in the "market" which we want.  
   converge = false
   while (!converge)&(its<itlim)                                                       # if true keep going.    
     converge = true                                                                   # reassign, to catch when it terminates.
@@ -43,7 +45,7 @@ function ExactVal(D::DynState,
         # arguments to ExactChoice: 
         # tempdict::Dict{}, stabledict::Dict{}, nbs::Dict{Fid,Loc}, 
         # fid::Int64 (special fid), location::Int64 (special loc), p1::patientcount, p2::patientcount, D::DynState 
-        ExactChoice(tempvals, outvals, stdict, k, all_locs[k], p1, p2, D; messages = true)  
+        ExactChoice(tempvals, outvals, all_locs, k, all_locs[k], p1, p2, D; messages = true)  
       end 
     end
     # Convergence Test:
