@@ -1940,6 +1940,20 @@ end
 
 
 """
+`CompsDict(arr1::Array{Int64,1}, D::DynState)`
+Takes and array of ints which are locations in D.all and returns 
+a dict{Fid, Location}.  For use with FindComps, which returns an array.
+"""
+function CompsDict(arr1::Array{Int64,1}, D::DynState)
+  outp::Dict{Int64,Int64} = Dict{Int64,Int64}()
+  for el in arr1
+    outp[D.all[el].fid] = el
+  end
+  return outp  
+end 
+
+
+"""
 `UpdateD(h::simh)`
 Updates the utility component.  The deterministic part.
 """
