@@ -10,48 +10,43 @@ function ExactVal(D::DynState,
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
-  locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                      # will record the locations of competitors 
+  #locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                      # will record the locations of competitors 
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
     neighbors::Array{Int64,1} = FindComps(D, D.all[el])                             #  these are addresses of fids.
-    push!(neighbors, el) # add the location of the firm in chunk
+    push!(neighbors, el)                                                            # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-        # NOTE - now StateRecord returns a Dict{Int64, NTuple{9, Int64}}
-        # but now I have to run this afterwards.
-    stdict = StateRecord(CompsDict(neighbors, D), D)                                      # returns the restricted state.
+    all_locs = CompsDict(neighbors, D)                                                # now this is Dict{Fid, Location}
+    stdict = StateRecord(all_locs, D)                                                 # returns the restricted state.
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
       totest[D.all[el2].fid] = true                                                   # don't test convergence of neighbors temporarily.  FIXME 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
-      locs[D.all[el2].fid] = el2
+      #locs[D.all[el2].fid] = el2
     end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                             # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
     totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
-    locs[D.all[el].fid] = el                                                          # stores a fid,location value
+    #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
-  println(keys(locs))
   # Updating process:
   converge = false
   while (!converge)&(its<itlim)                                                       # if true keep going.    
     converge = true                                                                   # reassign, to catch when it terminates.
     for k in keys(totest)                                                             # TODO - not updating the competitors.
       if totest[k]                                                                    # only run those for which true.
-        if messages println("tempvals keys before: ", keys(tempvals)) end
-        if messages println("outvals keys before: ", keys(outvals)) end
-        if messages println("locs keys before: ", keys(locs)) end 
-        ExactChoice(tempvals, outvals, locs, k, locs[k], p1, p2, D; messages = true)  
-        # if messages println("tempvals keys after: ", keys(tempvals)) end
-        # if messages println("outvals keys after: ", keys(outvals)) end
-        # if messages println("locs keys after: ", keys(locs)) end 
+        # NB - this can work as written, because it just needs to be run on the elements of stdict.
+        # arguments to ExactChoice: 
+        # tempdict::Dict{}, stabledict::Dict{}, nbs::Dict{Fid,Loc}, 
+        # fid::Int64 (special fid), location::Int64 (special loc), p1::patientcount, p2::patientcount, D::DynState 
+        ExactChoice(tempvals, outvals, stdict, k, all_locs[k], p1, p2, D; messages = true)  
       end 
     end
     # Convergence Test:
-    if messages println("near convergence") end 
     converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
@@ -62,7 +57,7 @@ function ExactVal(D::DynState,
     its += 1
     println("iteration ", its)
   end 
-  # Return equilibrium values:
+  ## Return equilibrium values:
   return outvals
 end
 
@@ -118,6 +113,10 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ExactVal(dyn, ch, p1, p2)
 
 PatientZero(p1, p2)
+
+
+ch2 = [11]
+ExactVal(dyn, ch2, p1, p2)
 
 NOTES on current problems:
 - some firms  are getting added... that is, fids are getting added which I don't want added.  Where does that happen?  
