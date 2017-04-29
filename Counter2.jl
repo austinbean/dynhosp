@@ -1193,7 +1193,13 @@ for each firm.  Returns a boolean recording convergence, but also returns a list
 Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
 
 Testing: 
-dyn = CounterObjects(10);
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
 test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
 test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
 test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
@@ -1274,6 +1280,13 @@ stable is the dict of values - i.e., the continuation values of the firms
 level is the level for the firm for which we are computing CV 
 fid is the dyn.all[xxx].fid - the firm for which we are computing the CV.
 
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
 
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1470,6 +1483,14 @@ end
 
 Ok. Should take the output of contprobs and return the right output.
 
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
+
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -1514,6 +1535,14 @@ end
 `TotalCombine`
 This will do what I want.  
 Return all of the states, with the associated probabilities.  
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1709,6 +1738,14 @@ The idea would be that this would take a dict of fids and ints (locations) and t
 return a dict of fids/states, as StateRecord above does.
 This would take the dict "locs" from ExactVal
 This needs to catch the "special" value, I think.  That should be in "location".
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
 
 test2 = Dict(3396057=>195, 3390720=>196 , 3396327=>197 , 3396189=>198, 2910645 => 11)
 
