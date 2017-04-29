@@ -18,7 +18,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)  
     # Also this is getting neighbors of the neighbor, which I do not want. 
-    # Here is the issue - this calls on neighbors.  It should not. 
     # use the Dict in nbs.    
 #    recs = StateRecord(neighbors, location, D) # this returns the dict of the state for the firm whose value is being computed from point of view of the main firm.
     rec = StateRecord(D.all[location].nfids, location, D)     # this is computing the state from the point of view of... the main fac. 
