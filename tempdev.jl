@@ -14,13 +14,13 @@ function ExactVal(D::DynState,
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
-    # consider rewriting FindComps to return a Dict{Int64, Int64} = {Fid, Loc}.  To replace locs.  
     neighbors::Array{Int64,1} = FindComps(D, D.all[el])                             #  these are addresses of fids.
+    push!(neighbors, el) # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-        # nothing needs to be changed in the next line for the neighbor problem.
         # NOTE - now StateRecord returns a Dict{Int64, NTuple{9, Int64}}
-    stdict = StateRecord(D.all[el].nfids, el, D)                                      # returns the restricted state.
+        # but now I have to run this afterwards.
+    stdict = StateRecord(CompsDict(neighbors, D), D)                                      # returns the restricted state.
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
@@ -33,7 +33,6 @@ function ExactVal(D::DynState,
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
     totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
     locs[D.all[el].fid] = el                                                          # stores a fid,location value
-    push!(neighbors, el) # now this contains the location in D.all from chunk.
   end
   println(keys(locs))
   # Updating process:
@@ -77,13 +76,6 @@ end
 `ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
 Computes the exact solution for smaller markets.  1 - 5 firms at most.
 
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients);
 
 entries to consideR: 1-15 are all.
 Here number of neighbors and entry (dyn.all[x])
