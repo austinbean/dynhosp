@@ -1460,23 +1460,52 @@ end
 
 
 
+
+"""
+`CP2`
+
+### TESTING ###
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+
+d1[dyn.all[11].fid] = Dict{NTuple{10,Int64}, Float64}() # this gives the argument stable_vals
+d1[dyn.all[11].fid][StateKey(dyn.all[11], 1)] = 0.0
+d1[dyn.all[11].fid][StateKey(dyn.all[11], 2)] = 0.0
+d1[dyn.all[11].fid][StateKey(dyn.all[11], 3)] = 0.0
+
+location2 = FindComps(dyn, dyn.all[11])
+d1[dyn.all[location2[1]].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[location2[2]].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[location2[1]][StateKey(dyn.all[location2[1], 1)] = 0.0
+d1[location2[1]][StateKey(dyn.all[location2[1], 2)] = 0.0
+d1[location2[1]][StateKey(dyn.all[location2[1], 3)] = 0.0
+d1[location2[2]][StateKey(dyn.all[location2[2], 1)] = 0.0
+d1[location2[2]][StateKey(dyn.all[location2[2], 2)] = 0.0
+d1[location2[2]][StateKey(dyn.all[location2[2], 3)] = 0.0
+testcp2 = Dict{Int64,Int64}()
+
+CompsDict(FindComps(dyn, dyn.all[11]), dyn, testcp2) # this is argument nlocs
+
+testcp22 = Dict{Int64, NTuple{9,Int64}}() # holds state_recs
+
+StateRecord(testcp2, dyn, testcp22)
+
+CP2(11, testcp22 , testcp2, d1, dyn )
+
+"""
 function CP2(fid::Int64,
              state_recs::Dict{Int64,NTuple{9,Int64}},
-             nlocs::Array{Int64,1}, # locations of neighbors.
+             nlocs::Dict{Int64,Int64}, # locations of neighbors.
              stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
              D::DynState)
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
   for el in keys(nlocs) # these should be all the fids.
-    if el != fid  # there is something weird here... 
-      outp[D.all[].fid] = exp.()
-      outp[D.all[].fid] ./=(sum())
-
+    if el != fid  # we skip continuation probs for one firm.   
+      outp[el] = exp.(stable_vals[el][TAddLevel(state_recs[el], 1)], stable_vals[el][TAddLevel(state_recs[el],2)], stable_vals[el][TAddLevel(state_recs[el], 3)])
+      outp[el] ./=(sum(outp[el]))
     end 
   end 
-
-
-return  nothing 
-
+  return outp 
 end 
 
 
@@ -1764,7 +1793,7 @@ end
 
 
 """
-`StateRecord(neighbors::Dict{Int64, Int64}, D::Dynstate)`
+`function StateRecord(neighbors::Dict{Int64,Int64},  D::DynState, outp::Dict{Int64,NTuple{9,Int64}})`
 The idea would be that this would take a dict of fids and ints (locations) and then 
 return a dict of fids/states, as StateRecord above does.
 This would take the dict "locs" from ExactVal
@@ -1957,6 +1986,11 @@ end
 `FindComps(D::DynState, args::simh...)`
 Finds the locations of the neighbors in the DynState.
 Takes a variable number of simh
+
+### TESTING ###
+
+FindComps(dyn, dyn.all[11]) == [195, 196, 197, 198] # returns true. 
+
 """
 function FindComps(D::DynState, args::simh...)
     # takes a state and finds me the neighbors.
@@ -1978,6 +2012,13 @@ end
 `CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})`
 Takes and array of ints which are locations in D.all and returns 
 a dict{Fid, Location}.  For use with FindComps, which returns an array.
+NB: does NOT append the location of the args... to FindComps.
+
+### TESTING ###
+
+testcd = Dict{Int64, Int64}()
+CompsDict(FindComps(dyn, dyn.all[11]), dyn, testcd)
+testcd == Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198) # returns true.
 """
 function CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})
   for el in arr1
