@@ -25,8 +25,8 @@ function ExactVal(D::DynState,
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
       totest[D.all[el2].fid] = true                                                   # don't test convergence of neighbors temporarily.  FIXME 
-      StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
-      StateEnumerate(TupletoCNS(stdict[D.all[el2].fid]), tempvals[D.all[el2].fid])
+      StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
+      StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       #locs[D.all[el2].fid] = el2
     end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                             # TODO - starting values here.
@@ -34,6 +34,8 @@ function ExactVal(D::DynState,
     totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
     #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
+  println(all_locs)
+  println(st_dict)
   # Updating process:
   # NOTE - totest contains only the firms in the "market" which we want.  
   converge = false
@@ -41,10 +43,18 @@ function ExactVal(D::DynState,
     converge = true                                                                   # reassign, to catch when it terminates.
     for k in keys(totest)                                                             # TODO - not updating the competitors.
       if totest[k]                                                                    # only run those for which true.
-        # NB - this can work as written, because it just needs to be run on the elements of stdict.
-        # What is the goal of this?  Compute the value of each action at each state. 
-        # this works ONE firm at a time. 
-        ExactChoice(tempvals, outvals, all_locs, k, all_locs[k], p1, p2, D; messages = true)  
+        
+        # ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+        #             stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
+        #              nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict, I think.  
+        #              st_recs::Dict{Int64,NTuple{9,Int64}}, # these are the states.
+        #              fid::Int64, 
+        #              location::Int64,
+        #              p1::patientcount,
+        #              p2::patientcount,
+        #              D::DynState; 
+         # arg k should be replaced with st_dict   
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true)  
       end 
     end
     # Convergence Test:
@@ -58,7 +68,7 @@ function ExactVal(D::DynState,
     its += 1
     println("iteration ", its)
   end 
-  ## Return equilibrium values:
+  # Return equilibrium values:
   return outvals
 end
 
