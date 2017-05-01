@@ -1465,8 +1465,15 @@ end
 `CP2`
 
 ### TESTING ###
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients); 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 
 d1[dyn.all[11].fid] = Dict{NTuple{10,Int64}, Float64}() # this gives the argument stable_vals
 d1[dyn.all[11].fid][StateKey(dyn.all[11], 1)] = 0.0
@@ -1474,14 +1481,11 @@ d1[dyn.all[11].fid][StateKey(dyn.all[11], 2)] = 0.0
 d1[dyn.all[11].fid][StateKey(dyn.all[11], 3)] = 0.0
 
 location2 = FindComps(dyn, dyn.all[11])
-d1[dyn.all[location2[1]].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[dyn.all[location2[2]].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[location2[1]][StateKey(dyn.all[location2[1], 1)] = 0.0
-d1[location2[1]][StateKey(dyn.all[location2[1], 2)] = 0.0
-d1[location2[1]][StateKey(dyn.all[location2[1], 3)] = 0.0
-d1[location2[2]][StateKey(dyn.all[location2[2], 1)] = 0.0
-d1[location2[2]][StateKey(dyn.all[location2[2], 2)] = 0.0
-d1[location2[2]][StateKey(dyn.all[location2[2], 3)] = 0.0
+d1[dyn.all[location2[1]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[2]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[3]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[4]].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[location2[1]].fid][StateKey(dyn.all[location2[1]], 1)] = 0.0; d1[dyn.all[location2[1]].fid][StateKey(dyn.all[location2[1]], 2)] = 0.0; d1[dyn.all[location2[1]].fid][StateKey(dyn.all[location2[1]], 3)] = 0.0;
+d1[dyn.all[location2[2]].fid][StateKey(dyn.all[location2[2]], 1)] = 0.0; d1[dyn.all[location2[2]].fid][StateKey(dyn.all[location2[2]], 2)] = 0.0; d1[dyn.all[location2[2]].fid][StateKey(dyn.all[location2[2]], 3)] = 0.0;
+d1[dyn.all[location2[3]].fid][StateKey(dyn.all[location2[3]], 1)] = 0.0; d1[dyn.all[location2[3]].fid][StateKey(dyn.all[location2[3]], 2)] = 0.0; d1[dyn.all[location2[3]].fid][StateKey(dyn.all[location2[3]], 3)] = 0.0;
+d1[dyn.all[location2[4]].fid][StateKey(dyn.all[location2[4]], 1)] = 0.0; d1[dyn.all[location2[4]].fid][StateKey(dyn.all[location2[4]], 2)] = 0.0; d1[dyn.all[location2[4]].fid][StateKey(dyn.all[location2[4]], 3)] = 0.0;
 testcp2 = Dict{Int64,Int64}()
 
 CompsDict(FindComps(dyn, dyn.all[11]), dyn, testcp2) # this is argument nlocs
@@ -1793,7 +1797,7 @@ end
 
 
 """
-`function StateRecord(neighbors::Dict{Int64,Int64},  D::DynState, outp::Dict{Int64,NTuple{9,Int64}})`
+`StateRecord(neighbors::Dict{Int64,Int64},  D::DynState, outp::Dict{Int64,NTuple{9,Int64}})`
 The idea would be that this would take a dict of fids and ints (locations) and then 
 return a dict of fids/states, as StateRecord above does.
 This would take the dict "locs" from ExactVal
@@ -1822,6 +1826,14 @@ StateRecord(d1, dyn, test1)
 test1 == Dict(670132 => (0, 0, 0, 1, 0, 0, 1, 0, 0),672285 => (0, 0, 0, 1, 0, 0, 0, 0, 0),373510 => (0, 0, 0, 0, 0, 0, 1, 0, 0)) # returns true. 
 
 
+#Try with dyn.all[11]
+v11 = FindComps(dyn, dyn.all[11])
+push!(v11, 11)
+d11 = Dict{Int64,Int64}()
+test11 = Dict{Int64, NTuple{9,Int64}}()
+CompsDict(v11, dyn, d11)
+StateRecord(d11, dyn, test11)
+test11 == Dict(3396057 => (0, 0, 1, 0, 0, 2, 1, 0, 0), 3390720 => (0, 0, 0, 0, 1, 1, 1, 0, 1), 3396327 => (0, 1, 0, 0, 0, 1, 1, 0, 1), 3396189 => (0, 0, 0, 0, 1, 0, 1, 0, 2),2910645 => (0, 0, 0, 0, 0, 0, 0, 1, 3))
 
 """
 function StateRecord(neighbors::Dict{Int64,Int64},  D::DynState, outp::Dict{Int64,NTuple{9,Int64}})
@@ -1993,18 +2005,18 @@ FindComps(dyn, dyn.all[11]) == [195, 196, 197, 198] # returns true.
 
 """
 function FindComps(D::DynState, args::simh...)
-    # takes a state and finds me the neighbors.
-    outp::Array{Int64,1} = Array{Int64,1}()
-    for (i, h) in enumerate(args)
-      for el in h.nfids
-        for loc in 1:size(D.all,1) 
-          if D.all[loc].fid == el 
-            push!(outp, loc)
-          end  
-        end 
+  # takes a state and finds me the neighbors.
+  outp::Array{Int64,1} = Array{Int64,1}()
+  for (i, h) in enumerate(args)
+    for el in h.nfids
+      for loc in 1:size(D.all,1) 
+        if D.all[loc].fid == el 
+          push!(outp, loc)
+        end  
       end 
     end 
-    return outp 
+  end 
+  return outp 
 end 
 
 
