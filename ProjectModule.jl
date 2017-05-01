@@ -763,6 +763,7 @@ end
   export PartialCombine 
   export TupletoCNS
   export CompsDict
+  export NStateKey
    
   
 
