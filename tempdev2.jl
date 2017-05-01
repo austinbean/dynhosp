@@ -17,20 +17,12 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ2EX::Float64 = 0.0,
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
-                     ϕ3EX::Float64 = 0.0)  
-
-    # Also this is getting neighbors of the neighbor, which I do not want. 
-    # use the Dict in nbs.    
-#    recs = StateRecord(neighbors, location, D) # this returns the dict of the state for the firm whose value is being computed from point of view of the main firm.
-    # Correct Call from Exact VaL: stdict = StateRecord(CompsDict(neighbors, D), D)  
-    # No this can work as written.  It will be called sequentially on all of the elements of nbs.                                
-    #rec = StateRecord(nbs, location, D)     # this is computing the state from the point of view of... the main fac. 
-    println("From Exact Choice ") 
-
-# FIXME - here there is nothing called nloc anymore.  
-# ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}}, nlocs::Array{Int64,1}, # locations of neighbors. stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-
-    cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, nloc, stable, D)  
+                     ϕ3EX::Float64 = 0.0)   
+      #= ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
+                   nlocs::Array{Int64,1}, # locations of neighbors.
+                   stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
+                   D::DynState) =#
+    cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, nbs, stable, D)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
