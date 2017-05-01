@@ -1398,6 +1398,7 @@ d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
 location = FindComps(dyn, dyn.all[1])
+
 recs = StateRecord(dyn.all[1].nfids, 1, dyn)
 
 d1[1391330] = Dict{NTuple{10, Int64}, Float64}()
@@ -1422,7 +1423,7 @@ d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
 location2 = FindComps(dyn, dyn.all[18]) # locations are 19 and 152
 testcp = Dict(672285 => 19, 373510 => 152)
-recs2 = StateRecord(testcp,  dyn) NOT WORKING YET. 
+recs2 = StateRecord(testcp,  dyn)  
 
 d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
 d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
@@ -1462,7 +1463,15 @@ end
 
 
 """
-`CP2`
+`CP2(fid::Int64,state_recs::Dict{Int64,NTuple{9,Int64}},nlocs::Dict{Int64,Int64},stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} }, D::DynState)`
+
+A rewrite of the first ContProbs function. 
+- (fid) Takes the FID of the main facility as an argument.
+- (state_recs) State Recs of restricted states from the point of view of all neighbors.
+- (nlocs) Locations of neighbors.  (necessary...)
+- (stable_vals) The current equilibrium value estimations.
+- (D) DynState.  (not necessary?)
+
 
 ### TESTING ###
 
@@ -1481,31 +1490,47 @@ d1[dyn.all[11].fid][StateKey(dyn.all[11], 2)] = 0.0
 d1[dyn.all[11].fid][StateKey(dyn.all[11], 3)] = 0.0
 
 location2 = FindComps(dyn, dyn.all[11])
-d1[dyn.all[location2[1]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[2]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[3]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[4]].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[dyn.all[location2[1]].fid][StateKey(dyn.all[location2[1]], 1)] = 0.0; d1[dyn.all[location2[1]].fid][StateKey(dyn.all[location2[1]], 2)] = 0.0; d1[dyn.all[location2[1]].fid][StateKey(dyn.all[location2[1]], 3)] = 0.0;
-d1[dyn.all[location2[2]].fid][StateKey(dyn.all[location2[2]], 1)] = 0.0; d1[dyn.all[location2[2]].fid][StateKey(dyn.all[location2[2]], 2)] = 0.0; d1[dyn.all[location2[2]].fid][StateKey(dyn.all[location2[2]], 3)] = 0.0;
-d1[dyn.all[location2[3]].fid][StateKey(dyn.all[location2[3]], 1)] = 0.0; d1[dyn.all[location2[3]].fid][StateKey(dyn.all[location2[3]], 2)] = 0.0; d1[dyn.all[location2[3]].fid][StateKey(dyn.all[location2[3]], 3)] = 0.0;
-d1[dyn.all[location2[4]].fid][StateKey(dyn.all[location2[4]], 1)] = 0.0; d1[dyn.all[location2[4]].fid][StateKey(dyn.all[location2[4]], 2)] = 0.0; d1[dyn.all[location2[4]].fid][StateKey(dyn.all[location2[4]], 3)] = 0.0;
+
 testcp2 = Dict{Int64,Int64}()
 
 CompsDict(FindComps(dyn, dyn.all[11]), dyn, testcp2) # this is argument nlocs
 
+
+StateRecord(testcp2, dyn, testcp22)
+
+d1[dyn.all[location2[1]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[2]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[3]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[4]].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 1)] = 0.0; d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 2)] = 0.0; d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 3)] = 0.0;
+d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 1)] = 0.0; d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 2)] = 0.0; d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 3)] = 0.0;
+d1[dyn.all[location2[3]].fid][NStateKey(testcp22[dyn.all[location2[3]].fid], 1)] = 0.0; d1[dyn.all[location2[3]].fid][NStateKey(testcp22[dyn.all[location2[3]].fid], 2)] = 0.0; d1[dyn.all[location2[3]].fid][NStateKey(testcp22[dyn.all[location2[3]].fid], 3)] = 0.0;
+d1[dyn.all[location2[4]].fid][NStateKey(testcp22[dyn.all[location2[4]].fid], 1)] = 0.0; d1[dyn.all[location2[4]].fid][NStateKey(testcp22[dyn.all[location2[4]].fid], 2)] = 0.0; d1[dyn.all[location2[4]].fid][NStateKey(testcp22[dyn.all[location2[4]].fid], 3)] = 0.0;
+
+CP2(dyn.all[11].fid, testcp22,  d1) # note that this takes the location of the main firm.  
+
+# do it for entry 18 in dyn.  
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}() # this gives the argument stable_vals
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
+d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
+
+location2 = FindComps(dyn, dyn.all[18])
+testcp2 = Dict{Int64,Int64}()
+CompsDict(FindComps(dyn, dyn.all[18]), dyn, testcp2) # this is argument nlocs
 testcp22 = Dict{Int64, NTuple{9,Int64}}() # holds state_recs
 
 StateRecord(testcp2, dyn, testcp22)
 
-CP2(11, testcp22 , testcp2, d1, dyn )
+
+CP2(dyn.all[18].fid, )
 
 """
 function CP2(fid::Int64,
              state_recs::Dict{Int64,NTuple{9,Int64}},
-             nlocs::Dict{Int64,Int64}, # locations of neighbors.
-             stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-             D::DynState)
+             stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
-  for el in keys(nlocs) # these should be all the fids.
+  for el in keys(stable_vals) # these should be all the fids.
     if el != fid  # we skip continuation probs for one firm.   
-      outp[el] = exp.(stable_vals[el][TAddLevel(state_recs[el], 1)], stable_vals[el][TAddLevel(state_recs[el],2)], stable_vals[el][TAddLevel(state_recs[el], 3)])
+      outp[el] = exp.([stable_vals[el][TAddLevel(state_recs[el], 1)], stable_vals[el][TAddLevel(state_recs[el],2)], stable_vals[el][TAddLevel(state_recs[el], 3)]])
       outp[el] ./=(sum(outp[el]))
     end 
   end 
@@ -1988,10 +2013,29 @@ end
 """
 `StateKey(h::simh)`
 Returns a tuple of the neighbors and level to use in `ExactVal()`
+
+Note that this function should ONLY be used with the main firm, not with 
+any neighbors, since this takes the full state directly from the DynState 
+record.  For neighbors, use NStateKey. 
 """
 function StateKey(h::simh, a::Int64)
   return (h.cns.level105, h.cns.level205, h.cns.level305, h.cns.level1515, h.cns.level2515, h.cns.level3515, h.cns.level11525, h.cns.level21525, h.cns.level31525, a)
 end 
+
+"""
+`NStateKey(rstate::NTuple{9,Int64},lev::Int64)`
+
+This function generates a state key for a firm which is a neighbor.  
+Reasoning: Restricted states are generated as tuples.  StateKey takes 
+full, unrestricted states from DynState, so only works for the main firm.
+Then we use StateRecord to get restricted states as tuples.  Those should
+form the state keys.  
+For main firms, use StateKey.   
+"""
+function NStateKey(rstate::NTuple{9,Int64},lev::Int64)
+  return (rstate..., lev)
+end 
+
 
 
 """
