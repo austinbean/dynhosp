@@ -18,11 +18,12 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)   
-      #= ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
-                   nlocs::Array{Int64,1}, # locations of neighbors.
-                   stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-                   D::DynState) =#
-    cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, nbs, stable, D)  
+  #=  ContProbs(fid::Int64,
+             state_recs::Dict{Int64,NTuple{9,Int64}},
+             stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
+             =#
+    cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, stable)  
+# FIXME - this needs changing.  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
