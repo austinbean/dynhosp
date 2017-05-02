@@ -1519,9 +1519,19 @@ CompsDict(FindComps(dyn, dyn.all[18]), dyn, testcp2) # this is argument nlocs
 testcp22 = Dict{Int64, NTuple{9,Int64}}() # holds state_recs
 
 StateRecord(testcp2, dyn, testcp22)
+d1[dyn.all[location2[1]].fid] = Dict{NTuple{10,Int64}, Float64}(); d1[dyn.all[location2[2]].fid] = Dict{NTuple{10,Int64}, Float64}(); 
+d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 1)] = 0.0; d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 2)] = 0.0; d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 3)] = 0.0;
+d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 1)] = 0.0; d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 2)] = 0.0; d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 3)] = 0.0;
 
 
-CP2(dyn.all[18].fid, )
+test1 = CP2(dyn.all[18].fid, testcp22, d1) 
+# returns: Dict(672285 => [0.333333, 0.333333, 0.333333], 373510 => [0.333333, 0.333333, 0.333333])
+
+
+
+dict1 = Dict('a'=> 1, 'b'=>2)
+dict2 = Dict('a'=> 3, 'b'=>4)
+keys(dict1) == keys(dict2)
 
 """
 function CP2(fid::Int64,
