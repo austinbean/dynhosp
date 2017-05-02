@@ -1366,104 +1366,8 @@ end
 
 
 
-
-
 """
-`ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
-                  nlocs::Array{Int64,1}, # locations of neighbors.
-                  stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-                  D::DynState)`
-
-Picks out the probabilities of actions from opponents values.
-
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients); 
-
-# To Run:
-
-d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-#fid = 3490795;
-#location = 1;
-
-d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
-d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
-d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
-location = FindComps(dyn, dyn.all[1])
-
-recs = StateRecord(dyn.all[1].nfids, 1, dyn)
-
-d1[1391330] = Dict{NTuple{10, Int64}, Float64}()
-d1[1391330][TAddLevel(recs[1391330], 1)] = 0.0
-d1[1391330][TAddLevel(recs[1391330], 2)] = 0.0
-d1[1391330][TAddLevel(recs[1391330], 3)] = 0.0
-
-cp = ContProbs(recs, location, d1, dyn)
-# should return: Dict{Int64,Array{Float64,1}} with 1 entry: 1391330 => [0.333333, 0.333333, 0.333333]
-
-# need a test for two firms as well.  
-
-
-d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-
-d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
-d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
-d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
-location2 = FindComps(dyn, dyn.all[18]) # locations are 19 and 152
-testcp = Dict(672285 => 19, 373510 => 152)
-recs2 = StateRecord(testcp,  dyn)  
-
-d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 2)] = 0.0
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 3)] = 0.0
-
-d1[dyn.all[152].fid] = Dict{NTuple{10, Int64}, Float64}()
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 0.0
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 0.0
-
-cp = ContProbs(recs2, location2, d1, dyn)
-
-# should return: Dict{Int64,Array{Float64,1}} with 2 entries:  672285 => [0.333333, 0.333333, 0.333333] 373510 => [0.333333, 0.333333, 0.333333]
-# FIXME - this is a problem too.  It's iterating over all of these keys.  Why?  OR - what keys and why do I want them?
-How did this work without knowing which value it was computing?   It didn't matter, because it had the set nlocs ONLY, when this was just the neighbors.
-Now this needs to check against... other fids only?  something like that.  
-
-"""
-function ContProbs(state_recs::Dict{Int64,NTuple{9,Int64}},
-                   nlocs::Array{Int64,1}, # locations of neighbors.
-                   stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} },
-                   D::DynState)
-# FIXME - this should no longer take an array nlocs, but instead a dict{Fid, Int64}.
-  outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
-  for el in nlocs # these index the locations of neighbors in the array.
-    outp[D.all[el].fid] = exp.([stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],1)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],2)], stable_vals[D.all[el].fid][TAddLevel(state_recs[D.all[el].fid],3)]])
-    outp[D.all[el].fid]./=(sum(outp[D.all[el].fid]))
-    if sum(outp[D.all[el].fid]) == 0
-      println("ContProbs problem.")
-    end   
-  end 
-  return outp
-end
-
-
-
-
-"""
-`CP2(fid::Int64,state_recs::Dict{Int64,NTuple{9,Int64}},nlocs::Dict{Int64,Int64},stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} }, D::DynState)`
+`ContProbs(fid::Int64,state_recs::Dict{Int64,NTuple{9,Int64}},nlocs::Dict{Int64,Int64},stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} }, D::DynState)`
 
 A rewrite of the first ContProbs function. 
 - (fid) Takes the FID of the main facility as an argument.
@@ -1504,7 +1408,7 @@ d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 1)]
 d1[dyn.all[location2[3]].fid][NStateKey(testcp22[dyn.all[location2[3]].fid], 1)] = 0.0; d1[dyn.all[location2[3]].fid][NStateKey(testcp22[dyn.all[location2[3]].fid], 2)] = 0.0; d1[dyn.all[location2[3]].fid][NStateKey(testcp22[dyn.all[location2[3]].fid], 3)] = 0.0;
 d1[dyn.all[location2[4]].fid][NStateKey(testcp22[dyn.all[location2[4]].fid], 1)] = 0.0; d1[dyn.all[location2[4]].fid][NStateKey(testcp22[dyn.all[location2[4]].fid], 2)] = 0.0; d1[dyn.all[location2[4]].fid][NStateKey(testcp22[dyn.all[location2[4]].fid], 3)] = 0.0;
 
-CP2(dyn.all[11].fid, testcp22,  d1) # note that this takes the location of the main firm.  
+ContProbs(dyn.all[11].fid, testcp22,  d1) # note that this takes the location of the main firm.  
 
 # do it for entry 18 in dyn.  
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1524,7 +1428,7 @@ d1[dyn.all[location2[1]].fid][NStateKey(testcp22[dyn.all[location2[1]].fid], 1)]
 d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 1)] = 0.0; d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 2)] = 0.0; d1[dyn.all[location2[2]].fid][NStateKey(testcp22[dyn.all[location2[2]].fid], 3)] = 0.0;
 
 
-test1 = CP2(dyn.all[18].fid, testcp22, d1) 
+test1 = ContProbs(dyn.all[18].fid, testcp22, d1) 
 # returns: Dict(672285 => [0.333333, 0.333333, 0.333333], 373510 => [0.333333, 0.333333, 0.333333])
 
 
@@ -1534,7 +1438,7 @@ dict2 = Dict('a'=> 3, 'b'=>4)
 keys(dict1) == keys(dict2)
 
 """
-function CP2(fid::Int64,
+function ContProbs(fid::Int64,
              state_recs::Dict{Int64,NTuple{9,Int64}},
              stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
