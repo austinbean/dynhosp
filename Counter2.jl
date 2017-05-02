@@ -1367,8 +1367,7 @@ end
 
 
 """
-`ContProbs(fid::Int64,state_recs::Dict{Int64,NTuple{9,Int64}},nlocs::Dict{Int64,Int64},stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} }, D::DynState)`
-
+`ContProbsContProbs(fid::Int64, state_recs::Dict{Int64,NTuple{9,Int64}}, stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
 A rewrite of the first ContProbs function. 
 - (fid) Takes the FID of the main facility as an argument.
 - (state_recs) State Recs of restricted states from the point of view of all neighbors.
@@ -1535,7 +1534,7 @@ end
 
 
 """
-`TotalCombine`
+`TotalCombine(D::DynState,location::Int64,nfids::Array{Int64,1},contprobs::Dict{Int64,Array{Float64,1}})`
 This will do what I want.  
 Return all of the states, with the associated probabilities.  
 
@@ -1558,16 +1557,19 @@ d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
-location = FindComps(dyn.all[1], dyn)
-recs = StateRecord(dyn.all[1].nfids, 1, dyn)
+nd = Dict{Int64,Int64}()
+location = CompsDict(FindComps(dyn,dyn.all[1]), dyn, nd)
+st_recs = Dict{Int64, NTuple{9,Int64}}()
+StateRecord(nd, dyn, st_recs)
 
 d1[1391330] = Dict{NTuple{10, Int64}, Float64}()
-d1[1391330][TAddLevel(recs[1391330], 1)] = 0.0
-d1[1391330][TAddLevel(recs[1391330], 2)] = 0.0
-d1[1391330][TAddLevel(recs[1391330], 3)] = 0.0
-cp = ContProbs(recs, location, d1, dyn)
+d1[1391330][TAddLevel(st_recs[1391330], 1)] = 0.0
+d1[1391330][TAddLevel(st_recs[1391330], 2)] = 0.0
+d1[1391330][TAddLevel(st_recs[1391330], 3)] = 0.0
 
-TotalCombine(dyn, 1, dyn.all[1].nfids, cp)
+cp1 = ContProbs(dyn.all[1].fid, st_recs, d1)
+
+TotalCombine(dyn, 1, , cp1)
 
 
 # try with two firms...
@@ -1603,7 +1605,7 @@ compprobs = TotalCombine(dyn, 18, dyn.all[18].nfids, cp2)
 
 function TotalCombine(D::DynState,
                       location::Int64,
-                      nfids::Array{Int64,1},
+                      comps::Array{Int64,1},
                       contprobs::Dict{Int64,Array{Float64,1}})
   # Create the outputs
   out05::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
@@ -1614,7 +1616,9 @@ function TotalCombine(D::DynState,
   push!(out1525, ([0, 0, 0], 1.0))
   lastout::Dict{NTuple{9, Int64}, Float64} = Dict{NTuple{9, Int64}, Float64}()
   # Competitors' locations: 
-  comps::Array{Int64,1} = FindComps(D.all[location], D)
+  # FIXME - this has the wrong call to findcomps.  Also -
+  # FIXME - should this call FindComps at all?  
+  # comps::Array{Int64,1} = FindComps(D.all[location], D)
   # Measure the distances, apply GenStates to relevant segment.
   loc1 = [0.0 0.0 0.0]; 
   loc2 = [0.0 0.0 0.0];
