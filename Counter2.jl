@@ -1569,7 +1569,7 @@ d1[1391330][TAddLevel(st_recs[1391330], 3)] = 0.0
 
 cp1 = ContProbs(dyn.all[1].fid, st_recs, d1)
 
-TotalCombine(dyn, 1, , cp1)
+TotalCombine(dyn, 1, nd, cp1)
 
 
 # try with two firms...
@@ -1605,7 +1605,7 @@ compprobs = TotalCombine(dyn, 18, dyn.all[18].nfids, cp2)
 
 function TotalCombine(D::DynState,
                       location::Int64,
-                      comps::Array{Int64,1},
+                      comps::Dict{Int64,Int64},
                       contprobs::Dict{Int64,Array{Float64,1}})
   # Create the outputs
   out05::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
@@ -1615,29 +1615,30 @@ function TotalCombine(D::DynState,
   out1525::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
   push!(out1525, ([0, 0, 0], 1.0))
   lastout::Dict{NTuple{9, Int64}, Float64} = Dict{NTuple{9, Int64}, Float64}()
-  # Competitors' locations: 
-  # FIXME - this has the wrong call to findcomps.  Also -
-  # FIXME - should this call FindComps at all?  
+  # Competitors' locations: should this call FindComps at all?  
   # comps::Array{Int64,1} = FindComps(D.all[location], D)
   # Measure the distances, apply GenStates to relevant segment.
   loc1 = [0.0 0.0 0.0]; 
   loc2 = [0.0 0.0 0.0];
   loc3 = [0.0 0.0 0.0];   
-  for k1 in comps 
-    d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
-    loc1[1] = contprobs[D.all[k1].fid][1];
-    loc2[2] = contprobs[D.all[k1].fid][2];
-    loc3[3] = contprobs[D.all[k1].fid][3];
-    if (d1>0)&(d1<5)
-      out05 = GenStates(out05, loc1, loc2, loc3)
-    elseif (d1>=5)&(d1<15)
-      out515 = GenStates(out515, loc1, loc2, loc3)
-    elseif (d1>=15)&(d1<25)
-      out1525 = GenStates(out1525, loc1, loc2, loc3)
-    else 
-      # do nothing 
+  for k in keys(comps)
+    if comps[k] != location # this will ignore the firm and do only the neighbors.  
+      k1 = comps[k] # access the location  
+      d1::Float64 = distance(D.all[location].lat, D.all[location].long, D.all[k1].lat, D.all[k1].long) # how far from the main fac?
+      loc1[1] = contprobs[D.all[k1].fid][1];
+      loc2[2] = contprobs[D.all[k1].fid][2];
+      loc3[3] = contprobs[D.all[k1].fid][3];
+      if (d1>0)&(d1<5)
+        out05 = GenStates(out05, loc1, loc2, loc3)
+      elseif (d1>=5)&(d1<15)
+        out515 = GenStates(out515, loc1, loc2, loc3)
+      elseif (d1>=15)&(d1<25)
+        out1525 = GenStates(out1525, loc1, loc2, loc3)
+      else 
+        # do nothing 
+      end 
+      loc1[1] = 0.0; loc2[2] = 0.0; loc3[3] = 0.0; # reassign to 0.
     end 
-    loc1[1] = 0.0; loc2[2] = 0.0; loc3[3] = 0.0; # reassign to 0.
   end 
   for el1 in out05
     for el2 in out515
