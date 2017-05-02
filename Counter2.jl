@@ -1534,7 +1534,7 @@ end
 
 
 """
-`TotalCombine(D::DynState,location::Int64,nfids::Array{Int64,1},contprobs::Dict{Int64,Array{Float64,1}})`
+`TotalCombine(D::DynState, location::Int64, comps::Dict{Int64,Int64}, contprobs::Dict{Int64,Array{Float64,1}})
 This will do what I want.  
 Return all of the states, with the associated probabilities.  
 
@@ -1584,28 +1584,30 @@ d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
-location2 = FindComps(dyn.all[18], dyn) # locations are 19 and 152
-recs2 = StateRecord(dyn.all[18].nfids, 18, dyn)
+nd2 = Dict{Int64,Int64}()
+location2 = CompsDict(FindComps(dyn, dyn.all[18]), dyn, nd2) # locations are 19 and 152
+st_recs2 = Dict{Int64, NTuple{9,Int64}}()
+StateRecord(nd2, dyn, st_recs2)
 
 d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 2)] = 0.0
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 3)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(st_recs2[dyn.all[19].fid], 1)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(st_recs2[dyn.all[19].fid], 2)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(st_recs2[dyn.all[19].fid], 3)] = 0.0
 
 d1[dyn.all[152].fid] = Dict{NTuple{10, Int64}, Float64}()
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 1.0
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 2.0
+d1[dyn.all[152].fid][TAddLevel(st_recs2[dyn.all[152].fid], 1)] = 0.0
+d1[dyn.all[152].fid][TAddLevel(st_recs2[dyn.all[152].fid], 2)] = 1.0
+d1[dyn.all[152].fid][TAddLevel(st_recs2[dyn.all[152].fid], 3)] = 2.0
 
-cp2 = ContProbs(recs2, location2, d1, dyn)
+cp2 = ContProbs(dyn.all[18].fid, st_recs2, d1)
 dyn.all[19].nfids = [672285, 373510] # this correction should not be necessary.
-compprobs = TotalCombine(dyn, 18, dyn.all[18].nfids, cp2)
+compprobs = TotalCombine(dyn, 18, nd2, cp2)
 
 """
 
 function TotalCombine(D::DynState,
                       location::Int64,
-                      comps::Dict{Int64,Int64},
+                      comps::Dict{Int64,Int64},# dict of fids/locations from nbs in ExactChoice.  
                       contprobs::Dict{Int64,Array{Float64,1}})
   # Create the outputs
   out05::Array{Tuple{Array{Int64,1}, Float64}, 1} = Array{Tuple{Array{Int64,1}, Float64}, 1}()
