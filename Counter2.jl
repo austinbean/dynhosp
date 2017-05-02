@@ -1534,7 +1534,7 @@ end
 
 
 """
-`TotalCombine(D::DynState, location::Int64, comps::Dict{Int64,Int64}, contprobs::Dict{Int64,Array{Float64,1}})
+`TotalCombine(D::DynState, location::Int64, comps::Dict{Int64,Int64}, contprobs::Dict{Int64,Array{Float64,1}})`
 This will do what I want.  
 Return all of the states, with the associated probabilities.  
 
