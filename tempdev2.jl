@@ -18,21 +18,33 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)   
-  #=  ContProbs(fid::Int64,
-             state_recs::Dict{Int64,NTuple{9,Int64}},
-             stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
-             =#
+
+#=
+FIXME - the issue here is that there are neighbor states which are not the "actual state"
+This is annoying.  These are stored somehwere now, but I need to get them.
+=#
+
+
     cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, stable)  
-# FIXME - this needs changing.  
-    nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, D.all[location].nfids, cps)
+    nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, nbs, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)   
     
     if messages 
-      
+      println("nstates: ")
+      for k1 in keys(nstates)
+        println(k1, "  ", nstates[k1])
+      end 
       println("stable keys before", keys(stable))  
       println("CV's: ", CV1, " ", CV2, " ", CV3) 
+      println("fid: ", fid)
+      println("temp keys: ", keys(temp))
+      println("location is: ", location )
+      for st1 in temp[1391330]
+        println(st1)
+      end 
+      # FIXME - I think the problem is actually with StateKey, not other work here.  
       println("the max was ", temp[fid][StateKey(D.all[location],1)]) 
       println("the rev was ", PatientRev(D.all[location],p1,p2,10)) 
     end
@@ -40,6 +52,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level. 
+    # FIXME - StateKey is incorrect here.
     temp[fid][StateKey(D.all[location],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
@@ -48,6 +61,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 2
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
+    # FIXME - StateKey is incorrect here.  
     temp[fid][StateKey(D.all[location],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
@@ -56,6 +70,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 3
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.
+    # FIXME - StateKey is wrong here.  
     temp[fid][StateKey(D.all[location],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
