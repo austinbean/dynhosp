@@ -3,7 +3,7 @@ function ExactVal(D::DynState,
                   p1::patientcount,
                   p2::patientcount;
                   messages::Bool = false,
-                  itlim::Int64 = 100,
+                  itlim::Int64 = 10,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
@@ -23,14 +23,14 @@ function ExactVal(D::DynState,
     for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
-      totest[D.all[el2].fid] = true                                                   # don't test convergence of neighbors temporarily.  FIXME 
+      totest[D.all[el2].fid] = false                                                   # don't test convergence of neighbors temporarily.  FIXME 
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       #locs[D.all[el2].fid] = el2
     end 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                              # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                             # this does NOT need starting values.  
-    totest[D.all[el].fid] = true                                                       # all facilities to do initially set to false.  
+    totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
     #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
   # Updating process:

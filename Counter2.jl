@@ -1210,58 +1210,66 @@ StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
 test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
 totest = Dict{Int64,Bool}()
 totest[dyn.all[6].fid] = false 
-ExactConvergence(test1, test2, totest)
+ExactConvergence(test1, test2, totest; messages = false) == false # returns true.
 
-ExactConvergence(test1, test2, totest; debug = false)
-(false, [4450450]) # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
+ExactConvergence(test1, test2, totest; messages = true)
+false # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
 """
 function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                           stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                           totest::Dict{Int64,Bool}; # when the bool is "true", this has converged.
                           messages::Bool = true,
                           toler::Float64 =0.001)
-  if messages println("From Exact Convergence: ") end
-  if messages println("test ", keys(totest)) end
-  if messages println("current ", keys(current)) end
-  if messages println("stable ", keys(stable)) end
   converge::Bool = false 
-  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()       # check only the guys still being done.
-  for fid in keys(current)                                 # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
-    if !totest[fid]                                        # keys in totest for which false (i.e., not converged)
-      maxdiff::Float64 = 0.0 
-      for state in keys(current[fid])                      # states available to the firm.
+  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()                 # check only the guys still being done.
+  # if messages 
+  #   for k1 in keys(current)
+  #     println("the fid: ", k1)
+  #     for k2 in keys(current[k1])
+  #       println("value at state: ", k2, "   value:  ", current[k1][k2])
+  #     end 
+  #     for k3 in keys(stable[k1])
+  #       println("values at state: ", k3, "  value: ", stable[k1][k3])
+  #     end 
+  #   end 
+  # end 
+  for fid in keys(current)                                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
+    if messages println("current bool in totest: ", fid, "  ", totest[fid]) end 
+    if !totest[fid]                                                  # keys in totest for which false (i.e., not converged)
+      maxdiff::Float64 = -1.0 # FIXME - what if I never update this?  
+      for state in keys(current[fid])                                # states available to the firm.
         if haskey(stable[fid], state)
-          if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference.  
-            maxdiff = abs(current[fid][state] - stable[fid][state])
-          end 
+          if (current[fid][state]>0)&(stable[fid][state]>0)
+            if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference. 
+              if messages println("yes, checking ") end 
+              maxdiff = abs(current[fid][state] - stable[fid][state])
+            end
+          else 
+          end  
         else 
-          if messages println("a state wasn't found ") end # check if this is messing anything up
-          if abs(current[fid][state]) > maxdiff            # we want MAX difference.  
+          # FIXME - eventually delete this branch.  There should be no such states.  
+          if messages println("a state wasn't found ") end           # check if this is messing anything up
+          if abs(current[fid][state]) > maxdiff                      # we want MAX difference.  
             maxdiff = abs(current[fid][state])
-            stable[fid][state] = 0.5                       # add a new value at the state if it isn't in the dict.
+            println("hello? in this not found branch.  ")
+            stable[fid][state] = 0.5                                 # add a new value at the state if it isn't in the dict.
           end
         end 
       end
       if messages println("for fid: ", fid) end
       if messages println("max diff: ", maxdiff) end
-      diffs[fid] = maxdiff                                 # keep track of the max diff.  
+      diffs[fid] = maxdiff                                           # keep track of the max diff.  
     end 
   end 
   if messages 
     println("current differences ")
     println(diffs)
   end 
-  # Check for convergence - look at the maximum difference across states for each firm. 
-  if messages 
-    println("diffs keys are: ", keys(diffs)) 
-  end 
-  for k1 in keys(diffs) # by iterating over keys in diffs, we only check facs which have not converged yet.  
+  # Check for convergence - 
+  # look at the maximum difference across states for each firm. 
+  for k1 in keys(diffs)                                              # by iterating over keys in diffs, we only check facs which have not converged yet.  
     converge = converge&(diffs[k1]<toler)
-    if messages 
-      println("diffs key is: ", k1) 
-      println(keys(totest)) 
-    end
-    if diffs[k1] > toler # not converged yet 
+    if diffs[k1] > toler                                             # totest exists in the scope of ExactVal, recording which firms are around and whether they have converged.  
       totest[k1] = false 
     else 
       totest[k1] = true 
