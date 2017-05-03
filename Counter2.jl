@@ -1217,53 +1217,57 @@ ExactConvergence(test1, test2, totest; debug = false)
 """
 function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                           stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
-                          totest::Dict{Int64,Bool}; 
+                          totest::Dict{Int64,Bool}; # when the bool is "true", this has converged.
                           messages::Bool = true,
-                          toler::Float64 =0.1, 
-                          debug::Bool = true )
+                          toler::Float64 =0.001)
   if messages println("From Exact Convergence: ") end
   if messages println("test ", keys(totest)) end
   if messages println("current ", keys(current)) end
   if messages println("stable ", keys(stable)) end
   converge::Bool = false 
-  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()   # check only the guys still being done.
-  newchunk::Dict{Int64, Bool} = Dict{Int64,Bool}()
-  for fid in keys(current)                             # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
-    if !totest[fid]                                    # keys in totest for which false (i.e., not converged)
+  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()       # check only the guys still being done.
+  for fid in keys(current)                                 # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
+    if !totest[fid]                                        # keys in totest for which false (i.e., not converged)
       maxdiff::Float64 = 0.0 
-      for state in keys(current[fid])                  # states available to the firm.
+      for state in keys(current[fid])                      # states available to the firm.
         if haskey(stable[fid], state)
           if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference.  
             maxdiff = abs(current[fid][state] - stable[fid][state])
           end 
         else 
           if messages println("a state wasn't found ") end # check if this is messing anything up
-          if abs(current[fid][state]) > maxdiff        # we want MAX difference.  
+          if abs(current[fid][state]) > maxdiff            # we want MAX difference.  
             maxdiff = abs(current[fid][state])
-            stable[fid][state] = 0.5                   # add a new value at the state if it isn't in the dict.
+            stable[fid][state] = 0.5                       # add a new value at the state if it isn't in the dict.
           end
         end 
       end
-      diffs[fid] = maxdiff                             # keep track of the max diff.  
+      if messages println("for fid: ", fid) end
+      if messages println("max diff: ", maxdiff) end
+      diffs[fid] = maxdiff                                 # keep track of the max diff.  
     end 
   end 
-  if debug 
+  if messages 
     println("current differences ")
     println(diffs)
   end 
   # Check for convergence - look at the maximum difference across states for each firm. 
-  if messages println("diffs keys are: ", keys(diffs)) end 
-  for k1 in keys(diffs)
+  if messages 
+    println("diffs keys are: ", keys(diffs)) 
+  end 
+  for k1 in keys(diffs) # by iterating over keys in diffs, we only check facs which have not converged yet.  
     converge = converge&(diffs[k1]<toler)
-    if messages println("diffs key is: ", k1) end
-    if messages println(keys(newchunk)) end
+    if messages 
+      println("diffs key is: ", k1) 
+      println(keys(totest)) 
+    end
     if diffs[k1] > toler # not converged yet 
-      newchunk[k1] = false 
+      totest[k1] = false 
     else 
       totest[k1] = true 
     end 
   end 
-  return converge, newchunk
+  return converge
 end 
 
 
