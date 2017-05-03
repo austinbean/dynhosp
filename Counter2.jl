@@ -1337,7 +1337,7 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
           #   println("stable is nan ", stable[fid][TAddLevel(k1,lev)])
           # end 
       else 
-        # FIXME - here is the problem.  This is added, but should not be.  See three more times below.  
+        println("In ContVal, adding a state which should be there! ")
         stable[fid][TAddLevel(k1,lev)] = 0.5
       end 
     end 
@@ -1347,6 +1347,7 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
       else 
         stable[fid][TAddLevel(k1,lev)] = 0.5
+        println("In ContVal, adding a state which should be there! ")
       end     end 
   elseif lev == 3
     for k1 in keys(futures)
@@ -1354,6 +1355,7 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
       else 
         stable[fid][TAddLevel(k1,lev)] = 0.5
+        println("In ContVal, adding a state which should be there! ")
       end 
     end
   else 

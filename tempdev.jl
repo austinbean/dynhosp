@@ -42,23 +42,12 @@ function ExactVal(D::DynState,
   while (!converge)&(its<itlim)                                                       # if true keep going.    
     converge = true                                                                   # reassign, to catch when it terminates.
     for k in keys(totest)                                                             # TODO - not updating the competitors.
-      if totest[k]                                                                    # only run those for which true.
-        
-        # ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
-        #             stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
-        #              nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict, I think.  
-        #              st_recs::Dict{Int64,NTuple{9,Int64}}, # these are the states.
-        #              fid::Int64, 
-        #              location::Int64,
-        #              p1::patientcount,
-        #              p2::patientcount,
-        #              D::DynState; 
-         # arg k should be replaced with st_dict   
+      if totest[k]                                                                    # only run those for which true. 
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true)  
       end 
     end
     # Convergence Test:
-    converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)    
+   # converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                               # sets up for rewriting.
@@ -67,6 +56,8 @@ function ExactVal(D::DynState,
     end   
     its += 1
     println("iteration ", its)
+    println("converge? ", converge)
+    converge = false
   end 
   # Return equilibrium values:
   return outvals

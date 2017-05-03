@@ -18,44 +18,31 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      ϕ31::Float64 = 0.0,
                      ϕ32::Float64 = 0.0,
                      ϕ3EX::Float64 = 0.0)   
-
-#=
-FIXME - the issue here is that there are neighbor states which are not the "actual state"
-This is annoying.  These are stored somehwere now, but I need to get them.
-
-I can't use BOTH StateKey and NStateKey.  WTF... ugggghhhh.... soooo annoying.  
-I could add an additional argument... that seems really dumb.  
-=#
-
-
     cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, stable)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, nbs, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)   
-    
     if messages 
-      println("nstates: ")
-      for k1 in keys(nstates)
-        println(k1, "  ", nstates[k1])
-      end 
       println("stable keys before", keys(stable))  
       println("CV's: ", CV1, " ", CV2, " ", CV3) 
       println("fid: ", fid)
+      println("location: ", location)
+      println("fid in location: ", dyn.all[location].fid)
       println("temp keys: ", keys(temp))
       println("location is: ", location )
-      for st1 in temp[1391330]
-        println(st1)
-      end 
-      # FIXME - I think the problem is actually with StateKey, not other work here.  
-      println("the max was ", temp[fid][StateKey(st_recs[fid],1)]) 
+      println("the max was ", temp[fid][NStateKey(st_recs[fid],1)]) 
       println("the rev was ", PatientRev(D.all[location],p1,p2,10)) 
     end
   # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
-    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level. 
-    temp[fid][StateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
+    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
+    if messages 
+        println("demands: ", p1, "  p2", p2)
+        println("revenue: ", PatientRev(D.all[location],p1,p2,10) )
+    end  
+    temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
@@ -63,7 +50,7 @@ I could add an additional argument... that seems really dumb.
     D.all[location].level = 2
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.   
-    temp[fid][StateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
+    temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
@@ -71,7 +58,7 @@ I could add an additional argument... that seems really dumb.
     D.all[location].level = 3
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.
-    temp[fid][StateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
+    temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
