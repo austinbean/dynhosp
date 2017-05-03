@@ -852,6 +852,13 @@ function FindWTP(h::simh)
       if el.pwtp[1,f] == fid
         WTP += el.pwtp[2,f]
       end
+      # FIXME - remove this when NaN problem is solved
+      if isnan(el.pwtp[2,f])
+        println("NaN Found")
+        println(h.fid)
+        println(el.zp)
+        println(el.pwtp)
+      end 
     end
   end
   return WTP
@@ -1551,7 +1558,7 @@ end
 
 
 """
-`NewCombine(D::DynState, nlocs::Array{Int64,1},location::Int64, contprobs::Dict{Int64,Array{Float64,1}};actions::Array{Int64,1} = [1, 2, 3])`
+`PartialCombine(fids::Array{Int64,1},contprobs::Dict{Int64,Array{Float64,1}})`
 
 Ok. Should take the output of contprobs and return the right output.
 
@@ -1985,7 +1992,7 @@ function PatientRev(s::simh,
                     mcaid390::Float64 = 4623.0,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
-    wtp::Float64 = FindWTP(s)
+    wtp::Float64 = FindWTP(s) # FIXME - can this give me a NaN?  
     if s.level == 1
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2
