@@ -347,18 +347,41 @@ NB: this requires an array argument.  It does *not* allocate.  The array will ha
 every call.
 This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
 The size of arr is not that important since all unused values are zero AND they are ignored.
+
+Can this give a NaN? Yes it can.  But why?  It must be that int_sum is not getting assigned as I think it is.
+
+### Testing ###
+temparr = zeros(2, 12)
+WTPNew(dyn.all[2].mk.m[1].putils, temparr)
+dyn.all[2].mk.m[1].putils[2,:] = zeros(1,6)
+ArrayZero(temparr)
+
+# prior version (not correcting for occasional NaN's) 0.000001 / 0 allocations.
+# new version: 0.000001 seconds (3 allocations: 208 bytes)
+for i = 1:10
+  new_r = rand(2,10)
+  @time WTPNew(new_r, temparr)
+  ArrayZero(temparr)
+end 
+
+
 """
 function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
-  int_sum::Float64 = 0.0
+  # doing int_sum = 1.0 captures the fact that there is one outside option, with util 0, so int_sum must
+  # be at least one.  This solves the division by zero problem.  plus all elements which are zero can be ignored.
+  # the first zero in the top row receives 1/int_sum in the second row.  This gets the prob of the OO.   
+  int_sum::Float64 = 1.0 
   for el in 1:size(c,2)
-    if c[1,el]!=0.0
+    if c[1,el]!=0.0 
       arr[1,el] = c[1,el]
-      int_sum += (arr[2,el] = exp(c[2,el]))
+      arr[2,el] = exp(c[2,el])
+      int_sum += arr[2,el]
     end
   end
   for i=1:size(c,2)
-    arr[2,i]/=int_sum
+    arr[2,i]/=int_sum   
   end
+  arr[2,findfirst(arr[2,:], 0)] = 1/int_sum # this is a little expensive, but not too bad.
 end
 
 
@@ -396,6 +419,10 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
       index = i #reassign
     end
   end
+  if !prod(isnan.(temparr))
+    println("yes, temparr has a NaN.")
+    println("how many? ", sum(isnan.(temparr)))
+  end 
   WTPNew(inparr, temparr) # updates temparr
   if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private
