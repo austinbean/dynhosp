@@ -3,7 +3,7 @@ function ExactVal(D::DynState,
                   p1::patientcount,
                   p2::patientcount;
                   messages::Bool = false,
-                  itlim::Int64 = 10,
+                  itlim::Int64 = 100,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
@@ -34,10 +34,13 @@ function ExactVal(D::DynState,
     #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
   # Updating process:
-  # NOTE - totest contains only the firms in the "market" which we want.  
-  converge::Bool = false
-  while (!converge)&(its<itlim)                                                        # if true keep going.    
-    converge = true                                                                    # reassign, to catch when it terminates.
+  # NOTE - totest contains only the firms in the "market" which we want. 
+  # FIXME - something needs to be done to initialize this...  
+  converge::Bool = true
+  while (converge)&&(its<itlim)                                                        # if true keep going.  ]
+  # FIXME - this isn't going to do it right.  ConvTest should return FALSE when someone is not converged... so this should 
+  # continue.  But when TRUE it must terminate.  That's what it's doing now, I think.    
+#    converge = true                                                                    # reassign, to catch when it terminates.
     for k in keys(totest)                                                              # TODO - not updating the competitors.
       if totest[k]                                                                     # only run those for which true. 
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)  
@@ -46,17 +49,16 @@ function ExactVal(D::DynState,
     # Convergence Test:
     # FIXME - I'll bet the problem is that it checks ALL states, some of which are initialized to zero, so 
     # these show as converged.  But could that matter?  It's supposed to focus on the max difference.  
-    converge = ExactConvergence(tempvals, outvals, totest; messages = true)    
+    converge = ExactConvergence(tempvals, outvals, totest; messages = false)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                               # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
-      converge = converge&totest[ky1]  
+      converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
     its += 1
     println("iteration ", its)
     println("converge? ", converge)
-    #converge = false
   end 
   # Return equilibrium values:
   return outvals
