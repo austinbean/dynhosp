@@ -764,6 +764,7 @@ end
   export TupletoCNS
   export CompsDict
   export NStateKey
+  export ConvTest
    
   
 
