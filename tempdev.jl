@@ -14,9 +14,8 @@ function ExactVal(D::DynState,
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                # will record the states of all firms from the point of view of el.
   its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
   for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
-    # Now this will take ONE firm, that in "chunk", then use that to find the relevant neighbors, but NOT look for neighbors of those firms.
-    neighbors::Array{Int64,1} = FindComps(D, D.all[el])                             #  these are addresses of fids.
-    push!(neighbors, el)                                                            # add the location of the firm in chunk
+    neighbors::Array{Int64,1} = FindComps(D, D.all[el])                               #  these are addresses of fids.
+    push!(neighbors, el)                                                              # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     CompsDict(neighbors, D, all_locs)                                                 # now this is Dict{Fid, Location}
@@ -29,25 +28,25 @@ function ExactVal(D::DynState,
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), tempvals[D.all[el2].fid])
       #locs[D.all[el2].fid] = el2
     end 
-    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                             # TODO - starting values here.
-    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
-    totest[D.all[el].fid] = true                                                      # all facilities to do initially set to false.  
+    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                              # TODO - starting values here.
+    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                             # this does NOT need starting values.  
+    totest[D.all[el].fid] = true                                                       # all facilities to do initially set to false.  
     #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
-  println(all_locs)
-  println(st_dict)
   # Updating process:
   # NOTE - totest contains only the firms in the "market" which we want.  
-  converge = false
-  while (!converge)&(its<itlim)                                                       # if true keep going.    
-    converge = true                                                                   # reassign, to catch when it terminates.
-    for k in keys(totest)                                                             # TODO - not updating the competitors.
-      if totest[k]                                                                    # only run those for which true. 
-        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true)  
+  converge::Bool = false
+  while (!converge)&(its<itlim)                                                        # if true keep going.    
+    converge = true                                                                    # reassign, to catch when it terminates.
+    for k in keys(totest)                                                              # TODO - not updating the competitors.
+      if totest[k]                                                                     # only run those for which true. 
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)  
       end 
     end
     # Convergence Test:
-   # converge, totest = ExactConvergence(tempvals, outvals, totest; messages = true)    
+    # FIXME - I'll bet the problem is that it checks ALL states, some of which are initialized to zero, so 
+    # these show as converged.  But could that matter?  It's supposed to focus on the max difference.  
+    converge = ExactConvergence(tempvals, outvals, totest; messages = true)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                               # sets up for rewriting.
@@ -57,7 +56,7 @@ function ExactVal(D::DynState,
     its += 1
     println("iteration ", its)
     println("converge? ", converge)
-    converge = false
+    #converge = false
   end 
   # Return equilibrium values:
   return outvals
