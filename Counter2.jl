@@ -391,8 +391,6 @@ Takes a fid.  Finds the index in inparr.  Takes the share from inparr.
 Multiplies all of patient values in cpat by that number.
 Returns the value.
 
-- FIXME Note: Can't compute demand when # of patients is zero! 
-- This is an issue of the shares.  
 
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
@@ -409,7 +407,6 @@ temparr = zeros(2, 12) # 12 is max # of facilities.
 
 DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
 """
-# FIXME - there is a share issue here.  The problem is in inparr.  Maybe something goes wrong with WTPnew?  In temparr?
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
   # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
@@ -419,15 +416,11 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
       index = i #reassign
     end
   end
-  if !prod(isnan.(temparr))
-    println("yes, temparr has a NaN.")
-    println("how many? ", sum(isnan.(temparr)))
-  end 
   WTPNew(inparr, temparr) # updates temparr
   if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private
       for j in c.pcounts
-        if counter == 0 # FIXME - every line here: add if pp.count385 > 0  Next section too.  
+        if counter == 0   
           pp.count385 += temparr[2,index]*j
           counter += 1
         elseif counter == 1
@@ -523,6 +516,19 @@ DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
 function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
+    # FIXME - the following is temporary.
+    if (sum(isnan.(WTPNew(el.putils, temparr)))>0)||(sum(isnan.(WTPNew(el.mutils, temparr)))>0)
+      println("NaN Found: ", c.fid)
+      println("zip: ", m.zp )
+      println("putils: ", el.putils)
+      println("mutils: ", el.mutils)
+      WTPNew(el.putils, temparr)
+      println("WTP calculation putils: ", temparr)
+      ArrayZero(temparr)
+      WTPNew(el.mutils, temparr)
+      println("WTP calculation mutils: ", temparr)
+    end 
+    ArrayZero(temparr)
     DemComp(el.putils, temparr, pcount, f, el, true)
     DemComp(el.mutils, temparr, mcount, f, el, false)
   end
@@ -1304,6 +1310,29 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
   end 
   return converge
 end 
+
+"""
+`ConvTest(d1::Dict{Int64,Bool})`
+Iterates over the elements in totest and returns true when 
+all are true, else false.
+
+### Testing ###
+
+ab = Dict( 1 => true, 2 => true, 3 =>true)
+ConvTest(ab) == true 
+
+ab2 = Dict( 1 => true, 2 => true, 3 =>false)
+ConvTest(ab2) == false
+
+"""
+function ConvTest(d1::Dict{Int64, Bool})
+  outp::Bool = true 
+  for k1 in keys(d1)
+    outp = outp&d1[k1]
+  end 
+  return outp
+end 
+
 
 
 
