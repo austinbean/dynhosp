@@ -67,7 +67,10 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
-    println("p1, p2: ", p1, "  ", p2)
+    if isnan(sum(p1))||isnan(sum(p2))
+        println("from ExactChoice")
+        println("p1, p2: ", p1, "  ", p2)
+    end 
 end 
 
 
