@@ -46,6 +46,20 @@ function ExactVal(D::DynState,
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)  
       end 
     end
+    # if isnan(sum(p1))||isnan(sum(p2))
+    #     println("from ExactVal: ")
+    #     println("p1, p2: ", p1, "  ", p2)
+    # end 
+    for k1 in keys(outvals)
+        for k2 in keys(outvals[k1])
+            if isnan(outvals[k1][k2])||isnan(tempvals[k1][k2])
+                println(its)
+                #println("demand: ", p1, p2 )
+                println("FID: ",k1)
+                println("STATE: ", k2)
+            end 
+        end 
+    end     
     # Convergence Test:
     # FIXME - I'll bet the problem is that it checks ALL states, some of which are initialized to zero, so 
     # these show as converged.  But could that matter?  It's supposed to focus on the max difference.  
@@ -57,8 +71,8 @@ function ExactVal(D::DynState,
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
     its += 1
-    println("iteration ", its)
-    println("converge? ", converge)
+    # println("iteration ", its)
+    # println("converge? ", converge)
   end 
   # Return equilibrium values:
   return outvals
