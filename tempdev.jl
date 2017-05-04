@@ -53,10 +53,9 @@ function ExactVal(D::DynState,
     for k1 in keys(outvals)
         for k2 in keys(outvals[k1])
             if isnan(outvals[k1][k2])||isnan(tempvals[k1][k2])
-                println(its)
-                #println("demand: ", p1, p2 )
-                println("FID: ",k1)
-                println("STATE: ", k2)
+                # somehow this is happening after... 335 iterations?  Twice in a row?  
+                # five times in a row.  Always starting with 3490795.  This is weird.  
+                println(its, " FID: ",k1, " STATE: ", k2)
             end 
         end 
     end     
