@@ -1444,7 +1444,7 @@ end
 
 
 """
-`ContProbsContProbs(fid::Int64, state_recs::Dict{Int64,NTuple{9,Int64}}, stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
+`ContProbs(fid::Int64, state_recs::Dict{Int64,NTuple{9,Int64}}, stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
 A rewrite of the first ContProbs function. 
 - (fid) Takes the FID of the main facility as an argument.
 - (state_recs) State Recs of restricted states from the point of view of all neighbors.
@@ -1523,6 +1523,9 @@ function ContProbs(fid::Int64,
       outp[el] = exp.([stable_vals[el][TAddLevel(state_recs[el], 1)], stable_vals[el][TAddLevel(state_recs[el],2)], stable_vals[el][TAddLevel(state_recs[el], 3)]])
       outp[el] ./=(sum(outp[el]))
     end 
+  end 
+  if isnan(outp)  #NANFIX
+    println("NAN IN CONTPROBS")
   end 
   return outp 
 end 
@@ -1726,6 +1729,12 @@ function TotalCombine(D::DynState,
       end 
     end 
   end 
+  #NANFIX
+  for k1 in keys(lastout)
+    if isnan(lastout[k1])
+      println("NaN in TOTAL COMBINE.")
+    end 
+  end 
   return lastout 
 end 
 
@@ -1786,6 +1795,11 @@ function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
       fl *= val 
     end 
   end 
+  #NANFIX
+  if isnan.(outp)
+
+  end 
+
   return outp, fl  
 end 
 
@@ -1812,6 +1826,12 @@ function GenStates(inp::Array{Tuple{Array{Int64,1}, Float64}, 1}, args... )
   for (i, arg) in enumerate(args)
     for el in inp # this is a Tuple, Float 
       push!(outp, CombineVInput(el[1], el[2], arg))
+    end 
+  end 
+  #NANFIX
+  for el in outp # these are tuples 
+    if isnan.(el[1])||isnan.(el[2])
+      println("NaN in GenStates")
     end 
   end 
   return outp 
@@ -2000,7 +2020,7 @@ function PatientRev(s::simh,
     elseif s.level == 3
       outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     else # level = -999 (exit)
-      outp = pi*scalefact
+      outp = pi*scalefact  # FIXME - what is pi doing here?  
     end
     return outp/scalefact
 end

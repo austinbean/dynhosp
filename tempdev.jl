@@ -3,7 +3,7 @@ function ExactVal(D::DynState,
                   p1::patientcount,
                   p2::patientcount;
                   messages::Bool = false,
-                  itlim::Int64 = 100,
+                  itlim::Int64 = 350,
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
@@ -38,8 +38,22 @@ function ExactVal(D::DynState,
   # FIXME - something needs to be done to initialize this...  
   converge::Bool = true
   while (converge)&&(its<itlim)                                                        # if true keep going.  ]
-  # FIXME - this isn't going to do it right.  ConvTest should return FALSE when someone is not converged... so this should 
-  # continue.  But when TRUE it must terminate.  That's what it's doing now, I think.    
+    if (its>328)&(its<335) # an error repeatedly happens after 330 iterations.
+        # basically print everything...
+        println("iteration: ", its, " fid ") 
+        for k1 in keys(outvals)
+            for k2 in keys(outvals[k1])
+                if isnan(outvals[k1][k2])||isnan(tempvals[k1][k2])
+                    # somehow this is happening after... 335 iterations?  Twice in a row?  
+                    # five times in a row.  Always starting with 3490795.  This is weird.  
+                    println(its, " FID: ",k1, " STATE: ", k2)
+                end 
+            end 
+        end
+        DSimNew( D.all[].mk, 3490795, p1, p2)
+        println("Demand Sim: ", p1, "  ", p2)
+        
+    end    
 #    converge = true                                                                    # reassign, to catch when it terminates.
     for k in keys(totest)                                                              # TODO - not updating the competitors.
       if totest[k]                                                                     # only run those for which true. 
@@ -50,15 +64,7 @@ function ExactVal(D::DynState,
     #     println("from ExactVal: ")
     #     println("p1, p2: ", p1, "  ", p2)
     # end 
-    for k1 in keys(outvals)
-        for k2 in keys(outvals[k1])
-            if isnan(outvals[k1][k2])||isnan(tempvals[k1][k2])
-                # somehow this is happening after... 335 iterations?  Twice in a row?  
-                # five times in a row.  Always starting with 3490795.  This is weird.  
-                println(its, " FID: ",k1, " STATE: ", k2)
-            end 
-        end 
-    end     
+     
     # Convergence Test:
     # FIXME - I'll bet the problem is that it checks ALL states, some of which are initialized to zero, so 
     # these show as converged.  But could that matter?  It's supposed to focus on the max difference.  

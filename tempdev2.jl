@@ -23,17 +23,17 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)   
-    if messages 
-      println("stable keys before", keys(stable))  
-      println("CV's: ", CV1, " ", CV2, " ", CV3) 
-      println("fid: ", fid)
-      println("location: ", location)
-      println("fid in location: ", dyn.all[location].fid)
-      println("temp keys: ", keys(temp))
-      println("location is: ", location )
-      println("the max was ", temp[fid][NStateKey(st_recs[fid],1)]) 
-      println("the rev was ", PatientRev(D.all[location],p1,p2,10)) 
-    end
+    # if messages 
+    #   println("stable keys before", keys(stable))  
+    #   println("CV's: ", CV1, " ", CV2, " ", CV3) 
+    #   println("fid: ", fid)
+    #   println("location: ", location)
+    #   println("fid in location: ", dyn.all[location].fid)
+    #   println("temp keys: ", keys(temp))
+    #   println("location is: ", location )
+    #   println("the max was ", temp[fid][NStateKey(st_recs[fid],1)]) 
+    #   println("the rev was ", PatientRev(D.all[location],p1,p2,10)) 
+    # end
   # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
@@ -67,10 +67,10 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
     PatientZero(p1, p2)
-    if isnan(sum(p1))||isnan(sum(p2))
-        println("from ExactChoice")
-        println("p1, p2: ", p1, "  ", p2)
-    end 
+    # if isnan(sum(p1))||isnan(sum(p2))
+    #     println("from ExactChoice")
+    #     println("p1, p2: ", p1, "  ", p2)
+    # end 
 end 
 
 
