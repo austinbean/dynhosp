@@ -38,26 +38,15 @@ function ExactVal(D::DynState,
   # FIXME - something needs to be done to initialize this...  
   converge::Bool = true
   while (converge)&&(its<itlim)                                                        # if true keep going.  ]
-    if (its>328)&(its<335) # an error repeatedly happens after 330 iterations.
-        # basically print everything...
-        println("iteration: ", its, " fid ") 
-        for k1 in keys(outvals)
-            for k2 in keys(outvals[k1])
-                if isnan(outvals[k1][k2])||isnan(tempvals[k1][k2])
-                    # somehow this is happening after... 335 iterations?  Twice in a row?  
-                    # five times in a row.  Always starting with 3490795.  This is weird.  
-                    println(its, " FID: ",k1, " STATE: ", k2)
-                end 
-            end 
-        end
-        DSimNew( D.all[].mk, 3490795, p1, p2)
-        println("Demand Sim: ", p1, "  ", p2)
-        
-    end    
+  
 #    converge = true                                                                    # reassign, to catch when it terminates.
     for k in keys(totest)                                                              # TODO - not updating the competitors.
       if totest[k]                                                                     # only run those for which true. 
-        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)  
+        if its > 330 # NANFIX - remove this whole conditional.  And take the true/false out of ExactChoice.  
+            ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, true; messages = false)  
+        else 
+            ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, false; messages = false)
+        end 
       end 
     end
     # if isnan(sum(p1))||isnan(sum(p2))

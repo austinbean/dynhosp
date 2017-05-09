@@ -414,16 +414,46 @@ temparr = zeros(2, 12) # 12 is max # of facilities.
 
 DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
 """
-function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
+function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::cpats, p_or_m::Bool, printflag::Bool)  # NANFIX - remove later.)
   # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
-  counter::Int64 = 0
+  counter::Int64 = 0 # XXX - what is it that this does?  Records the index?  ie.  p385, p386, etc??
   for i = 1:size(inparr,2)
     if inparr[1,i] == fid
-      index = i #reassign
+      index = i #reassign - XXX - double check that this reassignment works.  I think it does.  
     end
   end
+  #NANFIX 
+  # if sum(isnan.(temparr)) > 0
+  #   println("Dem Comp, temparr NaN")
+  #   println(temparr)
+  # end 
+  # #NANFIX 
+  # if sum(isnan.(inparr)) > 0
+  #   println("Dem Comp, temparr NaN")
+  #   println(inparr)
+  # end 
+  # #NANFIX 
+  # if isnan(pp.count385)||isnan(pp.count386)||isnan(pp.count387)||isnan(pp.count388)||isnan(pp.count389)||isnan(pp.count390)||isnan(pp.count391)
+  #   println("in DemComp, Before")
+  #   println("count: ", pp)
+  # end 
+  # if printflag # NANFIX 
+  #   println("fid: ", fid, "  ", c.zp, "  ", c.putils, "  ", c.mutils)
+  # end 
   WTPNew(inparr, temparr) # updates temparr
+  if c.zp == 76687 # NANFIX 
+    println("input:", inparr[2,index])
+    #println("temporary:", temparr)
+  end 
+  if printflag #NANFIX 
+#    println("zip:", c.zp)
+    if sum(isnan.(temparr))>0 || sum(isnan.(inparr))>0
+      println("*******NaN*******")
+      println(fid)
+      println(c.zp)
+    end 
+  end 
   if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private
       for j in c.pcounts
@@ -481,6 +511,11 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
       end
     end
   end
+  #NANFIX 
+  # if isnan(pp.count385)||isnan(pp.count386)||isnan(pp.count387)||isnan(pp.count388)||isnan(pp.count389)||isnan(pp.count390)||isnan(pp.count391)
+  #   println("in DemComp, AFTER")
+  #   println("count: ", pp)
+  # end 
   ArrayZero(temparr)
 end
 
@@ -520,25 +555,29 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
 
 """
-function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
+function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount, 
+                 printflag::Bool;  #NANFIX - remove later.  
+                 maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
     # NaNFix - the following is temporary.
-    if (sum(isnan.(WTPNew(el.putils, temparr)))>0)||(sum(isnan.(WTPNew(el.mutils, temparr)))>0)
-      println("DSimNew NaN")
-      println("NaN Found: ", c.fid)
-      println("zip: ", m.zp )
-      println("putils: ", el.putils)
-      println("mutils: ", el.mutils)
-      WTPNew(el.putils, temparr)
-      println("WTP calculation putils: ", temparr)
-      ArrayZero(temparr)
-      WTPNew(el.mutils, temparr)
-      println("WTP calculation mutils: ", temparr)
-    end 
+    # WTPNew(el.putils, temparr)
+    # WTPNew(el.mutils, temparr)
+    # if (sum(isnan.(temparr)))>0
+    #   println("DSimNew NaN")
+    #   println("NaN Found: ", c.fid)
+    #   println("zip: ", el.zp )
+    #   println("putils: ", el.putils)
+    #   println("mutils: ", el.mutils)
+    #   WTPNew(el.putils, temparr)
+    #   println("WTP calculation putils: ", temparr)
+    #   ArrayZero(temparr)
+    #   WTPNew(el.mutils, temparr)
+    #   println("WTP calculation mutils: ", temparr)
+    # end 
     ArrayZero(temparr)
-    DemComp(el.putils, temparr, pcount, f, el, true)
-    DemComp(el.mutils, temparr, mcount, f, el, false)
+    DemComp(el.putils, temparr, pcount, f, el, true, printflag ) #NANFIX - remove later: ...pcount, f, el, ...
+    DemComp(el.mutils, temparr, mcount, f, el, false, printflag) # NANFIX - remove later: ...pcount, f, el, ...
   end
 end
 
@@ -860,13 +899,14 @@ function FindWTP(h::simh)
       if el.pwtp[1,f] == fid
         WTP += el.pwtp[2,f]
       end
-      # FIXME - remove this when NaN problem is solved
-      if isnan(el.pwtp[2,f])
-        println("NaN Found")
-        println(h.fid)
-        println(el.zp)
-        println(el.pwtp)
-      end 
+      # NANFIX - remove this when NaN problem is solved
+      # if isnan(el.pwtp[2,f])
+      #   println("NaN Found")
+      #   println(h.fid)
+      #   println(el.zp)
+      #   println(el.pwtp)
+      #   println("WTP: ", WTP)
+      # end 
     end
   end
   return WTP
@@ -1381,22 +1421,26 @@ d1[dyn.all[18].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 1)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 2)] = 0.0
 d1[dyn.all[18].fid][StateKey(dyn.all[18], 3)] = 0.0
-location2 = FindComps(dyn.all[18], dyn) # locations are 19 and 152
-recs2 = StateRecord(dyn.all[18].nfids, 18, dyn)
+location2 = FindComps(dyn, dyn.all[18]) # locations are 19 and 152
+push!(location2, 18)
+# FIX THIS - above should be a dict. 
+loc1 = Dict(672285 => 19, 670132 => 18, 373510 => 152 ) 
+out_1 = Dict{Int64,NTuple{9,Int64}}()
+StateRecord(loc1, dyn, out_1) 
 
 d1[dyn.all[19].fid] = Dict{NTuple{10, Int64}, Float64}()
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 1)] = 0.0
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 2)] = 0.0
-d1[dyn.all[19].fid][TAddLevel(recs2[dyn.all[19].fid], 3)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(out_1[dyn.all[19].fid], 1)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(out_1[dyn.all[19].fid], 2)] = 0.0
+d1[dyn.all[19].fid][TAddLevel(out_1[dyn.all[19].fid], 3)] = 0.0
 
 d1[dyn.all[152].fid] = Dict{NTuple{10, Int64}, Float64}()
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 1)] = 0.0
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 2)] = 1.0
-d1[dyn.all[152].fid][TAddLevel(recs2[dyn.all[152].fid], 3)] = 2.0
+d1[dyn.all[152].fid][TAddLevel(out_1[dyn.all[152].fid], 1)] = 0.0
+d1[dyn.all[152].fid][TAddLevel(out_1[dyn.all[152].fid], 2)] = 1.0
+d1[dyn.all[152].fid][TAddLevel(out_1[dyn.all[152].fid], 3)] = 2.0
 
-cp2 = ContProbs(recs2, location2, d1, dyn)
-dyn.all[19].nfids = [672285, 373510] # this correction should not be necessary.
-compprobs = TotalCombine(dyn, 18, dyn.all[18].nfids, cp2)
+cp2 = ContProbs(dyn.all[18].fid, out_1, d1)
+
+compprobs = TotalCombine(dyn, 18, loc1, cp2)
 
 ContVal(compprobs, dyn.all[18].fid, d1, 1)
 
@@ -1445,11 +1489,11 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
     #do nothing.  
   end 
   #NANFIX 
-  if isnan(outp)
-    println("NaN in ContVal")
-    println("outp: ", outp )
-    println("fid: ", fid)
-  end 
+  # if isnan(outp)
+  #   println("NaN in ContVal")
+  #   println("outp: ", outp )
+  #   println("fid: ", fid)
+  # end 
   return outp 
 end 
 
@@ -1539,12 +1583,12 @@ function ContProbs(fid::Int64,
     end 
   end
   #NANFIX
-  for k1 in keys(outp) 
-    if isnan(outp[k1])  
-      println("NAN IN CONTPROBS")
-      println("key: ", k1)
-    end 
-  end 
+  # for k1 in keys(outp) 
+  #   if sum(isnan.(outp[k1]))>0  
+  #     println("NAN IN CONTPROBS")
+  #     println("key: ", k1)
+  #   end 
+  # end 
   return outp 
 end 
 
@@ -1748,12 +1792,12 @@ function TotalCombine(D::DynState,
     end 
   end 
   #NANFIX
-  for k1 in keys(lastout)
-    if isnan(lastout[k1])
-      println("NaN in TOTAL COMBINE.")
-      println("k1: ", k1)
-    end 
-  end 
+  # for k1 in keys(lastout)
+  #   if isnan(lastout[k1])
+  #     println("NaN in TOTAL COMBINE.")
+  #     println("k1: ", k1)
+  #   end 
+  # end 
   return lastout 
 end 
 
@@ -1815,15 +1859,15 @@ function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
     end 
   end 
   #NANFIX
-  if sum(isnan.(outp))>0 # returns true if ONE element is a NaN.
-    println("NaN in CombineVInput")
-    println("input: ", inpt)
-    println("pr: ", pr)
-    for (i, arg) in enumerate(args)
-      println("i, arg: ", i, "  ", arg)
-    end 
-    println("outp: ", outp)
-  end 
+  # if sum(isnan.(outp))>0 # returns true if ONE element is a NaN.
+  #   println("NaN in CombineVInput")
+  #   println("input: ", inpt)
+  #   println("pr: ", pr)
+  #   for (i, arg) in enumerate(args)
+  #     println("i, arg: ", i, "  ", arg)
+  #   end 
+  #   println("outp: ", outp)
+  # end 
   return outp, fl  
 end 
 
@@ -1853,17 +1897,17 @@ function GenStates(inp::Array{Tuple{Array{Int64,1}, Float64}, 1}, args... )
     end 
   end 
   #NANFIX
-  for el in outp # these are tuples 
-    if sum(isnan.(el[1]))>0||sum(isnan.(el[2]))>0
-      println("NaN in GenStates")
-      println("outp: ", outp)
-      for (i, arg) in enumerate(args)
-        for el in inp # this is a Tuple, Float 
-          println("i, arg: ", i, "  ", arg)
-        end 
-      end 
-    end 
-  end 
+  # for el in outp # these are tuples 
+  #   if sum(isnan.(el[1]))>0||sum(isnan.(el[2]))>0
+  #     println("NaN in GenStates")
+  #     println("outp: ", outp)
+  #     for (i, arg) in enumerate(args)
+  #       for el in inp # this is a Tuple, Float 
+  #         println("i, arg: ", i, "  ", arg)
+  #       end 
+  #     end 
+  #   end 
+  # end 
   return outp 
 end
 
@@ -2042,7 +2086,12 @@ function PatientRev(s::simh,
                     mcaid390::Float64 = 4623.0,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
-    wtp::Float64 = FindWTP(s) # FIXME - can this give me a NaN?  
+    wtp::Float64 = FindWTP(s) # FIXME - can this give me a NaN? 
+    #NANFIX 
+    # if isnan(wtp)
+    #   println("PatientRev WTP NaN")
+    #   println(wtp)
+    # end  
     if s.level == 1
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2
@@ -2052,6 +2101,12 @@ function PatientRev(s::simh,
     else # level = -999 (exit)
       outp = pi*scalefact  # FIXME - what is pi doing here?  
     end
+    #NANFIX 
+    # if isnan(outp) || isnan(scalefact)
+    #   println("PatientRev NaN")
+    #   println("outp: ", outp)
+    #   println("scalefact: ", scalefact)
+    # end 
     return outp/scalefact
 end
 
@@ -2174,21 +2229,21 @@ function UpdateD(h::simh)
       end
     end 
     #NANFIX - this is going to be a temporarily expensive operation.
-    for el in h.mk.m
-      if sum(isnan.(el.putils))>0||sum(isnan.(el.mutils))>0
-        println("NaN in UpdateD")
-        println(h.fid)
-        println(el.zp)
-        if !prod(isnan.(el.putils))
-          println("in the p utils")
-          println(el.putils)
-        end 
-        if !prod(isnan.(el.mutils))
-          println("in the m utils")
-          println(el.mutils)
-        end 
-      end 
-    end 
+    # for el in h.mk.m
+    #   if sum(isnan.(el.putils))>0||sum(isnan.(el.mutils))>0
+    #     println("NaN in UpdateD")
+    #     println(h.fid)
+    #     println(el.zp)
+    #     if !prod(isnan.(el.putils))
+    #       println("in the p utils")
+    #       println(el.putils)
+    #     end 
+    #     if !prod(isnan.(el.mutils))
+    #       println("in the m utils")
+    #       println(el.mutils)
+    #     end 
+    #   end 
+    # end 
 end 
 
 
@@ -2245,13 +2300,13 @@ function UtilUp( c::cpats,
     # do nothing.
   end 
   #NaNFix - temporarily expensive operation.  
-  if sum(isnan.(c.putils))>0 || sum(isnan.(c.mutils))>0
-    println("In UtilUp ")
-    println("zip: ", c.zp)
-    println("p utils: ", c.putils)
-    println("m utils ", c.mutils)
-    println("p wtp: ", c.pwtp)
-  end 
+  # if sum(isnan.(c.putils))>0 || sum(isnan.(c.mutils))>0
+  #   println("In UtilUp ")
+  #   println("zip: ", c.zp)
+  #   println("p utils: ", c.putils)
+  #   println("m utils ", c.mutils)
+  #   println("p wtp: ", c.pwtp)
+  # end 
 end 
 
 

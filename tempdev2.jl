@@ -6,7 +6,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      location::Int64,
                      p1::patientcount,
                      p2::patientcount,
-                     D::DynState; 
+                     D::DynState,
+                     printflag::Bool; #NANFIX - remove this later.   
                      messages::Bool = true, 
                      β::Float64 = 0.95,
                      ϕ13::Float64 = 0.0, # substitute values and scale these!
@@ -37,7 +38,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
-    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
+    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX                 # Computes the demand for that level.
     # if isnan(PatientRev(D.all[location],p1,p2,10))
     #     println("patient counts: ", p1, " ", p2)
     # end 
@@ -48,7 +49,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 2 (repeats steps above!)
     D.all[location].level = 2
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
-    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.  
+    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.  
     # if isnan(PatientRev(D.all[location],p1,p2,10))
     #     println("patient counts: ", p1," ", p2)
     # end  
@@ -59,7 +60,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 3
     D.all[location].level = 3
     UpdateD(D.all[location])
-    DSimNew( D.all[location].mk, fid, p1, p2) # Computes the demand.
+    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.
     # if isnan(PatientRev(D.all[location],p1,p2,10))
     #     println("patient counts: ", p1, " ", p2)
     # end 
