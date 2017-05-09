@@ -382,6 +382,13 @@ function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
     arr[2,i]/=int_sum   
   end
   arr[2,findfirst(arr[2,:], 0)] = 1/int_sum # this is a little expensive, but not too bad.
+  #NaNFix 
+  if sum(isnan.(arr))>0
+    println("NaN in WTPNew")
+    println("array: ", arr)
+    println("int_sum: ", int_sum)
+    println("c: ", c)
+  end 
 end
 
 
@@ -408,7 +415,7 @@ temparr = zeros(2, 12) # 12 is max # of facilities.
 DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
 """
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount, fid::Int64, c::cpats, p_or_m::Bool)
-  # NB: inparr is a sub-field of c.  inparr is either c.putils or c.mutils.
+  # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
   counter::Int64 = 0
   for i = 1:size(inparr,2)
@@ -516,8 +523,9 @@ DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
 function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
-    # FIXME - the following is temporary.
+    # NaNFix - the following is temporary.
     if (sum(isnan.(WTPNew(el.putils, temparr)))>0)||(sum(isnan.(WTPNew(el.mutils, temparr)))>0)
+      println("DSimNew NaN")
       println("NaN Found: ", c.fid)
       println("zip: ", m.zp )
       println("putils: ", el.putils)
@@ -1436,6 +1444,12 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
   else 
     #do nothing.  
   end 
+  #NANFIX 
+  if isnan(outp)
+    println("NaN in ContVal")
+    println("outp: ", outp )
+    println("fid: ", fid)
+  end 
   return outp 
 end 
 
@@ -1523,9 +1537,13 @@ function ContProbs(fid::Int64,
       outp[el] = exp.([stable_vals[el][TAddLevel(state_recs[el], 1)], stable_vals[el][TAddLevel(state_recs[el],2)], stable_vals[el][TAddLevel(state_recs[el], 3)]])
       outp[el] ./=(sum(outp[el]))
     end 
-  end 
-  if isnan(outp)  #NANFIX
-    println("NAN IN CONTPROBS")
+  end
+  #NANFIX
+  for k1 in keys(outp) 
+    if isnan(outp[k1])  
+      println("NAN IN CONTPROBS")
+      println("key: ", k1)
+    end 
   end 
   return outp 
 end 
@@ -1733,6 +1751,7 @@ function TotalCombine(D::DynState,
   for k1 in keys(lastout)
     if isnan(lastout[k1])
       println("NaN in TOTAL COMBINE.")
+      println("k1: ", k1)
     end 
   end 
   return lastout 
@@ -1796,10 +1815,15 @@ function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
     end 
   end 
   #NANFIX
-  if isnan.(outp)
-
+  if sum(isnan.(outp))>0 # returns true if ONE element is a NaN.
+    println("NaN in CombineVInput")
+    println("input: ", inpt)
+    println("pr: ", pr)
+    for (i, arg) in enumerate(args)
+      println("i, arg: ", i, "  ", arg)
+    end 
+    println("outp: ", outp)
   end 
-
   return outp, fl  
 end 
 
@@ -1830,8 +1854,14 @@ function GenStates(inp::Array{Tuple{Array{Int64,1}, Float64}, 1}, args... )
   end 
   #NANFIX
   for el in outp # these are tuples 
-    if isnan.(el[1])||isnan.(el[2])
+    if sum(isnan.(el[1]))>0||sum(isnan.(el[2]))>0
       println("NaN in GenStates")
+      println("outp: ", outp)
+      for (i, arg) in enumerate(args)
+        for el in inp # this is a Tuple, Float 
+          println("i, arg: ", i, "  ", arg)
+        end 
+      end 
     end 
   end 
   return outp 
@@ -2143,6 +2173,22 @@ function UpdateD(h::simh)
         # do nothing.
       end
     end 
+    #NANFIX - this is going to be a temporarily expensive operation.
+    for el in h.mk.m
+      if sum(isnan.(el.putils))>0||sum(isnan.(el.mutils))>0
+        println("NaN in UpdateD")
+        println(h.fid)
+        println(el.zp)
+        if !prod(isnan.(el.putils))
+          println("in the p utils")
+          println(el.putils)
+        end 
+        if !prod(isnan.(el.mutils))
+          println("in the m utils")
+          println(el.mutils)
+        end 
+      end 
+    end 
 end 
 
 
@@ -2197,6 +2243,14 @@ function UtilUp( c::cpats,
     c.mutils[2,indx_m] -= interinten_med 
   elseif (actual == 3)&(current == 3)
     # do nothing.
+  end 
+  #NaNFix - temporarily expensive operation.  
+  if sum(isnan.(c.putils))>0 || sum(isnan.(c.mutils))>0
+    println("In UtilUp ")
+    println("zip: ", c.zp)
+    println("p utils: ", c.putils)
+    println("m utils ", c.mutils)
+    println("p wtp: ", c.pwtp)
   end 
 end 
 
