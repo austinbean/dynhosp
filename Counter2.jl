@@ -443,7 +443,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
   # end 
   WTPNew(inparr, temparr) # updates temparr
   if c.zp == 76687 # NANFIX 
-    println("input:", inparr[2,index])
+    #println("input:", inparr[2,index])
     #println("temporary:", temparr)
   end 
   if printflag #NANFIX 
@@ -1270,101 +1270,107 @@ end
 
 
 
-#### PLACEHOLDER EXACT CHOICE ######
-
-
-
 """
-`ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; toler::Float64 =0.001, debug::Bool = true  )`
-This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
-for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
-Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
+`ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                     stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
+                     fid::Int64, 
+                     location::Int64,
+                     p1::patientcount,
+                     p2::patientcount,
+                     competitors::Array{Int64,1},
+                     D::DynState; )`
+What action should the firm choose?
+Takes two dictionaries, the DynState, computes the best action, returns the value of the action.
+Needs to: 
+- compute the demand in expectation at EACH possible level.
+- compute the profit at EACH possible level.
+- state will be recorded in the dyn record. 
+- But the key thing is: return the VALUE of the state.   
+NB - level won't change.  I can compute the value of being in all of these states depending on the level.
 
-Testing: 
+
+
+##### TESTING ######
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
-test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
-test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
-test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
-test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
-StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
-StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
+dyn = DynStateCreate(TexasEq, Tex, patients); 
 
-test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
-totest = Dict{Int64,Bool}()
-totest[dyn.all[6].fid] = false 
-ExactConvergence(test1, test2, totest; messages = false) == false # returns true.
+# To Run:
 
-ExactConvergence(test1, test2, totest; messages = true)
-false # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+#fid = 3490795;
+#location = 1;
+
+d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
+d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
+d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
+
+
+ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2,  dyn)
+d1[dyn.all[1].fid]
+
 """
-function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
-                          stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
-                          totest::Dict{Int64,Bool}; # when the bool is "true", this has converged.
-                          messages::Bool = true,
-                          toler::Float64 =0.001)
-  converge::Bool = false 
-  diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()                 # check only the guys still being done.
-  # if messages 
-  #   for k1 in keys(current)
-  #     println("the fid: ", k1)
-  #     for k2 in keys(current[k1])
-  #       println("value at state: ", k2, "   value:  ", current[k1][k2])
-  #     end 
-  #     for k3 in keys(stable[k1])
-  #       println("values at state: ", k3, "  value: ", stable[k1][k3])
-  #     end 
-  #   end 
-  # end 
-  for fid in keys(current)                                           # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
-    if messages println("current bool in totest: ", fid, "  ", totest[fid]) end 
-    if !totest[fid]                                                  # keys in totest for which false (i.e., not converged)
-      maxdiff::Float64 = -1.0 # FIXME - what if I never update this?  
-      for state in keys(current[fid])                                # states available to the firm.
-        if haskey(stable[fid], state)
-          if (current[fid][state]>0)&(stable[fid][state]>0)
-            if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference. 
-              if messages println("yes, checking ") end 
-              maxdiff = abs(current[fid][state] - stable[fid][state])
-            end
-          else 
-          end  
-        else 
-          # FIXME - eventually delete this branch.  There should be no such states.  
-          if messages println("a state wasn't found ") end           # check if this is messing anything up
-          if abs(current[fid][state]) > maxdiff                      # we want MAX difference.  
-            maxdiff = abs(current[fid][state])
-            println("hello? in this not found branch.  ")
-            stable[fid][state] = 0.5                                 # add a new value at the state if it isn't in the dict.
-          end
-        end 
-      end
-      if messages println("for fid: ", fid) end
-      if messages println("max diff: ", maxdiff) end
-      diffs[fid] = maxdiff                                           # keep track of the max diff.  
-    end 
-  end 
-  if messages 
-    println("current differences ")
-    println(diffs)
-  end 
-  # Check for convergence - 
-  # look at the maximum difference across states for each firm. 
-  for k1 in keys(diffs)                                              # by iterating over keys in diffs, we only check facs which have not converged yet.  
-    converge = converge&(diffs[k1]<toler)
-    if diffs[k1] > toler                                             # totest exists in the scope of ExactVal, recording which firms are around and whether they have converged.  
-      totest[k1] = false 
-    else 
-      totest[k1] = true 
-    end 
-  end 
-  return converge
+function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
+                     stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
+                     nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict  
+                     st_recs::Dict{Int64,NTuple{9,Int64}}, # these should contain restricted states.  
+                     fid::Int64, 
+                     location::Int64,
+                     p1::patientcount,
+                     p2::patientcount,
+                     D::DynState,
+                     printflag::Bool; #NANFIX - remove this later.   
+                     messages::Bool = true, 
+                     β::Float64 = 0.95,
+                     ϕ13::Float64 = 0.0, # FIXME - substitute correct values and scale.
+                     ϕ12::Float64 = 0.0,
+                     ϕ1EX::Float64 = 0.0,
+                     ϕ23::Float64 = 0.0,
+                     ϕ21::Float64 = 0.0,
+                     ϕ2EX::Float64 = 0.0,
+                     ϕ31::Float64 = 0.0,
+                     ϕ32::Float64 = 0.0,
+                     ϕ3EX::Float64 = 0.0)   
+    cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, stable)  
+    nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, nbs, cps)
+    CV1::Float64 = ContVal(nstates, fid, stable ,1)
+    CV2::Float64 = ContVal(nstates, fid, stable ,2)
+    CV3::Float64 = ContVal(nstates, fid, stable ,3)   
+  # Update value at Level 1
+    D.all[location].level = 1
+    UpdateD(D.all[location])                                  # updates the utility for a new level 
+    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX                 # Computes the demand for that level.
+    temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
+    UtilDown(D.all[location])                                 # resets the utility and level
+    PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
+  # Update value at Level 2 (repeats steps above!)
+    D.all[location].level = 2
+    UpdateD(D.all[location]) # Updates deterministic part of utility.  
+    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.  
+    temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
+    UtilDown(D.all[location])                                 # resets the utility and level
+    PatientZero(p1, p2)
+  # Update value at Level 3
+    D.all[location].level = 3
+    UpdateD(D.all[location])
+    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.
+    temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
+    UtilDown(D.all[location])                                 # resets the utility and level
+    PatientZero(p1, p2)
 end 
+
+
+
+#### PLACEHOLDER EXACTCONVERGENCE ######
+
 
 """
 `ConvTest(d1::Dict{Int64,Bool})`
@@ -1373,11 +1379,14 @@ all are true, else false.
 
 ### Testing ###
 
-ab = Dict( 1 => true, 2 => true, 3 =>true)
-ConvTest(ab) == true 
+ab = Dict( 1 => true, 2 => true, 3 =>true)  # three firms converged.  Return false.  
+ConvTest(ab) == false 
 
-ab2 = Dict( 1 => true, 2 => true, 3 =>false)
-ConvTest(ab2) == false
+ab2 = Dict( 1 => true, 2 => true, 3 =>false) # two firms converged, one not.  Return true.
+ConvTest(ab2) == true
+
+ab3 = Dict(1 => false, 2=> false, 3 => false) # START - no one has converged.  Return true.
+ConvTest(ab3) == true 
 
 """
 function ConvTest(d1::Dict{Int64, Bool})
@@ -1385,7 +1394,7 @@ function ConvTest(d1::Dict{Int64, Bool})
   for k1 in keys(d1)
     outp = outp&d1[k1]
   end 
-  return outp
+  return !outp # the while-loop in ExactVal continues when this returns true.  See tests above.  
 end 
 
 
@@ -2313,6 +2322,7 @@ end
 """
 `UtilDown(h::simh)`
 Adjusts the deterministic utility back down.  
+Now changed so that this function updates the level back to the actual value.  
 """
 function UtilDown(h::simh)
     if h.level == 1
@@ -2352,6 +2362,8 @@ function UtilDown(h::simh)
         # do nothing.
       end
     end 
+    # reset the level AFTER this is called:
+    h.level = h.actual  
 end 
 
 
