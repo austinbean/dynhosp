@@ -39,9 +39,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX                 # Computes the demand for that level.
-    # if isnan(PatientRev(D.all[location],p1,p2,10))
-    #     println("patient counts: ", p1, " ", p2)
-    # end 
     temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     D.all[location].level = D.all[location].actual            # resets the level 
     UtilDown(D.all[location])                                 # resets the utility
@@ -50,9 +47,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 2
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
     DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.  
-    # if isnan(PatientRev(D.all[location],p1,p2,10))
-    #     println("patient counts: ", p1," ", p2)
-    # end  
     temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
@@ -61,9 +55,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     D.all[location].level = 3
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.
-    # if isnan(PatientRev(D.all[location],p1,p2,10))
-    #     println("patient counts: ", p1, " ", p2)
-    # end 
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     D.all[location].level = D.all[location].actual
     UtilDown(D.all[location])
