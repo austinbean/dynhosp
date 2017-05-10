@@ -3,70 +3,52 @@ function ExactVal(D::DynState,
                   p1::patientcount,
                   p2::patientcount;
                   messages::Bool = false,
-                  itlim::Int64 = 350,
+                  itlim::Int64 = 500, # FIXME - remove eventually.
                   debug::Bool = true,
                   beta::Float64 = 0.95,
                   conv::Float64 = 0.0001)
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-  totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                       # will record convergence 
-  all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                  # will record the locations of competitors
-  st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                # will record the states of all firms from the point of view of el.
-  its::Int64 = 0                                                                      # records iterations, but will be dropped after debugging.
-  for el in chunk # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
-    neighbors::Array{Int64,1} = FindComps(D, D.all[el])                               #  these are addresses of fids.
-    push!(neighbors, el)                                                              # add the location of the firm in chunk
+  totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence 
+  all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors
+  st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
+  its::Int64 = 0                                                                        # records iterations, but will be dropped after debugging.
+  for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
+    neighbors::Array{Int64,1} = FindComps(D, D.all[el])                                 # these are addresses of fids.
+    push!(neighbors, el)                                                                # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
-    CompsDict(neighbors, D, all_locs)                                                 # now this is Dict{Fid, Location}
-    StateRecord(all_locs, D, st_dict)                                                 # returns the restricted state.
-    for el2 in neighbors                                                              # adds keys for the neighbors to the temp dict. 
+    CompsDict(neighbors, D, all_locs)                                                   # now this is Dict{Fid, Location}
+    StateRecord(all_locs, D, st_dict)                                                   # returns the restricted state.
+    for el2 in neighbors                                                                # adds keys for the neighbors to the temp dict. 
       outvals[D.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
       tempvals[D.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
-      totest[D.all[el2].fid] = false                                                   # don't test convergence of neighbors temporarily.  FIXME 
+      totest[D.all[el2].fid] = false                                                    # initialized to FALSE - not converged. 
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), tempvals[D.all[el2].fid])
-      #locs[D.all[el2].fid] = el2
     end 
-    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                              # TODO - starting values here.
-    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                             # this does NOT need starting values.  
+    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                               # TODO - starting values here.
+    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                              # this does NOT need starting values.  
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
-    #locs[D.all[el].fid] = el                                                          # stores a fid,location value
   end
   # Updating process:
-  # NOTE - totest contains only the firms in the "market" which we want. 
-  # FIXME - something needs to be done to initialize this...  
   converge::Bool = true
-  while (converge)&&(its<itlim)                                                        # if true keep going.  ]
-  
-#    converge = true                                                                    # reassign, to catch when it terminates.
-    for k in keys(totest)                                                              # TODO - not updating the competitors.
-      if totest[k]                                                                     # only run those for which true. 
-        if its > 330 # NANFIX - remove this whole conditional.  And take the true/false out of ExactChoice.  
-            ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, true; messages = false)  
-        else 
-            ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, false; messages = false)
-        end 
+  while (converge)                                                                      # if true keep going.  
+    for k in keys(totest)                                                              
+      if totest[k]                                                                      # only run those for which true. 
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, true; messages = false)  #NANFIX - remove last "true" after D 
       end 
     end
-    # if isnan(sum(p1))||isnan(sum(p2))
-    #     println("from ExactVal: ")
-    #     println("p1, p2: ", p1, "  ", p2)
-    # end 
-     
-    # Convergence Test:
-    # FIXME - I'll bet the problem is that it checks ALL states, some of which are initialized to zero, so 
-    # these show as converged.  But could that matter?  It's supposed to focus on the max difference.  
-    converge = ExactConvergence(tempvals, outvals, totest; messages = false)    
+    # Convergence Test - this modifies bools in totest.
+    ExactConvergence(tempvals, outvals, totest, its; messages = true)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
-    DictClean(tempvals)                                                               # sets up for rewriting.
+    DictClean(tempvals)                                                                 # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
     its += 1
-    # println("iteration ", its)
-    # println("converge? ", converge)
+    println("converge? ", converge)
   end 
   # Return equilibrium values:
   return outvals
@@ -124,6 +106,8 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ExactVal(dyn, ch, p1, p2)
 
 PatientZero(p1, p2)
+
+ExactVal(dyn, [11], p1, p2)
 
 
 ch2 = [11]
