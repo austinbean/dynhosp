@@ -7,15 +7,20 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
                           toler::Float64 =0.001)
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()                     # check only the guys still being done.
+  # FIXME - would this problem be solved by initializing this dict with positive values?  
+  for k1 in keys(stable)
+    diffs[k1] = 1.0 # this is above toler
+  end 
   if its > start_ch                                                      # provides a floor before which convergence is not checked and not updated. 
     for fid in keys(current)                                             # checks a subset ONLY, given by those in "current" whose locations are in chunk.  
       if messages println("current bool in totest: ", fid, "  ", totest[fid]) end 
       if !totest[fid]                                                    # keys in totest for which false (i.e., not converged)
-        maxdiff::Float64 = 0.0   
+        maxdiff::Float64 = -1.0   
         for state in keys(current[fid])                                  # states available to the firm.
           if haskey(stable[fid], state)
             if (current[fid][state]>0.0)&(stable[fid][state]>0.0)            # test states at which value is > 0, since some state values are not computed
               if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference. 
+                println("yes")
                 maxdiff = abs(current[fid][state] - stable[fid][state])
               end
             else 
@@ -25,15 +30,15 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
             if messages println("a state wasn't found ") end           # FIXME - eventually delete this branch.  There should be no such states. 
           end 
         end
-        if messages println("for fid: ", fid) end
-        if messages println("max diff: ", maxdiff) end
-        diffs[fid] = maxdiff                                           # keep track of the max diff.  
+        #if messages println("for fid: ", fid) end
+        #if messages println("max diff: ", maxdiff) end
+        diffs[fid] = abs(maxdiff)                                           # keep track of the max diff.  
       end 
     end 
-    if messages 
-      println("current differences ")
-      println(diffs)
-    end 
+    # if messages 
+    #   println("current differences ")
+    #   println(diffs)
+    # end 
     # Check for convergence - 
     # look at the maximum difference across states for each firm.
     # FIXME - now thre problem is: everything gets initialized to zero, convergence achieved right away, never tested again. 
