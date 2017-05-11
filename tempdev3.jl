@@ -75,8 +75,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     CV3::Float64 = ContVal(nstates, fid, stable ,3)  
     # Adding a test for the incrementing NaN problem.  #NANFIX
     testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
-    println("testfloat: ", testfloat)
-    println("original level: ", D.all[location].level, " and actual: ", D.all[location].actual)
   # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
@@ -85,7 +83,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     UtilDown(D.all[location])                                 # resets the utility and level
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
     # NANFIX 
-    if testfloat != D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)]
+    if !isapprox(testfloat, D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
         error("First Update Failed.")
     end 
   # Update value at Level 2 (repeats steps above!)
@@ -94,24 +92,20 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.  
     temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
-    println("checking level: ", D.all[location].level)
     PatientZero(p1, p2)
     # NANFIX 
-    if testfloat != D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)]
+    if !isapprox(testfloat, D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
         error("Second Update Failed.")
     end 
   # Update value at Level 3
-    println("prior: ", D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])  #NANFIX
-    println("level? ", D.all[location].level, " actual? ", D.all[location].actual)
     D.all[location].level = 3
     UpdateD(D.all[location])
     DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
-    println("post: ", D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])  #NANFIX
     PatientZero(p1, p2)
     # NANFIX 
-    if testfloat != D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)]
+    if !isapprox(testfloat, D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
         error("Third Update Failed.")
     end 
 end 
