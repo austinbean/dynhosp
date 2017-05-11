@@ -2102,59 +2102,43 @@ end
 Updates the utility component.  The deterministic part.
 """
 function UpdateD(h::simh)
-    if h.level == 1
-      if h.actual == 3
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 3, 1)
-        end 
-      elseif h.actual == 2
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 2,1) 
-        end 
-      else # h.actual == 1
-        # do nothing.
+  if h.level == 1 # this item varies.
+    if h.actual == 3
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 3, 1)
       end 
-    elseif h.level == 2
-      if h.actual == 1
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 1, 2)
-        end 
-      elseif h.actual == 3
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 3, 2)
-        end       
-      else # h.actual == 2
-        # do nothing. 
-      end
-    else #h.level == 3
-      if h.actual == 1
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 1, 3)
-        end 
-      elseif h.actual == 2
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 2,3)
-        end 
-      else # h.actual == 3
-        # do nothing.
-      end
+    elseif h.actual == 2
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 2,1) 
+      end 
+    else # h.actual == 1
+      # do nothing.
     end 
-    #NANFIX - this is going to be a temporarily expensive operation.
-    # for el in h.mk.m
-    #   if sum(isnan.(el.putils))>0||sum(isnan.(el.mutils))>0
-    #     println("NaN in UpdateD")
-    #     println(h.fid)
-    #     println(el.zp)
-    #     if !prod(isnan.(el.putils))
-    #       println("in the p utils")
-    #       println(el.putils)
-    #     end 
-    #     if !prod(isnan.(el.mutils))
-    #       println("in the m utils")
-    #       println(el.mutils)
-    #     end 
-    #   end 
-    # end 
+  elseif h.level == 2
+    if h.actual == 1
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 1, 2)
+      end 
+    elseif h.actual == 3
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 3, 2)
+      end       
+    else # h.actual == 2
+      # do nothing. 
+    end
+  else #h.level == 3
+    if h.actual == 1
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 1, 3)
+      end 
+    elseif h.actual == 2
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 2,3)
+      end 
+    else # h.actual == 3
+      # do nothing.
+    end
+  end 
 end 
 
 
@@ -2170,6 +2154,9 @@ end
                  inten_p::Float64 = 1.18599,
                  inter_p::Float64 = 0.866268) `
 Updates the deterministic component of the utility quickly.  
+The change works like: UtilUp(c, fid, actual, current)
+where "actual" is the field dyn.all[].actual - the immutable real level,
+and "current" is the field dyn.all[].level - this can and may change.  
 """
 function UtilUp(c::cpats, 
                 fid::Int64, 
@@ -2187,37 +2174,29 @@ function UtilUp(c::cpats,
   indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if (actual == 1)&(current == 1)
     # do nothing.
-  elseif (actual == 1)&(current == 2)
+  elseif (actual == 1)&(current == 2) # definitely want addition
     c.putils[2,indx_p] += inter_p
     c.mutils[2,indx_m] += inter_med
-  elseif (actual == 1)&(current == 3)
+  elseif (actual == 1)&(current == 3) # definitely want addition
     c.putils[2,indx_p] += inten_p
     c.mutils[2,indx_m] += inten_med 
-  elseif (actual == 2)&(current == 1) # why aren't we adding here?
+  elseif (actual == 2)&(current == 1) # This should be subtraction.
     c.putils[2,indx_p] -= inter_p
     c.mutils[2,indx_m] -= inter_med
   elseif (actual == 2)&(current == 2)
     # do nothing.
-  elseif (actual == 2)&(current == 3)
+  elseif (actual == 2)&(current == 3) # definitely want adding here. 
     c.putils[2,indx_p] += inteninter_p 
     c.mutils[2,indx_m] += inteninter_med
-  elseif (actual == 3)&(current == 1)
+  elseif (actual == 3)&(current == 1) # definitely want subtraction.
     c.putils[2,indx_p] -= inten_p 
     c.mutils[2,indx_m] -= inten_med 
   elseif (actual == 3)&(current == 2)
-    c.putils[2,indx_p] -= interinten_p   # FIXME - is this subtracted?
-    c.mutils[2,indx_m] -= interinten_med # FIXME - is this subtracted?
+    c.putils[2,indx_p] += interinten_p   # FIXME - is this subtracted?
+    c.mutils[2,indx_m] += interinten_med # FIXME - is this subtracted?
   elseif (actual == 3)&(current == 3)
     # do nothing.
   end 
-  #NaNFix - temporarily expensive operation.  
-  # if sum(isnan.(c.putils))>0 || sum(isnan.(c.mutils))>0
-  #   println("In UtilUp ")
-  #   println("zip: ", c.zp)
-  #   println("p utils: ", c.putils)
-  #   println("m utils ", c.mutils)
-  #   println("p wtp: ", c.pwtp)
-  # end 
 end 
 
 
@@ -2227,45 +2206,45 @@ Adjusts the deterministic utility back down.
 Now changed so that this function updates the level back to the actual value.  
 """
 function UtilDown(h::simh)
-    if h.level == 1
-      if h.actual == 3
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 1, 3) # the syntax is: current level is 1, but the level is actually 3.
-        end 
-      elseif h.actual == 2
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 1,2) 
-        end 
-      else # h.actual == 1
-        # do nothing.
+  if h.level == 1
+    if h.actual == 3
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 1, 3) # the syntax is: current level is 1, but the level is actually 3.
       end 
-    elseif h.level == 2
-      if h.actual == 1
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 2, 1)
-        end 
-      elseif h.actual == 3
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 2, 3)
-        end       
-      else # h.actual == 2
-        # do nothing. 
-      end
-    else #h.level == 3
-      if h.actual == 1
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 3, 1)
-        end 
-      elseif h.actual == 2
-        for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 3,2)
-        end 
-      else # h.actual == 3
-        # do nothing.
-      end
+    elseif h.actual == 2
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 1,2) 
+      end 
+    else # h.actual == 1
+      # do nothing.
     end 
-    # reset the level AFTER this is called:
-    h.level = h.actual  
+  elseif h.level == 2
+    if h.actual == 1
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 2, 1)
+      end 
+    elseif h.actual == 3
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 2, 3)
+      end       
+    else # h.actual == 2
+      # do nothing. 
+    end
+  else #h.level == 3
+    if h.actual == 1
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 3, 1)
+      end 
+    elseif h.actual == 2
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 3,2)
+      end 
+    else # h.actual == 3
+      # do nothing.
+    end
+  end 
+  # reset the level AFTER this is called:
+  h.level = h.actual  
 end 
 
 
