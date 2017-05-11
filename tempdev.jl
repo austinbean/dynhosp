@@ -73,7 +73,7 @@ function ExactVal(D::DynState,
   end
   # Updating process:
   converge::Bool = true
-  while (converge) #&(its<itlim)                                                                    # if true keep going.  
+  while (converge)&(its<itlim)                                                                    # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, true; messages = true)  #NANFIX - remove last "true" after D 
