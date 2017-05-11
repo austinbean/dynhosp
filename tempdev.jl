@@ -1,3 +1,43 @@
+"""
+`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
+Computes the exact solution for smaller markets.  1 - 5 firms at most.
+
+
+entries to consideR: 1-15 are all.
+Here number of neighbors and entry (dyn.all[x])
+Duopoly:
+1, 4, 5, 9
+
+triopoly:
+18, 20, 21, 24, 25, 26
+
+4-opoly
+13, 14, 15
+
+
+# testing: 
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
+ch = [1] # first element
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ExactVal(dyn, ch, p1, p2)
+
+PatientZero(p1, p2)
+
+ExactVal(dyn, [11], p1, p2)
+
+
+ch2 = [11] # larger market. 
+ExactVal(dyn, ch2, p1, p2)
+
+"""
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
@@ -33,14 +73,14 @@ function ExactVal(D::DynState,
   end
   # Updating process:
   converge::Bool = true
-  while (converge)                                                                      # if true keep going.  
+  while (converge) #&(its<itlim)                                                                    # if true keep going.  
     for k in keys(totest)                                                              
-      if totest[k]                                                                      # only run those for which true. 
-        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, true; messages = false)  #NANFIX - remove last "true" after D 
+      if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, true; messages = true)  #NANFIX - remove last "true" after D 
       end 
     end
     # Convergence Test - this modifies bools in totest.
-    ExactConvergence(tempvals, outvals, totest, its; messages = true)    
+    ExactConvergence(tempvals, outvals, totest, its; messages = false)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                                 # sets up for rewriting.
@@ -48,7 +88,7 @@ function ExactVal(D::DynState,
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
     its += 1
-    println("converge? ", converge)
+    #println("converge? ", converge)
   end 
   # Return equilibrium values:
   return outvals
@@ -60,63 +100,7 @@ end
 #=
 
 
-"""
-`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
-Computes the exact solution for smaller markets.  1 - 5 firms at most.
 
-
-entries to consideR: 1-15 are all.
-Here number of neighbors and entry (dyn.all[x])
-Duopoly:
-1
-4
-5
-9
-
-0 6 (monopoly)
-0 7 (monopoly)
-0 8 (monopoly)
-
-triopoly:
-18
-20
-21
-24
-25
-26
-
-4 13
-4 14
-4 15
-
-#NB: consider an "itlim" ceiling
-
-# testing: 
-
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients);
-ch = [1] # first element
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ExactVal(dyn, ch, p1, p2)
-
-PatientZero(p1, p2)
-
-ExactVal(dyn, [11], p1, p2)
-
-
-ch2 = [11]
-ExactVal(dyn, ch2, p1, p2)
-
-NOTES on current problems:
-- some firms  are getting added... that is, fids are getting added which I don't want added.  Where does that happen?  
-
-"""
 
 
 
