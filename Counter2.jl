@@ -2171,21 +2171,18 @@ end
                  inter_p::Float64 = 0.866268) `
 Updates the deterministic component of the utility quickly.  
 """
-
-# FIXME - I bet I end up subtracting what I have already made negative here.  DOUBLE CHECK.  
-
-function UtilUp( c::cpats, 
-                 fid::Int64, 
-                 actual::Int64, 
-                 current::Int64; 
-                 inteninter_med::Float64 = -0.572397,
-                 interinten_med::Float64 = 0.572397,
-                 inten_med::Float64 = 1.34994,
-                 inter_med::Float64 = 0.777542,
-                 inteninter_p::Float64 = 0.3197218,
-                 interinten_p::Float64 = -0.3197218,
-                 inten_p::Float64 = 1.18599,
-                 inter_p::Float64 = 0.866268)
+function UtilUp(c::cpats, 
+                fid::Int64, 
+                actual::Int64,  # this one should be permanent.
+                current::Int64; # this one should vary.
+                inteninter_med::Float64 = -0.572397,
+                interinten_med::Float64 = 0.572397,
+                inten_med::Float64 = 1.34994,
+                inter_med::Float64 = 0.777542,
+                inteninter_p::Float64 = 0.3197218,
+                interinten_p::Float64 = -0.3197218,
+                inten_p::Float64 = 1.18599,
+                inter_p::Float64 = 0.866268)
   indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if (actual == 1)&(current == 1)
@@ -2196,7 +2193,7 @@ function UtilUp( c::cpats,
   elseif (actual == 1)&(current == 3)
     c.putils[2,indx_p] += inten_p
     c.mutils[2,indx_m] += inten_med 
-  elseif (actual == 2)&(current == 1)
+  elseif (actual == 2)&(current == 1) # why aren't we adding here?
     c.putils[2,indx_p] -= inter_p
     c.mutils[2,indx_m] -= inter_med
   elseif (actual == 2)&(current == 2)
@@ -2208,8 +2205,8 @@ function UtilUp( c::cpats,
     c.putils[2,indx_p] -= inten_p 
     c.mutils[2,indx_m] -= inten_med 
   elseif (actual == 3)&(current == 2)
-    c.putils[2,indx_p] -= interinten_p
-    c.mutils[2,indx_m] -= interinten_med 
+    c.putils[2,indx_p] -= interinten_p   # FIXME - is this subtracted?
+    c.mutils[2,indx_m] -= interinten_med # FIXME - is this subtracted?
   elseif (actual == 3)&(current == 3)
     # do nothing.
   end 
@@ -2233,7 +2230,7 @@ function UtilDown(h::simh)
     if h.level == 1
       if h.actual == 3
         for el in 1:size(h.mk.m,1) # this is an array of cpats
-          UtilUp(h.mk.m[el], h.fid, 1, 3)
+          UtilUp(h.mk.m[el], h.fid, 1, 3) # the syntax is: current level is 1, but the level is actually 3.
         end 
       elseif h.actual == 2
         for el in 1:size(h.mk.m,1) # this is an array of cpats
