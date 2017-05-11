@@ -72,7 +72,10 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, nbs, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
-    CV3::Float64 = ContVal(nstates, fid, stable ,3)   
+    CV3::Float64 = ContVal(nstates, fid, stable ,3)  
+    # Adding a test for the incrementing NaN problem.  #NANFIX
+    testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
+
   # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
@@ -94,5 +97,20 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
     PatientZero(p1, p2)
+    # NANFIX 
+    if testfloat != D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)]
+        error("The size problem was not fixed.")
+    end 
 end 
+
+
+
+
+#=
+
+
+=#
+
+
+
 
