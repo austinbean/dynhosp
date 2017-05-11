@@ -2171,6 +2171,9 @@ end
                  inter_p::Float64 = 0.866268) `
 Updates the deterministic component of the utility quickly.  
 """
+
+# FIXME - I bet I end up subtracting what I have already made negative here.  DOUBLE CHECK.  
+
 function UtilUp( c::cpats, 
                  fid::Int64, 
                  actual::Int64, 
