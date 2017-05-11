@@ -1,10 +1,39 @@
+"""
+`ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; toler::Float64 =0.001, debug::Bool = true  )`
+This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
+for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
+Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
+
+Testing: 
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients);
+test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
+test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
+test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
+StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
+StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
+
+test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
+totest = Dict{Int64,Bool}()
+totest[dyn.all[6].fid] = false 
+ExactConvergence(test1, test2, totest; messages = false) == false # returns true.
+
+ExactConvergence(test1, test2, totest; messages = true)
+false # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
+"""
 function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                           stable::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                           totest::Dict{Int64,Bool}, # when the bool is "true", this has converged.
                           its::Int64; 
                           start_ch::Int64 = 10, # start checking convergence when iterations exceed this threshold.
                           messages::Bool = true,
-                          toler::Float64 =0.001)
+                          toler::Float64 =0.00001)
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()                     # check only the guys still being done.
   # FIXME - would this problem be solved by initializing this dict with positive values?  
@@ -20,7 +49,6 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
           if haskey(stable[fid], state)
             if (current[fid][state]>0.0)&(stable[fid][state]>0.0)            # test states at which value is > 0, since some state values are not computed
               if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference. 
-                println("yes")
                 maxdiff = abs(current[fid][state] - stable[fid][state])
               end
             else 
@@ -59,35 +87,7 @@ end
 
 
 
-"""
-`ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }, stable::Dict{ Int64, Dict{NTuple{10, Int64}, Dict{Int64, Float64} } }; toler::Float64 =0.001, debug::Bool = true  )`
-This will check convergence.  Does this by measuring the maximum difference at every state/action pair 
-for each firm.  Returns a boolean recording convergence, but also returns a list of fids of unconverged facilities.
-Operates on two dictionaries: one the permanent ("stable") and the other the temporary ("current")
 
-Testing: 
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
-
-dyn = DynStateCreate(TexasEq, Tex, patients);
-test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
-test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
-test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
-test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
-StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
-StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
-
-test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
-totest = Dict{Int64,Bool}()
-totest[dyn.all[6].fid] = false 
-ExactConvergence(test1, test2, totest; messages = false) == false # returns true.
-
-ExactConvergence(test1, test2, totest; messages = true)
-false # this is returning "converged" FALSE and the list of the unconverged facilities (in this case only one.)
-"""
 
 
 =#
