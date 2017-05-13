@@ -37,13 +37,22 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 #fid = 3490795;
 #location = 1;
 
+locs_d = Dict( 1391330 => 90, 3490795 => 1) # dict of locations.
+
+st_dict = Dict{Int64,NTuple{9,Int64}}()
+StateRecord(locs_d, dyn, st_dict)   # dict of restricted states. 
+
+
 d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
 d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
 d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
 
+# FIXME - finish writing the test for this.  
 
-ExactChoice(d1, d2, dyn.all[1].fid, 1, p1, p2,  dyn)
+
+ExactChoice(d1, d2, locs_d, st_dict, 3490795, 1, p1, p2, dyn, false)
+
 d1[dyn.all[1].fid]
 
 """
@@ -55,8 +64,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      location::Int64,
                      p1::patientcount,
                      p2::patientcount,
-                     D::DynState,
-                     printflag::Bool; #NANFIX - remove this later.   
+                     D::DynState;    
                      messages::Bool = true, 
                      β::Float64 = 0.95,
                      ϕ13::Float64 = 0.0, # FIXME - substitute correct values and scale.
@@ -78,7 +86,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 1
     D.all[location].level = 1
     UpdateD(D.all[location])                                  # updates the utility for a new level 
-    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX                 # Computes the demand for that level.
+    DSimNew( D.all[location].mk, fid, p1, p2) # NANFIX                 # Computes the demand for that level.
     temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
@@ -89,7 +97,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 2 (repeats steps above!)
     D.all[location].level = 2
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
-    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.  
+    DSimNew( D.all[location].mk, fid, p1, p2) # NANFIX # Computes the demand.  
     temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
     PatientZero(p1, p2)
@@ -100,7 +108,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
   # Update value at Level 3
     D.all[location].level = 3
     UpdateD(D.all[location])
-    DSimNew( D.all[location].mk, fid, p1, p2, printflag) # NANFIX # Computes the demand.
+    DSimNew( D.all[location].mk, fid, p1, p2) # NANFIX # Computes the demand.
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
     PatientZero(p1, p2)
