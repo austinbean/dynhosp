@@ -382,13 +382,6 @@ function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
     arr[2,i]/=int_sum   
   end
   arr[2,findfirst(arr[2,:], 0)] = 1/int_sum # this is a little expensive, but not too bad.
-  #NaNFix 
-  if sum(isnan.(arr))>0
-    println("NaN in WTPNew")
-    println("array: ", arr)
-    println("int_sum: ", int_sum)
-    println("c: ", c)
-  end 
 end
 
 
@@ -412,9 +405,27 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 temparr = zeros(2, 12) # 12 is max # of facilities. 
 
 
-DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
+DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true, false )
+
+function TestDemComp(n::Int64)
+  p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+  temparr = zeros(2, 12) # 12 is max # of facilities. 
+
+  for i = 1:n
+    @time DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true, false )
+    PatientZero(p1, p2)
+  end 
+
+end 
+
+TestDemComp(5)
+
+
+
 """
-function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::cpats, p_or_m::Bool, printflag::Bool)  # NANFIX - remove later.)
+function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::cpats, p_or_m::Bool)  
   # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
   counter::Int64 = 0 # XXX - what is it that this does?  Records the index?  ie.  p385, p386, etc??
@@ -423,37 +434,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
       index = i #reassign - XXX - double check that this reassignment works.  I think it does.  
     end
   end
-  #NANFIX 
-  # if sum(isnan.(temparr)) > 0
-  #   println("Dem Comp, temparr NaN")
-  #   println(temparr)
-  # end 
-  # #NANFIX 
-  # if sum(isnan.(inparr)) > 0
-  #   println("Dem Comp, temparr NaN")
-  #   println(inparr)
-  # end 
-  # #NANFIX 
-  # if isnan(pp.count385)||isnan(pp.count386)||isnan(pp.count387)||isnan(pp.count388)||isnan(pp.count389)||isnan(pp.count390)||isnan(pp.count391)
-  #   println("in DemComp, Before")
-  #   println("count: ", pp)
-  # end 
-  # if printflag # NANFIX 
-  #   println("fid: ", fid, "  ", c.zp, "  ", c.putils, "  ", c.mutils)
-  # end 
   WTPNew(inparr, temparr) # updates temparr
-  if c.zp == 76687 # NANFIX 
-    #println("input:", inparr[2,index])
-    #println("temporary:", temparr)
-  end 
-  if printflag #NANFIX 
-#    println("zip:", c.zp)
-    if sum(isnan.(temparr))>0 || sum(isnan.(inparr))>0
-      println("*******NaN*******")
-      println(fid)
-      println(c.zp)
-    end 
-  end 
   if index!=0 # don't look for a facility that isn't there.
     if p_or_m # if true then private
       for j in c.pcounts
@@ -511,11 +492,6 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
       end
     end
   end
-  #NANFIX 
-  # if isnan(pp.count385)||isnan(pp.count386)||isnan(pp.count387)||isnan(pp.count388)||isnan(pp.count389)||isnan(pp.count390)||isnan(pp.count391)
-  #   println("in DemComp, AFTER")
-  #   println("count: ", pp)
-  # end 
   ArrayZero(temparr)
 end
 
@@ -548,36 +524,34 @@ Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}()
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
-
 dyn = DynStateCreate(TexasEq, Tex, patients);
+
+
+
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
 
+function TestDSimNew(n::Int64)
+  p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  for i = 1:n 
+    @time DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
+    PatientZero(p1, p2)
+  end
+
+end 
+
+TestDSimNew(5)
+
 """
-function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount, 
-                 printflag::Bool;  #NANFIX - remove later.  
+function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount;    
                  maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
-    # NaNFix - the following is temporary.
-    # WTPNew(el.putils, temparr)
-    # WTPNew(el.mutils, temparr)
-    # if (sum(isnan.(temparr)))>0
-    #   println("DSimNew NaN")
-    #   println("NaN Found: ", c.fid)
-    #   println("zip: ", el.zp )
-    #   println("putils: ", el.putils)
-    #   println("mutils: ", el.mutils)
-    #   WTPNew(el.putils, temparr)
-    #   println("WTP calculation putils: ", temparr)
-    #   ArrayZero(temparr)
-    #   WTPNew(el.mutils, temparr)
-    #   println("WTP calculation mutils: ", temparr)
-    # end 
     ArrayZero(temparr)
-    DemComp(el.putils, temparr, pcount, f, el, true, printflag ) #NANFIX - remove later: ...pcount, f, el, ...
-    DemComp(el.mutils, temparr, mcount, f, el, false, printflag) # NANFIX - remove later: ...pcount, f, el, ...
+    DemComp(el.putils, temparr, pcount, f, el, true) 
+    DemComp(el.mutils, temparr, mcount, f, el, false) 
   end
 end
 
@@ -899,14 +873,6 @@ function FindWTP(h::simh)
       if el.pwtp[1,f] == fid
         WTP += el.pwtp[2,f]
       end
-      # NANFIX - remove this when NaN problem is solved
-      # if isnan(el.pwtp[2,f])
-      #   println("NaN Found")
-      #   println(h.fid)
-      #   println(el.zp)
-      #   println(el.pwtp)
-      #   println("WTP: ", WTP)
-      # end 
     end
   end
   return WTP
@@ -1368,12 +1334,6 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
     for k1 in keys(futures)
       if haskey(stable[fid],TAddLevel(k1,lev) )
         outp += futures[k1]*stable[fid][TAddLevel(k1,lev)]
-          # if isnan(futures[k1])
-          #  println("futures is nan ", futures[k1])
-          # end
-          # if isnan(stable[fid][TAddLevel(k1,lev)]) 
-          #   println("stable is nan ", stable[fid][TAddLevel(k1,lev)])
-          # end 
       else 
         println("In ContVal, adding a state which should be there! ")
         stable[fid][TAddLevel(k1,lev)] = 0.5
@@ -1399,12 +1359,6 @@ function ContVal(futures::Dict{NTuple{9,Int64},Float64},
   else 
     #do nothing.  
   end 
-  #NANFIX 
-  # if isnan(outp)
-  #   println("NaN in ContVal")
-  #   println("outp: ", outp )
-  #   println("fid: ", fid)
-  # end 
   return outp 
 end 
 
@@ -1493,13 +1447,6 @@ function ContProbs(fid::Int64,
       outp[el] ./=(sum(outp[el]))
     end 
   end
-  #NANFIX
-  # for k1 in keys(outp) 
-  #   if sum(isnan.(outp[k1]))>0  
-  #     println("NAN IN CONTPROBS")
-  #     println("key: ", k1)
-  #   end 
-  # end 
   return outp 
 end 
 
@@ -1702,13 +1649,6 @@ function TotalCombine(D::DynState,
       end 
     end 
   end 
-  #NANFIX
-  # for k1 in keys(lastout)
-  #   if isnan(lastout[k1])
-  #     println("NaN in TOTAL COMBINE.")
-  #     println("k1: ", k1)
-  #   end 
-  # end 
   return lastout 
 end 
 
@@ -1769,16 +1709,6 @@ function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
       fl *= val 
     end 
   end 
-  #NANFIX
-  # if sum(isnan.(outp))>0 # returns true if ONE element is a NaN.
-  #   println("NaN in CombineVInput")
-  #   println("input: ", inpt)
-  #   println("pr: ", pr)
-  #   for (i, arg) in enumerate(args)
-  #     println("i, arg: ", i, "  ", arg)
-  #   end 
-  #   println("outp: ", outp)
-  # end 
   return outp, fl  
 end 
 
@@ -1807,18 +1737,6 @@ function GenStates(inp::Array{Tuple{Array{Int64,1}, Float64}, 1}, args... )
       push!(outp, CombineVInput(el[1], el[2], arg))
     end 
   end 
-  #NANFIX
-  # for el in outp # these are tuples 
-  #   if sum(isnan.(el[1]))>0||sum(isnan.(el[2]))>0
-  #     println("NaN in GenStates")
-  #     println("outp: ", outp)
-  #     for (i, arg) in enumerate(args)
-  #       for el in inp # this is a Tuple, Float 
-  #         println("i, arg: ", i, "  ", arg)
-  #       end 
-  #     end 
-  #   end 
-  # end 
   return outp 
 end
 
@@ -1998,11 +1916,6 @@ function PatientRev(s::simh,
                     mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
     wtp::Float64 = FindWTP(s) # FIXME - can this give me a NaN? 
-    #NANFIX 
-    # if isnan(wtp)
-    #   println("PatientRev WTP NaN")
-    #   println(wtp)
-    # end  
     if s.level == 1
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2
@@ -2012,12 +1925,6 @@ function PatientRev(s::simh,
     else # level = -999 (exit)
       outp = pi*scalefact  # FIXME - what is pi doing here?  
     end
-    #NANFIX 
-    # if isnan(outp) || isnan(scalefact)
-    #   println("PatientRev NaN")
-    #   println("outp: ", outp)
-    #   println("scalefact: ", scalefact)
-    # end 
     return outp/scalefact
 end
 
