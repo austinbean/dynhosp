@@ -1,6 +1,33 @@
 
 
 """
+`MktSize(d::DynState)`
+How many patients of each type are there in each firm's market?
+"""
+function MktSize(d::DynState)
+  emp::Array{Int64,1} = Array{Int64,1}()
+  for el in d.all 
+    mp::Int64 = 0
+    pp::Int64 = 0
+    for z in el.mk.m  
+      pp += sum(z.pcounts)
+      if sum(z.pcounts) == 0
+        push!(emp,z.zp)
+      end 
+      mp += sum(z.mcounts)
+      if sum(z.mcounts) == 0
+        push!(emp, z.zp)
+      end 
+    end 
+    println(el.fid, " private: ", pp, " medicaid: ", mp)
+  end 
+  println(unique(emp))
+end 
+
+
+
+
+"""
 `MarketPrint(mkt::Market)`
 Prints the elements of the market record: name, neighbors, choice probabilities.
 For debugging purposes to make sure things look right.
