@@ -293,6 +293,20 @@ end
   end 
 
 
+  function DrawAll(p::patientrange)
+    outp::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)  
+    outp.count385 = DrawPatients(p, 385)
+    outp.count386 = DrawPatients(p, 386)
+    outp.count387 = DrawPatients(p, 387)
+    outp.count388 = DrawPatients(p, 388)
+    outp.count389 = DrawPatients(p, 389)
+    outp.count390 = DrawPatients(p, 390)
+    outp.count391 = DrawPatients(p, 391)
+    return outp 
+  end 
+
+
+
   function PatExp(priv::patientrange, med::patientrange)
     outp_p::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
     outp_m::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -343,6 +357,7 @@ end
    long::Float64
    pcoeffs::coefficients
    mcoeffs::coefficients
+   # FIXME - here I can put in the patientrange instead of the patientcount . 
    ppatients::patientcount
    mpatients::patientcount
   end
@@ -491,6 +506,7 @@ type cpats
   mutils::Array{Float64,2}
   pwtp::Array{Float64,2}
   facs::Array{shortrec,1}
+  # FIXME - replace this with patientrange.  
   pcounts::patientcount
   mcounts::patientcount
 end
