@@ -537,9 +537,9 @@ function TestDSimNew(n::Int64)
   p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   for i = 1:n 
     @time DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
+    println(p1, "  ", p2)
     PatientZero(p1, p2)
   end
-
 end 
 
 TestDSimNew(5)
