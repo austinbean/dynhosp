@@ -33,7 +33,7 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
                           its::Int64; 
                           start_ch::Int64 = 10, # start checking convergence when iterations exceed this threshold.
                           messages::Bool = true,
-                          toler::Float64 =0.00001)
+                          toler::Float64 =1e-10)
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()                     # check only the guys still being done.
   # FIXME - would this problem be solved by initializing this dict with positive values?  
@@ -63,10 +63,11 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
         diffs[fid] = abs(maxdiff)                                           # keep track of the max diff.  
       end 
     end 
-    # if messages 
-    #   println("current differences ")
-    #   println(diffs)
-    # end 
+    # FIXME - this can't be working right.  The next line is never printing.  
+    if messages 
+      println("current differences ")
+      println(diffs)
+    end 
     # Check for convergence - 
     # look at the maximum difference across states for each firm.
     # FIXME - now thre problem is: everything gets initialized to zero, convergence achieved right away, never tested again. 
