@@ -80,7 +80,7 @@ function ExactVal(D::DynState,
       end 
     end
     # Convergence Test - this modifies bools in totest.
-    ExactConvergence(tempvals, outvals, totest, its; messages = false)    
+    ExactConvergence(tempvals, outvals, totest, its; messages = true)    
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                                 # sets up for rewriting.
@@ -90,6 +90,7 @@ function ExactVal(D::DynState,
     its += 1
     #println("converge? ", converge)
   end 
+  println("iterations: ", its)
   # Return equilibrium values:
   return outvals
 end
