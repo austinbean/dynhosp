@@ -65,7 +65,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      Array{Int64,1}(),
                      Dict{Tuple{Int64}, nlrec}(),
                      Array{shortrec,1}(),
-                     DynPatients(p, Tex.mkts[k1].collection[hk].fid), # should create the patient collection as a subelement of the hospital record.
+                     DynPatients(p, Tex.mkts[k1].collection[hk].fid), # this is the cmkt (?) should create the patient collection as a subelement of the hospital record.
                      false,
                      false,
                      false) # added "Converged" Bool.
@@ -183,7 +183,7 @@ To test:
 
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists);
+FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 DynPatients(patients, 4530190);
 
@@ -198,12 +198,42 @@ function DynPatients(p::patientcollection, f::Int64 )
                   DetUtils(p.zips[el]; switch = false),
                   DetUtils(p.zips[el]; switch = true),
                   vcat(transpose(DetUtils(p.zips[el]; switch = false)[1,:]), transpose(CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]))), #NB: bottom row only.
-                  Array{shortrec,1}(),
-                  p.zips[el].ppatients,
-                  p.zips[el].mpatients ) ) #note - this is *not* a copy
+                  Array{shortrec,1}(), #FIXME - below this line: new ranges.  
+                  patientrange(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0),     
+                  patientrange(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0) ) )  
   end
   return outp
 end
+
+
+"""
+`PRanges(p1::Array{Float64,2})`
+
+This will return two dicts.  Each dict is d[(zipcode, drg)] = (max, min)
+where this both the key and the return are tuples.
+
+d1, d2 = PRanges(ProjectModule.pcount)
+
+"""
+function PRanges(p1::Array{Float64, 2})
+  maxes_m::Int64 = 44 # Medicaid patients 
+  mins_m::Int64 = 45
+  maxes_p::Int64 = 40 # Private patients. 
+  mins_p::Int64 = 41
+  zips::Int64 = 1
+  drgs::Int64 = 2
+  outp_m::Dict{Tuple{Int64, Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64}, Tuple{Float64,Float64}}()
+  outp_p::Dict{Tuple{Int64, Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64}, Tuple{Float64,Float64}}()
+  for i = 1:size(p1,1) #rows 
+    for j = 1:size(p1,2) #columns
+      outp_m[(convert(Int64,p1[i,zips]),convert(Int64,p1[i,drgs]))] = (p1[i,mins_m],p1[i,maxes_m])
+      outp_p[(convert(Int64,p1[i,zips]),convert(Int64,p1[i,drgs]))] = (p1[i,mins_p],p1[i,maxes_p])
+    end 
+  end 
+  return outp_m, outp_p
+end 
+
+
 
 
 """
