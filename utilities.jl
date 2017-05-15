@@ -1,6 +1,24 @@
 
 
 """
+`NonZeros(d::Dict{Int64,Dict{NTuple{10,Int64},Float64}})
+"""
+function NonZeros(d::Dict{Int64,Dict{NTuple{10,Int64},Float64}})
+  for k1 in keys(d)
+    println("For ", k1)
+    ct::Int64 = 0
+    for k2 in keys(d[k1])
+      if d[k1][k2]>0
+        ct += 1
+        println(k2, " ", d[k1][k2])
+      end 
+    end 
+    println("total nonzero: ", ct)
+  end 
+end 
+
+
+"""
 `MktSize(d::DynState)`
 How many patients of each type are there in each firm's market?
 """
@@ -21,7 +39,10 @@ function MktSize(d::DynState)
     end 
     println(el.fid, " private: ", pp, " medicaid: ", mp)
   end 
-  println(unique(emp))
+  println("Empty zips: ", size(unique(emp)))
+  for z in unique(emp)
+    println(z)
+  end 
 end 
 
 
