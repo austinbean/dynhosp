@@ -506,9 +506,8 @@ type cpats
   mutils::Array{Float64,2}
   pwtp::Array{Float64,2}
   facs::Array{shortrec,1}
-  # FIXME - replace this with patientrange.  
-  pcounts::patientcount
-  mcounts::patientcount
+  pcounts::patientrange
+  mcounts::patientrange 
 end
 
 
