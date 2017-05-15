@@ -185,10 +185,12 @@ Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}()
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
-DynPatients(patients, 4530190);
+d_m, d_p = PRanges(ProjectModule.pcount)
+
+DynPatients(patients, 4530190, d_m, d_p);
 
 """
-function DynPatients(p::patientcollection, f::Int64 )
+function DynPatients(p::patientcollection, f::Int64, d_med::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} , d_pr::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} )
   outp::cmkt = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f) # finds the zip codes
   for el in zpc
@@ -202,7 +204,12 @@ function DynPatients(p::patientcollection, f::Int64 )
                   patientrange(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0),     
                   patientrange(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0) ) )  
   end
-  return outp
+
+  #FIXME - if the key is there, replace these with: 
+  patientrange(d_m[(el,385)][1],d_m[(el,385)][2],d_m[(el,386)][1],d_m[(el,386)][2],d_m[(el,387)][1],d_m[(el,387)][2],d_m[(el,388)][1],d_m[(el,388)][2],d_m[(el,389)][1],d_m[(el,389)][2],d_m[(el,390)][1],d_m[(el,390)][2],d_m[(el,391)][1],d_m[(el,391)][2]),     
+    patientrange(d_p[(el,385)][1],d_p[(el,385)][2],d_p[(el,386)][1],d_p[(el,386)][2],d_p[(el,387)][1],d_p[(el,387)][2],d_p[(el,388)][1],d_p[(el,388)][2],d_p[(el,389)][1],d_p[(el,389)][2],d_p[(el,390)][1],d_p[(el,390)][2],d_p[(el,391)][1],d_p[(el,391)][2])
+
+    return outp
 end
 
 
@@ -212,7 +219,7 @@ end
 This will return two dicts.  Each dict is d[(zipcode, drg)] = (max, min)
 where this both the key and the return are tuples.
 
-d1, d2 = PRanges(ProjectModule.pcount)
+d_m, d_p = PRanges(ProjectModule.pcount)
 
 """
 function PRanges(p1::Array{Float64, 2})
