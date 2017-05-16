@@ -45,13 +45,14 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcounts);
 
 Note that the function takes TWO EntireState arguments.  This is super dumb, but
 only one of them (containing hospital types) has the bed counts.
 """
-function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollection )
+function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollection, zipdrg::Array{Float64,2} )
   outp = DynState(Array{simh,1}())
+  d_m, d_p = PRanges(zipdrg)
   for k1 in keys(Tex.mkts)
     for hk in keys(Tex.mkts[k1].collection)
       newsimh = simh(Tex.mkts[k1].collection[hk].fid,
@@ -65,7 +66,7 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
                      Array{Int64,1}(),
                      Dict{Tuple{Int64}, nlrec}(),
                      Array{shortrec,1}(),
-                     DynPatients(p, Tex.mkts[k1].collection[hk].fid), # this is the cmkt (?) should create the patient collection as a subelement of the hospital record.
+                     DynPatients(p, Tex.mkts[k1].collection[hk].fid, d_m, d_p), # this is the cmkt (?) should create the patient collection as a subelement of the hospital record.
                      false,
                      false,
                      false) # added "Converged" Bool.
@@ -190,7 +191,7 @@ d_m, d_p = PRanges(ProjectModule.pcount)
 DynPatients(patients, 4530190, d_m, d_p);
 
 """
-function DynPatients(p::patientcollection, f::Int64, d_med::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} , d_pr::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} )
+function DynPatients(p::patientcollection, f::Int64, d_m::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} , d_p::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} )
   outp::cmkt = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f) # finds the zip codes
   for el in zpc
