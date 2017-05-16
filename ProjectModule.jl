@@ -667,6 +667,7 @@ end
   export RecordCopy
   export DrawPatients 
   export PatExp
+  export PRanges 
 
   # Export Counter1.jl Functions 
   export CategoryReminder
