@@ -194,22 +194,21 @@ function DynPatients(p::patientcollection, f::Int64, d_med::Dict{Tuple{Int64,Int
   outp::cmkt = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f) # finds the zip codes
   for el in zpc
-    push!(outp.m, cpats(el,
-                  p.zips[el].lat,
-                  p.zips[el].long,
-                  DetUtils(p.zips[el]; switch = false),
-                  DetUtils(p.zips[el]; switch = true),
-                  vcat(transpose(DetUtils(p.zips[el]; switch = false)[1,:]), transpose(CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]))), #NB: bottom row only.
-                  Array{shortrec,1}(), #FIXME - below this line: new ranges.  
-                  patientrange(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0),     
-                  patientrange(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0) ) )  
+    if haskey(d_m, (el,385))&haskey(d_p, (el,385)) # FIXME - think about those not found.
+      push!(outp.m, cpats(el,
+                    p.zips[el].lat,
+                    p.zips[el].long,
+                    DetUtils(p.zips[el]; switch = false),
+                    DetUtils(p.zips[el]; switch = true),
+                    vcat(transpose(DetUtils(p.zips[el]; switch = false)[1,:]), transpose(CounterWTP(DetUtils(p.zips[el]; switch = false)[2,:]))), #NB: bottom row only.
+                    Array{shortrec,1}(),  
+                    patientrange(d_m[(el,385)][1],d_m[(el,385)][2],d_m[(el,386)][1],d_m[(el,386)][2],d_m[(el,387)][1],d_m[(el,387)][2],d_m[(el,388)][1],d_m[(el,388)][2],d_m[(el,389)][1],d_m[(el,389)][2],d_m[(el,390)][1],d_m[(el,390)][2],d_m[(el,391)][1],d_m[(el,391)][2]), 
+                    patientrange(d_p[(el,385)][1],d_p[(el,385)][2],d_p[(el,386)][1],d_p[(el,386)][2],d_p[(el,387)][1],d_p[(el,387)][2],d_p[(el,388)][1],d_p[(el,388)][2],d_p[(el,389)][1],d_p[(el,389)][2],d_p[(el,390)][1],d_p[(el,390)][2],d_p[(el,391)][1],d_p[(el,391)][2]) ) )  
+    else 
+      # println(el) # lists zips which are not found.  
+    end 
   end
-
-  #FIXME - if the key is there, replace these with: 
-  patientrange(d_m[(el,385)][1],d_m[(el,385)][2],d_m[(el,386)][1],d_m[(el,386)][2],d_m[(el,387)][1],d_m[(el,387)][2],d_m[(el,388)][1],d_m[(el,388)][2],d_m[(el,389)][1],d_m[(el,389)][2],d_m[(el,390)][1],d_m[(el,390)][2],d_m[(el,391)][1],d_m[(el,391)][2]),     
-    patientrange(d_p[(el,385)][1],d_p[(el,385)][2],d_p[(el,386)][1],d_p[(el,386)][2],d_p[(el,387)][1],d_p[(el,387)][2],d_p[(el,388)][1],d_p[(el,388)][2],d_p[(el,389)][1],d_p[(el,389)][2],d_p[(el,390)][1],d_p[(el,390)][2],d_p[(el,391)][1],d_p[(el,391)][2])
-
-    return outp
+  return outp
 end
 
 
