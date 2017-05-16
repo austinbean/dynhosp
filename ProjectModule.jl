@@ -668,6 +668,8 @@ end
   export DrawPatients 
   export PatExp
   export PRanges 
+  export DrawAll
+  export DrawPatients
 
   # Export Counter1.jl Functions 
   export CategoryReminder
