@@ -23,7 +23,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
