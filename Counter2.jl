@@ -550,7 +550,7 @@ function TestDSimNew(n::Int64)
   p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   for i = 1:n 
     @time DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
-    println(p1, "  ", p2)
+    #println(p1, "  ", p2)
     PatientZero(p1, p2)
   end
 end 
@@ -562,8 +562,8 @@ function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; 
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
     ArrayZero(temparr)
-    DemComp(el.putils, temparr, pcount, f, DrawAll(el.pcounts))  # FIXME - where does pcount come from?
-    DemComp(el.mutils, temparr, mcount, f, DrawAll(el.mcounts)) # TODO - generate new patient counts from the ranges here.
+    DemComp(el.putils, temparr, pcount, f, DrawAll(el.pcounts))  # pcount is an empty, pre-allocated patientcount into which results are written.
+    DemComp(el.mutils, temparr, mcount, f, DrawAll(el.mcounts)) 
   end
 end
 
