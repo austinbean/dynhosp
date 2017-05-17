@@ -42,11 +42,7 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  messages::Bool = false,
-                  itlim::Int64 = 500, # FIXME - remove eventually.
-                  debug::Bool = true,
-                  beta::Float64 = 0.95,
-                  conv::Float64 = 0.0001)
+                  itlim::Int64 = 50000)
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence 
@@ -73,7 +69,7 @@ function ExactVal(D::DynState,
   end
   # Updating process:
   converge::Bool = true
-  while (converge) #&(its<itlim)                                                                    # if true keep going.  
+  while (converge)&(its<itlim)                                                                    # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true)  
@@ -82,7 +78,10 @@ function ExactVal(D::DynState,
     # Convergence Test - this modifies bools in totest.
     # FIXME - what happens before its is above the threshold?  That is, what goes in tempvals?
     # it can't matter because that is cleaned.  
-    ExactConvergence(tempvals, outvals, totest, its; messages = true)    
+    ExactConvergence(tempvals, outvals, totest, its; messages = false)   
+    # if its %100 == 0
+    #   ExactConvergence(tempvals, outvals, totest, its; messages = true)
+    # end  
     # Copy the values and clean up.
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                                 # sets up for rewriting.
@@ -91,8 +90,11 @@ function ExactVal(D::DynState,
     end   
     its += 1
     #println("converge? ", converge)
+    if its % 100 == 0
+      println("iterations: ", its)
+    end 
   end 
-  println("iterations: ", its)
+
   # Return equilibrium values:
   return outvals
 end
