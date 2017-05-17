@@ -39,13 +39,14 @@ Create the dynamic records from the existing state, don't bother doing it from s
 And these don't have to be organized by zip.
 Use the EntireState from the equilibrium simulation, not the first counterfactual.
 Make using
+
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcounts);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 
 Note that the function takes TWO EntireState arguments.  This is super dumb, but
 only one of them (containing hospital types) has the bed counts.
@@ -191,7 +192,7 @@ d_m, d_p = PRanges(ProjectModule.pcount)
 DynPatients(patients, 4530190, d_m, d_p);
 
 """
-function DynPatients(p::patientcollection, f::Int64, d_m::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} , d_p::Dict{Tuple{Int64,Int64},Tuple{Float64,Float64}} )
+function DynPatients(p::patientcollection, f::Int64, d_m::Dict{Tuple{Int64,Int64},Tuple{Int64,Int64}} , d_p::Dict{Tuple{Int64,Int64},Tuple{Int64,Int64}} )
   outp::cmkt = cmkt(f, Array{cpats,1}())
   zpc = PatientFind(p, f) # finds the zip codes
   for el in zpc
@@ -229,12 +230,12 @@ function PRanges(p1::Array{Float64, 2})
   mins_p::Int64 = 41
   zips::Int64 = 1
   drgs::Int64 = 2
-  outp_m::Dict{Tuple{Int64, Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64}, Tuple{Float64,Float64}}()
-  outp_p::Dict{Tuple{Int64, Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64}, Tuple{Float64,Float64}}()
+  outp_m::Dict{Tuple{Int64, Int64}, Tuple{Int64,Int64}} = Dict{Tuple{Int64,Int64}, Tuple{Int64,Int64}}()
+  outp_p::Dict{Tuple{Int64, Int64}, Tuple{Int64,Int64}} = Dict{Tuple{Int64,Int64}, Tuple{Int64,Int64}}()
   for i = 1:size(p1,1) #rows 
     for j = 1:size(p1,2) #columns
-      outp_m[(convert(Int64,p1[i,zips]),convert(Int64,p1[i,drgs]))] = (p1[i,mins_m],p1[i,maxes_m])
-      outp_p[(convert(Int64,p1[i,zips]),convert(Int64,p1[i,drgs]))] = (p1[i,mins_p],p1[i,maxes_p])
+      outp_m[(convert(Int64,p1[i,zips]),convert(Int64,p1[i,drgs]))] = (convert(Int64,p1[i,mins_m]),convert(Int64,p1[i,maxes_m]))
+      outp_p[(convert(Int64,p1[i,zips]),convert(Int64,p1[i,drgs]))] = (convert(Int64,p1[i,mins_p]),convert(Int64,p1[i,maxes_p]))
     end 
   end 
   return outp_m, outp_p
@@ -435,14 +436,14 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
 temparr = zeros(2, 12) # 12 is max # of facilities. 
 
 
-DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true, false )
+DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
 
 function TestDemComp(n::Int64)
   p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -459,6 +460,9 @@ end
 
 TestDemComp(5)
 
+# FIXME 05/16/2017 - current problem is that this iterates over pcounts, which is now of patientrange type,
+which I haven't defined.  Correct thing would be to define a different arg to DemComp which does this instead.
+Generate patientcount from patientrange and use that.
 
 
 """
@@ -561,7 +565,7 @@ Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}()
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 
 
 
@@ -582,12 +586,11 @@ end
 TestDSimNew(5)
 
 """
-function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount;    
-                 maxh::Int64 = 12)
+function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
     ArrayZero(temparr)
-    DemComp(el.putils, temparr, pcount, f, el, true) 
+    DemComp(el.putils, temparr, pcount, f, el, true)  # FIXME - where does pcount come from?
     DemComp(el.mutils, temparr, mcount, f, el, false) 
   end
 end
@@ -1323,7 +1326,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1421,7 +1424,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients); 
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);; 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 
 d1[dyn.all[11].fid] = Dict{NTuple{10,Int64}, Float64}() # this gives the argument stable_vals
@@ -1528,7 +1531,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1581,7 +1584,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
@@ -1792,7 +1795,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 
 test2 = Dict(3396057=>195, 3390720=>196 , 3396327=>197 , 3396189=>198, 2910645 => 11)
 out_1 = Dict{Int64,NTuple{9,Int64}}()
@@ -1906,7 +1909,7 @@ FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
 
-dyn = DynStateCreate(TexasEq, Tex, patients); 
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);; 
 
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
