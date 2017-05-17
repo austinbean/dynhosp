@@ -293,8 +293,22 @@ end
   end 
 
 
+  """
+  `DrawAll(p::patientrange)`
+  Draws a set of patients at each DRG given a patientrange, which is a set of lower 
+  and upper bounds.
+
+  #TODO - make sure this doesn't give the same output, i.e, that it is actually random.
+  I am sure it is.  
+
+  function TestDrawAll()
+
+
+  end 
+
+  """
   function DrawAll(p::patientrange)
-    outp::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)  
+    outp::patientcount = patientcount(0,0,0,0,0,0,0)  
     outp.count385 = DrawPatients(p, 385)
     outp.count386 = DrawPatients(p, 386)
     outp.count387 = DrawPatients(p, 387)
