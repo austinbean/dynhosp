@@ -437,13 +437,14 @@ FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
+
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-
+ptest = patientcount(1,2,3,4,5,6,7)
 temparr = zeros(2, 12) # 12 is max # of facilities. 
 
 
-DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true )
+DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid,   ptest)
 
 function TestDemComp(n::Int64)
   p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -466,7 +467,7 @@ Generate patientcount from patientrange and use that.
 
 
 """
-function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::cpats, p_or_m::Bool)  
+function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)  
   # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
   counter::Int64 = 0 # XXX - what is it that this does?  Records the index?  ie.  p385, p386, etc??
@@ -477,59 +478,30 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
   end
   WTPNew(inparr, temparr) # updates temparr
   if index!=0 # don't look for a facility that isn't there.
-    if p_or_m # if true then private
-      for j in c.pcounts
-        if counter == 0   
-          pp.count385 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 1
-          pp.count386 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 2
-          pp.count387 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 3
-          pp.count388 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 4
-          pp.count389 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 5
-          pp.count390 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 6
-          pp.count391 += temparr[2,index]*j
-          counter += 1
-        else
-          println("eee")
-        end
-      end
-    else
-      for j in c.mcounts
-        if counter == 0
-          pp.count385 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 1
-          pp.count386 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 2
-          pp.count387 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 3
-          pp.count388 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 4
-          pp.count389 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 5
-          pp.count390 += temparr[2,index]*j
-          counter += 1
-        elseif counter == 6
-          pp.count391 += temparr[2,index]*j
-          counter += 1
-        else
-          println("eee")
-        end
+    for j in c
+      if counter == 0   
+        pp.count385 += temparr[2,index]*j
+        counter += 1
+      elseif counter == 1
+        pp.count386 += temparr[2,index]*j
+        counter += 1
+      elseif counter == 2
+        pp.count387 += temparr[2,index]*j
+        counter += 1
+      elseif counter == 3
+        pp.count388 += temparr[2,index]*j
+        counter += 1
+      elseif counter == 4
+        pp.count389 += temparr[2,index]*j
+        counter += 1
+      elseif counter == 5
+        pp.count390 += temparr[2,index]*j
+        counter += 1
+      elseif counter == 6
+        pp.count391 += temparr[2,index]*j
+        counter += 1
+      else
+        println("eee")
       end
     end
   end
@@ -590,8 +562,8 @@ function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; 
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
     ArrayZero(temparr)
-    DemComp(el.putils, temparr, pcount, f, el, true)  # FIXME - where does pcount come from?
-    DemComp(el.mutils, temparr, mcount, f, el, false) 
+    DemComp(el.putils, temparr, pcount, f, DrawAll(el.pcounts))  # FIXME - where does pcount come from?
+    DemComp(el.mutils, temparr, mcount, f, DrawAll(el.mcounts)) # TODO - generate new patient counts from the ranges here.
   end
 end
 
