@@ -26,7 +26,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients); 
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);; 
 
 # To Run:
 

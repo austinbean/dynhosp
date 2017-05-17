@@ -11,7 +11,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients);
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 test1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
 test2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }();
 test1[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
