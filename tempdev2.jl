@@ -33,7 +33,7 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
                           its::Int64; 
                           start_ch::Int64 = 10, # start checking convergence when iterations exceed this threshold.
                           messages::Bool = true,
-                          toler::Float64 =1e-10)
+                          toler::Float64 =1e-5)
   converge::Bool = false 
   diffs::Dict{Int64,Float64} = Dict{Int64,Float64}()                     # check only the guys still being done.
   # FIXME - would this problem be solved by initializing this dict with positive values?  
