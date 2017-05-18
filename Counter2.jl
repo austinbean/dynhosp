@@ -460,12 +460,6 @@ function TestDemComp(n::Int64)
 end 
 
 TestDemComp(5)
-
-# FIXME 05/16/2017 - current problem is that this iterates over pcounts, which is now of patientrange type,
-which I haven't defined.  Correct thing would be to define a different arg to DemComp which does this instead.
-Generate patientcount from patientrange and use that.
-
-
 """
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)  
   # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
@@ -2225,6 +2219,8 @@ function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
       if !haskey(d2[k1],k2 ) # if the temporary doesn't have the key 
         # do nothing???  
       else 
+        # TODO - want something like dict[k1][k2] = \alpha d2[k1][k2] + (1-\alpha)d1[k1][k2]
+        # write that and a test for it!  
         d1[k1][k2] = d2[k1][k2] # this should copy from the temp to the permanent.   
       end  
     end 
