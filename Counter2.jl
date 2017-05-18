@@ -2264,13 +2264,13 @@ function StateEnumerate(c::ProjectModule.neighbors,  inp::Dict{NTuple{10, Int64}
     for j in EnumUp(n515; fixed = fxd)
       for k in EnumUp(n1525; fixed = fxd)
         if !haskey(outp, TupleSmash(i,j,k,1))
-          outp[TupleSmash(i,j,k,1)] = 0.5 #Dict{Int64, Float64}(10=>0.0, 1=>0.0, 2=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,1)] = 0.01 
         end
         if !haskey(outp, TupleSmash(i,j,k,2))
-          outp[TupleSmash(i,j,k,2)] = 0.5#Dict{Int64, Float64}(5=>0.0, 10=>0.0, 6=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,2)] = 0.01
         end
         if !haskey(outp, TupleSmash(i,j,k,3))
-          outp[TupleSmash(i,j,k,3)] = 0.5 #Dict{Int64, Float64}(4=>0.0, 3=>0.0, 10=>0.0, 11=>0.0)
+          outp[TupleSmash(i,j,k,3)] = 0.01
         end
       end
     end
