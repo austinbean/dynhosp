@@ -42,9 +42,11 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 50000)
+                  itlim::Int64 = 10000)
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+  DictClean(outvals) # initialize to zero 
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+  DictClean(tempvals) # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence 
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
@@ -63,6 +65,7 @@ function ExactVal(D::DynState,
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), tempvals[D.all[el2].fid])
     end 
+    # XXX - are these still the right functions to call??  
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                               # TODO - starting values here.
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                              # this does NOT need starting values.  
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
@@ -77,21 +80,29 @@ function ExactVal(D::DynState,
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
-    # if its %100 == 0
-    #   ExactConvergence(tempvals, outvals, totest, its; messages = true)
-    # end  
+
+    # FIXME - perplexing.  tempvals becomes zero?  Why? 
+    # Ok - Dict clean now copies with an alpha... but that should really only happen if the value is
+    # greater than zero.   
+    if its %1000 == 0
+      println("iteration: ", its)
+      for k1 in keys(outvals)
+        for k2 in keys(outvals[k1])
+          if outvals[k1][k2] > 0
+            println(k1, " ", k2, " ", abs(outvals[k1][k2] - tempvals[k1][k2]), " ", outvals[k1][k2], " ", tempvals[k1][k2] )
+          end 
+        end 
+      end 
+    end 
+
     # Copy the values and clean up.
-    # TODO - here probably weight current and past values so that increments are not too crazy.  
-    DictCopy(outvals, tempvals, 1/its) # NB - new weight placed on new vs. old values.  
+    DictCopy(outvals, tempvals, 1/(its+1)) # NB - new weight placed on new vs. old values.  
     DictClean(tempvals)                                                                 # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
     its += 1
     #println("converge? ", converge)
-    if its % 100 == 0
-      println("iterations: ", its)
-    end 
   end 
 
   # Return equilibrium values:
