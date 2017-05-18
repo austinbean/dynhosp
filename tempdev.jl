@@ -82,7 +82,7 @@ function ExactVal(D::DynState,
     # end  
     # Copy the values and clean up.
     # TODO - here probably weight current and past values so that increments are not too crazy.  
-    DictCopy(outvals, tempvals)
+    DictCopy(outvals, tempvals, 1/its) # NB - new weight placed on new vs. old values.  
     DictClean(tempvals)                                                                 # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
