@@ -2192,7 +2192,7 @@ end
 
 
 """
-`DictCopy`
+`DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }, alpha::Float64)`
 Copy results from the temporary to the permanent.
 Let d1 be the permanent and d2 be the temporary.  
 
@@ -2204,24 +2204,27 @@ test1[dyn.all[6].fid] = Dict{NTuple{10, Int64}, Float64 }();
 test2[dyn.all[6].fid] = Dict{NTuple{10, Int64},  Float64 }();
 StateEnumerate(dyn.all[6].cns, test1[dyn.all[6].fid])
 StateEnumerate(dyn.all[6].cns, test2[dyn.all[6].fid])
+DictClean(test1)
+DictClean(test2)
 
 test1[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] = 20 #assign a value.
 
-DictCopy(test2, test1)
+DictCopy(test2, test1, 0.5)
 
-test2[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] == 20.0 # should return true
+test2[dyn.all[6].fid][(0,0,0,0,0,0,0,0,0,1)] == 10.0 # should return true
 
 """
 function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
-                  d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  })
+                  d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  },
+                  alpha::Float64)
   for k1 in keys(d1) # these are fids 
     for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
       if !haskey(d2[k1],k2 ) # if the temporary doesn't have the key 
         # do nothing???  
       else 
-        # TODO - want something like dict[k1][k2] = \alpha d2[k1][k2] + (1-\alpha)d1[k1][k2]
         # write that and a test for it!  
-        d1[k1][k2] = d2[k1][k2] # this should copy from the temp to the permanent.   
+        println(alpha, "  ", d2[k1][k2], "  ", d1[k1][k2])
+        d1[k1][k2] = alpha*d2[k1][k2] + (1-alpha)*d1[k1][k2] # this should copy from the temp to the permanent.   
       end  
     end 
   end 
