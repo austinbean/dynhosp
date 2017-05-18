@@ -76,13 +76,12 @@ function ExactVal(D::DynState,
       end 
     end
     # Convergence Test - this modifies bools in totest.
-    # FIXME - what happens before its is above the threshold?  That is, what goes in tempvals?
-    # it can't matter because that is cleaned.  
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
     # if its %100 == 0
     #   ExactConvergence(tempvals, outvals, totest, its; messages = true)
     # end  
     # Copy the values and clean up.
+    # TODO - here probably weight current and past values so that increments are not too crazy.  
     DictCopy(outvals, tempvals)
     DictClean(tempvals)                                                                 # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
