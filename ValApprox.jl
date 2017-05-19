@@ -2,6 +2,11 @@
 """
 `ValApprox(D::DynState)`
 This computes the dynamic simulation across all of the facilities in all of the markets.
+- Results are stored in the Dyn record.  That is, values.
+- These are accessed as dyn.ll[#].visited.[(neighbors, level)].aw
+- the probabilities associated to the values are in dyn.all[#].visited[(neighbors, leve)].psi 
+- there is a count of each state in dyn.all[#].visited[(neighbors,level)].visited.
+- V is of type allvisits, which records which states was visited in the last million iterations.  
 
 TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.
 
@@ -32,7 +37,8 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         end
         Action = ChooseAction(el)                                              # Takes an action and returns it.
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
-        level::Int64 = LevelFunction(el, Action)                                       # Level may change with action, but for next period.
+        # FIXME - where is the output of the above line written?  To V?  No.  Within the Dyn record somehwere?
+        level::Int64 = LevelFunction(el, Action)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
           push!(V.all[el.fid].visited, RTuple(el, Action))                     # Record the first million state-action pairs in a vector
         elseif iterations >1_000_000
@@ -47,8 +53,8 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         PatientZero(a,b) # resets both patientcounts to zero.
       end
       # TODO - uncomment convergence test when that is debugged.
-      if iterations%1_000_000 == 0                                        # Check for convergence every million iterations
-        CheckConvergence(el) # FIXME - this is the wrong signature for this function.
+      if iterations%1_000_00 == 0                                        # Check for convergence every million iterations
+        CheckConvergence(el, V.all[el.fid].visited) # FIXME - this is the wrong signature for this function.
       end
     end
   end
