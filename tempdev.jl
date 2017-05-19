@@ -80,7 +80,7 @@ function ExactVal(D::DynState,
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
 
-    # FIXME - perplexing.  tempvals becomes zero?  Why? 
+    # FIXME - prints minimum difference every 1,000 iterations.  Should be removed eventually. 
     if its %1000 == 0
       println("iteration: ", its)
       for k1 in keys(outvals)
@@ -89,14 +89,12 @@ function ExactVal(D::DynState,
           if tempvals[k1][k2] > 0
             if abs(outvals[k1][k2] - tempvals[k1][k2]) < mins
               mins = abs(outvals[k1][k2] - tempvals[k1][k2])
-              # println(k1, " ", k2, " ", abs(outvals[k1][k2] - tempvals[k1][k2]), " ", outvals[k1][k2], " ", tempvals[k1][k2] )
             end
           end 
         end 
         println(k1, " ", k2, " ", mins) # just print the minimum difference.  
       end 
     end 
-
     # Copy the values and clean up.
     DictCopy(outvals, tempvals, 1/(its+1)) # NB - new weight placed on new vs. old values.  
     DictClean(tempvals)                                                                 # sets up for rewriting.
@@ -106,7 +104,6 @@ function ExactVal(D::DynState,
     its += 1
     #println("converge? ", converge)
   end 
-
   # Return equilibrium values:
   return outvals
 end
