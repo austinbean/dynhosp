@@ -24,7 +24,6 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
       nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
       DSimNew(h.mk, h.fid, a, b)
-      # currdem::Tuple{ProjectModule.patientcount,ProjectModule.patientcount} = SimpleDemand(dems, h.level) # draw from the limited demand set.
       currpi::Float64 = SinglePay(h, a, b, nextact)                                              # Current period return, excluding continuation value.
       contval::Float64 = 0.0
       if haskey(h.visited, KeyCreate(h.cns, h.level))                                                     # check neighbors/level pair
@@ -37,8 +36,9 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
         #FIXME - what is happening here now on "not available"  contval stays 0 - but that's going to make the error larger.
         # But these will still be 0 since that's what StartingVals is giving.
         println("Added entry")
-        # Choices available?  Is that going to get the level right?  What about act?
-        h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, currdem[1], currdem[2])), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, currdem[1], currdem[2])))), Dict(k => 0 for k in ChoicesAvailable(h)) )
+        # FIXME - this is a terrible line.  The closure will be really slow.  
+        # but this only needs to occur when there is a state not seen before which is generated in the convergence check. 
+        h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, a, b)), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, a, b)))), Dict(k => 0 for k in ChoicesAvailable(h)) )
         if nextat!=11
           contval += disc*()
         end
