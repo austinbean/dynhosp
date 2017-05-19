@@ -588,6 +588,9 @@ end
   include("DataStructs.jl")
   include("Counter1.jl")
   include("Counter2.jl")
+  include("ExactChoice.jl")
+  include("ExactVal.jl")
+  include("ExactConvergence.jl")
   #include("Reboot.jl")
 
 
