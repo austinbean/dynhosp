@@ -28,7 +28,7 @@ function CounterObjects(T::Int64)
   CMakeIt(Tex, ProjectModule.fips);
   FillState(Tex, ProjectModule.alldists, T);
   patients = NewPatients(Tex);
-  return DynStateCreate(TexasEq, Tex, patients);
+  return DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 end
 
 
@@ -2469,7 +2469,7 @@ This computes the dynamic simulation across all of the facilities in all of the 
 TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.
 
 To start:
-dyn = CounterObjects();
+dyn = CounterObjects(50);
 V = allvisits(Dict{Int64, vrecord}());
 ValApprox(dyn, V, 100_000 ; chunk = [2]) # just doing one hospital.
 22.001426 seconds (281.50 M allocations: 5.099 GiB, 6.99% gc time)
