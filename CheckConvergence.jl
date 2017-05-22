@@ -39,8 +39,8 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
         # FIXME - this is a terrible line.  The closure will be really slow.  
         # but this only needs to occur when there is a state not seen before which is generated in the convergence check. 
         h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, a, b)), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, a, b)))), Dict(k => 0 for k in ChoicesAvailable(h)) )
-        if nextat!=11
-          contval += disc*()
+        if nextact!=11
+          contval += 0 #disc*() #FIXME - this is not done.  
         end
       end
       h.level = origlevel                                                                                 # reset the level to the original value.
