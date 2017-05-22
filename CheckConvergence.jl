@@ -21,7 +21,7 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
    approxim::Float64 = 0.0
    for d = 1:draws
       origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
-      nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
+      nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], ProjectModule.WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
       DSimNew(h.mk, h.fid, a, b)
       currpi::Float64 = SinglePay(h, a, b, nextact)                                              # Current period return, excluding continuation value.
@@ -51,14 +51,14 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
    push!(pairs, (approxim/draws, h.visited[k1].aw[k2]))
    states[KeyCreate(h.cns, h.level)] = (approxim/draws, h.visited[k1].aw[k2])
   end
-  # if !debug
-  #   for k1 in keys(h.visited)
-  #     for k2 in keys(h.visited[k1].counter)
-  #       itercount += h.visited[k1].counter[k2]                                                                 # how many iterations were made in total?
-  #       h.visited[k1].counter[k2] = 1                                                                          # Reset all counter keys to 1 to track which states visited in last million iterations.
-  #     end
-  #   end
-  # end
+  if debug
+    for k1 in keys(h.visited)
+      for k2 in keys(h.visited[k1].counter)
+        itercount += h.visited[k1].counter[k2]                                                                 # how many iterations were made in total?
+        h.visited[k1].counter[k2] = 1                                                                          # Reset all counter keys to 1 to track which states visited in last million iterations.
+      end
+    end
+  end
   return outp, itercount, states, pairs                                                                             # TODO: eventually divide former by latter. And drop states.
 end
 

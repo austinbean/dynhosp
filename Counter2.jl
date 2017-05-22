@@ -2569,8 +2569,7 @@ end
 Chooses the action and returns it.
 Uses the choice probs implied by the estimated value functions at the state.
 
-TODO - this does not actually update the value of the int action.
-
+FIXME - here the shock should be added, I think.  
 """
 function ChooseAction(h::simh)
   act::Int64 = sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
