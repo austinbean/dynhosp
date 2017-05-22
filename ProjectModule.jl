@@ -591,6 +591,8 @@ end
   include("ExactChoice.jl")
   include("ExactVal.jl")
   include("ExactConvergence.jl")
+  include("ValApprox.jl")
+  include("CheckConvergence.jl")
   #include("Reboot.jl")
 
 
