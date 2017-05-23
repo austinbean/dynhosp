@@ -53,10 +53,10 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         PatientZero(a,b) # resets both patientcounts to zero.
       end
       # TODO - uncomment convergence test when that is debugged.
-      if iterations%1_000_00 == 0                                        # Check for convergence every million iterations
+      if iterations%1_000_0 == 0                                        # Check for convergence every million iterations
         CheckConvergence(el, V.all[el.fid].visited) # FIXME - this is the wrong signature for this function.
       end
     end
-  end
+  end 
   converged = Halt(D, chunk)                                                # Check to see if all firms in "chunk" have converged, then halt if they have.
 end
