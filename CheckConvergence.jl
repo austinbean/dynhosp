@@ -16,18 +16,20 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
-  for k in unique(V)                                                                                              # only check this set of values visited in the last million iterations.
+  for k in unique(V)      # this gets the unique states visited.                                                                                          # only check this set of values visited in the last million iterations.
    k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, k2::Int64 = KeytoTuple(k)
-   approxim::Float64 = 0.0
-   for d = 1:draws
-      origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
+   approxim::Float64 = 0.0 
+   for d = 1:draws 
+      origlevel::Int64 = h.level       # NOTE can I do this with h.level and h.actual?                                                                   # keep track of the level inside of the loop so that it can be reset.
       nextact::Int64 = convert(Int64, ProjectModule.sample(h.visited[k1].psi[1,:], ProjectModule.WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
-      h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
+      h.level = LevelFunction(h, nextact)                                                                  # this level must be updated so that the profit computation is correct.
+        # FIXME does what is below update the utilities?
       DSimNew(h.mk, h.fid, a, b)
       currpi::Float64 = SinglePay(h, a, b, nextact)                                              # Current period return, excluding continuation value.
       contval::Float64 = 0.0
       if haskey(h.visited, KeyCreate(h.cns, h.level))                                                     # check neighbors/level pair
         #FIXME - note here: ContError should not be present upon exit.
+        # Why does this only use probs?  Not values?  
         contval = disc*WProb(h.visited[KeyCreate(h.cns, h.level)])
         if nextact != 11
           contval += disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
@@ -42,7 +44,8 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
         if nextact!=11
           contval += 0 #disc*() #FIXME - this is not done.  
         end
-      end
+      end 
+      # FIXME - here reset to the state element again. 
       h.level = origlevel                                                                                 # reset the level to the original value.
       approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
       PatientZero(a,b) # resets both patientcounts to zero.
