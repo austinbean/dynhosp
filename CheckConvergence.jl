@@ -21,7 +21,7 @@ function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,
    approxim::Float64 = 0.0
    for d = 1:draws
       origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
-      nextact::Int64 = convert(Int64, sample(h.visited[k1].psi[1,:], ProjectModule.WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
+      nextact::Int64 = convert(Int64, ProjectModule.sample(h.visited[k1].psi[1,:], ProjectModule.WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                 # this level must be updated so that the profit computation is correct.
       DSimNew(h.mk, h.fid, a, b)
       currpi::Float64 = SinglePay(h, a, b, nextact)                                              # Current period return, excluding continuation value.
