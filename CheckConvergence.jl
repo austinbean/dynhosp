@@ -8,16 +8,16 @@ reset the counters for every state in "visited".
 "Visited" accessed by V.all[fid].visited
 - Convergence should be assessed at *visited* states, something like unique(V), not all of them.
 """
-function CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64},1}; draws::Int64 = 1000, disc::Float64 = 0.95, debug::Bool = true)
+function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 1000, disc::Float64 = 0.95, debug::Bool = true)
   outp::Array{Float64,1} = Array{Float64, 1}()
   pairs::Array{Tuple{Float64,Float64},1} = Array{Tuple{Float64, Float64},1}()
   totvisits::Int64 = 0
   a::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  states::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}} = Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, Tuple{Float64,Float64}}()
+  states::Dict{NTuple{10,Int64}, Tuple{Float64,Float64}} = Dict{NTuple{10,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
   for k in unique(V)      # this gets the unique states visited.                                                                                          # only check this set of values visited in the last million iterations.
-   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, k2::Int64 = KeytoTuple(k)
+   k1::NTuple{10,Int64}, k2::Int64 = KeytoTuple(k)
    approxim::Float64 = 0.0 
    for d = 1:draws 
       origlevel::Int64 = h.level       # NOTE can I do this with h.level and h.actual?                                                                   # keep track of the level inside of the loop so that it can be reset.
