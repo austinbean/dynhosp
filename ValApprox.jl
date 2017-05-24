@@ -23,9 +23,8 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   #steadylevs = AllAgg(D, chunk)
   for el in chunk                                                          # creates a dictionary of visited records.
-    V.all[D.all[el].fid] = vrecord( Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1}(), 1)
+    V.all[D.all[el].fid] = vrecord( Array{NTuple{11,Int64}, 1}(), 1)
   end
-  upcount = 0
   while (iterations<itlim)&&(!converged)
     for el in D.all[chunk]
       if !el.converged                                                     # only keep simulating with the ones which haven't converged
@@ -45,15 +44,13 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, Action)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
         end
         if level != el.level                                                   # levels don't agree - i.e., "level" here is the next level which has been drawn.  
-          println("levels (next, current) ", level, "  ", el.level )
-          upcount += 1 # FIXME - always entering this loop?
           UpdateDUtil(el)                                                      # this should update the utility for hospitals which changed level.  
         end 
         el.previous = el.level                                                 # Reassign current level to previous.
         el.level = level                                                       # Reassign current level, if it has changed or not.
         ExCheck(el)                                                            # Checks for exit
         FixNN(el)                                                              # Fixes the firms neighbors.
-        iterations += 1                                                        # Update iteration count - TODO: delete after debugging.
+        iterations += 1                                                        # Update iteration count 
         V.all[el.fid].totalcnt += 1                                            # Update the iteration count within the visit records.
         PatientZero(a,b)                                                       # resets both patientcounts to zero.
       end
