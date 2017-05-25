@@ -945,18 +945,26 @@ end
 """
 ProbUpdate(aw::Dict{Int64,Float64})
 This should update the probabilities.
+
+Test this: 
+
+aw = Dict( 1 => 1.5, 2 => 0.5, 3 => 0.4, 4 => 0.5)
+ProbUpdate(aw)
+
+for i = 1:10
+  @time ProbUpdate(aw)
+end 
+
 """
 function ProbUpdate(aw::Dict{Int64,Float64})
-  # FIXME - these have known length.  This is dumb.  Always 4 
-  # also: fix size.  hcat is stupid here when size is known.
-  # FIXME - is this even updating anything?  What the fuck is this doing?  
-  outp::Array{Float64,1} = Array{Float64,1}()
-  labs::Array{Int64,1} = Array{Int64, 1}()
-  for el in keys(aw)
-    push!(outp, aw[el]) # FIXME - doing this as push is dumb
-    push!(labs, el)
+  # FIXME - actually this can do even better.  This can work in place on the existing vector.  
+  outp::Array{Float64,2} = Array{Float64,2}(2,4)
+  for (ind,el) in enumerate(keys(aw))
+    outp[1,ind] = el 
+    outp[2,ind] = aw[el]
   end
-  return transpose(hcat(labs,  PolicyUpdate(outp)   )) # FIXME - this is retarded.  
+  PolicyUpdate(outp) # this is not updating the vector.  
+  return outp   
 end
 
 
@@ -968,10 +976,21 @@ given by the log, so the value is constrained to be this small positive value.
 The problem is basically underflow: when returns are really high to staying in and
 much smaller to getting out, the estimated prob is zero.
 
+Test this:
 
+for i = 1:10
+  ab = rand(2,4)
+  @time PolicyUpdate(ab)
+end 
+
+0.000001 seconds (5 allocations: 368 bytes)
 """
-function PolicyUpdate(neww::Array{Float64,1}; ep::Float64 = 0.000000001)
-  return max.(exp.(neww-maximum(neww)), ep)/sum(exp.(neww-maximum(neww))) #6devfix
+function PolicyUpdate(neww::Array{Float64,2}; ep::Float64 = 0.000000001)
+  mx::Float64 = maximum(neww[2,:])
+  sm::Float64 = sum(exp.(neww[2,:] .- mx))
+  for i = 1:size(neww, 2)
+    neww[2,i] = (max(exp(neww[2,i]-mx), ep))/sm 
+  end 
 end
 
 
