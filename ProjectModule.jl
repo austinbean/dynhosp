@@ -564,7 +564,7 @@ type simh<:ProjectModule.Fac
   beds::Int64
   cns::neighbors # must know what current neighbors look like.
   nfids::Array{Int64,1} # add neighbor fids.  
-  visited::Dict{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, nlrec} #change key to tuple of int64 composed of neighbors and level.
+  visited::Dict{NTuple{10,Int64}, nlrec} #change key to tuple of int64 composed of neighbors and level.
   ns::Array{shortrec, 1}
   mk::cmkt # putting the cmkt into the simh record itself.
   exit::Bool
