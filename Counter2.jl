@@ -947,13 +947,16 @@ ProbUpdate(aw::Dict{Int64,Float64})
 This should update the probabilities.
 """
 function ProbUpdate(aw::Dict{Int64,Float64})
+  # FIXME - these have known length.  This is dumb.  Always 4 
+  # also: fix size.  hcat is stupid here when size is known.
+  # FIXME - is this even updating anything?  What the fuck is this doing?  
   outp::Array{Float64,1} = Array{Float64,1}()
   labs::Array{Int64,1} = Array{Int64, 1}()
   for el in keys(aw)
-    push!(outp, aw[el])
+    push!(outp, aw[el]) # FIXME - doing this as push is dumb
     push!(labs, el)
   end
-  return transpose(hcat(labs,  PolicyUpdate(outp)   ))
+  return transpose(hcat(labs,  PolicyUpdate(outp)   )) # FIXME - this is retarded.  
 end
 
 
