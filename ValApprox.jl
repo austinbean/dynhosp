@@ -10,10 +10,26 @@ This computes the dynamic simulation across all of the facilities in all of the 
 
 TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.
 
+TODO - probabilities are not getting recorded properly: 
+
+dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].aw
+Dict{Int64,Float64} with 4 entries:
+  10 => 0.0228582
+  2  => 0.0228582
+  11 => 2.28582e-5
+  1  => 0.0228582
+
+BUT:
+
+  dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].psi
+2×4 Array{Float64,2}:
+ 10.0       2.0       1.0       11.0
+  0.251419  0.251419  0.251419   0.245743
+
 To start:
 dyn = CounterObjects(50);
 V = allvisits(Dict{Int64, vrecord}());
-ValApprox(dyn, V, 100_000 ; chunk = [2]) # just doing one hospital.
+ValApprox(dyn, V, 1000 ; chunk = [2]) # just doing one hospital.
 22.001426 seconds (281.50 M allocations: 5.099 GiB, 6.99% gc time)
 """
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
@@ -35,7 +51,6 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 0 for k in ChoicesAvailable(el)) )
         end
         Action = ChooseAction(el)                                              # Takes an action and returns it.
-        println("Action is: ", Action )
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
         level::Int64 = LevelFunction(el, Action)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
@@ -44,8 +59,11 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, Action)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
         end
         if level != el.level                                                   # levels don't agree - i.e., "level" here is the next level which has been drawn.  
+          println(iterations)
           UpdateDUtil(el)                                                      # this should update the utility for hospitals which changed level.  
         end 
+        # FIXME - where is the probability being updated?  
+        # The function ProbUpdate - fix that.  
         el.previous = el.level                                                 # Reassign current level to previous.
         el.level = level                                                       # Reassign current level, if it has changed or not.
         ExCheck(el)                                                            # Checks for exit
@@ -59,6 +77,5 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
       end
     end
   end 
-  println(upcount)
   converged = Halt(D, chunk)                                                # Check to see if all firms in "chunk" have converged, then halt if they have.
 end
