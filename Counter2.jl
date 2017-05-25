@@ -948,22 +948,26 @@ This should update the probabilities.
 
 Test this: 
 
-aw = Dict( 1 => 1.5, 2 => 0.5, 3 => 0.4, 4 => 0.5)
-ProbUpdate(aw)
+aw = Dict( 1 => 2.0, 2 => 1.0, 3 => 0.0, 4 => 0.0)
+arr = zeros(2,4)
+ProbUpdate(aw, arr)
 
 for i = 1:10
-  @time ProbUpdate(aw)
+  @time ProbUpdate(aw, arr)
 end 
 
+Real test:
+# FIXME - this still doesn't work correctly.  
+ProbUpdate(dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].aw, dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].psi)
+
 """
-function ProbUpdate(aw::Dict{Int64,Float64})
-  # FIXME - actually this can do even better.  This can work in place on the existing vector.  
-  outp::Array{Float64,2} = Array{Float64,2}(2,4)
+function ProbUpdate(aw::Dict{Int64,Float64}, outp::Array{Float64,2})
+  # outp::Array{Float64,2} = Array{Float64,2}(2,4)
   for (ind,el) in enumerate(keys(aw))
     outp[1,ind] = el 
     outp[2,ind] = aw[el]
   end
-  PolicyUpdate(outp) # this is not updating the vector.  
+  PolicyUpdate(outp)  
   return outp   
 end
 
@@ -1207,6 +1211,7 @@ function ComputeR(hosp::simh,
     if action != 11 # there is no continuation value of the error when the firm exits.
       hosp.visited[k1].aw[action] += disc*ContError(hosp.visited[k1])
     end
+    #FIXME - here this can be changed to work in place.
     hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
