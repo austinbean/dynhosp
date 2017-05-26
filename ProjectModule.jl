@@ -29,6 +29,10 @@ module ProjectModule
     global pathdata = "/work/04179/abean/dynhosp/"
     global pathpeople = "/work/04179/abean/dynhosp/"
     global pathprogram = "/work/04179/abean/dynhosp/"
+  elseif (dir=="/Users/imelda/Desktop/dynhosp")
+    global pathdata = "/Users/imelda/Desktop/PROJECTFILES/"
+    global pathpeople = "/Users/imelda/Desktop/PROJECTFILES/"
+    global pathprogram = "/Users/imelda/Desktop/PROJECTFILES/"
   else
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
     println("Hey you're in the wrong directory!")
