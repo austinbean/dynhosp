@@ -161,9 +161,9 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
     end
   end
   for el in outp.all
-    # Creates an initial value in the "visited" states container.
+    # Creates an initial value in the "visited" states container. FINDME 
     el.visited[KeyCreate(el.cns, el.level)] = nlrec(MD(ChoicesAvailable(el), StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))),
-                                                    vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))))),
+                                                    vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248)))  )),
                                                     Dict(k => 0 for k in ChoicesAvailable(el)))
     el.visited[KeyCreate(el.cns, el.level)].counter[10] += 1
   end
@@ -925,17 +925,19 @@ end
 
 
 """
-`StartingVals(h::simh)`s
+`StartingVals(h::simh)`
 This will generate a set of starting values for the hospitals in the market.
 Idea - just take the PDV of one period's profit.  But it needs to be done
 over the whole set of possible actions.  Right now this assumes that *all* of the
 actions have the same value, except for exit.  That can be improved.
+
+This is pretty dumb.   
 """
 function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-        #return [0.0,0.0,0.0,0.0]
+       #return [0.0,0.0,0.0,0.0]
   return vcat(repmat([min(SinglePay(h, ppats, mpats, 10)/(1-disc), 100.0)],3), [min(SinglePay(h, ppats, mpats, 10)/((1-disc)*1000), 100.0)])
 end
 
@@ -948,7 +950,7 @@ This should update the probabilities.
 
 Test this: 
 
-aw = Dict( 1 => 2.0, 2 => 1.0, 3 => 0.0, 4 => 0.0)
+aw = Dict(1=>1.0, 2 => 1.0, 3 => 0.0, 4 => 0.0)
 arr = zeros(2,4)
 ProbUpdate(aw, arr)
 
@@ -958,6 +960,7 @@ end
 
 Real test:
 # FIXME - this still doesn't work correctly.  
+# FIXME - is there a good reason to do this in two functions?  
 ProbUpdate(dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].aw, dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].psi)
 
 """
@@ -1212,7 +1215,8 @@ function ComputeR(hosp::simh,
       hosp.visited[k1].aw[action] += disc*ContError(hosp.visited[k1])
     end
     #FIXME - here this can be changed to work in place.
-    hosp.visited[k1].psi = ProbUpdate(hosp.visited[k1].aw) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
+    # hosp.visited[k1].psi =  preamble to piece below.  
+    ProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
@@ -1263,14 +1267,6 @@ end
 
 
 
-##### PLACEHOLDER EXACT VAL ######
-
-
-
-#### PLACEHOLDER EXACT CHOICE ######
-
-
-#### PLACEHOLDER EXACTCONVERGENCE ######
 
 
 """
