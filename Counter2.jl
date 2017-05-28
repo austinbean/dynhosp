@@ -50,8 +50,9 @@ dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 
 
 # another test - make a hospital first:
+patients = NewPatients(Tex);
 dm, dp = PRanges(ProjectModule.pcount)
-h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortec,1}(), DynPatients(patients, dm, dp), false, false, false)
+h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortrec,1}(), DynPatients(patients, 4530190, dm, dp), false, false, false)
 
 Note that the function takes TWO EntireState arguments.  This is super dumb, but
 only one of them (containing hospital types) has the bed counts.
@@ -1110,57 +1111,71 @@ end
 """
 `SinglePay(s::simh, mpats::ProjectModule.patientcount, ppats::ProjectModule.patientcount; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
+
+### Testing: ###
+# Create hospital record:
+
+h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortrec,1}(), DynPatients(patients, 4530190, dm, dp), false, false, false)
+p1 = patientcount(100,100,100,100,100,100,100)
+p2 = patientcount(100,100,100,100,100,100,100)
+
+
+SinglePay(h1, p1, p2, 10)
 """
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount,
-                    action::Int64;
-                    scalefact::Float64 = 3.0e9,
-                    alf1::Float64 = 8336.17,
-                    alf2::Float64 = 36166.6,
-                    alf3::Float64 = 16309.47,
-                    gamma_1_385::Float64 = 20680.0, # ✓
-                    gamma_2_385::Float64 = 42692.37, # ✓
-                    gamma_3_385::Float64 = 20962.97, # ✓
-                    gamma_1_386::Float64 = 81918.29, # X
-                    gamma_2_386::Float64 = 74193.4, # X
-                    gamma_3_386::Float64 = 99065.79, # X
-                    gamma_1_387::Float64 = 30405.32, # X
-                    gamma_2_387::Float64 = 49801.84, # X
-                    gamma_3_387::Float64 = 22376.8, # X
-                    gamma_1_388::Float64 = 10051.55, # ✓
-                    gamma_2_388::Float64 = 19019.18, # X
-                    gamma_3_388::Float64 = 33963.5, # X
-                    gamma_1_389::Float64 = 29122.89, # X
-                    gamma_2_389::Float64 = 14279.58, # X
-                    gamma_3_389::Float64 = 20708.15, # X
-                    gamma_1_390::Float64 = 22830.05, # X
-                    gamma_2_390::Float64 = 6754.76, # X
-                    gamma_3_390::Float64 = 3667.42, # ✓
-                    gamma_1_391::Float64 = 9089.77, # X
-                    gamma_2_391::Float64 = 8120.85, # X
-                    gamma_3_391::Float64 = 1900.5, # ✓
-                    level12::Float64 = 1.64669492e6,
-                    level13::Float64 = 5.0165876e6,
-                    level21::Float64 = -366430.33,
-                    level23::Float64 = 1.83969306e6,
-                    level31::Float64 = -90614.32,
-                    level32::Float64 = -157206.98,
-                    mcaid385::Float64 = 151380.0,
-                    mcaid386::Float64 = 48417.0,
-                    mcaid387::Float64 = 18845.0,
-                    mcaid388::Float64 = 7507.0,
-                    mcaid389::Float64 = 9424.0,
-                    mcaid390::Float64 = 4623.0,
-                    mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+                    action::Int64)
+  # CONSTANTS:
+    scalefact::Float64 = 3.0e9
+    alf1::Float64 = 8336.17
+    alf2::Float64 = 36166.6
+    alf3::Float64 = 16309.47
+    gamma_1_385::Float64 = 20680.0 # ✓
+    gamma_2_385::Float64 = 42692.37 # ✓
+    gamma_3_385::Float64 = 20962.97 # ✓
+    gamma_1_386::Float64 = 81918.29 # X
+    gamma_2_386::Float64 = 74193.4 # X
+    gamma_3_386::Float64 = 99065.79 # X
+    gamma_1_387::Float64 = 30405.32 # X
+    gamma_2_387::Float64 = 49801.84 # X
+    gamma_3_387::Float64 = 22376.8 # X
+    gamma_1_388::Float64 = 10051.55 # ✓
+    gamma_2_388::Float64 = 19019.18 # X
+    gamma_3_388::Float64 = 33963.5 # X
+    gamma_1_389::Float64 = 29122.89 # X
+    gamma_2_389::Float64 = 14279.58 # X
+    gamma_3_389::Float64 = 20708.15 # X
+    gamma_1_390::Float64 = 22830.05 # X
+    gamma_2_390::Float64 = 6754.76 # X
+    gamma_3_390::Float64 = 3667.42 # ✓
+    gamma_1_391::Float64 = 9089.77 # X
+    gamma_2_391::Float64 = 8120.85 # X
+    gamma_3_391::Float64 = 1900.5 # ✓
+    level12::Float64 = 1.64669492e6
+    level13::Float64 = 5.0165876e6
+    level21::Float64 = -366430.33
+    level23::Float64 = 1.83969306e6
+    level31::Float64 = -90614.32
+    level32::Float64 = -157206.98
+    mcaid385::Float64 = 151380.0
+    mcaid386::Float64 = 48417.0
+    mcaid387::Float64 = 18845.0
+    mcaid388::Float64 = 7507.0
+    mcaid389::Float64 = 9424.0
+    mcaid390::Float64 = 4623.0
+    mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+  # Compute WTP.
     outp::Float64 = 0.0
     levelc::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
+    println("level, action, ", s.level, " ", action)
     if s.level == 1&(action!=11)
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2&(action!=11)
       outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
     elseif s.level == 3&(action!=11)
+      println("hi")
       outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     else # level = -999 (exit)
       outp = 0.0
@@ -1194,7 +1209,7 @@ function SinglePay(s::simh,
         levelc = 0.0
       end
     end
-    return (outp - levelc)/scalefact
+    return (outp - levelc)#/scalefact
 end
 
 
