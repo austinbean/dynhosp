@@ -830,7 +830,8 @@ end
   export simrun
   export hyrec
   export patientrange
-    # Counter2.jl types 
+
+  # Counter2.jl types 
   export nlrec
   export hitcount 
   export allvisits
