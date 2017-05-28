@@ -48,6 +48,11 @@ patients = NewPatients(Tex);
 
 dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 
+
+# another test - make a hospital first:
+dm, dp = PRanges(ProjectModule.pcount)
+h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortec,1}(), DynPatients(patients, dm, dp), false, false, false)
+
 Note that the function takes TWO EntireState arguments.  This is super dumb, but
 only one of them (containing hospital types) has the bed counts.
 """
@@ -162,6 +167,10 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
   end
   for el in outp.all
     # Creates an initial value in the "visited" states container. FINDME 
+    #FIXME - here the problem is that PolicyUpdate can't be called on StartingVals, which returns Array{Float64,1}, but changing that doesn't work because there is at least one 
+    # other function which calls it.  Ok - what to do... Also this whole thing is poorly done.  
+    # I think MD is the function which fails if the return type of PolicyUpdate is changed.
+    # this is a dumb problem.  
     el.visited[KeyCreate(el.cns, el.level)] = nlrec(MD(ChoicesAvailable(el), StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))),
                                                     vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248)))  )),
                                                     Dict(k => 0 for k in ChoicesAvailable(el)))
