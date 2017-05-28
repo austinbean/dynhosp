@@ -1114,6 +1114,12 @@ Computes the actual firm payoffs.  Uses parameters computed from one run of the 
 
 ### Testing: ###
 # Create hospital record:
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+dm, dp = PRanges(ProjectModule.pcount)
+
 
 h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortrec,1}(), DynPatients(patients, 4530190, dm, dp), false, false, false)
 p1 = patientcount(100,100,100,100,100,100,100)
@@ -1121,6 +1127,7 @@ p2 = patientcount(100,100,100,100,100,100,100)
 
 
 SinglePay(h1, p1, p2, 10)
+
 """
 function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
@@ -1169,13 +1176,11 @@ function SinglePay(s::simh,
     outp::Float64 = 0.0
     levelc::Float64 = 0.0
     wtp::Float64 = FindWTP(s)
-    println("level, action, ", s.level, " ", action)
-    if s.level == 1&(action!=11)
+    if (s.level == 1)&(action!=11)
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
-    elseif s.level == 2&(action!=11)
+    elseif (s.level == 2)&(action!=11)
       outp = alf2*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_2_385*(ppats.count385+mpats.count385) - gamma_2_386*(ppats.count386+mpats.count386) - gamma_2_387*(ppats.count387+mpats.count387) - gamma_2_388*(mpats.count388+ppats.count388) - gamma_2_389*(mpats.count389+ppats.count389) - gamma_2_390*(ppats.count390+mpats.count390) - gamma_2_391*(ppats.count391+mpats.count391)
-    elseif s.level == 3&(action!=11)
-      println("hi")
+    elseif (s.level == 3)&(action!=11)
       outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     else # level = -999 (exit)
       outp = 0.0
@@ -1209,7 +1214,7 @@ function SinglePay(s::simh,
         levelc = 0.0
       end
     end
-    return (outp - levelc)#/scalefact
+    return (outp - levelc)/scalefact
 end
 
 
