@@ -50,6 +50,9 @@ dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 
 
 # another test - make a hospital first:
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 dm, dp = PRanges(ProjectModule.pcount)
 h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortrec,1}(), DynPatients(patients, 4530190, dm, dp), false, false, false)
@@ -1013,6 +1016,38 @@ function PolicyUpdate(neww::Array{Float64,2}; ep::Float64 = 0.000000001)
     neww[2,i] = (max(exp(neww[2,i]-mx), ep))/sm 
   end 
 end
+
+
+"""
+`PolicyUp2(newch::Array{Int64,2}, neww::Array{Float64,1}; ep::Float64 = 0.000000001)`
+Just in the case where the record is initialized we need a different input category for this function.
+This is pretty dumb, but it would slow down PolicyUpdate to fix it and this function isn't called often,
+only when records need to be initialized in DynStateCreate.
+
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+dm, dp = PRanges(ProjectModule.pcount)
+h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,0,0), Array{Int64,1}(), Dict{Tuple{Int64}, ProjectModule.nlrec}(), Array{ProjectModule.shortrec,1}(), DynPatients(patients, 4530190, dm, dp), false, false, false)
+
+ch1 = ChoicesAvailable(h1)
+pr1 = StartingVals(h1, patientcount(1,1,1,1,1,1,1), patientcount(1,1,1,1,1,1,1,))
+
+PolicyUp2(ch1, pr1)
+"""
+function PolicyUp2(newch::Array{Int64,2}, neww::Array{Float64,1}; ep::Float64 = 0.000000001)
+  outp::Array{Float64,2} = zeros(2, size(newch, 2))
+  mx::Float64 = maximum(neww)
+  sm::Float64 = sum(exp.(neww.-mx))
+  # FIXME - this is not working correctly.  These numbers are too balanced.  
+  for i = 1:size(newch,2)
+    outp[1,i] = newch[i]
+    outp[2,i] = (max(exp(neww[i]-mx),ep))/sm
+  end 
+  return outp 
+end 
+
 
 
 
