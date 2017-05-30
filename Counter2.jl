@@ -1285,6 +1285,11 @@ function ComputeR(hosp::simh,
     # hosp.visited[k1].psi =  preamble to piece below.  
     ProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
+    if iterations%100 == 0
+      println("count: ", hosp.visited[k1].counter[action])
+      hosp.visited[k1].counter[action] += 10
+      println("coutn: ", hosp.visited[k1].counter[action])
+    end 
     hosp.previous = hosp.level # need to record when the level changes.
   else # Key not there.
     if (hosp.level != -999)&&(action != 11) # nothing added for exiters.
