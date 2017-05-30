@@ -9,9 +9,7 @@ This computes the dynamic simulation across all of the facilities in all of the 
 - V is of type allvisits, which records which states was visited in the last million iterations.  
 
 TODO - where is the shock added and what is the variance of the shock?  It should be the normalizing constant.
-
 TODO - probabilities are not getting recorded properly: 
-
 dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].aw
 Dict{Int64,Float64} with 4 entries:
   10 => 0.0228582
@@ -26,22 +24,7 @@ BUT:
  10.0       2.0       1.0       11.0
   0.251419  0.251419  0.251419   0.245743
 
-TODO - counter is not getting incremented.  
-
-dtest = Dict(1 => 0)
-
-function testd(n::Int64, d1::Dict)
-  for i = 1:n 
-    for k1 in keys(d1)
-      for j = 1:10
-        d1[k1] += 1
-      end 
-    end 
-  end 
-end 
-
-testd(100, dtest)
-
+TODO - counter is not getting incremented.  Could something in CheckConvergence set it to zero?  
 
 To start:
 dyn = CounterObjects(50);
@@ -64,7 +47,7 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         GetProb(el)                                                        # this chooses the action by the other firms
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
           println("adding new counter")
-          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), PolicyUp2(ChoicesAvailable(el),PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
+          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), PolicyUp2(ChoicesAvailable(el),StartingVals(el, a, b)), Dict(k => 1 for k in ChoicesAvailable(el)) )
         end
         Action = ChooseAction(el)                                              # Takes an action and returns it.
         if Action!=10
