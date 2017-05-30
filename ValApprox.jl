@@ -26,6 +26,8 @@ BUT:
  10.0       2.0       1.0       11.0
   0.251419  0.251419  0.251419   0.245743
 
+TODO - counter is not getting incremented.  
+
 To start:
 dyn = CounterObjects(50);
 V = allvisits(Dict{Int64, vrecord}());
@@ -51,6 +53,9 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 0 for k in ChoicesAvailable(el)) )
         end
         Action = ChooseAction(el)                                              # Takes an action and returns it.
+        if Action!=10
+          println("action: ", Action )
+        end 
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
         level::Int64 = LevelFunction(el, Action)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
@@ -58,12 +63,21 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         elseif iterations >1_000_000
           V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, Action)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
         end
-        if level != el.level                                                   # levels don't agree - i.e., "level" here is the next level which has been drawn.  
-          println(iterations)
+        if level != el.level                                                   # levels don't agree - i.e., "level" here is the next level which has been drawn.
+          println("level changed!")  
           UpdateDUtil(el)                                                      # this should update the utility for hospitals which changed level.  
         end 
         # FIXME - where is the probability being updated?  
-        # The function ProbUpdate - fix that.  
+        # The function ProbUpdate - fix that. 
+        # FIXME - where is the counter getting updated?  This was previously working.
+        if iterations %100 == 0
+          println("counter: ") 
+          for k1 in keys(el.visited) 
+            for k2 in keys(el.visited[k1].counter)
+              println(el.visited[k1].counter[k2]) 
+            end 
+          end
+        end    
         el.previous = el.level                                                 # Reassign current level to previous.
         el.level = level                                                       # Reassign current level, if it has changed or not.
         ExCheck(el)                                                            # Checks for exit
