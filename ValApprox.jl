@@ -25,6 +25,7 @@ BUT:
   0.251419  0.251419  0.251419   0.245743
 
 TODO - counter is not getting incremented.  Could something in CheckConvergence set it to zero?  
+  Yes, almost surely being reset to zero in CheckConvergence.  Indeed - right in "debug" section.  
 
 To start:
 dyn = CounterObjects(50);
@@ -53,22 +54,7 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         if Action!=10
           println("action: ", Action )
         end 
-        # TODO: print out the keys in visited here and afterwards
-        # DELETEBELOW 
-        # for k1 in keys(el.visited)
-        #   for k2 in keys(el.visited[k1].counter)
-        #     println("BEFORE: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
-        #   end 
-        # end 
-        #DELETEABOVE
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
-        #DELETEBELOW
-        for k1 in keys(el.visited)
-          for k2 in keys(el.visited[k1].counter)
-            println("INSIDE: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
-          end 
-        end 
-        #DELETEABOVE 
         level::Int64 = LevelFunction(el, Action)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
           push!(V.all[el.fid].visited, RTuple(el, Action))                     # Record the first million state-action pairs in a vector
@@ -80,7 +66,6 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           UpdateDUtil(el)                                                      # this should update the utility for hospitals which changed level.  
         end 
         # FIXME - where is the probability being updated?  The function ProbUpdate - fix that. 
-        # FIXME - where is the counter getting updated?  This was previously working.
         el.previous = el.level                                                 # Reassign current level to previous.
         el.level = level                                                       # Reassign current level, if it has changed or not.
         ExCheck(el)                                                            # Checks for exit
@@ -89,28 +74,10 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         V.all[el.fid].totalcnt += 1                                            # Update the iteration count within the visit records.
         PatientZero(a,b)                                                       # resets both patientcounts to zero.
       end
-      if iterations%1_00 == 0                                                  # Check for convergence every million iterations
-        CheckConvergence(el, V.all[el.fid].visited; debug = true) 
+      if iterations%1_0000000 == 0                                                  # Check for convergence every million iterations
+        CheckConvergence(el, V.all[el.fid].visited; debug = false) 
       end
     end
-    #DELETEBELOW
-    for el in D.all[chunk]
-      for k1 in keys(el.visited)
-        for k2 in keys(el.visited[k1].counter)
-          println("AFTER MAIN: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
-        end 
-      end 
-    end 
-    #DELETEABOVE
   end 
-  # DELETE BELOW 
-  for el in D.all[chunk]
-    for k1 in keys(el.visited)
-      for k2 in keys(el.visited[k1].counter)
-        println("EXIT: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
-      end 
-    end 
-  end 
-  #DELETE ABOVE
   converged = Halt(D, chunk)                                                # Check to see if all firms in "chunk" have converged, then halt if they have.
 end
