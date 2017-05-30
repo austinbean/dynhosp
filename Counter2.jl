@@ -173,14 +173,12 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
     end
   end
   for el in outp.all
-    # Creates an initial value in the "visited" states container. FINDME 
-    #FIXME - here the problem is that PolicyUpdate can't be called on StartingVals, which returns Array{Float64,1}, but changing that doesn't work because there is at least one 
-    # other function which calls it.  Ok - what to do... Also this whole thing is poorly done.  
-    # I think MD is the function which fails if the return type of PolicyUpdate is changed.
+    # Creates an initial value in the "visited" states container.  
     # All I really want to do is create [ Choicesavailable(el) ; PolicyUpdate(StartingValues...)]  This only requires a new Version of PolicyUpdate.  Or just pick some numbers.  
     # this is a dumb problem.  
+    # replace PolicyUpdate with PolicyUp2.  Everything starting with vcat on the second line below.  
     el.visited[KeyCreate(el.cns, el.level)] = nlrec(MD(ChoicesAvailable(el), StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))),
-                                                    vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248)))  )),
+                                                    PolicyUp2(ChoicesAvailable(el),StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248)  )),
                                                     Dict(k => 0 for k in ChoicesAvailable(el)))
     el.visited[KeyCreate(el.cns, el.level)].counter[10] += 1
   end
@@ -1013,7 +1011,7 @@ function PolicyUpdate(neww::Array{Float64,2}; ep::Float64 = 0.000000001)
   mx::Float64 = maximum(neww[2,:])
   sm::Float64 = sum(exp.(neww[2,:] .- mx))
   for i = 1:size(neww, 2)
-    neww[2,i] = (max(exp(neww[2,i]-mx), ep))/sm 
+    neww[2,i] = max( (exp(neww[2,i]-mx))/sm, ep) 
   end 
 end
 
@@ -1034,16 +1032,17 @@ h1 = simh(4530190, 30.289991, -97.726196, 3, 3, 3, 100, neighbors(0,0,0,0,0,0,0,
 ch1 = ChoicesAvailable(h1)
 pr1 = StartingVals(h1, patientcount(1,1,1,1,1,1,1), patientcount(1,1,1,1,1,1,1,))
 
+pr2 = [ 10.0, 10.0, 0.0, 0.0]
 PolicyUp2(ch1, pr1)
+PolicyUp2(ch1, pr2)
 """
 function PolicyUp2(newch::Array{Int64,2}, neww::Array{Float64,1}; ep::Float64 = 0.000000001)
   outp::Array{Float64,2} = zeros(2, size(newch, 2))
   mx::Float64 = maximum(neww)
   sm::Float64 = sum(exp.(neww.-mx))
-  # FIXME - this is not working correctly.  These numbers are too balanced.  
   for i = 1:size(newch,2)
     outp[1,i] = newch[i]
-    outp[2,i] = (max(exp(neww[i]-mx),ep))/sm
+    outp[2,i] = max(exp(neww[i]-mx)/sm, ep)
   end 
   return outp 
 end 
