@@ -56,8 +56,9 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
   if debug
     for k1 in keys(h.visited)
       for k2 in keys(h.visited[k1].counter)
+        println("Resetting state visit counter in CheckConvergence.")
         itercount += h.visited[k1].counter[k2]                                                                 # how many iterations were made in total?
-        h.visited[k1].counter[k2] = 1                                                                          # Reset all counter keys to 1 to track which states visited in last million iterations.
+       # h.visited[k1].counter[k2] = 1                                                                          # Reset all counter keys to 1 to track which states visited in last million iterations.
       end
     end
   end
