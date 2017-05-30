@@ -806,6 +806,7 @@ end
   export CompsDict
   export NStateKey
   export ConvTest
+  export PolicyUp2
    
   
 
