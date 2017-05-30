@@ -28,6 +28,21 @@ BUT:
 
 TODO - counter is not getting incremented.  
 
+dtest = Dict(1 => 0)
+
+function testd(n::Int64, d1::Dict)
+  for i = 1:n 
+    for k1 in keys(d1)
+      for j = 1:10
+        d1[k1] += 1
+      end 
+    end 
+  end 
+end 
+
+testd(100, dtest)
+
+
 To start:
 dyn = CounterObjects(50);
 V = allvisits(Dict{Int64, vrecord}());
@@ -39,7 +54,6 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
   converged::Bool = false
   a::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  #steadylevs = AllAgg(D, chunk)
   for el in chunk                                                          # creates a dictionary of visited records.
     V.all[D.all[el].fid] = vrecord( Array{NTuple{11,Int64}, 1}(), 1)
   end
@@ -50,13 +64,28 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         GetProb(el)                                                        # this chooses the action by the other firms
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
           println("adding new counter")
-          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), vcat(ChoicesAvailable(el),transpose(PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 0 for k in ChoicesAvailable(el)) )
+          el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), PolicyUp2(ChoicesAvailable(el),PolicyUpdate(StartingVals(el, a, b)))), Dict(k => 1 for k in ChoicesAvailable(el)) )
         end
         Action = ChooseAction(el)                                              # Takes an action and returns it.
         if Action!=10
           println("action: ", Action )
         end 
+        # TODO: print out the keys in visited here and afterwards
+        # DELETEBELOW 
+        # for k1 in keys(el.visited)
+        #   for k2 in keys(el.visited[k1].counter)
+        #     println("BEFORE: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
+        #   end 
+        # end 
+        #DELETEABOVE
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
+        #DELETEBELOW
+        for k1 in keys(el.visited)
+          for k2 in keys(el.visited[k1].counter)
+            println("INSIDE: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
+          end 
+        end 
+        #DELETEABOVE 
         level::Int64 = LevelFunction(el, Action)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
           push!(V.all[el.fid].visited, RTuple(el, Action))                     # Record the first million state-action pairs in a vector
@@ -67,17 +96,8 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           println("level changed!")  
           UpdateDUtil(el)                                                      # this should update the utility for hospitals which changed level.  
         end 
-        # FIXME - where is the probability being updated?  
-        # The function ProbUpdate - fix that. 
+        # FIXME - where is the probability being updated?  The function ProbUpdate - fix that. 
         # FIXME - where is the counter getting updated?  This was previously working.
-        if iterations %100 == 0
-          println("counter: ") 
-          for k1 in keys(el.visited) 
-            for k2 in keys(el.visited[k1].counter)
-              println(el.visited[k1].counter[k2]) 
-            end 
-          end
-        end    
         el.previous = el.level                                                 # Reassign current level to previous.
         el.level = level                                                       # Reassign current level, if it has changed or not.
         ExCheck(el)                                                            # Checks for exit
@@ -90,6 +110,24 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
         CheckConvergence(el, V.all[el.fid].visited; debug = true) 
       end
     end
+    #DELETEBELOW
+    for el in D.all[chunk]
+      for k1 in keys(el.visited)
+        for k2 in keys(el.visited[k1].counter)
+          println("AFTER MAIN: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
+        end 
+      end 
+    end 
+    #DELETEABOVE
   end 
+  # DELETE BELOW 
+  for el in D.all[chunk]
+    for k1 in keys(el.visited)
+      for k2 in keys(el.visited[k1].counter)
+        println("EXIT: ", k1, " ", k2, " ", el.visited[k1].counter[k2])
+      end 
+    end 
+  end 
+  #DELETE ABOVE
   converged = Halt(D, chunk)                                                # Check to see if all firms in "chunk" have converged, then halt if they have.
 end
