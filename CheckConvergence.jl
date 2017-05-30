@@ -39,8 +39,7 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
         # But these will still be 0 since that's what StartingVals is giving.
         println("Added entry")
         # FIXME - this is a terrible line.  The closure will be really slow.  
-        # but this only needs to occur when there is a state not seen before which is generated in the convergence check. 
-        h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, a, b)), vcat(ChoicesAvailable(h),transpose(PolicyUpdate(StartingVals(h, a, b)))), Dict(k => 0 for k in ChoicesAvailable(h)) )
+        h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, a, b)), PolicyUp2(ChoicesAvailable(h),StartingVals(h, a, b)), Dict(k => 0 for k in ChoicesAvailable(h)) )
         if nextact!=11
           contval += 0 #disc*() #FIXME - this is not done.  
         end
