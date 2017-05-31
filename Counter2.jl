@@ -678,12 +678,15 @@ end
 Take the simh hospital record, get some action choice by the other firms, update their choices and records.
 Return the state, probably.
 NB: this does not include the possibility of entry so far.
+
+# FIXME - this needs to include the possibility of the shock leading to a different choice.  
 """
 function GetProb(s::simh)
   for el in s.ns
     if el.level != -999
-      action = sample(ChoicesAvailable(el), el.chprobs )                            # Take the action
-      di = distance(el.lat, el.long, s.lat, s.long)
+      # FIXME - here is the place to fix the variance problem, I think.  
+      action::Int64 = sample(ChoicesAvailable(el), el.chprobs )                            # Take the action
+      di::Float64 = distance(el.lat, el.long, s.lat, s.long)
       if action == 1
         el.level = 3
         el.choices = ChoicesAvailable(el)
