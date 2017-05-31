@@ -1,14 +1,11 @@
-
-
 """
 `CheckConvergence(h::simh, V::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64},1}; draws::Int64 = 100, demands::Int64 = 10, disc::Float64 = 0.95, debug::Bool = true)`
 Check the convergence criterion in Collard-Wexler or Pakes McGuire.
 This can be checked every million iterations.  When that happens,
 reset the counters for every state in "visited".
 "Visited" accessed by V.all[fid].visited
-- Convergence should be assessed at *visited* states, something like unique(V), not all of them.
 """
-function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 1000, disc::Float64 = 0.95, debug::Bool = true)
+function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 10, disc::Float64 = 0.95, debug::Bool = true)
   outp::Array{Float64,1} = Array{Float64, 1}()
   pairs::Array{Tuple{Float64,Float64},1} = Array{Tuple{Float64, Float64},1}()
   totvisits::Int64 = 0
@@ -21,9 +18,12 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
    approxim::Float64 = 0.0 
    for d = 1:draws 
       origlevel::Int64 = h.level       # NOTE can I do this with h.level and h.actual?                                                                   # keep track of the level inside of the loop so that it can be reset.
+      # why doesn't this use GetProb(h) ??
       nextact::Int64 = convert(Int64, ProjectModule.sample(h.visited[k1].psi[1,:], ProjectModule.WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                  # this level must be updated so that the profit computation is correct.
-        # FIXME does what is below update the utilities?
+      if nextact!= 10 # then the level is definitely changing
+        UpdateDUtil(h)
+      end 
       DSimNew(h.mk, h.fid, a, b)
       currpi::Float64 = SinglePay(h, a, b, nextact)                                              # Current period return, excluding continuation value.
       contval::Float64 = 0.0
@@ -35,16 +35,12 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
           contval += disc*(ContError(h.visited[KeyCreate(h.cns, h.level)]))
         end
       else
-        #FIXME - what is happening here now on "not available"  contval stays 0 - but that's going to make the error larger.
-        # But these will still be 0 since that's what StartingVals is giving.
         println("Added entry")
-        # FIXME - this is a terrible line.  The closure will be really slow.  
-        h.visited[KeyCreate(h.cns, h.level)]=nlrec(MD(ChoicesAvailable(h), StartingVals(h, a, b)), PolicyUp2(ChoicesAvailable(h),StartingVals(h, a, b)), Dict(k => 0 for k in ChoicesAvailable(h)) )
+        h.visited[KeyCreate(h.cns, h.level)]=MakeNL(h, ChoicesAvailable(h), a, b)
         if nextact!=11
           contval += 0 #disc*() #FIXME - this is not done.  
         end
       end 
-      # FIXME - here reset to the state element again. 
       h.level = origlevel                                                                                 # reset the level to the original value.
       approxim += (currpi+contval)                                                                        # this needs to be weighted by the right count
       PatientZero(a,b) # resets both patientcounts to zero.
@@ -56,8 +52,8 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
   if debug
     for k1 in keys(h.visited)
       for k2 in keys(h.visited[k1].counter)
-        println("Resetting state visit counter in CheckConvergence.")
-        itercount += h.visited[k1].counter[k2]                                                                 # how many iterations were made in total?
+       # println("Resetting state visit counter in CheckConvergence.")
+       # itercount += h.visited[k1].counter[k2]                                                                 # how many iterations were made in total?
        # h.visited[k1].counter[k2] = 1                                                                          # Reset all counter keys to 1 to track which states visited in last million iterations.
       end
     end
