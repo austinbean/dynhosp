@@ -45,15 +45,13 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
     for el in D.all[chunk]
       if !el.converged                                                     # only keep simulating with the ones which haven't converged
         DSimNew(el.mk, el.fid, a, b)
+        # FIX - needs shock variance, I think.  
         GetProb(el)                                                        # this chooses the action by the other firms
         if !haskey(el.visited, KeyCreate(el.cns, el.level))
           println("adding new counter")
           el.visited[KeyCreate(el.cns, el.level)]=nlrec(MD(ChoicesAvailable(el), StartingVals(el, a, b)), PolicyUp2(ChoicesAvailable(el),StartingVals(el, a, b)), Dict(k => 1 for k in ChoicesAvailable(el)) )
         end
         Action = ChooseAction(el)                                              # Takes an action and returns it.
-        if Action!=10
-          println("action: ", Action )
-        end 
         ComputeR(el, a, b, Action, iterations; debug = debug)                  # Computes the return to the action
         level::Int64 = LevelFunction(el, Action)                               # Level may change with action, but for next period.
         if iterations <= 1_000_000
@@ -62,7 +60,6 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
           V.all[el.fid].visited[iterations%1_000_000] = RTuple(el, Action)     # Once this is a million entries long, start overwriting to keep track of only 1_000_000
         end
         if level != el.level                                                   # levels don't agree - i.e., "level" here is the next level which has been drawn.
-          println("level changed!")  
           UpdateDUtil(el)                                                      # this should update the utility for hospitals which changed level.  
         end 
         # FIXME - where is the probability being updated?  The function ProbUpdate - fix that. 
