@@ -174,12 +174,8 @@ function DynStateCreate( Tex::EntireState, Tex2::EntireState, p::patientcollecti
   end
   for el in outp.all
     # Creates an initial value in the "visited" states container.  
-    # All I really want to do is create [ Choicesavailable(el) ; PolicyUpdate(StartingValues...)]  This only requires a new Version of PolicyUpdate.  Or just pick some numbers.  
-    # this is a dumb problem.  
-    # replace PolicyUpdate with PolicyUp2.  Everything starting with vcat on the second line below.  
-    el.visited[KeyCreate(el.cns, el.level)] = nlrec(MD(ChoicesAvailable(el), StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))),
-                                                    PolicyUp2(ChoicesAvailable(el),StartingVals(el, ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248)  )),
-                                                    Dict(k => 0 for k in ChoicesAvailable(el)))
+    # Can be replaced with MakeNL 
+    el.visited[KeyCreate(el.cns, el.level)] = MakeNL(el, ChoicesAvailable(el), ProjectModule.patientcount(5,6,4,13,8,41,248), ProjectModule.patientcount(5,6,4,13,8,41,248))
     el.visited[KeyCreate(el.cns, el.level)].counter[10] += 1
   end
   return outp
@@ -1281,8 +1277,6 @@ function ComputeR(hosp::simh,
     if action != 11 # there is no continuation value of the error when the firm exits.
       hosp.visited[k1].aw[action] += disc*ContError(hosp.visited[k1])
     end
-    #FIXME - here this can be changed to work in place.
-    # hosp.visited[k1].psi =  preamble to piece below.  
     ProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
@@ -1293,6 +1287,26 @@ function ComputeR(hosp::simh,
     end
   end
 end
+
+
+
+
+"""
+`MakeNL(hosp::simh, chs::Array{Int64,2}, ppats::patientcount, mpats::patientcount)`
+Returns nlrec - necessary?  
+"""
+function MakeNL(hosp::simh, chs::Array{Int64,2}, ppats::patientcount, mpats::patientcount)
+  prbs::Array{Float64,2} = zeros(2,4)
+  vals::Array{Float64,1} = StartingVals(hosp, ppats, mpats)
+  d1::Dict{Int64,Int64} = Dict{Int64,Int64}()
+  for i = 1:size(prbs,2)
+    prbs[1,i] = chs[i]
+    prbs[2,i] = vals[i]
+    d1[chs[i]] = 0
+  end 
+  outp::nlrec = nlrec(MD(chs, vals), prbs, d1)
+end 
+
 
 
 
