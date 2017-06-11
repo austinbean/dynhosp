@@ -31,7 +31,6 @@ dyn = CounterObjects(50);
 V = allvisits(Dict{Int64, vrecord}());
 ValApprox(dyn, V, 1000 ; chunk = [2]) # just doing one hospital.
 
-22.001426 seconds (281.50 M allocations: 5.099 GiB, 6.99% gc time)
 """
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
   iterations::Int64 = 0
@@ -39,7 +38,10 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
   a::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   for el in chunk                                                          # creates a dictionary of visited records.
-    V.all[D.all[el].fid] = vrecord( Array{NTuple{11,Int64}, 1}(), 1)
+    # create this only if it isn't there.
+    if !haskey(V.all, D.all[el].fid)
+      V.all[D.all[el].fid] = vrecord( Array{NTuple{11,Int64}, 1}(), 1)
+    end 
   end
   while (iterations<itlim)&&(!converged)
     for el in D.all[chunk]
