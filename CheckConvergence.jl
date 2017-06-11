@@ -19,7 +19,7 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
    for d = 1:draws 
       origlevel::Int64 = h.level       # NOTE can I do this with h.level and h.actual?                                                                   # keep track of the level inside of the loop so that it can be reset.
       # why doesn't this use GetProb(h) ??
-      nextact::Int64 = convert(Int64, ProjectModule.sample(h.visited[k1].psi[1,:], ProjectModule.WeightVec(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
+      nextact::Int64 = convert(Int64, ProjectModule.sample(h.visited[k1].psi[1,:], ProjectModule.Weights(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                  # this level must be updated so that the profit computation is correct.
       if nextact!= 10 # then the level is definitely changing
         UpdateDUtil(h)
