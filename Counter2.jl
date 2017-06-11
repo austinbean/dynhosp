@@ -691,37 +691,37 @@ function GetProb(s::simh)
         el.level = 3
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        el.chprobs = WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        el.chprobs = Weights(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         el.tbu = true
       elseif action == 2
         el.level = 2
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        el.chprobs =Weights(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         el.tbu = true
       elseif action == 3
         el.level = 2
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        el.chprobs =WeightVec(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        el.chprobs =Weights(vec(logitest((1,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         el.tbu = true
       elseif action == 4
         el.level = 1
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        el.chprobs =Weights(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         el.tbu = true
       elseif action == 5
         el.level = 1
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        el.chprobs =WeightVec(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        el.chprobs =Weights(vec(logitest((0,0), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         el.tbu = true
       elseif action == 6
         el.level = 3
         el.choices = ChoicesAvailable(el)
         levels = MktSize(el.ns)
-        el.chprobs =WeightVec(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
+        el.chprobs =Weights(vec(logitest((0,1), levels[1], levels[2], levels[3], [el.ns.level105; el.ns.level205; el.ns.level305; el.ns.level1515; el.ns.level2515; el.ns.level3515; el.ns.level11525; el.ns.level21525; el.ns.level31525 ])))
         el.tbu = true
       elseif action == 11
         el.level = -999
@@ -2679,7 +2679,7 @@ Uses the choice probs implied by the estimated value functions at the state.
 FIXME - here the shock should be added, I think.  
 """
 function ChooseAction(h::simh)
-  act::Int64 = sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], WeightVec(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
+  act::Int64 = sample(h.visited[KeyCreate(h.cns, h.level)].psi[1,:], Weights(h.visited[KeyCreate(h.cns, h.level)].psi[2,:]))
   if act == 11
     h.exit = true
   end
