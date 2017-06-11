@@ -87,7 +87,7 @@ function TXSetup(Tex::EntireState,
                   DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #private demand history
                   DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #medicaid demand history
                   WTP( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
-                  WeightVec([0.0]), #choice probs
+                  Weights([0.0]), #choice probs
                   Array{Float64,1}(sp), #prob history
                   neighbors(0,0,0,0,0,0,0,0,0), #neighbors
                   Array{Int64,1}(), # hood (array of fids) - uncertain length.
@@ -148,18 +148,18 @@ function InitChoice(Tex::EntireState)
       if el.level == 1
         levl = (0,0)
         levels = MktSize(el.neigh)
-        el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
+        el.chprobability = Weights(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
       elseif el.level == 2
         levl = (1,0)
         levels = MktSize(el.neigh)
-        el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
+        el.chprobability = Weights(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
       elseif el.level == 3
         levl = (0,1)
         levels = MktSize(el.neigh)
-        el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
+        el.chprobability = Weights(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
       end
 #      levels = MktSize(el.neigh)
-#      el.chprobability = WeightVec(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
+#      el.chprobability = Weights(vec(logitest(levl, levels[1], levels[2], levels[3], [el.neigh.level105; el.neigh.level205; el.neigh.level305; el.neigh.level1515; el.neigh.level2515; el.neigh.level3515; el.neigh.level11525; el.neigh.level21525; el.neigh.level31525 ] )))
     end
   end
 end
@@ -611,9 +611,9 @@ function HospUpdate{T<:ProjectModule.Fac}(hosp::T, choice::Int64; update = false
      end
      levels = MktSize(hosp.neigh)
      prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
-     return WeightVec(vec(prs))
+     return Weights(vec(prs))
    else # choice = -999
-     return WeightVec([1.0]) #TODO: one option, no choices ??  Might need four options [1.0 1.0 1.0 1.0]
+     return Weights([1.0]) #TODO: one option, no choices ??  Might need four options [1.0 1.0 1.0 1.0]
    end
   else
      return hosp.chprobability
@@ -643,9 +643,9 @@ function HospPerturb(hosp::hospital, choice::Int, eps::Float64)
      levels = MktSize(hosp.neigh)
      prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
      prs = perturb(prs, eps, false)
-     return WeightVec(vec(prs))
+     return Weights(vec(prs))
    else # choice = -999
-     return WeightVec([1.0]) #TODO: one option, no choices ??  Might need four options [1.0 1.0 1.0 1.0]
+     return Weights([1.0]) #TODO: one option, no choices ??  Might need four options [1.0 1.0 1.0 1.0]
    end
  else
    return hosp.chprobability
@@ -1535,19 +1535,19 @@ function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
                      bins = collect(1:13),
                      weightpr = weightprobs[:,2],
                      admitprobs = nicuprobs[:,2],
-                     w1 = WeightVec([1-admitprobs[1],admitprobs[1]]), # next few lines unused.
-                     w2 = WeightVec([1-admitprobs[2],admitprobs[2]]),
-                     w3 = WeightVec([1-admitprobs[3],admitprobs[3]]),
-                     w4 = WeightVec([1-admitprobs[4],admitprobs[4]]),
-                     w5 = WeightVec([1-admitprobs[5],admitprobs[5]]),
-                     w6 = WeightVec([1-admitprobs[6],admitprobs[6]]),
-                     w7 = WeightVec([1-admitprobs[7],admitprobs[7]]), # here and below all used.
-                     w8 = WeightVec([1-admitprobs[8],admitprobs[8]]),
-                     w9 = WeightVec([1-admitprobs[9],admitprobs[9]]),
-                     w10 = WeightVec([1-admitprobs[10],admitprobs[10]]),
-                     w11 = WeightVec([1-admitprobs[11],admitprobs[11]]),
-                     w12 = WeightVec([1-admitprobs[12],admitprobs[12]]),
-                     w13 = WeightVec([1-admitprobs[13],admitprobs[13]]))
+                     w1 = Weights([1-admitprobs[1],admitprobs[1]]), # next few lines unused.
+                     w2 = Weights([1-admitprobs[2],admitprobs[2]]),
+                     w3 = Weights([1-admitprobs[3],admitprobs[3]]),
+                     w4 = Weights([1-admitprobs[4],admitprobs[4]]),
+                     w5 = Weights([1-admitprobs[5],admitprobs[5]]),
+                     w6 = Weights([1-admitprobs[6],admitprobs[6]]),
+                     w7 = Weights([1-admitprobs[7],admitprobs[7]]), # here and below all used.
+                     w8 = Weights([1-admitprobs[8],admitprobs[8]]),
+                     w9 = Weights([1-admitprobs[9],admitprobs[9]]),
+                     w10 = Weights([1-admitprobs[10],admitprobs[10]]),
+                     w11 = Weights([1-admitprobs[11],admitprobs[11]]),
+                     w12 = Weights([1-admitprobs[12],admitprobs[12]]),
+                     w13 = Weights([1-admitprobs[13],admitprobs[13]]))
   outp::Dict{Int64, LBW} = Dict{Int64, LBW}()  # = Dict( k=>LBW(0,0,0,0,0,0) for k in keys(Tex.fipsdirectory)) # empty dictionary of fids/LBW record types
   for k1 in keys(ppat)
     outp[k1] = LBW(0,0,0,0,0,0)
@@ -1556,7 +1556,7 @@ function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
     if el!=0
         totl = sum(ppat[el] + mpat[el])
         for i = 1:totl
-          bwt = sample(bins, WeightVec(weightpr)) # sample from the distribution of birthweights.
+          bwt = sample(bins, Weights(weightpr)) # sample from the distribution of birthweights.
           if bwt == 1                                                               # all at this weight are being admitted
             outp[el].bt05 += 1
           elseif bwt == 2                                                           # all at this weight are being admitted
@@ -1697,7 +1697,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
     GenMChoices(pats, d2, arry2) # this now modifies the dictionary in-place
     MDemandMap(d2, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
     for el in Tex.ms
-      entrant = sample(entrants, WeightVec(entryprobs))
+      entrant = sample(entrants, Weights(entryprobs))
       if entrant != 0
         entloc = NewEntrantLocation(el)                                                        # called on the market
         newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
@@ -1705,7 +1705,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
                          DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                          DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                          WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                         WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
+                         Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
         entr.levelhistory[i] = entrant
         push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
         el.collection[newfid] = entr
@@ -1827,7 +1827,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
             #TODO 02/18/2017 - this can be rewritten as a function.  
-          entrant = sample(entrants, WeightVec(entryprobs))
+          entrant = sample(entrants, Weights(entryprobs))
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
             newfid = -floor(rand()*1e6)-1000000                                                        # all entrant fids negative to facilitate their removal.
@@ -1835,7 +1835,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
                              DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                              DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                              WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                             WeightVec([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
+                             Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
                              push!(el.config, entr)                                                   # need to create a new record for this hospital in the market
              el.collection[newfid] = entr                                                             # need to add it to the dictionary too:
              for elm in el.config
@@ -2233,7 +2233,7 @@ function HospitalClean(hos::hospital)
   CleanDemandHistory(hos.mdemandhist)  #empty demand history
   CleanDemandHistory(hos.pdemandhist)  #empty demand history
   CleanWTPHistory(hos)  #empty WTP
-  #hos.chprobability = WeightVec([0]) # Reset this in Restore below when all states and levels have been reset.
+  #hos.chprobability = Weights([0]) # Reset this in Restore below when all states and levels have been reset.
   CleanProbHistory(hos)             #Empty history of choices.
   hos.neigh.level105 = 0
   hos.neigh.level205 = 0
