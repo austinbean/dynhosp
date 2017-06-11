@@ -222,7 +222,6 @@
   # Logit Estimate Coefficients:
 
   regcoeffs, regnames = readcsv(pathdata*"TX Choice Model.csv", header = true);
-  println("size of: ", size(regcoeffs))
 
 
 
