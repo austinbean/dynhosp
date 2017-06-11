@@ -161,7 +161,7 @@ end
     pdemandhist::DemandHistory # separate histories for Private and Medicaid patients.
     mdemandhist::DemandHistory
     wtphist::WTP
-    chprobability::WeightVec
+    chprobability::Weights
     probhistory::Array{Float64,1}
     neigh::neighbors
     hood::Array{Int64, 1}
@@ -487,7 +487,7 @@ end
 -  beds::Int64
 -  ns::neighbors
 -  choices::Array{Int64, 2}
--  chprobs::WeightVec
+-  chprobs::Weights
 -  tbu::Bool
 """
 type shortrec<:ProjectModule.Fac
@@ -500,7 +500,7 @@ type shortrec<:ProjectModule.Fac
   beds::Int64
   ns::neighbors
   choices::Array{Int64, 2}
-  chprobs::WeightVec
+  chprobs::Weights
   tbu::Bool
 end
 
