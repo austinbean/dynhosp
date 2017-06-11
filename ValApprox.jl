@@ -24,13 +24,13 @@ BUT:
  10.0       2.0       1.0       11.0
   0.251419  0.251419  0.251419   0.245743
 
-TODO - counter is not getting incremented.  Could something in CheckConvergence set it to zero?  
-  Yes, almost surely being reset to zero in CheckConvergence.  Indeed - right in "debug" section.  
 
 To start:
+
 dyn = CounterObjects(50);
 V = allvisits(Dict{Int64, vrecord}());
 ValApprox(dyn, V, 1000 ; chunk = [2]) # just doing one hospital.
+
 22.001426 seconds (281.50 M allocations: 5.099 GiB, 6.99% gc time)
 """
 function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1} = collect(1:size(D.all,1)), debug::Bool = false)
