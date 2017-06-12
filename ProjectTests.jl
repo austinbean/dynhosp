@@ -21,3 +21,10 @@ dyn = CounterObjects(50);
   Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix1], [0.13447071068499755]) 
   Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix4], [0.36552928931500245]) 
 end 
+
+
+@testset "PolicyUpdate Tests:" begin
+    pu1 = rand(2,10)
+    PolicyUpdate(pu1)
+    @test sum(pu1[2,:]) ≈ 1.0
+end
