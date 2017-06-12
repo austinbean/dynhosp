@@ -959,7 +959,7 @@ end
 
 
 """
-ProbUpdate(aw::Dict{Int64,Float64})
+`ProbUpdate(aw::Dict{Int64,Float64})`
 This should update the probabilities.
 
 Test this: 
@@ -1268,6 +1268,7 @@ function ComputeR(hosp::simh,
                   iterations::Int64;
                   disc::Float64 = 0.95,
                   debug::Bool = false)
+  # Current issue - return to changing much higher than return to staying, but that does not make sense...
   k1::Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64} = KeyCreate(hosp.cns, hosp.level)
   if haskey(hosp.visited, k1)
     wt::Float64 = 1.0
@@ -1280,6 +1281,7 @@ function ComputeR(hosp::simh,
     if action != 11 # there is no continuation value of the error when the firm exits.
       hosp.visited[k1].aw[action] += disc*ContError(hosp.visited[k1])
     end
+    # FIXME - something to work on in ProbUpdate.  
     ProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi) #WeightedProbUpdate(hosp.visited[k1].aw, hosp.visited[k1].psi, iterations)
     hosp.visited[k1].counter[action] += 1
     hosp.previous = hosp.level # need to record when the level changes.
