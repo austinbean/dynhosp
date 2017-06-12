@@ -397,7 +397,6 @@ every call.
 This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
 The size of arr is not that important since all unused values are zero AND they are ignored.
 
-Can this give a NaN? Yes it can.  But why?  It must be that int_sum is not getting assigned as I think it is.
 
 ### Testing ###
 temparr = zeros(2, 12)
@@ -475,7 +474,7 @@ TestDemComp(5)
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)  
   # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
   index::Int64 = 0
-  counter::Int64 = 0 # XXX - what is it that this does?  Records the index?  ie.  p385, p386, etc??
+  counter::Int64 = 0 # Records the index  ie.  p385, p386, etc
   for i = 1:size(inparr,2)
     if inparr[1,i] == fid
       index = i #reassign - XXX - double check that this reassignment works.  I think it does.  
@@ -962,47 +961,11 @@ end
 `ProbUpdate(aw::Dict{Int64,Float64})`
 This should update the probabilities.
 
-Test this: 
-
-aw = Dict(1=>1.0, 2 => 1.0, 3 => 0.0, 4 => 0.0)
-arr = zeros(2,4)
-ProbUpdate(aw, arr)
-arr == [ 4 2 3 1; 0.13447071068499755 0.36552928931500245 0.13447071068499755 0.36552928931500245 ]
-# reassign - 
-aw[2] = 0; aw[1] = 0; aw[3] = 1; aw[4] = 1;
-ProbUpdate(aw, arr)
-Base.Test.@test arr ==[ 4 2 3 1 ; 0.36552928931500245  0.13447071068499755  0.36552928931500245  0.13447071068499755 ] 
-
-
-# Check inside a hospital object...
-
-
-@testset "ProbUpdate Tests" begin 
-  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)] = nlrec( Dict(1=>1.0, 2=>1.0, 3=>0.0, 4=>0.0), zeros(2,4), Dict(99=>0) )
-  ProbUpdate(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw, dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi)
-  # this is sort of working, but the order gets messed up.  
-  ix1 = findin(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[1,:], 1)
-  ix4 = findin(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[1,:], 4)
-  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix1], [0.36552928931500245])
-  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix4], [0.13447071068499755])
-
-  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[2] = 0;
-  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[1] = 0;
-  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[3] = 1;
-  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[4] = 1;
-  ProbUpdate(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw, dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi)
-  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix1], [0.13447071068499755]) 
-  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix4], [0.36552928931500245]) 
-end 
-
-
-# [ 4 2 3 1 ; 0.36552928931500245  0.13447071068499755  0.36552928931500245  0.13447071068499755 ]
 
 for i = 1:10
   @time ProbUpdate(aw, arr)
 end 
 
-Real test:
 # FIXME - is there a good reason to do this in two functions?  Maybe used elsewhere? 
 ProbUpdate(dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].aw, dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].psi)
 
@@ -1119,18 +1082,18 @@ end
 Takes a dictionary and returns PolicyUpdate applied to the elements
 """
 function DA(d::Dict{Int64, Float64})
-  names::Array{Int64,1}=Array{Int64,1}()
+  nmes::Array{Int64,1}=Array{Int64,1}()
   outp::Array{Float64,1}=Array{Float64,1}()
   for k in keys(d)
-    push!(names, k)
+    push!(nmes, k)
     push!(outp, d[k])
   end
-  return transpose(hcat(names,  PolicyUpdate(outp)))
+  return transpose(hcat(nmes,  PolicyUpdate(outp)))
 end
 
 
 """
-`WProb(n::nlrec)`
+`WProb(n::nlrec)` 
 Compute the return R = π + β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ) + β E [ ϵ | xᵏ+1, Ψᵏ], so this
 is the function that will compute the second term: β ∑ Wᵏ(j,xᵏ) Ψᵏ(j, xᵏ+1 ).
 This is the continuation value ignoring the error.
@@ -1150,7 +1113,7 @@ end
 Computes the continuation value of the error.
 """
 function ContError(n::nlrec)
-  return (eulergamma - dot(log.(n.psi[2,:]), n.psi[2,:])) #6devfix
+  return (eulergamma - dot(log.(n.psi[2,:]), n.psi[2,:])) 
 end
 
 
@@ -1200,44 +1163,44 @@ function SinglePay(s::simh,
                     ppats::ProjectModule.patientcount,
                     action::Int64)
   # CONSTANTS:
-    scalefact::Float64 = 3.0e9
-    alf1::Float64 = 8336.17
-    alf2::Float64 = 36166.6
-    alf3::Float64 = 16309.47
-    gamma_1_385::Float64 = 20680.0 # ✓
-    gamma_2_385::Float64 = 42692.37 # ✓
-    gamma_3_385::Float64 = 20962.97 # ✓
-    gamma_1_386::Float64 = 81918.29 # X
-    gamma_2_386::Float64 = 74193.4 # X
-    gamma_3_386::Float64 = 99065.79 # X
-    gamma_1_387::Float64 = 30405.32 # X
-    gamma_2_387::Float64 = 49801.84 # X
-    gamma_3_387::Float64 = 22376.8 # X
-    gamma_1_388::Float64 = 10051.55 # ✓
-    gamma_2_388::Float64 = 19019.18 # X
-    gamma_3_388::Float64 = 33963.5 # X
-    gamma_1_389::Float64 = 29122.89 # X
-    gamma_2_389::Float64 = 14279.58 # X
-    gamma_3_389::Float64 = 20708.15 # X
-    gamma_1_390::Float64 = 22830.05 # X
-    gamma_2_390::Float64 = 6754.76 # X
-    gamma_3_390::Float64 = 3667.42 # ✓
-    gamma_1_391::Float64 = 9089.77 # X
-    gamma_2_391::Float64 = 8120.85 # X
-    gamma_3_391::Float64 = 1900.5 # ✓
-    level12::Float64 = 1.64669492e6
-    level13::Float64 = 5.0165876e6
-    level21::Float64 = -366430.33
-    level23::Float64 = 1.83969306e6
-    level31::Float64 = -90614.32
-    level32::Float64 = -157206.98
-    mcaid385::Float64 = 151380.0
-    mcaid386::Float64 = 48417.0
-    mcaid387::Float64 = 18845.0
-    mcaid388::Float64 = 7507.0
-    mcaid389::Float64 = 9424.0
-    mcaid390::Float64 = 4623.0
-    mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+    const scalefact::Float64 = 3.0e9
+    const alf1::Float64 = 8336.17
+    const alf2::Float64 = 36166.6
+    const alf3::Float64 = 16309.47
+    const gamma_1_385::Float64 = 20680.0 # ✓
+    const gamma_2_385::Float64 = 42692.37 # ✓
+    const gamma_3_385::Float64 = 20962.97 # ✓
+    const gamma_1_386::Float64 = 81918.29 # X
+    const gamma_2_386::Float64 = 74193.4 # X
+    const gamma_3_386::Float64 = 99065.79 # X
+    const gamma_1_387::Float64 = 30405.32 # X
+    const gamma_2_387::Float64 = 49801.84 # X
+    const gamma_3_387::Float64 = 22376.8 # X
+    const gamma_1_388::Float64 = 10051.55 # ✓
+    const gamma_2_388::Float64 = 19019.18 # X
+    const gamma_3_388::Float64 = 33963.5 # X
+    const gamma_1_389::Float64 = 29122.89 # X
+    const gamma_2_389::Float64 = 14279.58 # X
+    const gamma_3_389::Float64 = 20708.15 # X
+    const gamma_1_390::Float64 = 22830.05 # X
+    const gamma_2_390::Float64 = 6754.76 # X
+    const gamma_3_390::Float64 = 3667.42 # ✓
+    const gamma_1_391::Float64 = 9089.77 # X
+    const gamma_2_391::Float64 = 8120.85 # X
+    const gamma_3_391::Float64 = 1900.5 # ✓
+    const level12::Float64 = 1.64669492e6
+    const level13::Float64 = 5.0165876e6
+    const level21::Float64 = -366430.33
+    const level23::Float64 = 1.83969306e6
+    const level31::Float64 = -90614.32
+    const level32::Float64 = -157206.98
+    const mcaid385::Float64 = 151380.0
+    const mcaid386::Float64 = 48417.0
+    const mcaid387::Float64 = 18845.0
+    const mcaid388::Float64 = 7507.0
+    const mcaid389::Float64 = 9424.0
+    const mcaid390::Float64 = 4623.0
+    const mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
   # Compute WTP.
     outp::Float64 = 0.0
     levelc::Float64 = 0.0
