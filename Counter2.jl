@@ -967,14 +967,43 @@ Test this:
 aw = Dict(1=>1.0, 2 => 1.0, 3 => 0.0, 4 => 0.0)
 arr = zeros(2,4)
 ProbUpdate(aw, arr)
+arr == [ 4 2 3 1; 0.13447071068499755 0.36552928931500245 0.13447071068499755 0.36552928931500245 ]
+# reassign - 
+aw[2] = 0; aw[1] = 0; aw[3] = 1; aw[4] = 1;
+ProbUpdate(aw, arr)
+Base.Test.@test arr ==[ 4 2 3 1 ; 0.36552928931500245  0.13447071068499755  0.36552928931500245  0.13447071068499755 ] 
+
+
+# Check inside a hospital object...
+
+
+@testset "ProbUpdate Tests" begin 
+  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)] = nlrec( Dict(1=>1.0, 2=>1.0, 3=>0.0, 4=>0.0), zeros(2,4), Dict(99=>0) )
+  ProbUpdate(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw, dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi)
+  # this is sort of working, but the order gets messed up.  
+  ix1 = findin(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[1,:], 1)
+  ix4 = findin(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[1,:], 4)
+  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix1], [0.36552928931500245])
+  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix4], [0.13447071068499755])
+
+  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[2] = 0;
+  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[1] = 0;
+  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[3] = 1;
+  dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw[4] = 1;
+  ProbUpdate(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].aw, dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi)
+  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix1], [0.13447071068499755]) 
+  Base.Test.@test isapprox(dyn.all[2].visited[(0,0,0,0,0,0,0,0,0,99)].psi[2,ix4], [0.36552928931500245]) 
+end 
+
+
+# [ 4 2 3 1 ; 0.36552928931500245  0.13447071068499755  0.36552928931500245  0.13447071068499755 ]
 
 for i = 1:10
   @time ProbUpdate(aw, arr)
 end 
 
 Real test:
-# FIXME - this still doesn't work correctly.  
-# FIXME - is there a good reason to do this in two functions?  
+# FIXME - is there a good reason to do this in two functions?  Maybe used elsewhere? 
 ProbUpdate(dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].aw, dyn.all[1].visited[(0,0,0,0,0,0,1,0,0,1)].psi)
 
 """
