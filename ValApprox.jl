@@ -38,7 +38,6 @@ function ValApprox(D::DynState, V::allvisits, itlim::Int64; chunk::Array{Int64,1
   a::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   for el in chunk                                                          # creates a dictionary of visited records.
-    # create this only if it isn't there.
     if !haskey(V.all, D.all[el].fid)
       V.all[D.all[el].fid] = vrecord( Array{NTuple{11,Int64}, 1}(), 1)
     end 
