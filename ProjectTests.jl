@@ -28,3 +28,15 @@ end
     PolicyUpdate(pu1)
     @test sum(pu1[2,:]) ≈ 1.0
 end
+
+
+@testset "ConvTest tests" begin
+    ab = Dict( 1 => true, 2 => true, 3 =>true)  # three firms converged.  Return false.  
+    @test !ConvTest(ab) 
+
+    ab2 = Dict( 1 => true, 2 => true, 3 =>false) # two firms converged, one not.  Return true.
+    @test ConvTest(ab2) 
+
+    ab3 = Dict(1 => false, 2=> false, 3 => false) # START - no one has converged.  Return true.
+    @test ConvTest(ab3) 
+end
