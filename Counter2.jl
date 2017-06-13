@@ -1352,16 +1352,6 @@ end
 Iterates over the elements in totest and returns true when 
 all are true, else false.
 
-### Testing ###
-
-ab = Dict( 1 => true, 2 => true, 3 =>true)  # three firms converged.  Return false.  
-ConvTest(ab) == false 
-
-ab2 = Dict( 1 => true, 2 => true, 3 =>false) # two firms converged, one not.  Return true.
-ConvTest(ab2) == true
-
-ab3 = Dict(1 => false, 2=> false, 3 => false) # START - no one has converged.  Return true.
-ConvTest(ab3) == true 
 
 """
 function ConvTest(d1::Dict{Int64, Bool})
