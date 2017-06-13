@@ -4,6 +4,12 @@ Check the convergence criterion in Collard-Wexler or Pakes McGuire.
 This can be checked every million iterations.  When that happens,
 reset the counters for every state in "visited".
 "Visited" accessed by V.all[fid].visited
+
+dyn = CounterObjects(50);
+V = allvisits(Dict{Int64, vrecord}());
+ValApprox(dyn, V, 10000 ; chunk = [2]) # just doing one hospital.
+CheckConvergence(dyn.all[2], V.all[3251853].visited)
+
 """
 function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 10, disc::Float64 = 0.95, debug::Bool = true)
   outp::Array{Float64,1} = Array{Float64, 1}()
@@ -16,6 +22,9 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
   for k in unique(V)      # this gets the unique states visited.                                                                                          # only check this set of values visited in the last million iterations.
    k1::NTuple{10,Int64}, k2::Int64 = KeytoTuple(k)
    approxim::Float64 = 0.0 
+   # XXX - print out the value at the state k here.
+   println("State is: ", k)
+   println("values, probs: ", h.visited[k1].psi, " ", h.visited[k1].aw)
    for d = 1:draws 
       origlevel::Int64 = h.level       # NOTE can I do this with h.level and h.actual?                                                                   # keep track of the level inside of the loop so that it can be reset.
       # why doesn't this use GetProb(h) ??
@@ -52,12 +61,18 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
   if debug
     for k1 in keys(h.visited)
       for k2 in keys(h.visited[k1].counter)
+       # XXX - eventually uncomment.  
        # println("Resetting state visit counter in CheckConvergence.")
        # itercount += h.visited[k1].counter[k2]                                                                 # how many iterations were made in total?
        # h.visited[k1].counter[k2] = 1                                                                          # Reset all counter keys to 1 to track which states visited in last million iterations.
       end
     end
   end
+  # What's written here? 
+  # outp - currently a vector of the squared differences of approximations at visited states.
+  # itercount - returns a zero so far because this is never updated.  
+  # pairs - pairs of (the value of the approximation for convergence, value at the visited state)
+  # states - a dictionary of states with pairs of the same elements as in pairs above 
   return outp, itercount, states, pairs                                                                             # TODO: eventually divide former by latter. And drop states.
 end
 
