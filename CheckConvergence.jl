@@ -19,14 +19,19 @@ function CheckConvergence(h::simh, V::Array{NTuple{11,Int64},1}; draws::Int64 = 
   b::ProjectModule.patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   states::Dict{NTuple{10,Int64}, Tuple{Float64,Float64}} = Dict{NTuple{10,Int64}, Tuple{Float64,Float64}}()
   itercount::Int64 = 0
+  println("Dict elements (states visited): ") # XXX 
+  for el in unique(V) # XXX
+    println(el) # XXX
+  end # XXX
   for k in unique(V)      # this gets the unique states visited.                                                                                          # only check this set of values visited in the last million iterations.
    k1::NTuple{10,Int64}, k2::Int64 = KeytoTuple(k)
    approxim::Float64 = 0.0 
    # XXX - print out the value at the state k here.
    println("State is: ", k)
-   println("values, probs: ", h.visited[k1].psi, " ", h.visited[k1].aw)
+   println("values: ", h.visited[k1].aw)
+   println("probs: ", h.visited[k1].psi)
    for d = 1:draws 
-      origlevel::Int64 = h.level       # NOTE can I do this with h.level and h.actual?                                                                   # keep track of the level inside of the loop so that it can be reset.
+      origlevel::Int64 = h.level                                                                          # keep track of the level inside of the loop so that it can be reset.
       # why doesn't this use GetProb(h) ??
       nextact::Int64 = convert(Int64, ProjectModule.sample(h.visited[k1].psi[1,:], ProjectModule.Weights(h.visited[k1].psi[2,:])))  # Take an action.  NB: LevelFunction takes Int64 argument in second place.
       h.level = LevelFunction(h, nextact)                                                                  # this level must be updated so that the profit computation is correct.
