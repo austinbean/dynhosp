@@ -281,6 +281,7 @@ This only needs to be done for the private patients!
 
 """
 function CounterWTP(ar::Array{Float64})
+  # FIXME - maybe start this at 1.0 to deal with infinity problem?
   denom::Float64 = 0.0
   for i =1:maximum(size(ar))
     if ar[i]!=0.0
@@ -1978,39 +1979,39 @@ PatientRev(dyn.all[1], p1, p2, 10) # recall that the scale factor is large so th
 function PatientRev(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount,
-                    action::Int64;
-                    scalefact::Float64 = 3.0e9,
-                    alf1::Float64 = 8336.17,
-                    alf2::Float64 = 36166.6,
-                    alf3::Float64 = 16309.47,
-                    gamma_1_385::Float64 = 20680.0, # ✓
-                    gamma_2_385::Float64 = 42692.37, # ✓
-                    gamma_3_385::Float64 = 20962.97, # ✓
-                    gamma_1_386::Float64 = 81918.29, # X
-                    gamma_2_386::Float64 = 74193.4, # X
-                    gamma_3_386::Float64 = 99065.79, # X
-                    gamma_1_387::Float64 = 30405.32, # X
-                    gamma_2_387::Float64 = 49801.84, # X
-                    gamma_3_387::Float64 = 22376.8, # X
-                    gamma_1_388::Float64 = 10051.55, # ✓
-                    gamma_2_388::Float64 = 19019.18, # X
-                    gamma_3_388::Float64 = 33963.5, # X
-                    gamma_1_389::Float64 = 29122.89, # X
-                    gamma_2_389::Float64 = 14279.58, # X
-                    gamma_3_389::Float64 = 20708.15, # X
-                    gamma_1_390::Float64 = 22830.05, # X
-                    gamma_2_390::Float64 = 6754.76, # X
-                    gamma_3_390::Float64 = 3667.42, # ✓
-                    gamma_1_391::Float64 = 9089.77, # X
-                    gamma_2_391::Float64 = 8120.85, # X
-                    gamma_3_391::Float64 = 1900.5, # ✓
-                    mcaid385::Float64 = 151380.0,
-                    mcaid386::Float64 = 48417.0,
-                    mcaid387::Float64 = 18845.0,
-                    mcaid388::Float64 = 7507.0,
-                    mcaid389::Float64 = 9424.0,
-                    mcaid390::Float64 = 4623.0,
-                    mcaid391::Float64 = 3664.0) # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+                    action::Int64)
+    const scalefact::Float64 = 3.0e9,
+    const alf1::Float64 = 8336.17,
+    const alf2::Float64 = 36166.6,
+    const alf3::Float64 = 16309.47,
+    const gamma_1_385::Float64 = 20680.0, # ✓
+    const gamma_2_385::Float64 = 42692.37, # ✓
+    const gamma_3_385::Float64 = 20962.97, # ✓
+    const gamma_1_386::Float64 = 81918.29, # X
+    const gamma_2_386::Float64 = 74193.4, # X
+    const gamma_3_386::Float64 = 99065.79, # X
+    const gamma_1_387::Float64 = 30405.32, # X
+    const gamma_2_387::Float64 = 49801.84, # X
+    const gamma_3_387::Float64 = 22376.8, # X
+    const gamma_1_388::Float64 = 10051.55, # ✓
+    const gamma_2_388::Float64 = 19019.18, # X
+    const gamma_3_388::Float64 = 33963.5, # X
+    const gamma_1_389::Float64 = 29122.89, # X
+    const gamma_2_389::Float64 = 14279.58, # X
+    const gamma_3_389::Float64 = 20708.15, # X
+    const gamma_1_390::Float64 = 22830.05, # X
+    const gamma_2_390::Float64 = 6754.76, # X
+    const gamma_3_390::Float64 = 3667.42, # ✓
+    const gamma_1_391::Float64 = 9089.77, # X
+    const gamma_2_391::Float64 = 8120.85, # X
+    const gamma_3_391::Float64 = 1900.5, # ✓
+    const mcaid385::Float64 = 151380.0,
+    const mcaid386::Float64 = 48417.0,
+    const mcaid387::Float64 = 18845.0,
+    const mcaid388::Float64 = 7507.0,
+    const mcaid389::Float64 = 9424.0,
+    const mcaid390::Float64 = 4623.0,
+    const mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
     wtp::Float64 = FindWTP(s) # FIXME - can this give me a NaN? 
     if s.level == 1
@@ -2165,17 +2166,17 @@ and "current" is the field dyn.all[].level - this can and may change.
 function UtilUp(c::cpats, 
                 fid::Int64, 
                 actual::Int64,  # this one should be permanent.
-                current::Int64; # this one should vary.
-                inteninter_med::Float64 = -0.572397,
-                interinten_med::Float64 = 0.572397,
-                inten_med::Float64 = 1.34994,
-                inter_med::Float64 = 0.777542,
-                inteninter_p::Float64 = 0.3197218,
-                interinten_p::Float64 = -0.3197218,
-                inten_p::Float64 = 1.18599,
-                inter_p::Float64 = 0.866268)
-  indx_m::Int64 = findfirst(c.mutils[1,:], fid)
-  indx_p::Int64 = findfirst(c.putils[1,:], fid)
+                current::Int64) # this one should vary.
+  const inteninter_med::Float64 = -0.572397,
+  const interinten_med::Float64 = 0.572397,
+  const inten_med::Float64 = 1.34994,
+  const inter_med::Float64 = 0.777542,
+  const inteninter_p::Float64 = 0.3197218,
+  const interinten_p::Float64 = -0.3197218,
+  const inten_p::Float64 = 1.18599,
+  const inter_p::Float64 = 0.866268
+  const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
+  const indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if (actual == 1)&(current == 1)
     # do nothing.
   elseif (actual == 1)&(current == 2) # definitely want addition
@@ -2933,17 +2934,6 @@ function FindScale(d::DynState)
     end
   end
   return maxprof, minprof
-end
-
-"""
-`MktShare(cp::cpats)`
-Compute the market share
-"""
-
-function MktShare(cp::cpats, fid::Int64)
-
-
-
 end
 
 
