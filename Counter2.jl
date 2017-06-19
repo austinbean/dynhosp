@@ -1344,7 +1344,43 @@ end
 #### Below this line... Exact Value development ### 
 
 
+"""
+`StatePermute()`
+Runs through the permutations of the state for exact value computations.
+- Takes a DynState, a list of locations of competitors,
+- Enumerates them
+- returns a list of tuples of Location/Level 
 
+"""
+function StatePermute(d::DynState, locs::Array{Int64,1})
+  # TODO - what if there are no competitors?  Return loc and 1,2,3?  No.
+  # Add some element for initial config.
+  # need to enumerate these elements in an intelligent way....
+  const levels::Int64 = 3
+  outp::Array{Tuple{Int64,Int64},1} = Array{Tuple{Int64,Int64},1}(size(locs,1)*levels)
+  for el in enumerate(Iterators.product([1 2 3 ], locs) ) # TODO - add exit too.
+    outp[el[1]] = el[2] 
+  end 
+  return outp 
+end 
+
+
+function tester(n::Array{Int64,1})
+  outp=Array{Tuple{Int64,Int64},2}(3^size(n,1), size(n,1))
+  println("size of: ", size(outp))
+  rcounter::Int64 = 1
+  ccounter::Int64 = 1
+  for el in n 
+    ccounter = 1
+    for l in [1 2 3]
+      outp[rcounter, ccounter] = (el, l)
+      ccounter += 1
+    end 
+    ccounter = 1
+    rcounter += 1
+  end 
+  return outp 
+end 
 
 
 
