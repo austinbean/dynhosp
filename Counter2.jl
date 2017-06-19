@@ -1351,17 +1351,26 @@ Runs through the permutations of the state for exact value computations.
 - Enumerates them
 - returns a list of tuples of Location/Level 
 
+
+- When I have one element, return (90, 1), (90, 2), (90, 3)
+- When I have two elements, return 
+(100, 1) (90, 1); (100, 2) (90, 1);  (100, 3) (90, 1);...
+
+for el in Base.product([10 20 30], [1 2 3])
+  println(el)
+end 
+
 """
 function StatePermute(d::DynState, locs::Array{Int64,1})
-  # TODO - what if there are no competitors?  Return loc and 1,2,3?  No.
-  # Add some element for initial config.
-  # need to enumerate these elements in an intelligent way....
-  const levels::Int64 = 3
-  outp::Array{Tuple{Int64,Int64},1} = Array{Tuple{Int64,Int64},1}(size(locs,1)*levels)
-  for el in enumerate(Iterators.product([1 2 3 ], locs) ) # TODO - add exit too.
-    outp[el[1]] = el[2] 
+  # TODO - what if there are no competitors?  Return loc and 1,2,3?  No.  Only do this for neighbors. 
+  const levels::Int64 = 3 # TODO - add exit too.
+  outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(levels^size(locs,1), size(locs,1)) # FIXME not enough ROWS
+  rcounter::Int64 = 1
+  ccounter::Int64 = 1
+  for i in locs #Base.product(collect(1:levels), sort(locs)) # sort to preserve order
+     #
   end 
-  return outp 
+  return outp #reshape(outp, ( , size(locs,1)) # return reshaped array 
 end 
 
 
