@@ -44,9 +44,9 @@ function ExactVal(D::DynState,
                   p2::patientcount;
                   itlim::Int64 = 30000)
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-  DictClean(outvals) # initialize to zero 
+  DictClean(outvals)                                                                    # initialize to zero 
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-  DictClean(tempvals) # initialize to zero. 
+  DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence 
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
@@ -74,7 +74,9 @@ function ExactVal(D::DynState,
   while (converge)&(its<itlim)                                                                    # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
+        # Add statepermutation:
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true)  
+        # end state permutation.
       end 
     end
     # Convergence Test - this modifies bools in totest.
