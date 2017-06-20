@@ -1374,19 +1374,34 @@ function StatePermute(d::DynState, locs::Array{Int64,1})
 end 
 
 
-function tester(n::Array{Int64,1})
-  outp=Array{Tuple{Int64,Int64},2}(3^size(n,1), size(n,1))
-  println("size of: ", size(outp))
-  rcounter::Int64 = 1
-  ccounter::Int64 = 1
-  for el in n 
-    ccounter = 1
-    for l in [1 2 3]
-      outp[rcounter, ccounter] = (el, l)
-      ccounter += 1
-    end 
-    ccounter = 1
-    rcounter += 1
+"""
+`Appender(n::Array{Tuple{Int64,Int64},2})`
+Take what is given and append. 
+
+ab = [ (10, 1);
+       (10, 2);
+       (10,3)]
+returns: [ (20, 1) , (10, 1);
+           (20, 2) , (10, 1);
+           (20, 3) , (10, 1);
+           ... ]
+
+Appender([(10,1); (10,2); (10,3)], 20)
+
+"""
+function Appender(n::Array, i::Int64) #{Tuple{Int64,Int64},2}
+  len, width = size(n)
+  outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(3*len, width+1)
+  # no - reshape this at the end.  Take some array.  
+  for el in 1:size(n,1) # rows of input 
+      outp[3*(el-1)+1,1] = (i,1)
+      outp[3*(el-1)+2,1] = (i,2)
+      outp[3*(el-1)+3,1] = (i,3)
+    for (ix,tp) in enumerate(n[el,:]) # enumerate row elements.
+      outp[3*(el-1)+1,ix+1] = tp 
+      outp[3*(el-1)+2,ix+1] = tp 
+      outp[3*(el-1)+3,ix+1] = tp
+    end   
   end 
   return outp 
 end 
