@@ -1345,32 +1345,18 @@ end
 
 
 """
-`StatePermute()`
-Runs through the permutations of the state for exact value computations.
-- Takes a DynState, a list of locations of competitors,
-- Enumerates them
-- returns a list of tuples of Location/Level 
-
-
-- When I have one element, return (90, 1), (90, 2), (90, 3)
-- When I have two elements, return 
-(100, 1) (90, 1); (100, 2) (90, 1);  (100, 3) (90, 1);...
-
-for el in Base.product([10 20 30], [1 2 3])
-  println(el)
-end 
+`StatePermute(d::DynState, states::Array{Tuple{Int64,Int64}})`
+Takes a row of the state configurations.  
+These are (competitor location in d.all,level) tuples.
+Sets the d.all[location].level = level 
+Sets d.all[location].tbu = true - should force update of DUtil and WTP.
 
 """
-function StatePermute(d::DynState, locs::Array{Int64,1})
-
-  const levels::Int64 = 3 # TODO - add exit too.
-  outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(levels^size(locs,1), size(locs,1)) # FIXME not enough ROWS
-  rcounter::Int64 = 1
-  ccounter::Int64 = 1
-  for i in locs #Base.product(collect(1:levels), sort(locs)) # sort to preserve order
-     #
+function StatePermute(d::DynState, states::Array{Tuple{Int64,Int64}})
+  for (loc, lev) in states
+    d.all[loc].level = lev 
+    d.all[loc].tbu = true 
   end 
-  return outp #reshape(outp, ( , size(locs,1)) # return reshaped array 
 end 
 
 
