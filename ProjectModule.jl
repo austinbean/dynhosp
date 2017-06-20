@@ -714,6 +714,9 @@ end
   export RunCounter1
   export ProfitChange
   export ProfitMeanVar
+  export MakeStateBlock
+  export StateBlock 
+  export StatePermute
 
 
   # Export Counter2.jl functions 
