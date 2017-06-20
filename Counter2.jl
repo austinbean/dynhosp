@@ -1362,7 +1362,7 @@ end
 
 """
 function StatePermute(d::DynState, locs::Array{Int64,1})
-  # TODO - what if there are no competitors?  Return loc and 1,2,3?  No.  Only do this for neighbors. 
+
   const levels::Int64 = 3 # TODO - add exit too.
   outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(levels^size(locs,1), size(locs,1)) # FIXME not enough ROWS
   rcounter::Int64 = 1
@@ -1375,33 +1375,65 @@ end
 
 
 """
-`Appender(n::Array{Tuple{Int64,Int64},2})`
+`StateBlock(n::Array{Tuple{Int64,Int64},2})`
 Take what is given and append. 
 
-ab = [ (10, 1);
-       (10, 2);
+ab = [ (10,1);
+       (10,2);
        (10,3)]
-returns: [ (20, 1) , (10, 1);
-           (20, 2) , (10, 1);
-           (20, 3) , (10, 1);
+returns: [ (20, 1),(10, 1);
+           (20, 2),(10, 1);
+           (20, 3),(10, 1);
            ... ]
 
-Appender([(10,1); (10,2); (10,3)], 20)
+StateBlock([(10,1); (10,2); (10,3); (10,999)], 20)
+StateBlock([], 10)
+"""
+function StateBlock(n::Array, i::Int64) 
+  len, width = size(n,1,2)
+  if len > 1 # add these elements to whatever array exists.  
+    outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(4*len, width+1)
+    for el in 1:size(n,1) # rows of input 
+        outp[4*(el-1)+1,1] = (i,1)
+        outp[4*(el-1)+2,1] = (i,2)
+        outp[4*(el-1)+3,1] = (i,3)
+        outp[4*(el-1)+4,1] = (i,999)
+      for (ix,tp) in enumerate(n[el,:]) # enumerate row elements.
+        outp[4*(el-1)+1,ix+1] = tp 
+        outp[4*(el-1)+2,ix+1] = tp 
+        outp[4*(el-1)+3,ix+1] = tp
+        outp[4*(el-1)+4,ix+1] = tp
+      end   
+    end 
+    return outp 
+  else # this is the base case.
+    return [(i,1); (i,2); (i,3); (i,999)]
+  end 
+end 
 
 """
-function Appender(n::Array, i::Int64) #{Tuple{Int64,Int64},2}
-  len, width = size(n)
-  outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(3*len, width+1)
-  # no - reshape this at the end.  Take some array.  
-  for el in 1:size(n,1) # rows of input 
-      outp[3*(el-1)+1,1] = (i,1)
-      outp[3*(el-1)+2,1] = (i,2)
-      outp[3*(el-1)+3,1] = (i,3)
-    for (ix,tp) in enumerate(n[el,:]) # enumerate row elements.
-      outp[3*(el-1)+1,ix+1] = tp 
-      outp[3*(el-1)+2,ix+1] = tp 
-      outp[3*(el-1)+3,ix+1] = tp
-    end   
+`MakeStateBlock(n::Array{Int64,1})`
+Calls StateBlock repeatedly to create a list of all states. 
+What this returns for a list of fids given in n is a collection of
+possible organizations of the states of those firms.  E.g, this is called
+on a list of neighbors n1, ..., nm and returns a list of tuples:
+[ (n1, i), (n2, j), ..., (nm, k) ] where i, j, k ∈ {1,2,3,999} covering
+different levels (999 is exit).
+
+Not efficient due to reallocation of outp every time, but only 
+needs to be called once, so not so bad.  
+
+### Test ###
+
+MakeStateBlock([10])
+MakeStateBlock([10, 20])
+MakeStateBlock([10, 20, 30])
+
+"""
+function MakeStateBlock(n::Array{Int64,1})
+  outp::Array{Tuple{Int64,Int64}} = Array{Tuple{Int64,Int64}}()
+  for i in n 
+    outp = StateBlock(outp, i)
   end 
   return outp 
 end 
