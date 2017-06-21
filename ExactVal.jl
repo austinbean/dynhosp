@@ -51,7 +51,6 @@ function ExactVal(D::DynState,
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
   its::Int64 = 0                                                                        # records iterations, but will be dropped after debugging.
-  # TODO - add the additional states here?  No - they should already be in below.  
   for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     neighbors::Array{Int64,1} = FindComps(D, D.all[el])                                 # these are addresses of fids.
     push!(neighbors, el)                                                                # add the location of the firm in chunk
@@ -70,7 +69,9 @@ function ExactVal(D::DynState,
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                              # this does NOT need starting values.  
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
   end
-  altstates = MakeStateBlock(neighbors)
+  # altstates = MakeStateBlock(neighbors)
+  # Now can use FindComps to generate vector of neighbor fids.  Then MakeStateBlock with that.
+  altstates = MakeStateBlock(FindComps(D, chunk))
   # Updating process:
   converge::Bool = true
   while (converge)&(its<itlim)                                                                    # if true keep going.  
@@ -78,11 +79,15 @@ function ExactVal(D::DynState,
       if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1) # iterating over rows is not a great idea 
           StatePermute(D, altstates[i,:])
-          # TODO - check update of deterministic Utility.  
-          # Definitely need to call it here every time.  
-          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true)  
+          # TODO - check update of deterministic Utility.  Updating functions are UpdateDUtil and HUtil
+          UpdateDUtil() # needs to be called on something... 
+          UpdateNN() # fix the neighbors here for the main firm at least.  
+          # FIXME - are the shortrecs in the dyn.all[i] record messing things up?  They do present a problem.  
+          # Is the utility going to change correctly for NON main fac hospitals?
+          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
+      # TODO - at some point reset all of the states to actual
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
