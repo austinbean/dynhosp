@@ -578,11 +578,25 @@ end
 When something in the market changes, the utility must be updated in all zip codes
 for which it can be chosen.  This calls the function HUtil to do the actual update.
 
+##  To test ## 
+  # one test: insert these lines after h.tbu - will check that coordinate found is correct.  
+  # This test passes.
+      if !isapprox(el.putils[1,findin(el.putils[1,:], h.fid)][1], h.fid) 
+        println("private doesn't match: ", el.putils[1,findin(el.putils[1,:], h.fid)][1])
+        println("fid: ", h.fid )
+      end 
+      if !isapprox(el.mutils[1,findin(el.mutils[1,:], h.fid)][1], h.fid) 
+        println("medicaid doesn't match: ", el.mutils[1,findin(el.mutils[1,:], h.fid)][1])
+        println("fid: ", h.fid )
+      end 
+
+
 """
 function UpdateDUtil(h::simh)
   for el in h.mk.m
     for sr in el.facs
       if sr.tbu # if this is true, the hospital needs updating
+        # this is a collection of shortrecs within a zip.  
         el.putils[2, findin(el.putils[1,:], sr.fid)] = HUtil(el, sr, true)
         el.mutils[2, findin(el.mutils[1,:], sr.fid)] = HUtil(el, sr, false)
       end
@@ -1426,6 +1440,9 @@ end
 
 
 
+
+
+
 """
 `ConvTest(d1::Dict{Int64,Bool})`
 Iterates over the elements in totest and returns true when 
@@ -2160,6 +2177,21 @@ function FindComps(D::DynState, args::simh...)
   return outp 
 end 
 
+"""
+`FindFids(D::Dynstate, args::simh...)`
+Takes a list of simh and will return a list of all of the fids of their competitors.
+This is just like FindComps but returns a different kind of object.  
+"""
+function FindFids(D::DynState, locs::Array{Int64,1})
+  outp::Array{Int64,1} = Array{Int64,1}()
+  for i in locs
+    for el in D.all[i].nfids 
+      push!(outp, el)
+    end 
+  end 
+  return outp 
+end 
+
 
 """
 `CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})`
@@ -2183,6 +2215,8 @@ end
 """
 `UpdateD(h::simh)`
 Updates the utility component.  The deterministic part.
+This is used just for the main firm in the deterministic counterfactual.
+This will *only* change by the amount of a switched level.  Does not recompute.
 """
 function UpdateD(h::simh)
   if h.level == 1 # this item varies.
