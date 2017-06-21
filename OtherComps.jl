@@ -49,3 +49,35 @@ function WTPchange(d::DynState)
     end 
     return outp
 end 
+
+"""
+`DUtilCheck`
+See whether the utilities are updated correctly for "shortrecs"
+"""
+function DUtilCheck(h::simh)
+    println("Facilities")
+    for el in h.mk.m 
+        println(el.zp, " ", size(unique(el.putils[1,:]))[1], "  ", size(unique(el.mutils[1,:]))[1])
+    end 
+
+
+    println("Own Utility Update Check: ")
+    for el in h.mk.m 
+        println(el.zp, "  ", el.putils[2, findin(el.putils[1,:], h.fid)])
+    end 
+    h.level = 3
+    h.tbu = true 
+    UpdateDUtil(h)
+    println("********")
+    for el in h.mk.m 
+        println(el.zp, "  ", el.putils[2, findin(el.putils[1,:], h.fid)])
+    end
+    h.level = 1 
+    h.tbu = true 
+    UpdateDUtil(h) 
+end 
+
+
+
+
+
