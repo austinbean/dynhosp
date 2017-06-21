@@ -2194,6 +2194,34 @@ end
 
 
 """
+`MapCompState`
+
+This is a fucking nightmare.  There must be a better way...
+For EACH firm listed in ch, 
+then for EACH state in states,
+and for EACH fac in D.all[].mk.m.facs, 
+IF fid == states 
+update level according to states.
+At the end update DUtil.  What the fuck...
+
+TODO - finish this.  
+
+"""
+function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
+  # TODO - this should take a ROW of states.  
+  for el in ch # these are locations in D.all 
+    for zp in D.all[el].mk.m # these are the zipcodes
+      for f in zp.facs # these are the facilities 
+        if f.fid in(f, fids) # update those which are relevant.
+
+        end 
+      end 
+    end 
+  end 
+end 
+
+
+"""
 `CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})`
 Takes and array of ints which are locations in D.all and returns 
 a dict{Fid, Location}.  For use with FindComps, which returns an array.
