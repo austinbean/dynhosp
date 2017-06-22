@@ -50,5 +50,23 @@ end
     @test ns == [195, 196, 197, 198] # call twice to make sure it doesn't append the same numbers.  
 end 
 
+@testset "MakeStateBlock Test" begin 
+
+    @test MakeStateBlock([10]) == [(10, 1);(10, 2);(10, 3);(10, 999)]
+
+end 
+
+
+@testset "NFids test" begin 
+    nf = Array{Int64,1}()
+    NFids(dyn, nf, dyn.all[1])
+    @test nf == [1391330]
+    NFids(dyn, nf, dyn.all[1])
+    @test nf == [1391330] # make sure it does not reappend.  
+    ns = Array{Int64,1}()
+    NFids(dyn, ns, dyn.all[11], dyn.all[13])
+    @test ns == [3396057, 3390720, 3396327, 3396189,616303, 610460, 616318, 611790]
+end 
+
 
 
