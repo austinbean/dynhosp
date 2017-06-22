@@ -1423,12 +1423,6 @@ different levels (999 is exit).
 Not efficient due to reallocation of outp every time, but only 
 needs to be called once, so not so bad.  
 
-### Test ###
-
-MakeStateBlock([10])
-MakeStateBlock([10, 20])
-MakeStateBlock([10, 20, 30])
-
 """
 function MakeStateBlock(n::Array{Int64,1})
   outp::Array{Tuple{Int64,Int64}} = Array{Tuple{Int64,Int64}}()
@@ -1439,7 +1433,23 @@ function MakeStateBlock(n::Array{Int64,1})
 end 
 
 
+"""
+`NFids(d1::Dict)`
+This function should just take a dict and return an array of the keys.  The 
+keys must be ints for this to work.  
 
+nf = Array{Int64,1}()
+NFids(dyn, nf, dyn.all[1])
+"""
+function NFids(D::DynState, arr::Array{Int64,1}, args::simh...)
+  for (i, h) in enumerate(args)
+    for el in h.nfids 
+      if !in(el, arr)
+        push!(arr, el)
+      end 
+    end 
+  end 
+end 
 
 
 
