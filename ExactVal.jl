@@ -74,10 +74,10 @@ function ExactVal(D::DynState,
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
-        for r in 1:size(altstates,1) # iterating over rows is not a great idea 
+        for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
-          UpdateDUtil(D.all[all_locs[k]]) # needs to be called on a simh - which one?   
-          FixNN(D.all[all_locs[k]]) # / FixMainNs() fix the neighbors here for the main firm at least. 
+          UpdateDUtil(D.all[all_locs[k]])    
+          FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right 
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
@@ -101,8 +101,8 @@ function ExactVal(D::DynState,
       end 
     end 
     # Copy the values and clean up.
-    DictCopy(outvals, tempvals, 1/(its+1)) # NB - new weight placed on new vs. old values.  
-    DictClean(tempvals)                                                                 # sets up for rewriting.
+    DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
+    DictClean(tempvals)                                                               # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
