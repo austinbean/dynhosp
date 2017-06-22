@@ -17,13 +17,9 @@ triopoly:
 
 # testing: 
 
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
+dyn = CounterObjects(50);
+
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -42,7 +38,7 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 30000)
+                  itlim::Int64 = 3000)
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(outvals)                                                                    # initialize to zero 
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
@@ -80,17 +76,8 @@ function ExactVal(D::DynState,
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1) # iterating over rows is not a great idea 
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
-          UpdateDUtil(dyn.all[all_locs[k]]) # needs to be called on a simh - which one?   
-          FixNN(dyn.all[all_locs[k]]) # / FixMainNs() fix the neighbors here for the main firm at least. 
-          # println("tempvals: ", typeof(tempvals))
-          # println("outvals: ", typeof(outvals))
-          # println("all locs: ", typeof(all_locs))
-          # println("st dict: ", typeof(st_dict ))
-          # println("k: ", typeof(k))
-          # println("alllocs[k]: ", typeof(all_locs[k]))
-          # println("p1 ", typeof(p1))
-          # println("p2 ", typeof(p2))
-          # println("D ", typeof(D)) 
+          UpdateDUtil(D.all[all_locs[k]]) # needs to be called on a simh - which one?   
+          FixNN(D.all[all_locs[k]]) # / FixMainNs() fix the neighbors here for the main firm at least. 
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
@@ -109,8 +96,8 @@ function ExactVal(D::DynState,
               mins = abs(outvals[k1][k2] - tempvals[k1][k2])
             end
           end 
+          println(k1, " ", k2, " ", mins) # just print the minimum difference.  
         end 
-        println(k1, " ", k2, " ", mins) # just print the minimum difference.  
       end 
     end 
     # Copy the values and clean up.
