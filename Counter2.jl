@@ -2153,28 +2153,25 @@ end
 
 
 """
-`FindComps(D::DynState, args::simh...)`
+`FindComps(D::DynState, arr::Array{Int64,1}, args::simh...)`
 Finds the locations of the neighbors in the DynState.
-Takes a variable number of simh
-
-### TESTING ###
-
-FindComps(dyn, dyn.all[11]) == [195, 196, 197, 198] # returns true. 
-
+Takes a variable number of simh.  
+Appends to the input vector arr.
+Returns a vector of the *locations* in D.all[] of the competitors of args...
+Only pushes an address if it isn't already there.  
 """
-function FindComps(D::DynState, args::simh...)
-  # takes a state and finds me the neighbors.
-  outp::Array{Int64,1} = Array{Int64,1}()
+function FindComps(D::DynState, arr::Array{Int64,1}, args::simh...)
   for (i, h) in enumerate(args)
     for el in h.nfids
       for loc in 1:size(D.all,1) 
         if D.all[loc].fid == el 
-          push!(outp, loc)
+          if !in(loc, arr)
+            push!(arr, loc)
+          end 
         end  
       end 
     end 
   end 
-  return outp 
 end 
 
 """
@@ -2209,8 +2206,11 @@ TODO - finish this.
 ### Testing ### 
 
 dyn = CounterObjects(50);
+fids1 =  [1391330]
+ch1 = [1]
+states1 = [(1391330, 3)] # changing level
 
-
+MapCompState(dyn, ch1, fids1, states1)
 
 """
 function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
