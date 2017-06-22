@@ -717,6 +717,10 @@ end
   export MakeStateBlock
   export StateBlock 
   export StatePermute
+  export MakeStateBlock 
+  export MapCompState
+  export NFids 
+  
 
 
   # Export Counter2.jl functions 
