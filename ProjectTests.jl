@@ -40,3 +40,15 @@ end
     ab3 = Dict(1 => false, 2=> false, 3 => false) # START - no one has converged.  Return true.
     @test ConvTest(ab3) 
 end
+
+
+@testset "FindComps Test" begin 
+    ns = Array{Int64,1}()
+    FindComps(dyn, ns , dyn.all[11]) 
+    @test ns == [195, 196, 197, 198]
+    FindComps(dyn, ns , dyn.all[11]) 
+    @test ns == [195, 196, 197, 198] # call twice to make sure it doesn't append the same numbers.  
+end 
+
+
+
