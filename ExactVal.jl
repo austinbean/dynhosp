@@ -78,6 +78,9 @@ function ExactVal(D::DynState,
     for k in keys(totest)                                                              
       if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1) # iterating over rows is not a great idea 
+          # don't want to do state permute here.  
+            # TODO - add the right name for the fids here.  
+          MapCompState(D, chunk, FIDS ,altstates[i,:])
           StatePermute(D, altstates[i,:])
           # TODO - check update of deterministic Utility.  Updating functions are UpdateDUtil and HUtil
           UpdateDUtil() # needs to be called on something... 
