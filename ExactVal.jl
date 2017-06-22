@@ -79,9 +79,18 @@ function ExactVal(D::DynState,
     for k in keys(totest)                                                              
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1) # iterating over rows is not a great idea 
-          MapCompState(D, chunk, FindFids(D, chunk), altstates[i,:])
+          MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
           UpdateDUtil(dyn.all[all_locs[k]]) # needs to be called on a simh - which one?   
-          FixNN(dyn.all[all_locs[k]]) # / FixMainNs() fix the neighbors here for the main firm at least.  
+          FixNN(dyn.all[all_locs[k]]) # / FixMainNs() fix the neighbors here for the main firm at least. 
+          # println("tempvals: ", typeof(tempvals))
+          # println("outvals: ", typeof(outvals))
+          # println("all locs: ", typeof(all_locs))
+          # println("st dict: ", typeof(st_dict ))
+          # println("k: ", typeof(k))
+          # println("alllocs[k]: ", typeof(all_locs[k]))
+          # println("p1 ", typeof(p1))
+          # println("p2 ", typeof(p2))
+          # println("D ", typeof(D)) 
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
