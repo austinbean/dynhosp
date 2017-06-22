@@ -72,6 +72,7 @@ function ExactVal(D::DynState,
   # altstates = MakeStateBlock(neighbors)
   # Now can use FindComps to generate vector of neighbor fids.  Then MakeStateBlock with that.
   altstates = MakeStateBlock(FindComps(D, chunk))
+
   # Updating process:
   converge::Bool = true
   while (converge)&(its<itlim)                                                                    # if true keep going.  
@@ -80,10 +81,11 @@ function ExactVal(D::DynState,
         for r in 1:size(altstates,1) # iterating over rows is not a great idea 
           # don't want to do state permute here.  
             # TODO - add the right name for the fids here.  
-          MapCompState(D, chunk, FIDS ,altstates[i,:])
+          MapCompState(D, chunk, FindFids(D, chunk), altstates[i,:])
           StatePermute(D, altstates[i,:])
           # TODO - check update of deterministic Utility.  Updating functions are UpdateDUtil and HUtil
           UpdateDUtil() # needs to be called on something... 
+          # FIXME - is the neighbors update necessary?  Yes - to get the state right.  
           UpdateNN() # fix the neighbors here for the main firm at least.  
           # FIXME - are the shortrecs in the dyn.all[i] record messing things up?  They do present a problem.  
           # Is the utility going to change correctly for NON main fac hospitals?
