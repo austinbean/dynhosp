@@ -2178,7 +2178,7 @@ function FindComps(D::DynState, args::simh...)
 end 
 
 """
-`FindFids(D::Dynstate, args::simh...)`
+`FindFids(D::Dynstate, locs::Array{Int64,1})`
 Takes a list of simh and will return a list of all of the fids of their competitors.
 This is just like FindComps but returns a different kind of object.  
 """
@@ -2204,7 +2204,13 @@ IF fid in states
 update level according to states.
 At the end update DUtil.  What the fuck...
 
-TODO - finish this.  
+TODO - finish this.
+
+### Testing ### 
+
+dyn = CounterObjects(50);
+
+
 
 """
 function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
