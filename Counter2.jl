@@ -2198,9 +2198,9 @@ end
 
 This is a fucking nightmare.  There must be a better way...
 For EACH firm listed in ch, 
-then for EACH state in states,
-and for EACH fac in D.all[].mk.m.facs, 
-IF fid == states 
+for EACH state in states,
+for EACH fac in D.all[].mk.m.facs, 
+IF fid in states 
 update level according to states.
 At the end update DUtil.  What the fuck...
 
@@ -2208,17 +2208,30 @@ TODO - finish this.
 
 """
 function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
-  # TODO - this should take a ROW of states.  
-  for el in ch # these are locations in D.all 
-    for zp in D.all[el].mk.m # these are the zipcodes
-      for f in zp.facs # these are the facilities 
-        if f.fid in(f, fids) # update those which are relevant.
-
+  for el in ch                     # these are locations in D.all 
+    for zp in D.all[el].mk.m       # these are the zipcodes at each D.all[el]
+      for f in zp.facs             # these are the facilities in the zip.
+        if f.fid in(f, fids)       # update those which are relevant ONLY 
+          GetNewLevel(f, states)   # calls this to fix the level and record that it must be updated.
         end 
       end 
     end 
   end 
 end 
+
+"""
+`GetNewLevel(f::shortrec, states::Array{Tuple{Int64,Int64}})`
+This is dumb.  Takes a row of (fid,level) tuples and a shortrec, and changes the level.
+"""
+function GetNewLevel(f::shortrec, states::Array{Tuple{Int64,Int64}})
+  for el in states                       # Set of (fid,level) tuples
+    if el[1] == f.fid 
+      f.level = el[2]
+      f.tbu = true                       # signals that it must be updated by UpdateDUtil.
+    end 
+  end 
+end 
+
 
 
 """
