@@ -51,9 +51,11 @@ function ExactVal(D::DynState,
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict 
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
   neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms.
+  nfds::Array{Int64,1} = Array{Int64,1}()                                               # records the fids of neighbors, as fids, not locations. 
   its::Int64 = 0                                                                        # records iterations, but will be dropped after debugging.
   for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     FindComps(D, neighbors, D.all[el])                                                  # these are addresses of competitors in D.all 
+    NFids(D, nfds, D.all[el])                                                           # records the fids of neighbors only, as fids.  
     push!(neighbors, el)                                                                # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
@@ -70,15 +72,12 @@ function ExactVal(D::DynState,
     StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                              # this does NOT need starting values.  
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
   end
-  # altstates = MakeStateBlock(neighbors)
-  # Now can use FindComps to generate vector of neighbor fids.  Then MakeStateBlock with that.
-  # FIX THiS - what I want is an array of competitors fids  
-  altstates = MakeStateBlock( )#FIXME - argument needs to be simh
+  altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   # Updating process:
   converge::Bool = true
-  while (converge)&(its<itlim)                                                                    # if true keep going.  
+  while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
-      if !totest[k]                                                                      # only run those for which FALSE, ie, not converged. 
+      if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1) # iterating over rows is not a great idea 
           MapCompState(D, chunk, FindFids(D, chunk), altstates[i,:])
           UpdateDUtil(dyn.all[all_locs[k]]) # needs to be called on a simh - which one?   
