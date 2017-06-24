@@ -76,6 +76,7 @@ function ExactVal(D::DynState,
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
+          # TODO - there is an UpdateD called in ExactChoice - maybe that isn't necessary anymore?
           UpdateDUtil(D.all[all_locs[k]])    
           FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right 
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
