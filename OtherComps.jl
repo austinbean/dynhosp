@@ -79,5 +79,21 @@ end
 
 
 
+mx = 0;
+for el in dyn.all 
+    if size(el.mk.m,1) > mx 
+        mx = size(el.mk.m,1)
+    end 
+end 
+println("Max zips = ", mx)
 
+zps = zeros(Int64, mx+1, size(dyn.all,1) ); # NB - each COLUMN is an fid 
 
+for el in 1:size(dyn.all,1) # COLUMNS
+    zps[1, el] = dyn.all[el].fid  
+    for z in 1:size(dyn.all[el].mk.m,1) # ROWS 
+        zps[z+1,el] = dyn.all[el].mk.m[z].zp # zip 
+    end 
+end 
+zps = transpose(zps)
+writecsv( "/Users/austinbean/Desktop/dynhosp/hospzips.csv", zps)
