@@ -347,6 +347,36 @@ end
     return outp_p, outp_m
   end 
 
+  """
+  `PatExpByType(prng::patientrange, p_or_m::Bool)`
+  Generates expected patient counts from a range.
+  p_or_m tag will return private expectations if true, medicaid if false.  
+  """
+  function PatExpByType(prng::patientrange, p_or_m::Bool)
+    outp::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    if p_or_m # If TRUE private. 
+      # private expected output
+      outp.count385 = (prng.u385-prng.l385)/2
+      outp.count386 = (prng.u386-prng.l386)/2
+      outp.count387 = (prng.u387-prng.l387)/2
+      outp.count388 = (prng.u388-prng.l388)/2
+      outp.count389 = (prng.u389-prng.l389)/2
+      outp.count390 = (prng.u390-prng.l390)/2
+      outp.count391 = (prng.u391-prng.l391)/2
+      return outp
+    else 
+      # medicaid expected output
+      outp.count385 = (prng.u385-prng.l385)/2
+      outp.count386 = (prng.u386-prng.l386)/2
+      outp.count387 = (prng.u387-prng.l387)/2
+      outp.count388 = (prng.u388-prng.l388)/2
+      outp.count389 = (prng.u389-prng.l389)/2
+      outp.count390 = (prng.u390-prng.l390)/2
+      outp.count391 = (prng.u391-prng.l391)/2
+      return outp
+    end 
+  end 
+
 
 
 
@@ -720,6 +750,7 @@ end
   export MakeStateBlock 
   export MapCompState
   export NFids 
+  export PatExpByType
   
 
 
