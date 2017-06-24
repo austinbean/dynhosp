@@ -2163,13 +2163,15 @@ the profit is
   
 """
 function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
-  const weight385 = 
-  const weight386 = 
-  const weight387 = 
-  const weight388 = 
-  const weight389 = 
-  const weight390 = 
-  const weight391 = 
+  # there are ultimately fewer parameters by about... 6?  or 12?  
+  # TODO - also need to add some kind of composite for the mothers...?  Or what?  
+  const weight385::Float64 = 1.38
+  const weight386::Float64 = 4.57
+  const weight387::Float64 = 3.12
+  const weight388::Float64 = 1.88
+  const weight389::Float64 = 3.20
+  const weight390::Float64 = 1.13
+  const weight391::Float64 = 0.15
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
@@ -2182,6 +2184,7 @@ function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volum
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
     arr = zeros(1, 40)
+    # TODO - should this be beta^T?  Or (1-Beta^T+1)/(1-Beta)?
     arr[1] = (beta^T)*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
     arr[2] = (beta^T)*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
     arr[3] = (beta^T)*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
