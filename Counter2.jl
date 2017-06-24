@@ -435,7 +435,7 @@ end
 
 
 """
-`DemComp(inparr::Array{Float64,2}, fid::Int64, c::cpats, p_or_m::Bool)`
+`DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)`
 Takes a fid.  Finds the index in inparr.  Takes the share from inparr.
 Multiplies all of patient values in cpat by that number.
 Returns the value.
@@ -567,8 +567,8 @@ function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; 
   temparr::Array{Float64,2} = zeros(2, maxh)
   for el in c.m
     ArrayZero(temparr)
-    DemComp(el.putils, temparr, pcount, f, DrawAll(el.pcounts))  # pcount is an empty, pre-allocated patientcount into which results are written.
-    DemComp(el.mutils, temparr, mcount, f, DrawAll(el.mcounts)) 
+    DemComp(el.putils, temparr, pcount, f, PatExpByType(el.pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
+    DemComp(el.mutils, temparr, mcount, f, PatExpByType(el.mcounts, false)) 
   end
 end
 
