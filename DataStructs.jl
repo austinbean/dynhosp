@@ -2167,7 +2167,7 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     narr[29] = disc*outprobn*(medicaidn[5]+medicaidn[12]+medicaidn[19])*drgamt[5] # (389_m_1 + 389_m_2 + 389_m_3)* revenue avg. at DRG 389
     narr[30] = disc*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6] # (390_m_1 + 390_m_2 + 390_m_3)* revenue avg. at DRG 390
     narr[31] = disc*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7] # (391_m_1 + 391_m_2 + 391_m_3)* revenue avg. at DRG 391
-    narr[32:end] = (beta^T)*outprobn*transitionsn                                     # Transitions.
+    narr[32:end] = (beta^T)*outprobn*transitionsn                                 # Transitions - 9 of them.
     outp[index, 42:end] = narr
   end
   return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
@@ -2192,10 +2192,11 @@ the profit is
 
   
 """
-function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
+function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; ;T::Int64 = 50, beta::Float64 = 0.95,) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   # there are ultimately fewer parameters by about... 6?  or 12?  
   # TODO - also need to add some kind of composite for the mothers...?  Or what?  
   # TODO - there are fewer parameters here.  By 6, I think.  Then dim2 should be 21?
+  const dim2::Int64 = 43
   const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
   const weight385::Float64 = 1.38
   const weight386::Float64 = 4.57
@@ -2220,8 +2221,11 @@ function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volum
     arr[1] = disc*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
     arr[2] = disc*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
     arr[3] = disc*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
-    arr[4] = disc*outprob*(weight385*(private[1]+medicaid[1])+weight386*(private[2]+medicaid[2])+weight387*(private[3]+medicaid[3])+weight388*(private[4]+medicaid[4])+weight389*(private[5]+medicaid[5])+weight390*(private[6]+medicaid[6])+weight391*(private[7]+medicaid[7]))                              # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
+    # this is the combined cost at level 1, multiplied by weights: (385_m_1 + 385_p_1)*weight385 + ... + (391_m_1+391_p_1)*weight391 
+    arr[4] = disc*outprob*(weight385*(private[1]+medicaid[1])+weight386*(private[2]+medicaid[2])+weight387*(private[3]+medicaid[3])+weight388*(private[4]+medicaid[4])+weight389*(private[5]+medicaid[5])+weight390*(private[6]+medicaid[6])+weight391*(private[7]+medicaid[7])) 
+    # this is the combined cost at level 2, multiplied by weights: (385_m_2 + 385_p_2)*weight385 + ... + (391_m_2+391_p_2)*weight391 
     arr[5] = disc*outprob*(weight385*(private[8]+medicaid[8])+weight386*(private[9]+medicaid[9])+weight387*(private[10]+medicaid[10])+weight388*(private[11]+medicaid[11])+weight389*(private[12]+medicaid[12])+weight390*(private[13]+medicaid[13])+weight391*(private[14]+medicaid[14]))
+    # this is the combined cost at level 3, multiplied by weights: (385_m_3 + 385_p_3)*weight385 + ... + (391_m_3+391_p_3)*weight391 
     arr[6] = disc*outprob*(weight385*(private[15]+medicaid[15])+weight386*(private[16]+medicaid[16])+weight387*(private[17]+medicaid[17])+weight388*(private[18]+medicaid[18])+weight389*(private[19]+medicaid[19])+weight390*(private[20]+medicaid[20])+weight391*(private[21]+medicaid[21]))
     arr[7] = disc*outprob*(medicaid[1]+medicaid[8]+medicaid[15])*drgamt[1]    # Patients*revenue avg. at DRG 385
     arr[8] = disc*outprob*(medicaid[2]+medicaid[9]+medicaid[16])*drgamt[2]
@@ -2229,8 +2233,8 @@ function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volum
     arr[10] = disc*outprob*(medicaid[4]+medicaid[11]+medicaid[18])*drgamt[4]
     arr[11] = disc*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]
     arr[12] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]
-    arr[13] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]
-    arr[14:end] = (alltrans = (beta^T)*outprob*transitions)
+    arr[13] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]  # 13 parameters to here.
+    arr[14:end] = (alltrans = (beta^T)*outprob*transitions)                   # 9 here. 
     index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
     # FIXME - array dimension below wrong.
     outp[index, 2:41] = arr
