@@ -33,8 +33,9 @@ function MakeIt(Tex::EntireState, fip::Vector{Int64})
       push!(Tex.ms, Market( Array{hospital,1}(), Dict{Int64, hospital}(), f, Dict{Int64, Bool}()))
     end
   end
-  #TODO 02/14/17 - this comprehension will be slow.
-  Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
+  for m in Tex.ms # comprehensions don't work with immutables.  
+    Tex.mkts[m.fipscode] = m
+  end 
   return Tex
 end
 
