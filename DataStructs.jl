@@ -350,12 +350,13 @@ the counterfactual simulation.
 
 Testing this:
 #NB: Make It Needs a state argument.
-Tex = TXSetup(MakeIt(ProjectModule.fips), ProjectModule.alldists, 50);
 Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
+
+Tex = TXSetup(MakeIt(Tex, ProjectModule.fips), ProjectModule.alldists, 50);
 MakeIt(Tex, ProjectModule.fips);
 NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
-
+# the problem here is that... the immutable 
 """
 function NeighborAppend{T<:Fac}(elm::T, entrant::T)
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
