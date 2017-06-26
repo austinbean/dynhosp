@@ -1933,6 +1933,27 @@ This produces a series of matrices: 4 of them.  Three of them have three rows an
 
 - the fourth thing returned is transitions, which is a record of transitions across levels.
 
+Prior to output, the shape of private, medicaid and WTP is: 
+[385_1, 385_2, 385_3;
+ 386_1, 386_2, 386_3;
+ 387_1, 387_2, 387_3;
+ 388_1, 388_2, 388_3;
+ 389_1, 389_2, 389_3;
+ 390_1, 390_2, 390_3;
+ 391_1, 391_2, 391_3; ]
+
+where these entries are demand/WTP_level.
+
+Then at the end this is reshaped so that the form is: [385_1 ... 391_1 385_2 ... 391_2 385_3 ... 391_3]
+
+Transitions is: 9x1. For the form of that, see TransitionGen above.
+[ ; 
+
+  ]
+
+Output is a 4-tuple of vectors: private, medicaid, wtp, transitions.
+This is given to ResultsOut() below.  
+
 """
 function CondSum(hos::hospital; DRG = 7)
   len = size(hos.levelhistory, 1)
@@ -2054,6 +2075,9 @@ end
 """
 `ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81, drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04])`
 Maps all of the hospital results out to a big matrix, sorted in the first column by the fid.
+- Takes the output of CondSum, which is a 4-tuple of vectors private, medicaid, wtp_out, transitions
+- Assigns these elements to the 1x40 array arr.
+- Multiplies by the discount rate.
 """
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81, drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   dim1 = Tex.fipsdirectory.count
