@@ -39,7 +39,7 @@ module ProjectModule
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
   end
 
-  struct WTP
+  mutable struct WTP
     w385::Array{Float64, 1}
     w386::Array{Float64, 1}
     w387::Array{Float64, 1}
@@ -49,7 +49,7 @@ module ProjectModule
     w391::Array{Float64, 1}
   end
 
-  struct DemandHistory
+  mutable struct DemandHistory
     demand385::Array{Int64, 1}
     demand386::Array{Int64, 1}
     demand387::Array{Int64, 1}
@@ -59,7 +59,7 @@ module ProjectModule
     demand391::Array{Int64, 1}
   end
 
-  struct LBW
+  mutable struct LBW
     bt05::Int64
     bt510::Int64
     bt1015::Int64
@@ -74,7 +74,7 @@ module ProjectModule
   end
 
 
-  struct neighbors
+  mutable struct neighbors # this must be mutable.  
     level105::Int64
     level205::Int64
     level305::Int64
@@ -144,12 +144,12 @@ end
 
   abstract type Fac end # 6devfix
 
-  immutable initial
+  struct initial
     level::Int64
   end
 
 
-  struct hospital <: Fac
+  mutable struct hospital <: Fac
     fid::Int64
     lat::Float64
     long::Float64
@@ -170,8 +170,7 @@ end
   end
 
 # this hospital type is for the counterfactual only.
-#TODO - add a field for the actual level, so it can be reset.
-  struct chospital <: Fac
+  mutable struct chospital <: Fac
     fid::Int64
     lat::Float64
     long::Float64
@@ -190,7 +189,7 @@ end
   end
 
 
-  struct Market{T<:Fac}
+  mutable struct Market{T<:Fac}
     config::Array{T, 1}
     collection::Dict{Int64, T} # create the dict with a comprehension to initialize
     fipscode::Int64
@@ -198,7 +197,7 @@ end
   end
 
 
-  struct EntireState
+  mutable struct EntireState
     ms::Array{Market, 1}
     mkts::Dict{Int64, Market}   # Link markets by FIPS code via dictionary.
     fipsdirectory::Dict{Int64,Int64} # Directory should be hospital fid / market fips
@@ -206,7 +205,7 @@ end
 
           #### NB: Demand-side Data Structures ######
 
-  struct patientcount{T<:Real}
+  mutable struct patientcount{T<:Real}
    count385::T
    count386::T
    count387::T
@@ -254,7 +253,7 @@ end
     end
   end
 
-  struct patientrange{T<:Real}
+  mutable struct patientrange{T<:Real}
     l385::T 
     u385::T
     l386::T 
@@ -383,7 +382,7 @@ end
 
 
   # 04 02 17 - was "type."  
-  struct coefficients
+  mutable struct coefficients
     distance::Float64
     distsq::Float64
     inten::Float64
@@ -394,7 +393,7 @@ end
   end
 
 
-  struct zipcode{T<:Fac}
+  mutable struct zipcode{T<:Fac}
    code::Int64
    phr::Int64 # may have coefficients differing by PHR
    facilities::Dict{Int64, T}
@@ -410,13 +409,13 @@ end
    mpatients::patientcount
   end
 
-  struct patientcollection
+  mutable struct patientcollection
    zips::Dict{Int64, zipcode}
   end
 
   # Counterfactual-related items:
 
-  struct hyrec # quantities of interest within a hospital-year.
+  mutable struct hyrec # quantities of interest within a hospital-year.
     fid::Int64 # hosp ID.
     totbr::Array{Int64,1}  #births
     totlbw::Array{Int64,1}  #lbw births
@@ -425,7 +424,7 @@ end
     profit::Array{Float64,1} # hospital revenue.
   end
 
-  struct simrun
+  mutable struct simrun
     # contains the results of some T period sim.
     fips::Int64
     hosprecord::Dict{Int64, hyrec} # track patient volumes and deaths.
@@ -435,13 +434,13 @@ end
 
 #TODO - think about changing values to Dict{Array{Int64,1}, simrun} - this will more easily account for the assignment of pairs to have high level facs.
 
-  struct mkthistory
+  mutable struct mkthistory
     fips::Int64
     # for each FID in the fips, one of these
     values::Dict{Int64, simrun} # note this change.
   end
 
-  struct counterhistory
+  mutable struct counterhistory
     # One of these for each fips code
     hist::Dict{Int64, mkthistory}
   end
@@ -455,7 +454,7 @@ end
 First element stores {Action, Continuation Value Approximations}.  Second stores probabilities.  Third is an {Action, Hits} counter.
 Stored in a dictionary under a (neighbors, level) tuple-type key.
 """
-struct nlrec
+mutable struct nlrec
   aw::Dict{Int64,Float64}
   psi::Array{Float64,2}
   counter::Dict{Int64, Int64}
@@ -466,7 +465,7 @@ end
 - conf::neighbors
 - visits::Dict{Int64, Int64}
 """
-struct hitcount # this type will record visits to a state-action pair
+mutable struct hitcount # this type will record visits to a state-action pair
   conf::neighbors
   visits::Dict{Int64,Int64}
 end
@@ -479,7 +478,7 @@ end
 Records which state-action pairs have been visited, plus the total iteration count.  The array length is fixed at
 1 million so only those state-action pairs are checked.
 """
-struct vrecord
+mutable struct vrecord
   visited::Array{Tuple{Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64}, 1} # neighbors, level, action
   totalcnt::Int64 # count all states
 end
@@ -490,7 +489,7 @@ end
 - all::Dict{Int64, vrecord}
 Dictionary of {Fid, VRecord}, which records visits to state-action pairs.
 """
-struct allvisits
+mutable struct allvisits
   all::Dict{Int64, vrecord}
 end
 
@@ -501,7 +500,7 @@ end
 -  path::Dict{neighbors, hitcount}
 -  totalcount::Int64
 """
-struct history
+mutable struct history
   path::Dict{neighbors, hitcount}
   totalcount::Int64 # records total number of iterations
 end
@@ -520,7 +519,7 @@ end
 -  chprobs::Weights
 -  tbu::Bool
 """
-struct shortrec<:ProjectModule.Fac
+mutable struct shortrec<:ProjectModule.Fac
   # needs to take location.  must measure distances.  need to update all of these every time, probably.
   fid::Int64
   lat::Float64
@@ -546,7 +545,7 @@ end
 -  pcounts::patientcount
 -  mcounts::patientcount
 """
-struct cpats
+mutable struct cpats
   zp::Int64
   lat::Float64
   long::Float64
@@ -564,7 +563,7 @@ end
 -  fid::Int64
 -  m::Array{cpats,1}
 """
-struct cmkt
+mutable struct cmkt
   fid::Int64
   m::Array{cpats,1}
 end
@@ -588,7 +587,7 @@ end
 -  tbu::Bool # Does the record need to be updated ?
 -  converged::Bool # has the hospital converged or not?
 """
-struct simh<:ProjectModule.Fac
+mutable struct simh<:ProjectModule.Fac
   fid::Int64
   lat::Float64
   long::Float64
@@ -610,7 +609,7 @@ end
 `struct DynState` # this should hold a collection of ALL of the hospitals, for the approximation.
 -  all::Array{simh, 1}
 """
-struct DynState # this should hold a collection of ALL of the hospitals, for the approximation.
+mutable struct DynState # this should hold a collection of ALL of the hospitals, for the approximation.
   all::Array{simh, 1}
 end
 
