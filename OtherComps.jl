@@ -77,8 +77,11 @@ function DUtilCheck(h::simh)
     UpdateDUtil(h) 
 end 
 
+#=
+This computation relates to determining the market sizes of individual hositals by checking the total number of births in 
+all zip codes attached to that hospital every year.  It is merged with some data from Stata.  Specifically, see TX Patient Uncertainty.do
 
-
+=#
 mx = 0;
 for el in dyn.all 
     if size(el.mk.m,1) > mx 
@@ -97,3 +100,43 @@ for el in 1:size(dyn.all,1) # COLUMNS
 end 
 zps = transpose(zps)
 writecsv( "/Users/austinbean/Desktop/dynhosp/hospzips.csv", zps)
+
+
+
+
+#=
+
+typetest 
+
+
+=#
+
+struct WTPee
+    w::Array{Float64, 1}
+end
+
+ab1 = WTPee(Array{Float64,1}())
+
+ab2 = WTPee(Array{Float64,1}(50))
+
+@time for el =1:50
+    push!(ab1.w, rand())
+end 
+
+@time for el =1:50 
+    ab2.w[el] = rand()
+end 
+
+for j = 1:10
+@time for i = 1:50
+ ab2.w[i] = i 
+end 
+for k = 1:50
+    ab2.w[k] = 0.0
+end 
+end 
+
+
+#=
+
+=#
