@@ -2077,12 +2077,14 @@ end
 Maps all of the hospital results out to a big matrix, sorted in the first column by the fid.
 - Takes the output of CondSum, which is a 4-tuple of vectors private, medicaid, wtp_out, transitions
 - Assigns these elements to the 1x40 array arr.
-- Multiplies by the discount rate.
+- Multiplies by the discount rate.  FIXME - this is not quite right now. 
+- Writes out the results as a large matrix, with one row for each firm.  
 """
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81, drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
+  disc::Float64 = (1-beta^(T+1))/(1-beta) 
   for el in 1:size(fids,1)
     outp[el,1] = fids[el]                                                           # Write out all of the fids as an ID in the first column.
   end
@@ -2091,77 +2093,79 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
     arr = zeros(1, 40)
-    arr[1] = (beta^T)*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
-    arr[2] = (beta^T)*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
-    arr[3] = (beta^T)*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
-    arr[4] = (beta^T)*outprob*(private[1]+medicaid[1])                               # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
-    arr[5] = (beta^T)*outprob*(private[8]+medicaid[8])
-    arr[6] = (beta^T)*outprob*(private[15]+medicaid[15])
-    arr[7] = (beta^T)*outprob*(private[2]+medicaid[2])
-    arr[8] = (beta^T)*outprob*(private[9]+medicaid[9])
-    arr[9] = (beta^T)*outprob*(private[16]+medicaid[16])
-    arr[10] = (beta^T)*outprob*(private[3]+medicaid[3])
-    arr[11] = (beta^T)*outprob*(private[10]+medicaid[10])
-    arr[12] = (beta^T)*outprob*(private[17]+medicaid[17])
-    arr[13] = (beta^T)*outprob*(private[4]+medicaid[4])
-    arr[14] = (beta^T)*outprob*(private[11]+medicaid[11])
-    arr[15] = (beta^T)*outprob*(private[18]+medicaid[18])
-    arr[16] = (beta^T)*outprob*(private[5]+medicaid[5])
-    arr[17] = (beta^T)*outprob*(private[12]+medicaid[12])
-    arr[18] = (beta^T)*outprob*(private[19]+medicaid[19])
-    arr[19] = (beta^T)*outprob*(private[6]+medicaid[6])
-    arr[20] = (beta^T)*outprob*(private[13]+medicaid[13])
-    arr[21] = (beta^T)*outprob*(private[20]+medicaid[20])
-    arr[22] = (beta^T)*outprob*(private[7]+medicaid[7])
-    arr[23] = (beta^T)*outprob*(private[14]+medicaid[14])
-    arr[24] = (beta^T)*outprob*(private[21]+medicaid[21])
-    arr[25] = (beta^T)*outprob*(medicaid[1]+medicaid[8]+medicaid[15])*drgamt[1]    # Patients*revenue avg. at DRG 385
-    arr[26] = (beta^T)*outprob*(medicaid[2]+medicaid[9]+medicaid[16])*drgamt[2]
-    arr[27] = (beta^T)*outprob*(medicaid[3]+medicaid[10]+medicaid[17])*drgamt[3]
-    arr[28] = (beta^T)*outprob*(medicaid[4]+medicaid[11]+medicaid[18])*drgamt[4]
-    arr[29] = (beta^T)*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]
-    arr[30] = (beta^T)*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]
-    arr[31] = (beta^T)*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]
-    arr[32:end] = (alltrans = (beta^T)*outprob*transitions)
-    index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
+    arr[1] = disc*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
+    arr[2] = disc*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
+    arr[3] = disc*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
+    # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
+    arr[4] = disc*outprob*(private[1]+medicaid[1])                              # 385_p_1 + 385_m_1                             
+    arr[5] = disc*outprob*(private[8]+medicaid[8])                              # 385_p_2 + 385_m_2
+    arr[6] = disc*outprob*(private[15]+medicaid[15])                            # 385_p_3 + 385_m_3 
+    arr[7] = disc*outprob*(private[2]+medicaid[2])                              # 386_p_1 + 386_m_1 
+    arr[8] = disc*outprob*(private[9]+medicaid[9])                              # 386_p_2 + 386_m_2
+    arr[9] = disc*outprob*(private[16]+medicaid[16])                            # 386_p_3 + 386_m_3
+    arr[10] = disc*outprob*(private[3]+medicaid[3])                             # 387_p_1 + 387_m_1
+    arr[11] = disc*outprob*(private[10]+medicaid[10])                           # 387_p_2 + 387_m_2
+    arr[12] = disc*outprob*(private[17]+medicaid[17])                           # 387_p_3 + 387_m_3
+    arr[13] = disc*outprob*(private[4]+medicaid[4])                             # 388_p_1 + 388_m_1
+    arr[14] = disc*outprob*(private[11]+medicaid[11])                           # 388_p_2 + 388_m_2
+    arr[15] = disc*outprob*(private[18]+medicaid[18])                           # 388_p_3 + 388_m_3
+    arr[16] = disc*outprob*(private[5]+medicaid[5])                             # 389_p_1 + 389_m_1
+    arr[17] = disc*outprob*(private[12]+medicaid[12])                           # 389_p_2 + 389_m_2
+    arr[18] = disc*outprob*(private[19]+medicaid[19])                           # 389_p_3 + 389_m_3
+    arr[19] = disc*outprob*(private[6]+medicaid[6])                             # 390_p_1 + 390_m_1
+    arr[20] = disc*outprob*(private[13]+medicaid[13])                           # 390_p_2 + 390_m_2
+    arr[21] = disc*outprob*(private[20]+medicaid[20])                           # 390_p_3 + 390_m_3
+    arr[22] = disc*outprob*(private[7]+medicaid[7])                             # 391_p_1 + 391_m_1
+    arr[23] = disc*outprob*(private[14]+medicaid[14])                           # 391_p_2 + 391_m_2
+    arr[24] = disc*outprob*(private[21]+medicaid[21])                           # 391_p_3 + 391_m_3
+    arr[25] = disc*outprob*(medicaid[1]+medicaid[8]+medicaid[15])*drgamt[1]     # (385_m_1 + 385_m_2 + 385_m_3)* revenue avg. at DRG 385
+    arr[26] = disc*outprob*(medicaid[2]+medicaid[9]+medicaid[16])*drgamt[2]     # (386_m_1 + 386_m_2 + 386_m_3)* revenue avg. at DRG 386
+    arr[27] = disc*outprob*(medicaid[3]+medicaid[10]+medicaid[17])*drgamt[3]    # (387_m_1 + 387_m_2 + 387_m_3)* revenue avg. at DRG 387
+    arr[28] = disc*outprob*(medicaid[4]+medicaid[11]+medicaid[18])*drgamt[4]    # (388_m_1 + 388_m_2 + 388_m_3)* revenue avg. at DRG 388
+    arr[29] = disc*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]    # (389_m_1 + 389_m_2 + 389_m_3)* revenue avg. at DRG 389
+    arr[30] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]    # (390_m_1 + 390_m_2 + 390_m_3)* revenue avg. at DRG 390
+    arr[31] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]    # (391_m_1 + 391_m_2 + 391_m_3)* revenue avg. at DRG 391
+    arr[32:end] = (alltrans = (beta^T)*outprob*transitions)                         # Transitions.
+    index = findfirst(outp[:,1], hosp.fid)                                          # find where the fid is in the list.
     outp[index, 2:41] = arr
     # NB: Here starts the second state record.
-    hosp_neq = OtherTex.mkts[OtherTex.fipsdirectory[el]].collection[el]       # Find the record in the OTHER EntireState
-    outprobn = prod(hosp_neq.probhistory)                                     # Prob of the outcome.
+    hosp_neq = OtherTex.mkts[OtherTex.fipsdirectory[el]].collection[el]             # Find the record in the OTHER EntireState
+    outprobn = prod(hosp_neq.probhistory)                                           # Prob of the outcome.
     privaten, medicaidn, wtp_outn, transitionsn = CondSum(hosp_neq)
     narr = zeros(1, 40)
-    narr[1] = (beta^T)*outprobn*dot(wtp_outn[1:7], privaten[1:7])             # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
-    narr[2] = (beta^T)*outprobn*dot(wtp_outn[8:14], privaten[8:14])           # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
-    narr[3] = (beta^T)*outprobn*dot(wtp_outn[15:21], privaten[15:21])         # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
-    narr[4] = (beta^T)*outprobn*(privaten[1]+medicaidn[1])                    # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
-    narr[5] = (beta^T)*outprobn*(privaten[8]+medicaidn[8])
-    narr[6] = (beta^T)*outprobn*(privaten[15]+medicaidn[15])
-    narr[7] = (beta^T)*outprobn*(privaten[2]+medicaidn[2])
-    narr[8] = (beta^T)*outprobn*(privaten[9]+medicaidn[9])
-    narr[9] = (beta^T)*outprobn*(privaten[16]+medicaidn[16])
-    narr[10] = (beta^T)*outprobn*(privaten[3]+medicaidn[3])
-    narr[11] = (beta^T)*outprobn*(privaten[10]+medicaidn[10])
-    narr[12] = (beta^T)*outprobn*(privaten[17]+medicaidn[17])
-    narr[13] = (beta^T)*outprobn*(privaten[4]+medicaidn[4])
-    narr[14] = (beta^T)*outprobn*(privaten[11]+medicaidn[11])
-    narr[15] = (beta^T)*outprobn*(privaten[18]+medicaidn[18])
-    narr[16] = (beta^T)*outprobn*(privaten[5]+medicaidn[5])
-    narr[17] = (beta^T)*outprobn*(privaten[12]+medicaidn[12])
-    narr[18] = (beta^T)*outprobn*(privaten[19]+medicaidn[19])
-    narr[19] = (beta^T)*outprobn*(privaten[6]+medicaidn[6])
-    narr[20] = (beta^T)*outprobn*(privaten[13]+medicaidn[13])
-    narr[21] = (beta^T)*outprobn*(privaten[20]+medicaidn[20])
-    narr[22] = (beta^T)*outprobn*(privaten[7]+medicaidn[7])
-    narr[23] = (beta^T)*outprobn*(privaten[14]+medicaidn[14])
-    narr[24] = (beta^T)*outprobn*(privaten[21]+medicaidn[21])
-    narr[25] = (beta^T)*outprobn*(medicaidn[1]+medicaidn[8]+medicaidn[15])*drgamt[1]
-    narr[26] = (beta^T)*outprobn*(medicaidn[2]+medicaidn[9]+medicaidn[16])*drgamt[2]
-    narr[27] = (beta^T)*outprobn*(medicaidn[3]+medicaidn[10]+medicaidn[17])*drgamt[3]
-    narr[28] = (beta^T)*outprobn*(medicaidn[4]+medicaidn[11]+medicaidn[18])*drgamt[4]
-    narr[29] = (beta^T)*outprobn*(medicaidn[5]+medicaidn[12]+medicaidn[19])*drgamt[5]
-    narr[30] = (beta^T)*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6]
-    narr[31] = (beta^T)*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7]
-    narr[32:end] = (beta^T)*outprobn*transitionsn
+    narr[1] = disc*outprobn*dot(wtp_outn[1:7], privaten[1:7])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
+    narr[2] = disc*outprobn*dot(wtp_outn[8:14], privaten[8:14])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
+    narr[3] = disc*outprobn*dot(wtp_outn[15:21], privaten[15:21])                 # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
+    # The next lines are patients summed over types.  Costs are treated as the same over Medicaid and privately insured.
+    narr[4] = disc*outprobn*(privaten[1]+medicaidn[1])                            # 385_p_1 + 385_m_1                   
+    narr[5] = disc*outprobn*(privaten[8]+medicaidn[8])                            # 385_p_2 + 385_m_2
+    narr[6] = disc*outprobn*(privaten[15]+medicaidn[15])                          # 385_p_3 + 385_m_3
+    narr[7] = disc*outprobn*(privaten[2]+medicaidn[2])                            # 386_p_1 + 386_m_1
+    narr[8] = disc*outprobn*(privaten[9]+medicaidn[9])                            # 386_p_2 + 386_m_2
+    narr[9] = disc*outprobn*(privaten[16]+medicaidn[16])                          # 386_p_3 + 386_m_3
+    narr[10] = disc*outprobn*(privaten[3]+medicaidn[3])                           # 387_p_1 + 387_m_1
+    narr[11] = disc*outprobn*(privaten[10]+medicaidn[10])                         # 387_p_2 + 387_m_2
+    narr[12] = disc*outprobn*(privaten[17]+medicaidn[17])                         # 387_p_3 + 387_m_3
+    narr[13] = disc*outprobn*(privaten[4]+medicaidn[4])                           # 388_p_1 + 388_m_1
+    narr[14] = disc*outprobn*(privaten[11]+medicaidn[11])                         # 388_p_2 + 388_m_2
+    narr[15] = disc*outprobn*(privaten[18]+medicaidn[18])                         # 388_p_3 + 388_m_3
+    narr[16] = disc*outprobn*(privaten[5]+medicaidn[5])                           # 389_p_1 + 389_m_1
+    narr[17] = disc*outprobn*(privaten[12]+medicaidn[12])                         # 389_p_2 + 389_m_2
+    narr[18] = disc*outprobn*(privaten[19]+medicaidn[19])                         # 389_p_3 + 389_m_3
+    narr[19] = disc*outprobn*(privaten[6]+medicaidn[6])                           # 390_p_1 + 390_m_1
+    narr[20] = disc*outprobn*(privaten[13]+medicaidn[13])                         # 390_p_2 + 390_m_2
+    narr[21] = disc*outprobn*(privaten[20]+medicaidn[20])                         # 390_p_3 + 390_m_3
+    narr[22] = disc*outprobn*(privaten[7]+medicaidn[7])                           # 391_p_1 + 391_m_1
+    narr[23] = disc*outprobn*(privaten[14]+medicaidn[14])                         # 391_p_2 + 391_m_2
+    narr[24] = disc*outprobn*(privaten[21]+medicaidn[21])                         # 391_p_3 + 391_m_3
+    narr[25] = disc*outprobn*(medicaidn[1]+medicaidn[8]+medicaidn[15])*drgamt[1]  # (385_m_1 + 385_m_2 + 385_m_3)* revenue avg. at DRG 385
+    narr[26] = disc*outprobn*(medicaidn[2]+medicaidn[9]+medicaidn[16])*drgamt[2]  # (386_m_1 + 386_m_2 + 386_m_3)* revenue avg. at DRG 386
+    narr[27] = disc*outprobn*(medicaidn[3]+medicaidn[10]+medicaidn[17])*drgamt[3] # (387_m_1 + 387_m_2 + 387_m_3)* revenue avg. at DRG 387
+    narr[28] = disc*outprobn*(medicaidn[4]+medicaidn[11]+medicaidn[18])*drgamt[4] # (388_m_1 + 388_m_2 + 388_m_3)* revenue avg. at DRG 388
+    narr[29] = disc*outprobn*(medicaidn[5]+medicaidn[12]+medicaidn[19])*drgamt[5] # (389_m_1 + 389_m_2 + 389_m_3)* revenue avg. at DRG 389
+    narr[30] = disc*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6] # (390_m_1 + 390_m_2 + 390_m_3)* revenue avg. at DRG 390
+    narr[31] = disc*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7] # (391_m_1 + 391_m_2 + 391_m_3)* revenue avg. at DRG 391
+    narr[32:end] = (beta^T)*outprobn*transitionsn                                     # Transitions.
     outp[index, 42:end] = narr
   end
   return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
@@ -2189,6 +2193,7 @@ the profit is
 function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   # there are ultimately fewer parameters by about... 6?  or 12?  
   # TODO - also need to add some kind of composite for the mothers...?  Or what?  
+  # TODO - there are fewer parameters here.  By 6, I think.  Then dim2 should be 21?
   const weight385::Float64 = 1.38
   const weight386::Float64 = 4.57
   const weight387::Float64 = 3.12
@@ -2199,6 +2204,7 @@ function ResultsOutVariant() #dim2 - 33 paramsx2 + 7x2 records of medicaid volum
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
+  disc::Float64 = (1-beta^(T+1))/(1-beta)
   for el in 1:size(fids,1)
     outp[el,1] = fids[el]                                                           # Write out all of the fids as an ID in the first column.
   end
