@@ -723,6 +723,7 @@ end
   export PRanges 
   export DrawAll
   export DrawPatients
+  export EntryProcess
 
   # Export Counter1.jl Functions 
   export CategoryReminder
