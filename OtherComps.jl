@@ -221,8 +221,78 @@ outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
 
 end 
 
+ut = [0.1, 0.2, 0.3, 0.4, 0.5];
+fi = [111, 222, 333, 444, 19];
+ta = [0.0, 0.0, 0.0, 0.0, 0.0];
+function UMap(utils::Array{Float64,1},
+              fids::Array{Int64,1},
+              temparr::Array{Float64,1})::Int64
+  const dist_μ::Int64 = 0
+  const dist_σ::Int64 = 1
+  const dist_ξ::Int64 = 0
+  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+  return fids[indmax(utils+rand!(d, temparr))]
+end
+
+
+
+function NUMap(utils::Array{Float64,1},fids::Array{Int64,1})::Int64
+  const dist_μ::Int64 = 0
+  const dist_σ::Int64 = 1
+  const dist_ξ::Int64 = 0
+  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+  maxm::Int64 = 1                   # this is an index to a fid.  Will record max index.
+  maxu::Float64 = 0.0               # holds the value of max utility 
+  tem::Float64 = 0.0                # holds interim utility value
+  for i = 1:size(utils,1)
+    tem = utils[i]+rand(d)
+    if tem>maxu  
+        maxm = i                    # replace index if greater
+        maxu = tem                  # replace max util 
+    end 
+  end 
+  return fids[maxm]::Int64          # return fid of max util value.  
+end 
+
+UMap(ut,fi,ta)
+NUMap(ut,fi)
+srand(1)
+for i = 1:10
+    println(UMap(ut, fi, ta))
+end 
+srand(1)
+for i = 1:10
+    println(NUMap(ut,fi))
+end 
 
 # Some Benchmarks related to PSim()
+
+@benchmark GenPChoices($patients, $d1, $arry1)
+BenchmarkTools.Trial:
+  memory estimate:  33.44 MiB
+  allocs estimate:  644479
+  --------------
+  minimum time:     143.279 ms (1.80% GC)
+  median time:      147.961 ms (3.44% GC)
+  mean time:        148.439 ms (2.72% GC)
+  maximum time:     153.695 ms (3.65% GC)
+  --------------
+  samples:          34
+  evals/sample:     1
+
+    @benchmark UMap($ut, $fi, $ta)
+        BenchmarkTools.Trial:
+          memory estimate:  128 bytes
+          allocs estimate:  1
+          --------------
+          minimum time:     324.303 ns (0.00% GC)
+          median time:      327.463 ns (0.00% GC)
+          mean time:        346.376 ns (1.78% GC)
+          maximum time:     6.011 μs (83.58% GC)
+          --------------
+          samples:          10000
+          evals/sample:     231
+
 
 @benchmark WriteWTP($WTPMap(patients, Texas), $Texas, 1)
 BenchmarkTools.Trial:
@@ -263,18 +333,19 @@ BenchmarkTools.Trial:
   samples:          10000
   evals/sample:     1
 
-@benchmark GenPChoices($patients, $d1, $arry1)
+@benchmark EntryProcess($Texas.mkts[48453], 1, 50)
 BenchmarkTools.Trial:
-  memory estimate:  33.44 MiB
-  allocs estimate:  644479
+  memory estimate:  441 bytes
+  allocs estimate:  3
   --------------
-  minimum time:     143.279 ms (1.80% GC)
-  median time:      147.961 ms (3.44% GC)
-  mean time:        148.439 ms (2.72% GC)
-  maximum time:     153.695 ms (3.65% GC)
+  minimum time:     20.789 μs (0.00% GC)
+  median time:      76.908 μs (0.00% GC)
+  mean time:        79.714 μs (0.17% GC)
+  maximum time:     150.223 μs (0.00% GC)
   --------------
-  samples:          34
-  evals/sample:     1
+  samples:          74
+  evals/sample:     858
+
 
 
 #=
