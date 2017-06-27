@@ -1259,20 +1259,30 @@ This function takes:
 Computes utility + random component, maps out corresponding FID.
 
 testing:
-#ut = [0.1, 0.2, 0.3, 0.4, 0.5];
-#fi = [111, 222, 333, 444, 19];
-#ta = [0.0, 0.0, 0.0, 0.0, 0.0];
-#UMap(ut, fi, ta)
+ut = [0.1, 0.2, 0.3, 0.4, 0.5];
+fi = [111, 222, 333, 444, 19];
+ta = [0.0, 0.0, 0.0, 0.0, 0.0];
+UMap(ut, fi, ta)
+
+10% speedup  
 """
-function UMap(utils::Array{Float64,1},
-              fids::Array{Int64,1},
-              temparr::Array{Float64,1};
-              dist_μ = 0,
-              dist_σ = 1,
-              dist_ξ = 0,
-              d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ))::Int64
-  return fids[indmax(utils+rand!(d, temparr))]
-end
+function UMap(utils::Array{Float64,1},fids::Array{Int64,1})::Int64
+  const dist_μ::Int64 = 0
+  const dist_σ::Int64 = 1
+  const dist_ξ::Int64 = 0
+  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+  maxm::Int64 = 1                   # this is an index to a fid.  Will record max index.
+  maxu::Float64 = 0.0               # holds the value of max utility 
+  tem::Float64 = 0.0                # holds interim utility value
+  for i = 1:size(utils,1)
+    tem = utils[i]+rand(d)
+    if tem>maxu  
+        maxm = i                    # replace index if greater
+        maxu = tem                  # replace max util 
+    end 
+  end 
+  return fids[maxm]::Int64          # return fid of max util value. 
+end 
 
 """
 `function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}`
@@ -1281,9 +1291,9 @@ and returns two vectors.
 
 
 #Testing on Choice Data:
-#Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-#patients = NewPatients(Texas);
-#DV(patients.zips[78702].pdetutils)
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+DV(patients.zips[78702].pdetutils)
 """
 function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
   out1::Array{Int64,1} = zeros(Int64, d.count) #for the keys/FIDs
@@ -1342,34 +1352,34 @@ function ChoiceVector(pd::Dict{Int64, Float64},
                       x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
   temparry::Array{Float64, 1} = zeros(utils)
-  for (loc, num) in enumerate(x)
-    UseThreads(ch, fids, utils, temparry, num)
+  for (loc, nm) in enumerate(x)
+    UseThreads(ch, fids, utils, temparry, nm)
     if loc == 1
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count385 += 1
       end
     elseif loc==2
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count386 += 1
       end
     elseif loc==3
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count387 += 1
       end
     elseif loc==4
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count388 += 1
       end
     elseif loc==5
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count389 += 1
       end
     elseif loc==6
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count390 += 1
       end
     elseif loc==7
-      for i = 1:num
+      for i = 1:nm
         dt[ch[i]].count391 += 1
       end
     end
@@ -1864,7 +1874,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  #
       MDemandMap(d2, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
-          EntryProcess(el, i, T)  
+          EntryProcess(el, i, T)      # calls the EntryProcess - i.e., adds an entrant or not.  
           for elm in el.config
              if !elm.perturbed                                                                        # not perturbed, i.e., "perturbed" == false
                action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
