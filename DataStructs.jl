@@ -1817,8 +1817,12 @@ end
 Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
 The results are stored in EmptyState, which is an EntireState record instance.
 This is for sure the slowest thing around.  
+# for various benchmarking tasks.  
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+NewSim(50, Texas, patients);
 PSim(50);
-520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time)
+520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time) # getting close to ten minutes...  
 """
 function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  # fi = fips,
   const entrants::Array{Int64,1} = [0, 1, 2, 3]
@@ -1837,10 +1841,9 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  #
     d1 = NewHospDict(Tex)                                                                               # creates a dict for GenP below.
     d2 = NewHospDict(Tex)                                                                               # creates a dict for GenM below
     for el in keys(EmptyState.mkts)
-      # TODO - get rid of this comprehension.  
-      if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)])
+      if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)]) # this is pretty fast: 0.000005 seconds (10 allocations: 240 bytes)
         # TODO - get rid of this comprehension.
-        pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1)
+        pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1) # 0.033497 seconds (14.66 k allocations: 794.414 KiB)
         pfid = pfids[findfirst(pfids)]                                                                  # takes the first non-zero element of the above and returns the element.
         currentfac[EmptyState.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
         for hos in Tex.mkts[el].config
