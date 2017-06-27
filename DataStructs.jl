@@ -1820,7 +1820,9 @@ This is for sure the slowest thing around.
 PSim(50);
 520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time)
 """
-function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
+function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  # fi = fips,
+  const entrants::Array{Int64,1} = [0, 1, 2, 3]
+  const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
   EmptyState = CreateEmpty(fi, di, T);                                                                     # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
@@ -1859,36 +1861,17 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
       MDemandMap(d2, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
-          #TODO 02/18/2017 - this can be rewritten as a function.  
-          entrant = sample(entrants, Weights(entryprobs))
-          # TODO - replace with EntryProcess()
-          if entrant!= 0
-            entloc = NewEntrantLocation(el)                                                            # called on the market
-            newfid = -floor(rand()*1e6)-1000000                                                        # all entrant fids negative to facilitate their removal.
-            entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
-                             DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
-                             DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
-                             WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                             Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, true) # entrants never perturbed.
-                             push!(el.config, entr)                                                   # need to create a new record for this hospital in the market
-             el.collection[newfid] = entr                                                             # need to add it to the dictionary too:
-             for elm in el.config
-               NeighborAppend(elm, entr)
-               NeighborAppend(entr, elm)
-             end
-             HospUpdate(entr, entrant) #entrant is the level
-          end
-          # Above this line - use EntryProcess.  
+          EntryProcess(el, i, T)  
           for elm in el.config
              if !elm.perturbed                                                                        # not perturbed, i.e., "perturbed" == false
-               action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
+               action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
                elm.probhistory[i]= elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]  # Record the prob with which the action was taken.
                newchoice = LevelFunction(elm, action)                                                 # What is the new level?
                elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
                elm.level = newchoice                                                                  # Set the level to be the new choice.
                elm.levelhistory[i]=newchoice
              else # perturbed.
-               action = sample( ChoicesAvailable(elm), HospPerturb(elm, elm.level,0.05))
+               action = StatsBase.sample( ChoicesAvailable(elm), HospPerturb(elm, elm.level,0.05))
                elm.probhistory[i]=elm.chprobability[findin(ChoicesAvailable(elm), action)[1]]
                newchoice = LevelFunction(elm, action)
                elm.chprobability = HospUpdate(elm, newchoice)
