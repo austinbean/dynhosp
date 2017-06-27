@@ -111,9 +111,42 @@ typetest
 
 =#
 
+mutable struct WT 
+    w::Array{Float64,1}
+end 
+
 struct WTPee
     w::Array{Float64, 1}
 end
+
+w1 = WTPee(Array{Float64,1}(50))
+w2 = WT(Array{Float64,1}(50))
+
+
+
+for i = 1:10
+@time for k1 = 1:50 
+    w1.w[k1] = 3.0
+end 
+for k = 1:50 
+    w1.w[k] = 0.0
+end 
+end 
+
+for i = 1:10
+@time for k1 = 1:50 
+    w2.w[k1] = 3.0
+end 
+for k = 1:50 
+    w2.w[k] = 0.0
+end 
+end 
+
+
+
+struct w1
+    d::Dict{Int64,Int64}
+end 
 
 ab1 = WTPee(Array{Float64,1}())
 
@@ -135,6 +168,55 @@ for k = 1:50
     ab2.w[k] = 0.0
 end 
 end 
+
+
+ab = w1(Dict{Int64,Int64}())
+
+
+for el in Texas.ms
+    for k in el.config 
+        levl = (-1,-1)
+         if k.level == 1
+           levl = (0,0)
+         elseif k.level == 2
+           levl = (1,0)
+         elseif k.level == 3
+           levl = (0,1)
+         end
+        n1, n2, n3 = MktSize(k.neigh)
+        nv = [k.neigh.level105; k.neigh.level205; k.neigh.level305; k.neigh.level1515; k.neigh.level2515; k.neigh.level3515; k.neigh.level11525; k.neigh.level21525; k.neigh.level31525 ]
+        try logitest(levl, n1, n2, n3, nv)
+        catch er1
+            println(er1, "the error")
+            if isa(er1,ProjectModule.ValueException)
+                println("didn't work:")
+                println(levl)
+                println(n1, " ", n2, " ", n3)
+                println(nv)
+                println(typeof(nv))
+            else 
+                # do nothing
+            end 
+        end 
+    end 
+end 
+
+
+
+
+
+
+# TODO - must get the output of ResultsOut and ResultsOutVariant into the @parallel.  
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+
+outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
+    # probably need a new function to make this work.  
+
+end 
+
+
+
 
 
 #=
