@@ -185,7 +185,7 @@ for el in Texas.ms
          end
         n1, n2, n3 = MktSize(k.neigh)
         nv = [k.neigh.level105; k.neigh.level205; k.neigh.level305; k.neigh.level1515; k.neigh.level2515; k.neigh.level3515; k.neigh.level11525; k.neigh.level21525; k.neigh.level31525 ]
-        try logitest(levl, n1, n2, n3, nv)
+        try a1 = logitest(levl, n1, n2, n3, nv)
         catch er1
             println(er1, "the error")
             if isa(er1,ProjectModule.ValueException)
@@ -203,6 +203,12 @@ end
 
 
 
+#=
+import Base.+
+Base.+(a1::String, a2::String) = string(a1,a2)
+=#
+
+
 
 
 
@@ -216,7 +222,59 @@ outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
 end 
 
 
+# Some Benchmarks related to PSim()
 
+@benchmark WriteWTP($WTPMap(patients, Texas), $Texas, 1)
+BenchmarkTools.Trial:
+  memory estimate:  2.56 MiB
+  allocs estimate:  14741
+  --------------
+  minimum time:     6.164 ms (0.00% GC)
+  median time:      7.412 ms (0.00% GC)
+  mean time:        7.681 ms (3.55% GC)
+  maximum time:     12.744 ms (31.44% GC)
+  --------------
+  samples:          650
+  evals/sample:     1
+
+@benchmark WTPMap($patients, $Texas)
+BenchmarkTools.Trial:
+  memory estimate:  2.50 MiB
+  allocs estimate:  10737
+  --------------
+  minimum time:     5.307 ms (0.00% GC)
+  median time:      5.828 ms (0.00% GC)
+  mean time:        6.185 ms (3.11% GC)
+  maximum time:     10.855 ms (26.12% GC)
+  --------------
+  samples:          807
+  evals/sample:     1
+
+@benchmark NewHospDict($Texas)
+BenchmarkTools.Trial:
+  memory estimate:  42.53 KiB
+  allocs estimate:  304
+  --------------
+  minimum time:     18.695 μs (0.00% GC)
+  median time:      21.220 μs (0.00% GC)
+  mean time:        36.018 μs (14.99% GC)
+  maximum time:     5.607 ms (97.76% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
+
+@benchmark GenPChoices($patients, $d1, $arry1)
+BenchmarkTools.Trial:
+  memory estimate:  33.44 MiB
+  allocs estimate:  644479
+  --------------
+  minimum time:     143.279 ms (1.80% GC)
+  median time:      147.961 ms (3.44% GC)
+  mean time:        148.439 ms (2.72% GC)
+  maximum time:     153.695 ms (3.65% GC)
+  --------------
+  samples:          34
+  evals/sample:     1
 
 
 #=
