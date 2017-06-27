@@ -610,6 +610,7 @@ function HospUpdate{T<:ProjectModule.Fac}(hosp::T, choice::Int64; update = false
      elseif choice == 3
        levl = (0,1)
      end
+     # FIXME - error here.  What is output of logitest?  What is type of input to Weights?  
      levels = MktSize(hosp.neigh)
      prs = logitest(levl, levels[1], levels[2], levels[3], [hosp.neigh.level105; hosp.neigh.level205; hosp.neigh.level305; hosp.neigh.level1515; hosp.neigh.level2515; hosp.neigh.level3515; hosp.neigh.level11525; hosp.neigh.level21525; hosp.neigh.level31525 ] )
      return Weights(vec(prs))
@@ -1684,44 +1685,25 @@ Runs a T period simulation using the whole state and whole collection of patient
 Testing:
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
-NewSim(10, Texas, patients);
+NewSim(50, Texas, patients);
 """
-function NewSim(T::Int, Tex::EntireState, pats::patientcollection )
+function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   const entrants::Array{Float64,1} = [0, 1, 2, 3] 
   const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
-  d1 = NewHospDict(Tex) # creates a dict for GenP below.
-  d2 = NewHospDict(Tex) # creates a dict for GenM below
-  arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
-  arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
+  d1 = NewHospDict(Tex)                                                                        # creates a dict for GenP below.
+  d2 = NewHospDict(Tex)                                                                        # creates a dict for GenM below
+  arry1 = zeros(Int64, 1550)                                                                   # allocates an array for use in GenP.  Can be re-used.
+  arry2 = zeros(Int64, 1550)                                                                   # allocates an array for use in GenM.  Can be re-used.
   for i = 1:T
     WriteWTP(WTPMap(pats, Tex), Tex, i)
-    GenPChoices(pats, d1, arry1) # this now modifies the dictionary in-place
-    PDemandMap(d1, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
-    GenMChoices(pats, d2, arry2) # this now modifies the dictionary in-place
-    MDemandMap(d2, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
-    # TODO - replace with new function EntryProcess(Tex)
+    GenPChoices(pats, d1, arry1)                                                               # this now modifies the dictionary in-place
+    PDemandMap(d1, Tex, i)                                                                     # and this now cleans the dictionary up at the end, setting all demands to 0.
+    GenMChoices(pats, d2, arry2)                                                               # this now modifies the dictionary in-place
+    MDemandMap(d2, Tex, i)                                                                     # and this now cleans the dictionary up at the end, setting all demands to 0.
     for el in Tex.ms
-      entrant = sample(entrants, Weights(entryprobs))
-      if entrant != 0
-        entloc = NewEntrantLocation(el)                                                        # called on the market
-        newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
-        entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
-                         DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
-                         DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
-                         WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                         Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
-        entr.levelhistory[i] = entrant
-        push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
-        el.collection[newfid] = entr
-        for elm in el.config                                                                   # need to add it to the dictionary too:
-          NeighborAppend(elm, entr)
-          NeighborAppend(entr, elm)
-        end
-         HospUpdate(entr, entrant)                                                             #"entrant" is the level
-      end
-    # Above this line for entry process.  
+      EntryProcess(el, i, T)                                                                   # call the Entry Process on every market - el.   
       for elm in el.config
-        action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
+        action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
         elm.probhistory[i] = elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]     # Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
@@ -1731,6 +1713,8 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection )
     end
     UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
   end
+  # TODO: Why return this?  Why not modify in place? 
+  # this would require further modifications below 
   return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
 
@@ -1749,16 +1733,15 @@ Puts the entry process in a separate function.
 function EntryProcess(el::Market, i::Int64, T::Int64)
   const entrants::Array{Int64,1} = [0, 1, 2, 3] 
   const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
-  entrant = sample(entrants, Weights(entryprobs))
+  entrant = StatsBase.sample(entrants, StatsBase.Weights(entryprobs))
   if entrant != 0
-    println("appended")
     entloc = NewEntrantLocation(el)                                                        # called on the market
     newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
     entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
                      DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                      DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
                      WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                     Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
+                     StatsBase.Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
     entr.levelhistory[i] = entrant
     push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
     el.collection[newfid] = entr
@@ -1876,8 +1859,9 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
       MDemandMap(d2, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
         if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
-            #TODO 02/18/2017 - this can be rewritten as a function.  
+          #TODO 02/18/2017 - this can be rewritten as a function.  
           entrant = sample(entrants, Weights(entryprobs))
+          # TODO - replace with EntryProcess()
           if entrant!= 0
             entloc = NewEntrantLocation(el)                                                            # called on the market
             newfid = -floor(rand()*1e6)-1000000                                                        # all entrant fids negative to facilitate their removal.
@@ -1894,6 +1878,7 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
              end
              HospUpdate(entr, entrant) #entrant is the level
           end
+          # Above this line - use EntryProcess.  
           for elm in el.config
              if !elm.perturbed                                                                        # not perturbed, i.e., "perturbed" == false
                action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
@@ -2241,7 +2226,7 @@ the profit is
 
   
 """
-function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; ;T::Int64 = 50, beta::Float64 = 0.95,) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
+function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   # there are ultimately fewer parameters by about... 6?  or 12?  
   # TODO - also need to add some kind of composite for the mothers...?  Or what?  
   # TODO - there are fewer parameters here.  By 6, I think.  Then dim2 should be 21?
