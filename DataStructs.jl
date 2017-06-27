@@ -1686,7 +1686,9 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 NewSim(10, Texas, patients);
 """
-function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )
+function NewSim(T::Int, Tex::EntireState, pats::patientcollection )
+  const entrants::Array{Float64,1} = [0, 1, 2, 3] 
+  const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
   d1 = NewHospDict(Tex) # creates a dict for GenP below.
   d2 = NewHospDict(Tex) # creates a dict for GenM below
   arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
@@ -1697,6 +1699,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
     PDemandMap(d1, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
     GenMChoices(pats, d2, arry2) # this now modifies the dictionary in-place
     MDemandMap(d2, Tex, i) # and this now cleans the dictionary up at the end, setting all demands to 0.
+    # TODO - replace with new function EntryProcess(Tex)
     for el in Tex.ms
       entrant = sample(entrants, Weights(entryprobs))
       if entrant != 0
@@ -1716,6 +1719,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0
         end
          HospUpdate(entr, entrant)                                                             #"entrant" is the level
       end
+    # Above this line for entry process.  
       for elm in el.config
         action = sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
         elm.probhistory[i] = elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]     # Record the prob with which the action was taken.
@@ -1732,6 +1736,45 @@ end
 
 
 
+
+"""
+`EntryProcess(Mkt::Market, i::Int64, T::Int64)`
+Puts the entry process in a separate function.  
+- for each mkt (county), draw an entrant: no entry, lev 1, 2 or 3
+- Probs as given.  
+- i is the current period in the sim - want to know where we are.
+- T is the total length of each sim - want to know how long we might have to go.  
+
+"""
+function EntryProcess(el::Market, i::Int64, T::Int64)
+  const entrants::Array{Int64,1} = [0, 1, 2, 3] 
+  const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
+  entrant = sample(entrants, Weights(entryprobs))
+  if entrant != 0
+    println("appended")
+    entloc = NewEntrantLocation(el)                                                        # called on the market
+    newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
+    entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
+                     DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
+                     DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
+                     WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
+                     Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
+    entr.levelhistory[i] = entrant
+    push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
+    el.collection[newfid] = entr
+    for elm in el.config                                                                   # need to add it to the dictionary too:
+      NeighborAppend(elm, entr)
+      NeighborAppend(entr, elm)
+    end
+    HospUpdate(entr, entrant)                                                             #"entrant" is the level
+  end
+end 
+
+
+
+
+
+
 """
 `Termination(EmTex::EntireState)`
 Takes an entire state (or the empty state for data recording) and returns "true" when every facility has been perturbed.
@@ -1739,6 +1782,7 @@ Takes an entire state (or the empty state for data recording) and returns "true"
 function Termination(EmTex::EntireState)
   isdone = true
   for mark in keys(EmTex.mkts) # iterates over markets
+    # TODO - remove this comprehension - better to just iterate with & over all elements rather than allocating this.  
     isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].noneqrecord[i] for i in keys(EmTex.mkts[mark].noneqrecord) ] ))
   end
   return isdone
@@ -1789,6 +1833,9 @@ end
 `PSim(T::Int64 ; di = ProjectModule.alldists, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])`
 Runs a perturbed simulation - for each market, while there are hospitals I have not perturbed, runs a sim with one perturbed and the rest not.
 The results are stored in EmptyState, which is an EntireState record instance.
+This is for sure the slowest thing around.  
+PSim(50);
+520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time)
 """
 function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])  # fi = fips,
   EmptyState = CreateEmpty(fi, di, T);                                                                     # This is just a container of EntireState type - does not need linking.
@@ -1805,7 +1852,9 @@ function PSim(T::Int64 ; di = ProjectModule.alldists, fi = ProjectModule.fips, e
     d1 = NewHospDict(Tex)                                                                               # creates a dict for GenP below.
     d2 = NewHospDict(Tex)                                                                               # creates a dict for GenM below
     for el in keys(EmptyState.mkts)
+      # TODO - get rid of this comprehension.  
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)])
+        # TODO - get rid of this comprehension.
         pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1)
         pfid = pfids[findfirst(pfids)]                                                                  # takes the first non-zero element of the above and returns the element.
         currentfac[EmptyState.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
@@ -2276,6 +2325,10 @@ to return correct results.
 
 Testing:
 OuterSim(3)
+
+# TODO - need to fix this to return a tuple.  that should be possible. 
+# TODO - how much time per loop does remaking patients and CreateEmpty take???  about 0.17 seconds.  Not too much.  
+
 """
 function OuterSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
   outp = @sync @parallel (+) for j = 1:MCcount
