@@ -1261,8 +1261,7 @@ Computes utility + random component, maps out corresponding FID.
 testing:
 ut = [0.1, 0.2, 0.3, 0.4, 0.5];
 fi = [111, 222, 333, 444, 19];
-ta = [0.0, 0.0, 0.0, 0.0, 0.0];
-UMap(ut, fi, ta)
+UMap(ut, fi)
 
 10% speedup  
 """
@@ -1343,8 +1342,9 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 dic1 = NewHospDict(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
-ChoiceVector2(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
+ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
 REMEMBER TO TURN ON THREADING.
+
 """
 function ChoiceVector(pd::Dict{Int64, Float64},
                       dt::Dict{Int64, patientcount},
@@ -1398,7 +1398,7 @@ https://github.com/yuyichao/explore/blob/8d52fb6caa745a658f2c9bbffd3b0f0fe4a2cc4
 """
 function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1},temparry::Array{Float64, 1}, x::Int64)
   Threads.@threads for i = 1:x
-    inpt[i] = UMap(utils, fids, temparry)
+    inpt[i] = UMap(utils, fids)
   end
 end
 
@@ -1418,6 +1418,12 @@ end
 `function GenPChoices(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})`
 Returns a dictionary of private demands for the whole state.
 Takes as input a patientcollection, a dict{Int64, patientcount} and a re-usable array v.
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+dic1 = NewHospDict(Texas);
+inpt = ones(Int64, 1550); # largest group is 1511
+GenPChoices(patients, dic1, inpt)
 """
 function GenPChoices(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})
   for k in keys(p.zips)
