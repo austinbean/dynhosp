@@ -266,7 +266,7 @@ for i = 1:10
 end 
 
 # Some Benchmarks related to PSim()
-
+# this is a pre-change in UMap benchmark.
 @benchmark GenPChoices($patients, $d1, $arry1)
 BenchmarkTools.Trial:
   memory estimate:  33.44 MiB
@@ -280,6 +280,7 @@ BenchmarkTools.Trial:
   samples:          34
   evals/sample:     1
 
+# this is a benchmark for the OLD UMap.  
     @benchmark UMap($ut, $fi, $ta)
         BenchmarkTools.Trial:
           memory estimate:  128 bytes
@@ -292,6 +293,23 @@ BenchmarkTools.Trial:
           --------------
           samples:          10000
           evals/sample:     231
+
+# this will be the new UMap - 10% speedup.
+@benchmark NUMap($ut, $fi)
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     283.248 ns (0.00% GC)
+  median time:      288.248 ns (0.00% GC)
+  mean time:        297.208 ns (0.00% GC)
+  maximum time:     3.209 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     298
+
+
+
 
 
 @benchmark WriteWTP($WTPMap(patients, Texas), $Texas, 1)
