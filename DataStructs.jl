@@ -1301,7 +1301,7 @@ function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
     out1[i] = k
     out2[i] = d[k]
   end
-  return out1, out2
+  return out1::Array{Int64,1}, out2::Array{Float64,1}
 end
 
 
@@ -1341,8 +1341,12 @@ The dictionary has an entry for every hospital.
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 dic1 = NewHospDict(Texas);
+fids1, utils1 = DV(patients.zips[78759].pdetutils)
 inpt = ones(Int64, 1550); # largest group is 1511
 ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
+
+#TODO - benchmark the UseThreads function.  
+
 REMEMBER TO TURN ON THREADING.
 
 """
@@ -1350,10 +1354,11 @@ function ChoiceVector(pd::Dict{Int64, Float64},
                       dt::Dict{Int64, patientcount},
                       ch::Array{Int64,1},
                       x::patientcount)
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd)
-  temparry::Array{Float64, 1} = zeros(utils)
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns.
+  temparry::Array{Float64, 1} = zeros(utils)             # ≈ 37 ns
   for (loc, nm) in enumerate(x)
     UseThreads(ch, fids, utils, temparry, nm)
+    # what is this output?  Why do I do from 1:nm?  what is ch[i] - i-th place in that vector.  Ok - for what?  
     if loc == 1
       for i = 1:nm
         dt[ch[i]].count385 += 1
@@ -1395,6 +1400,10 @@ https://github.com/JuliaLang/julia/issues/15276
 Workaround, maybe?
 See this:
 https://github.com/yuyichao/explore/blob/8d52fb6caa745a658f2c9bbffd3b0f0fe4a2cc48/julia/issue-17395/scale.jl#L21
+
+# Test. # 
+
+
 """
 function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1},temparry::Array{Float64, 1}, x::Int64)
   Threads.@threads for i = 1:x
