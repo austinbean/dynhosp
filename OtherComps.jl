@@ -308,6 +308,18 @@ BenchmarkTools.Trial:
   samples:          10000
   evals/sample:     298
 
+@benchmark DV($patients.zips[78702].pdetutils)
+BenchmarkTools.Trial:
+  memory estimate:  400 bytes
+  allocs estimate:  4
+  --------------
+  minimum time:     349.616 ns (0.00% GC)
+  median time:      357.720 ns (0.00% GC)
+  mean time:        388.092 ns (6.41% GC)
+  maximum time:     8.801 μs (92.44% GC)
+  --------------
+  samples:          10000
+  evals/sample:     211
 
 
 
