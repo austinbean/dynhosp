@@ -280,6 +280,21 @@ BenchmarkTools.Trial:
   samples:          34
   evals/sample:     1
 
+# 
+@benchmark ChoiceVector($patients.zips[78759].pdetutils, $dic1, $inpt, $patients.zips[78759].ppatients)
+BenchmarkTools.Trial:
+  memory estimate:  19.20 KiB
+  allocs estimate:  1156
+  --------------
+  minimum time:     298.219 μs (0.00% GC)
+  median time:      301.069 μs (0.00% GC)
+  mean time:        310.506 μs (1.49% GC)
+  maximum time:     6.268 ms (94.06% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
+
+
 # this is a benchmark for the OLD UMap.  
     @benchmark UMap($ut, $fi, $ta)
         BenchmarkTools.Trial:
