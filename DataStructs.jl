@@ -1349,18 +1349,25 @@ ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].pp
 
 REMEMBER TO TURN ON THREADING.
 
+To get UseThreads:
+inpt = ones(Int64, 1550); # largest group is 1511
+fids1, utils1 = DV(patients.zips[78759].pdetutils)
+tar = zeros(utils1)
+# nm is patients.zips[78759].ppatients.count391
+UseThreads(inpt, fids1, utils1,  297)
+
 """
 function ChoiceVector(pd::Dict{Int64, Float64},
                       dt::Dict{Int64, patientcount},
                       ch::Array{Int64,1},
                       x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns.
-  temparry::Array{Float64, 1} = zeros(utils)             # ≈ 37 ns
+  temparry::Array{Float64, 1} = zeros(utils)             # ≈ 37 ns FIXME - do I use this now?  
   for (loc, nm) in enumerate(x)
-    UseThreads(ch, fids, utils, temparry, nm)
-    # what is this output?  Why do I do from 1:nm?  what is ch[i] - i-th place in that vector.  Ok - for what?  
+    UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
+    # nm is the maximum element in the vector which will have informative choices - only nm elements of ch will have choices.
     if loc == 1
-      for i = 1:nm
+      for i = 1:nm # looping over all elements of ch which have choices recorded.
         dt[ch[i]].count385 += 1
       end
     elseif loc==2
@@ -1404,8 +1411,20 @@ https://github.com/yuyichao/explore/blob/8d52fb6caa745a658f2c9bbffd3b0f0fe4a2cc4
 # Test. # 
 
 
+@benchmark UseThreads($inpt, $fids1, $utils1, 297)
+BenchmarkTools.Trial:
+  memory estimate:  48 bytes
+  allocs estimate:  1
+  --------------
+  minimum time:     177.711 μs (0.00% GC)
+  median time:      179.942 μs (0.00% GC)
+  mean time:        186.356 μs (0.00% GC)
+  maximum time:     514.353 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
 """
-function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1},temparry::Array{Float64, 1}, x::Int64)
+function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1}, x::Int64)
   Threads.@threads for i = 1:x
     inpt[i] = UMap(utils, fids)
   end
