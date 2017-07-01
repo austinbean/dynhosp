@@ -1357,10 +1357,8 @@ function ChoiceVector(pd::Dict{Int64, Float64},
                       ch::Array{Int64,1},
                       x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns.
-  #temparry::Array{Float64, 1} = zeros(utils)             # ≈ 37 ns FIXME - do I use this now?  
   for (loc, nm) in enumerate(x)
     UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
-    # nm is the maximum element in the vector which will have informative choices - only nm elements of ch will have choices.
     if loc == 1
       for i = 1:nm # looping over all elements of ch which have choices recorded, rather than over the whole vector.
         dt[ch[i]].count385 += 1
@@ -1390,7 +1388,7 @@ function ChoiceVector(pd::Dict{Int64, Float64},
         dt[ch[i]].count391 += 1
       end
     end
-    ResVec(ch) #reset the vector.
+    ResVec(ch) #reset the vector. - 471.337 ns (0.00% GC)
   end
 end
 
@@ -1438,6 +1436,19 @@ end
 `function ResVec(v::Array{Int64,1})`
 This function resets the vector to its original state.  This enables it to be
 re-used so it does not require so many allocations.
+
+@benchmark ResVec(inpt) # sub dollar sign.  
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     470.694 ns (0.00% GC)
+  median time:      471.337 ns (0.00% GC)
+  mean time:        487.366 ns (0.00% GC)
+  maximum time:     1.271 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     196
 """
 function ResVec(v::Array{Int64, 1})
   for i = 1:length(v)
