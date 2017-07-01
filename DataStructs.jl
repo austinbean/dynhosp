@@ -1293,13 +1293,15 @@ and returns two vectors.
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 DV(patients.zips[78702].pdetutils)
+
+This is not type stable, which is weird...
 """
 function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
   out1::Array{Int64,1} = zeros(Int64, d.count) #for the keys/FIDs
   out2::Array{Float64,1} = zeros(Float64, d.count) #for the utils
   for (i,k) in enumerate(keys(d))
-    out1[i] = k
-    out2[i] = d[k]
+    out1[i]::Int64 = k
+    out2[i]::Float64 = d[k]
   end
   return out1::Array{Int64,1}, out2::Array{Float64,1}
 end
@@ -1345,8 +1347,7 @@ fids1, utils1 = DV(patients.zips[78759].pdetutils)
 inpt = ones(Int64, 1550); # largest group is 1511
 ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
 
-#TODO - benchmark the UseThreads function.  
-
+FIXME - there is a type instability here from the fact that DV?
 REMEMBER TO TURN ON THREADING.
 
 
@@ -1357,11 +1358,13 @@ function ChoiceVector(pd::Dict{Int64, Float64},
                       ch::Array{Int64,1},
                       x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns.
+  # type instability in patientcount, it seems. 
+  # also in DV.   
   for (loc, nm) in enumerate(x)
     UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
     if loc == 1
       for i = 1:nm # looping over all elements of ch which have choices recorded, rather than over the whole vector.
-        dt[ch[i]].count385 += 1
+        dt[ch[i]].count385 += 1 # memory estimate:  48 bytes / allocs estimate:  3
       end
     elseif loc==2
       for i = 1:nm
