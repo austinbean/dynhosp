@@ -2376,6 +2376,31 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = Pro
   return outp
 end
 
+"""
+`OuterSimVar`
+This is just temporary. This runs the simulation under the variant profit function.
+"""
+function OuterSimVar(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
+  outp = @sync @parallel (+) for j = 1:MCcount
+    println("iteration: ", j)
+    TexasEq = CreateEmpty(fi, di, T1)
+    #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
+    eq_patients = NewPatients(TexasEq) 
+    ResultsOutVariant(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)
+  end 
+  outp[:,1] = outp[:,1]/MCcount                                                                          # Combined by (+) so reproduce the fids by dividing.
+end 
+
+
+"""
+Combiner - 
+Goal here to get two outputs from one simulation.  
+"""
+function Combiner(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
+# TODO - everything.  
+
+end 
+
 
 
 
