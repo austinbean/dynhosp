@@ -1886,14 +1886,14 @@ NewSim(50, Texas, patients);
 PSim(50);
 520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time) # getting close to ten minutes...  
 """
-function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  # fi = fips,
+function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)                           # fi = fips,
   const entrants::Array{Int64,1} = [0, 1, 2, 3]
   const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
-  EmptyState = CreateEmpty(fi, di, T);                                                                     # This is just a container of EntireState type - does not need linking.
+  EmptyState = CreateEmpty(fi, di, T);                                                                  # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
-  arry1 = zeros(Int64, 1550) # allocates an array for use in GenP.  Can be re-used.
-  arry2 = zeros(Int64, 1550) # allocates an array for use in GenM.  Can be re-used.
+  arry1 = zeros(Int64, 1550)                                                                            # allocates an array for use in GenP.  Can be re-used.
+  arry2 = zeros(Int64, 1550)                                                                            # allocates an array for use in GenM.  Can be re-used.
   Tex = CreateEmpty(fi, di, T)                                                                          # NB: New state once.
   pats = NewPatients(Tex);                                                                              # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
@@ -1920,20 +1920,20 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  #
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
     for i = 1:T
       WriteWTP(WTPMap(pats, Tex), Tex, i)
-      GenPChoices(pats, d1, arry1)    # this now modifies the dictionary in-place
-      PDemandMap(d1, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
-      GenMChoices(pats, d2, arry2)    # this now modifies the dictionary in-place
-      MDemandMap(d2, Tex, i)          # and this now cleans the dictionary up at the end, setting all demands to 0.
+      GenPChoices(pats, d1, arry1)                                                                     # this now modifies the dictionary in-place
+      PDemandMap(d1, Tex, i)                                                                           # and this now cleans the dictionary up at the end, setting all demands to 0.
+      GenMChoices(pats, d2, arry2)                                                                     # this now modifies the dictionary in-place
+      MDemandMap(d2, Tex, i)                                                                           # and this now cleans the dictionary up at the end, setting all demands to 0.
       for el in Tex.ms
-        if in(el.fipscode, pmarkets) #NB: in( collection, element) !!
-          EntryProcess(el, i, T)      # calls the EntryProcess - i.e., adds an entrant or not.  
+        if in(el.fipscode, pmarkets)                                                                   #NB: in( collection, element) !!
+          EntryProcess(el, i, T)                                                                       # calls the EntryProcess - i.e., adds an entrant or not.  
           for elm in el.config
-             if !elm.perturbed                                                                        # not perturbed, i.e., "perturbed" == false
-               action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                            # Take the action
-               elm.probhistory[i]= elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]  # Record the prob with which the action was taken.
-               newchoice = LevelFunction(elm, action)                                                 # What is the new level?
-               elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
-               elm.level = newchoice                                                                  # Set the level to be the new choice.
+             if !elm.perturbed                                                                         # not perturbed, i.e., "perturbed" == false
+               action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                   # Take the action
+               elm.probhistory[i]= elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]       # Record the prob with which the action was taken.
+               newchoice = LevelFunction(elm, action)                                                  # What is the new level?
+               elm.chprobability = HospUpdate(elm, newchoice)                                          # What are the new probabilities, given the new level?
+               elm.level = newchoice                                                                   # Set the level to be the new choice.
                elm.levelhistory[i]=newchoice
              else # perturbed.
                action = StatsBase.sample( ChoicesAvailable(elm), HospPerturb(elm, elm.level,0.05))
@@ -1954,7 +1954,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)  #
         #The next piece is not strictly necessary.  The config and collection point to the same underlying objects.  
       for num in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
         if EmptyState.mkts[fips].config[num].fid == Tex.mkts[fips].collection[currentfac[fips]].fid   # check for equality in the fids
-          RecordCopy(EmptyState, Tex.mkts[fips].collection[currentfac[fips]]) # here I am reassigning.  
+          RecordCopy(EmptyState, Tex.mkts[fips].collection[currentfac[fips]])                         # here I am reassigning.  
         end
       end
     end
@@ -2376,20 +2376,6 @@ function OuterSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = Pro
   return outp
 end
 
-"""
-`OuterSimVar`
-This is just temporary. This runs the simulation under the variant profit function.
-"""
-function OuterSimVar(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
-  outp = @sync @parallel (+) for j = 1:MCcount
-    println("iteration: ", j)
-    TexasEq = CreateEmpty(fi, di, T1)
-    #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
-    eq_patients = NewPatients(TexasEq) 
-    ResultsOutVariant(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)
-  end 
-  outp[:,1] = outp[:,1]/MCcount                                                                          # Combined by (+) so reproduce the fids by dividing.
-end 
 
 
 """
@@ -2397,9 +2383,20 @@ Combiner -
 Goal here to get two outputs from one simulation.  
 """
 function Combiner(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
-# TODO - everything.  
-
+# TODO - everything. 
+  outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
+    println("iteration: ", j)
+    TexasEq = CreateEmpty(fi, di, T1)
+    eq_patients = NewPatients(TexasEq)
+    # unwritten function - do results out with both versions.  Take two state arguments.  
+  end 
+  outp1[:,1] = outp1[:,1]/MCcount 
+  outp2[:,1] = outp2[:,1]/MCcount
+  return outp1, outp2
 end 
+
+
+
 
 
 
