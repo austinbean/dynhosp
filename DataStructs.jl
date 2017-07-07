@@ -2382,21 +2382,36 @@ end
 Combiner - 
 Goal here to get two outputs from one simulation.  
 """
-function Combiner(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
+function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
 # TODO - everything. 
   outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
     println("iteration: ", j)
     TexasEq = CreateEmpty(fi, di, T1)
     eq_patients = NewPatients(TexasEq)
-    # unwritten function - do results out with both versions.  Take two state arguments.  
+    DoubleResults(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)
   end 
   outp1[:,1] = outp1[:,1]/MCcount 
   outp2[:,1] = outp2[:,1]/MCcount
   return outp1, outp2
 end 
 
+#=
+TODO - 07/07/2017
+- debug ResultsOutVariant
+- Write a test for both resultsout and resultsoutvariant.  
+- ensure that parallel for can work with two outputs, both combined with the same reducer.
+- test CombinedSim.
+=#
 
-
+"""
+`DoubleResults`
+Simply calls ResultsOut and ResultsOutVariant on two state arguments, then returns the tuple of their outputs.
+Designed to be called in CombinedSim.
+"""
+function DoubleResults(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50)
+  # return two arrays, this can be combined with (+)
+  return ResultsOut(Tex, OtherTex), ResultsOutVariant(Tex, OtherTex)
+end 
 
 
 
