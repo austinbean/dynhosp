@@ -2209,7 +2209,7 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     arr[29] = disc*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]    # (389_m_1 + 389_m_2 + 389_m_3)* revenue avg. at DRG 389
     arr[30] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]    # (390_m_1 + 390_m_2 + 390_m_3)* revenue avg. at DRG 390
     arr[31] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]    # (391_m_1 + 391_m_2 + 391_m_3)* revenue avg. at DRG 391
-    arr[32:end] = (alltrans = (beta^T)*outprob*transitions)                         # Transitions.
+    arr[32:end] = (alltrans = disc*outprob*transitions)                         # Transitions.
     index = findfirst(outp[:,1], hosp.fid)                                          # find where the fid is in the list.
     outp[index, 2:41] = arr
     # NB: Here starts the second state record.
@@ -2249,7 +2249,7 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     narr[29] = disc*outprobn*(medicaidn[5]+medicaidn[12]+medicaidn[19])*drgamt[5] # (389_m_1 + 389_m_2 + 389_m_3)* revenue avg. at DRG 389
     narr[30] = disc*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6] # (390_m_1 + 390_m_2 + 390_m_3)* revenue avg. at DRG 390
     narr[31] = disc*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7] # (391_m_1 + 391_m_2 + 391_m_3)* revenue avg. at DRG 391
-    narr[32:end] = (beta^T)*outprobn*transitionsn                                 # Transitions - 9 of them.
+    narr[32:end] = disc*outprobn*transitionsn                                 # Transitions - 9 of them.
     outp[index, 42:end] = narr
   end
   return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
@@ -2272,13 +2272,16 @@ the profit is
 
 ∑ βᵗ α WTP() - γ₋{level} Vᵖ
 
-  
+  Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+  ResultsOutVariant(Texas, Texas )
 """
-function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
+function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95) 
   # there are ultimately fewer parameters by about... 6?  or 12?  
+  # how many exactly... WTP1, WTP2, WTP3, COST1, COST2, COST3, REV385, REV386, REV387, REV388, REV389, REV390, REV391, Transitionsx9
+  # this should be 22
   # TODO - also need to add some kind of composite for the mothers...?  Or what?  
   # TODO - there are fewer parameters here.  By 6, I think.  Then dim2 should be 21?
-  const dim2::Int64 = 43
+  const dim2::Int64 = 45
   const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
   const weight385::Float64 = 1.38
   const weight386::Float64 = 4.57
@@ -2298,8 +2301,8 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     hosp = Tex.mkts[Tex.fipsdirectory[el]].collection[el]
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
-    # FIXME - array dimension below wrong.
-    arr = zeros(1, 40)
+    # FIXME - array dimension below wrong - there are not 40 elements.  
+    arr = zeros(1, 22)
     arr[1] = disc*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
     arr[2] = disc*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
     arr[3] = disc*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
@@ -2319,12 +2322,13 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     arr[14:end] = (alltrans = (beta^T)*outprob*transitions)                   # 9 here. 
     index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
     # FIXME - array dimension below wrong.
+    println( "sizes ", size(arr), " target ", size(outp))
     outp[index, 2:41] = arr
     # NB: Here starts the second state record.
     hosp_neq = OtherTex.mkts[OtherTex.fipsdirectory[el]].collection[el]       # Find the record in the OTHER EntireState
     outprobn = prod(hosp_neq.probhistory)                                     # Prob of the outcome.
     privaten, medicaidn, wtp_outn, transitionsn = CondSum(hosp_neq)
-    narr = zeros(1, 40)
+    narr = zeros(1, 22)
     narr[1] = disc*outprobn*dot(wtp_outn[1:7], privaten[1:7])             # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
     narr[2] = disc*outprobn*dot(wtp_outn[8:14], privaten[8:14])           # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
     narr[3] = disc*outprobn*dot(wtp_outn[15:21], privaten[15:21])         # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
@@ -2339,11 +2343,10 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     narr[12] = disc*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6]
     narr[13] = disc*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7]
     narr[14:end] = disc*outprobn*transitionsn
-    # FIXME - array dimensions below wrong.  
+    # FIXME - array dimensions below wrong.  there are not 40 elements.
     outp[index, 42:end] = narr
   end
   return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
-
 end 
 
 
@@ -2407,6 +2410,15 @@ TODO - 07/07/2017
 `DoubleResults`
 Simply calls ResultsOut and ResultsOutVariant on two state arguments, then returns the tuple of their outputs.
 Designed to be called in CombinedSim.
+
+### Testing ###
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+NewSim(50, Texas, patients);
+
+DoubleResults(Texas, Texas)
+
 """
 function DoubleResults(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50)
   # return two arrays, this can be combined with (+)
