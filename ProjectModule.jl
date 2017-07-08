@@ -630,7 +630,7 @@ end
   #include("Reboot.jl")
 
 
-
+  # DataStructs.jl 
   export FindUndone
   export CMakeIt
   export SetLevel
@@ -724,6 +724,9 @@ end
   export DrawAll
   export DrawPatients
   export EntryProcess
+  export ResultsOutVariant
+  export DoubleResults
+  export CombinedSim
 
   # Export Counter1.jl Functions 
   export CategoryReminder
