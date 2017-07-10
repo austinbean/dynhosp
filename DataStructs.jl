@@ -2273,8 +2273,9 @@ the profit is
 ∑ βᵗ α WTP() - γ₋{level} Vᵖ
 
   Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-  ResultsOutVariant(Texas, Texas )
+  Nexas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
   Restore(Texas) # assign all to 0 or 1
+  Restore(Nexas)
 
 ##  Test ##
   Texas.mkts[48453].config[1].wtphist.w385[1] = 1.0
@@ -2298,9 +2299,34 @@ the profit is
   Texas.mkts[48453].config[1].mdemandhist.demand389[1] = 1
   Texas.mkts[48453].config[1].mdemandhist.demand390[1] = 1
   Texas.mkts[48453].config[1].mdemandhist.demand391[1] = 1
-  ans1 = ResultsOutVariant(Texas, Texas; T = 0) # no discounting
+    # noneq 
+  Nexas.mkts[48453].config[1].wtphist.w385[1] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w386[1] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w387[1] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w388[1] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w389[1] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w390[1] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w391[1] = 1.0
+  Nexas.mkts[48453].config[1].pdemandhist.demand385[1] = 1
+  Nexas.mkts[48453].config[1].pdemandhist.demand386[1] = 1
+  Nexas.mkts[48453].config[1].pdemandhist.demand387[1] = 1
+  Nexas.mkts[48453].config[1].pdemandhist.demand388[1] = 1
+  Nexas.mkts[48453].config[1].pdemandhist.demand389[1] = 1
+  Nexas.mkts[48453].config[1].pdemandhist.demand390[1] = 1
+  Nexas.mkts[48453].config[1].pdemandhist.demand391[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand385[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand386[1] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand387[1] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand388[1] = 4
+  Nexas.mkts[48453].config[1].mdemandhist.demand389[1] = 5
+  Nexas.mkts[48453].config[1].mdemandhist.demand390[1] = 6
+  Nexas.mkts[48453].config[1].mdemandhist.demand391[1] = 7
+
   indx = findin(ans1[:,1], 4536253) # 261
-  ans1[261,2:22] == ans1[261,23:end] # assignment not quite right.  
+  ans1 = ResultsOutVariant(Texas, Texas; T = 0) # no discounting , beta = 0 must be the same.
+  isapprox(ans1[indx,2:23],ans1[indx,24:end])   # one test 
+  ans2 = ResultsOutVariant(Texas, Texas; beta = 0)
+
 
 """
 function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95) 
@@ -2308,6 +2334,7 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
   # how many exactly... WTP1, WTP2, WTP3, COST1, COST2, COST3, REV385, REV386, REV387, REV388, REV389, REV390, REV391, Transitionsx9
   # this should be 22
   # TODO - also need to add some kind of composite for the mothers...?  Or what?  
+  const params::Int64 = 22
   const dim2::Int64 = 45
   const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
   const weight385::Float64 = 1.38
@@ -2328,11 +2355,10 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     hosp = Tex.mkts[Tex.fipsdirectory[el]].collection[el]
     outprob = prod(hosp.probhistory)                                                # Prob of the outcome.
     private, medicaid, wtp_out, transitions = CondSum(hosp)
-    # FIXME - array dimension below wrong - there are not 40 elements.  
-    arr = zeros(1, 22)
-    arr[1] = disc*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 1
-    arr[2] = disc*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 2
-    arr[3] = disc*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * patient vols at corresponding DRG, over all periods at level 3
+    arr = zeros(1, params)
+    arr[1] = disc*outprob*dot(wtp_out[1:7], private[1:7])                       # This is WTP over all DRGS * private patient vols at corresponding DRG, over all periods at level 1
+    arr[2] = disc*outprob*dot(wtp_out[8:14], private[8:14])                     # This is WTP over all DRGS * private patient vols at corresponding DRG, over all periods at level 2
+    arr[3] = disc*outprob*dot(wtp_out[15:21], private[15:21])                   # This is WTP over all DRGS * private patient vols at corresponding DRG, over all periods at level 3
     # this is the combined cost at level 1, multiplied by weights: (385_m_1 + 385_p_1)*weight385 + ... + (391_m_1+391_p_1)*weight391 
     arr[4] = disc*outprob*(weight385*(private[1]+medicaid[1])+weight386*(private[2]+medicaid[2])+weight387*(private[3]+medicaid[3])+weight388*(private[4]+medicaid[4])+weight389*(private[5]+medicaid[5])+weight390*(private[6]+medicaid[6])+weight391*(private[7]+medicaid[7])) 
     # this is the combined cost at level 2, multiplied by weights: (385_m_2 + 385_p_2)*weight385 + ... + (391_m_2+391_p_2)*weight391 
@@ -2348,7 +2374,7 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     arr[13] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]  # 13 parameters to here.
     arr[14:end] = (alltrans = (beta^T)*outprob*transitions)                   # 9 here. 
     index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
-    outp[index, 2:23] = arr
+    outp[index, 2:(params+1)] = arr
     # NB: Here starts the second state record.
     hosp_neq = OtherTex.mkts[OtherTex.fipsdirectory[el]].collection[el]       # Find the record in the OTHER EntireState
     outprobn = prod(hosp_neq.probhistory)                                     # Prob of the outcome.
@@ -2368,7 +2394,7 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     narr[12] = disc*outprobn*(medicaidn[6]+medicaidn[13]+medicaidn[20])*drgamt[6]
     narr[13] = disc*outprobn*(medicaidn[7]+medicaidn[14]+medicaidn[21])*drgamt[7]
     narr[14:end] = disc*outprobn*transitionsn
-    outp[index, 24:end] = narr
+    outp[index, (params+2):dim2] = narr
   end
   return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
 end 
