@@ -2387,9 +2387,11 @@ end
 """
 Combiner - 
 Goal here to get two outputs from one simulation.  
+
+
 """
 function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
-  outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
+  outp1, outp2 = @sync @parallel (ArrayTupleSum) for j = 1:MCcount
     println("iteration: ", j)
     TexasEq = CreateEmpty(fi, di, T1)
     eq_patients = NewPatients(TexasEq)
@@ -2423,9 +2425,22 @@ DoubleResults(Texas, Texas)
 """
 function DoubleResults(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50)
   # return two arrays, this can be combined with (+)
+  # no - tuple of arrays cannot be combined because tuples are immutable.  
   return ResultsOut(Tex, OtherTex), ResultsOutVariant(Tex, OtherTex)
 end 
 
+"""
+`ArrayTupleSum(t1::Tuple{Array{Float64,2},Array{Float64,2}}, t2::Tuple{Array{Float64,2},Array{Float64,2}})`
+
+this is kind of a moronic function.  `DoubleResults` returns the tuple of arrays from `ResultsOut` and 
+`ResultsOutVariant`.  Tuples are immutable, so this cannot be combined in a parallel-for in `CombinedSim`,
+but it does work to define this stupid function.  It is not super efficient, but this part of the overhead is
+probably small.  There are NO size checks or any other reasonable things to make sure it works, so only use 
+it in that one place.  
+"""
+function ArrayTupleSum(t1::Tuple{Array{Float64,2},Array{Float64,2}}, t2::Tuple{Array{Float64,2},Array{Float64,2}})
+  return t1[1]+t2[1], t1[2]+t2[2]
+end 
 
 
 
