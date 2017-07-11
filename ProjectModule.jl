@@ -727,6 +727,8 @@ end
   export ResultsOutVariant
   export DoubleResults
   export CombinedSim
+  export ArrayTupleSum 
+  
 
   # Export Counter1.jl Functions 
   export CategoryReminder
