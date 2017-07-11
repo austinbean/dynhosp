@@ -2389,7 +2389,6 @@ Combiner -
 Goal here to get two outputs from one simulation.  
 """
 function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
-# TODO - everything. 
   outp1, outp2 = @sync @parallel (+) for j = 1:MCcount
     println("iteration: ", j)
     TexasEq = CreateEmpty(fi, di, T1)
@@ -2403,8 +2402,7 @@ end
 
 #=
 TODO - 07/07/2017
-- debug ResultsOutVariant
-- Write a test for both resultsout and resultsoutvariant.  
+- Write a test for both resultsout   
 - ensure that parallel for can work with two outputs, both combined with the same reducer.
 - test CombinedSim.
 =#
