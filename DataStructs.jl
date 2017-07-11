@@ -2162,6 +2162,13 @@ Maps all of the hospital results out to a big matrix, sorted in the first column
 - Assigns these elements to the 1x40 array arr.
 - Multiplies by the discount rate.  FIXME - this is not quite right now. 
 - Writes out the results as a large matrix, with one row for each firm.  
+
+
+  Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+  Nexas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+  Restore(Texas) # assign all to 0 or 1
+  Restore(Nexas)
+
 """
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
@@ -2272,12 +2279,17 @@ the profit is
 
 ∑ βᵗ α WTP() - γ₋{level} Vᵖ
 
+
+  @testset "ResultsOutVariant" begin 
+
   Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
   Nexas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
   Restore(Texas) # assign all to 0 or 1
   Restore(Nexas)
 
 ##  Test ##
+  Texas.mkts[48453].config[1].levelhistory[2] = 2
+  Texas.mkts[48453].config[1].levelhistory[3] = 3 
   Texas.mkts[48453].config[1].wtphist.w385[1] = 1.0
   Texas.mkts[48453].config[1].wtphist.w386[1] = 1.0
   Texas.mkts[48453].config[1].wtphist.w387[1] = 1.0
@@ -2300,6 +2312,8 @@ the profit is
   Texas.mkts[48453].config[1].mdemandhist.demand390[1] = 1
   Texas.mkts[48453].config[1].mdemandhist.demand391[1] = 1
     # noneq 
+  Nexas.mkts[48453].config[1].levelhistory[2] = 2
+  Nexas.mkts[48453].config[1].levelhistory[3] = 3 
   Nexas.mkts[48453].config[1].wtphist.w385[1] = 1.0
   Nexas.mkts[48453].config[1].wtphist.w386[1] = 1.0
   Nexas.mkts[48453].config[1].wtphist.w387[1] = 1.0
@@ -2307,6 +2321,23 @@ the profit is
   Nexas.mkts[48453].config[1].wtphist.w389[1] = 1.0
   Nexas.mkts[48453].config[1].wtphist.w390[1] = 1.0
   Nexas.mkts[48453].config[1].wtphist.w391[1] = 1.0
+    # for level 2 
+  Nexas.mkts[48453].config[1].wtphist.w385[2] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w386[2] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w387[2] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w388[2] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w389[2] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w390[2] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w391[2] = 1.0
+    # for level 3 
+  Nexas.mkts[48453].config[1].wtphist.w385[3] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w386[3] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w387[3] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w388[3] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w389[3] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w390[3] = 1.0
+  Nexas.mkts[48453].config[1].wtphist.w391[3] = 1.0
+    # demand level 1 
   Nexas.mkts[48453].config[1].pdemandhist.demand385[1] = 1
   Nexas.mkts[48453].config[1].pdemandhist.demand386[1] = 1
   Nexas.mkts[48453].config[1].pdemandhist.demand387[1] = 1
@@ -2315,18 +2346,74 @@ the profit is
   Nexas.mkts[48453].config[1].pdemandhist.demand390[1] = 1
   Nexas.mkts[48453].config[1].pdemandhist.demand391[1] = 1
   Nexas.mkts[48453].config[1].mdemandhist.demand385[1] = 1
-  Nexas.mkts[48453].config[1].mdemandhist.demand386[1] = 2
-  Nexas.mkts[48453].config[1].mdemandhist.demand387[1] = 3
-  Nexas.mkts[48453].config[1].mdemandhist.demand388[1] = 4
-  Nexas.mkts[48453].config[1].mdemandhist.demand389[1] = 5
-  Nexas.mkts[48453].config[1].mdemandhist.demand390[1] = 6
-  Nexas.mkts[48453].config[1].mdemandhist.demand391[1] = 7
+  Nexas.mkts[48453].config[1].mdemandhist.demand386[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand387[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand388[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand389[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand390[1] = 1
+  Nexas.mkts[48453].config[1].mdemandhist.demand391[1] = 1
+    # demand level 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand385[2] = 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand386[2] = 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand387[2] = 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand388[2] = 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand389[2] = 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand390[2] = 2
+  Nexas.mkts[48453].config[1].pdemandhist.demand391[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand385[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand386[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand387[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand388[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand389[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand390[2] = 2
+  Nexas.mkts[48453].config[1].mdemandhist.demand391[2] = 2
+    # demand level 3 
+  Nexas.mkts[48453].config[1].pdemandhist.demand385[3] = 3
+  Nexas.mkts[48453].config[1].pdemandhist.demand386[3] = 3
+  Nexas.mkts[48453].config[1].pdemandhist.demand387[3] = 3
+  Nexas.mkts[48453].config[1].pdemandhist.demand388[3] = 3
+  Nexas.mkts[48453].config[1].pdemandhist.demand389[3] = 3
+  Nexas.mkts[48453].config[1].pdemandhist.demand390[3] = 3
+  Nexas.mkts[48453].config[1].pdemandhist.demand391[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand385[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand386[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand387[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand388[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand389[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand390[3] = 3
+  Nexas.mkts[48453].config[1].mdemandhist.demand391[3] = 3
 
-  indx = findin(ans1[:,1], 4536253) # 261
   ans1 = ResultsOutVariant(Texas, Texas; T = 0) # no discounting , beta = 0 must be the same.
+  indx = findin(ans1[:,1], 4536253) # 261
   isapprox(ans1[indx,2:23],ans1[indx,24:end])   # one test 
-  ans2 = ResultsOutVariant(Texas, Texas; beta = 0)
+  ans2 = ResultsOutVariant(Texas, Texas; beta = 0.0)
+  ans3 = ResultsOutVariant(Nexas,Nexas;T=0)
+  
+  # Actual Tests. 
+  Base.Test.@test isapprox(ans3[261,2],7.0)         # is the sum of WTP and demand, all of which are ones, so should be 7 
+  Base.Test.@test isapprox(ans3[261,5], 30.86)      # should be 2*sum weights.
+  Base.Test.@test isapprox(ans3[261,6], 61.72)      # should be 4*sum weights.
+  Base.Test.@test isapprox(ans3[261,7], 92.58)      # should be 6*sum weights. 
+  Base.Test.@test isapprox(ans3[261,8], 12038.83)   # Should be the DRG Amount for 385
+  Base.Test.@test isapprox(ans3[261,9], 66143.19)   # Should be the DRG Amount for 386
+  Base.Test.@test isapprox(ans3[261,10], 19799.52)  # Should be the DRG Amount for 387
+  Base.Test.@test isapprox(ans3[261,11], 4044.67)   # Should be the DRG Amount for 388
+  Base.Test.@test isapprox(ans3[261,12], 6242.39)   # Should be the DRG Amount for 389
+  Base.Test.@test isapprox(ans3[261,13], 1329.98)   # Should be the DRG Amount for 390
+  Base.Test.@test isapprox(ans3[261,14], 412.04)    # Should be the DRG Amount for 391
+  Base.Test.@test isapprox(ans3[261,15], 1.0)       # Transition 1 to 2
+  Base.Test.@test isapprox(ans3[261,16], 1.0)       # T 1 to 3
+  Base.Test.@test isapprox(ans3[261,17], 1.0)       # T 1 to Ex 
+  Base.Test.@test isapprox(ans3[261,18], 1.0)       # TODO 
+  Base.Test.@test isapprox(ans3[261,19], 1.0)       # Transition 2 to 3
+    # TODO - test other level change statuses.  
+    # TODO - 
+  Texas = 0; Nexas = 0 # dump.  
+  end # of begin block for test.  
 
+  for i = 1:22
+    println(ans3[indx,i+1], " ", ans3[indx,i+23])
+  end 
 
 """
 function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95) 
@@ -2366,12 +2453,12 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     # this is the combined cost at level 3, multiplied by weights: (385_m_3 + 385_p_3)*weight385 + ... + (391_m_3+391_p_3)*weight391 
     arr[6] = disc*outprob*(weight385*(private[15]+medicaid[15])+weight386*(private[16]+medicaid[16])+weight387*(private[17]+medicaid[17])+weight388*(private[18]+medicaid[18])+weight389*(private[19]+medicaid[19])+weight390*(private[20]+medicaid[20])+weight391*(private[21]+medicaid[21]))
     arr[7] = disc*outprob*(medicaid[1]+medicaid[8]+medicaid[15])*drgamt[1]    # Patients*revenue avg. at DRG 385
-    arr[8] = disc*outprob*(medicaid[2]+medicaid[9]+medicaid[16])*drgamt[2]
-    arr[9] = disc*outprob*(medicaid[3]+medicaid[10]+medicaid[17])*drgamt[3]
-    arr[10] = disc*outprob*(medicaid[4]+medicaid[11]+medicaid[18])*drgamt[4]
-    arr[11] = disc*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]
-    arr[12] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]
-    arr[13] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]  # 13 parameters to here.
+    arr[8] = disc*outprob*(medicaid[2]+medicaid[9]+medicaid[16])*drgamt[2]    # Patients*revenue avg. at DRG 386
+    arr[9] = disc*outprob*(medicaid[3]+medicaid[10]+medicaid[17])*drgamt[3]   # Patients*revenue avg. at DRG 387
+    arr[10] = disc*outprob*(medicaid[4]+medicaid[11]+medicaid[18])*drgamt[4]  # Patients*revenue avg. at DRG 388
+    arr[11] = disc*outprob*(medicaid[5]+medicaid[12]+medicaid[19])*drgamt[5]  # Patients*revenue avg. at DRG 389
+    arr[12] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]  # Patients*revenue avg. at DRG 390
+    arr[13] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]  # Patients*revenue avg. at DRG 391, 13 parameters to here.
     arr[14:end] = (alltrans = (beta^T)*outprob*transitions)                   # 9 here. 
     index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
     outp[index, 2:(params+1)] = arr
