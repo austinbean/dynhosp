@@ -456,6 +456,31 @@ end
 
 
 
+@everywhere function returns2(i::Int64)
+return [i], 2*[i] 
+end 
+
+@everywhere function tupleadd(t1::Tuple, t2::Tuple)
+  return t1[1]+t2[1], t1[2]+t2[2]
+end 
+
+function pmapp1(k::Int64)
+  # cannot add tuples.  
+  out1, out2 = @sync @parallel (tupleadd) for j = 1:k 
+    returns2(1)
+  end 
+end 
+
+
+pmapp1(100)
+
+
+
+
+
+
+
+
 
 
 #=
