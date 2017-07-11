@@ -213,5 +213,14 @@ end
   Texas = 0; Nexas = 0 # dump.  
   end # of begin block for test.  
 
+@testset "ArrayTupleSum Tests" begin 
+  a1 = rand(100,100)
+  a2 = rand(100,100)
 
+  a, b = ArrayTupleSum((a1, a2), (a2,a2))
+
+  Base.Test.@test isapprox(a, a1+a2)
+  Base.Test.@test isapprox(b, 2.*a2)
+  a1 = 0; a2 = 0; a = 0; b = 0
+end 
 
