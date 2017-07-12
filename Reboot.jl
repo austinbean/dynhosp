@@ -2,6 +2,44 @@
 
 
 #begin
+  #=  
+    FILE LIST - non-.jl files needed to run the simulation 
+    1.  "TX Transition Probabilities.csv"             NB: could be removed easily since I have LogitEst.jl
+    2.  "TX 2005 Medicaid Model.csv"                  NB: could be removed easily since it's only a few numbers
+    3.  "TX 2005 Private Ins Model.csv"               NB: same comment as for Medicaid Model.
+    4.  "TX 2005 Medicaid Individual Choices.csv"     NB: certainly could be made smaller.
+    5.  "TX 2005 Private Ins Individual Choices.csv"  NB: could be made smaller.
+    6.  "TXzipsonly.csv"                              NB: probably removable - TODO - where is this used?
+    7.  "TXfidsonly.csv"                              NB: probably removable
+    8.  "TX Zip All Hospital Distances.csv"           NB: Removable since I have all lats and longs for zips and hospitals
+    9.  "TX Zip Code Choice Sets.csv"                 NB: removable if I have lats and longs
+    10. "2005 Birth Weight Probabilities.csv"         NB: removable since this is just a few numbers
+    11. "2005 NICU Admission Probabilities.csv"       NB: removable since this is just a few numbers
+    12. "All Zips Patient Count by DRG.csv"           NB: could replace "TX Private Ins Individual Choices" AND "TX Medicaid Individual choices"
+    13. "TX Choice Model.csv"                         NB: logit model values - not necessary since now coded.  
+    
+    FILE TRANSFER  -
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Model.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Private Ins Model.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Individual Choices.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Private Ins Individual Choices.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Desktop/dynhosp/TXzipsonly.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Desktop/dynhosp/TXfidsonly.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip All Hospital Distances.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip Code Choice Sets.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/2005 Birth Weight Probabilities.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/2005 NICU Admission Probabilities.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Desktop/dynhosp/All Zips Patient Count by DRG.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+
+
+  # All at once: 
+
+  scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv" "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Model.csv" "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Private Ins Model.csv" "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Individual Choices.csv" "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Private Ins Individual Choices.csv" "/Users/austinbean/Desktop/dynhosp/TXzipsonly.csv" "/Users/austinbean/Desktop/dynhosp/TXfidsonly.csv" "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip All Hospital Distances.csv" "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip Code Choice Sets.csv" "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/2005 Birth Weight Probabilities.csv" "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/2005 NICU Admission Probabilities.csv" "/Users/austinbean/Desktop/dynhosp/All Zips Patient Count by DRG.csv" "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Choice Model.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
+
+  =#
+
   ##  Figure out which machine I'm on
 
   dir = pwd()
