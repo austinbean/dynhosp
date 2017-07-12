@@ -7,14 +7,15 @@ loc = pwd()
 
 using ProjectModule
 
-# TODO - switch this for CombinedSim, write out second set of results.  
 
-res = OuterSim(6; T1 = 6)
+res1, res2 = CombinedSim(4; T1 = 2)
 
 println("Estimation Done - Saving")
 
 ds = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
 
-writecsv(loc*"/simulationresults"*ds*".csv", res)
+writecsv(loc*"/longobjectiveresults"*ds*".csv", res1)
+writecsv(loc*"/shortobjectiveresults"*ds*".csv", res2)
+
 
 println("Done Saving")
