@@ -2169,6 +2169,8 @@ Maps all of the hospital results out to a big matrix, sorted in the first column
   Restore(Texas) # assign all to 0 or 1
   Restore(Nexas)
 
+  # TODO - this should definitely have a test.  
+
 """
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
@@ -2402,12 +2404,7 @@ function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = 
   return outp1, outp2
 end 
 
-#=
-TODO - 07/07/2017
-- Write a test for both resultsout   
-- ensure that parallel for can work with two outputs, both combined with the same reducer.
-- test CombinedSim.
-=#
+
 
 """
 `DoubleResults`
