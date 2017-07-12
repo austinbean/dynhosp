@@ -7,6 +7,8 @@ loc = pwd()
 
 using ProjectModule
 
+# TODO - switch this for CombinedSim, write out second set of results.  
+
 res = OuterSim(6; T1 = 6)
 
 println("Estimation Done - Saving")
