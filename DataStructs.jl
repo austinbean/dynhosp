@@ -2392,7 +2392,6 @@ Goal here to get two outputs from one simulation.
 
 
 """
-println("hey!")
 function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
   outp1, outp2 = @sync @parallel (ArrayTupleSum) for j = 1:MCcount
     println("iteration: ", j)
