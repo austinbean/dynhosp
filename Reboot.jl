@@ -4,11 +4,9 @@
 #begin
   #=  
     FILE LIST - non-.jl files needed to run the simulation 
-    1.  "TX Transition Probabilities.csv"             NB: could be removed easily since I have LogitEst.jl
+    1.  "TX Transition Probabilities.csv"             NB: REMOVED - but import code still below.
     2.  "TX 2005 Medicaid Model.csv"                  NB: could be removed easily since it's only a few numbers
     3.  "TX 2005 Private Ins Model.csv"               NB: same comment as for Medicaid Model.
-    4.  "TX 2005 Medicaid Individual Choices.csv"     NB: REMOVED
-    5.  "TX 2005 Private Ins Individual Choices.csv"  NB: REMOVED
     6.  "TXzipsonly.csv"                              NB: probably removable - TODO - where is this used?
     7.  "TXfidsonly.csv"                              NB: probably removable
     8.  "TX Zip All Hospital Distances.csv"           NB: Removable since I have all lats and longs for zips and hospitals
@@ -22,8 +20,6 @@
   scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Transition Probabilities.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
   scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Model.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
   scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Private Ins Model.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
-  scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Individual Choices.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
-  scp "/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Private Ins Individual Choices.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
   scp "/Users/austinbean/Desktop/dynhosp/TXzipsonly.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
   scp "/Users/austinbean/Desktop/dynhosp/TXfidsonly.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
   scp "/Users/austinbean/Google Drive/Annual Surveys of Hospitals/TX Zip All Hospital Distances.csv" abean@stampede2.tacc.utexas.edu:/home1/04179/abean/dynhosp/
@@ -74,34 +70,6 @@
 
 # Data Concerning Hospital Choices.
 
-  println("Importing Hosp Data")
-
-  data, datnames = readcsv(pathdata*"TX Transition Probabilities.csv", header = true, comments = false); # the use of the \# sign made the csvreader think there were comments.  
-  for j = 1:size(data,2) # covers the first row separately
-    if (data[1,j] == "")
-      if (typeof(data[1+1,j])<:AbstractString)&(length(data[1+1,j])>0)
-          data[1, j] = "NONE" # this branch never triggers for the array dat.
-        else 
-          data[1,j] = 0
-        end 
-    end 
-  end
-  for i = 2:size(data,1)
-    for j = 1:size(data,2)
-      if (data[i,j] == "")
-        if (typeof(data[i-1,j])<:AbstractString)&(length(data[i-1,j])>0)
-          if (data[i-1,j]=="0-5 Miles")||(data[i-1,j]=="5-15 Miles")||(data[i-1,j]=="15-25 Miles")
-            data[i, j] = data[i-1,j] # matches previous line.
-          else 
-            data[i,j]="NONE"
-          end 
-        else 
-          data[i,j] = 0
-        end 
-      end 
-    end 
-  end
-
 #Model Coefficients for Privately Insured and Medicaid Patients.  
       medcoeffs, medcoeffsnames = readcsv(pathpeople*"TX 2005 Medicaid Model.csv", header = true);
 
@@ -135,12 +103,12 @@
 
      # DRG codes:
      # These are for infants only.
-     DRGs = [385 386 387 388 389 390 391]
-
-    global const fipscodeloc = 78; # this is for hospital data, here as "data"
-    global const yearloc = 75; # this also for hospital data, here imported as "data"
-    global const fidloc = 74; # Also for hospital data, here as "data"
-    global const idloc = 1; # Also for Hospital data, here as "data"
+     # TODO - the following lines down to idloc may not be needed for anything.  
+    DRGs = [385 386 387 388 389 390 391]
+    fipscodeloc = 78; # this is for hospital data, here as "data"
+    yearloc = 75; # this also for hospital data, here imported as "data"
+    fidloc = 74; # Also for hospital data, here as "data"
+    idloc = 1; # Also for Hospital data, here as "data"
 
     # Collect FIDs
     allfids, txfnames = readcsv(pathprograms*"TXfidsonly.csv", header = true)
@@ -194,9 +162,11 @@
     end 
   end 
 
-
-
-  fips = convert(Array{Int64}, union(unique(data[:,78]), unique(alldists[:,7])))
+  # check is this is identical to the other fips quantity.  
+  # writecsv("allfipscodes.csv", ProjectModule.fips)
+  # NB: save the next line - this converts what comes out of "data" above (TX Transition Probs.csv) to a list of unique fipscodes plus 0
+  # fips2 = convert(Array{Int64}, union(unique(data[:,78]), unique(alldists[:,7]))) # NB: here "data" from above is used.
+  fips = vec(convert(Array{Int64,2}, readcsv("allfipscodes.csv")))
   data05 = 0 # data[(data[:,75].==2005), :] ; # NB - killing this because it has bad data and I want to find what is using it and change it.
 
 # Birthweight and NICU Admission Probs 
@@ -249,6 +219,36 @@ for i = 1:size(dat,1)
     end 
 end 
 =#
+
+
+
+  # println("Importing Hosp Data")
+  # # TODO - the only thing this appears to be used in is to create fips below at line 
+  # data, datnames = readcsv(pathdata*"TX Transition Probabilities.csv", header = true, comments = false); # the use of the \# sign made the csvreader think there were comments.  
+  # for j = 1:size(data,2) # covers the first row separately
+  #   if (data[1,j] == "")
+  #     if (typeof(data[1+1,j])<:AbstractString)&(length(data[1+1,j])>0)
+  #         data[1, j] = "NONE" # this branch never triggers for the array dat.
+  #       else 
+  #         data[1,j] = 0
+  #       end 
+  #   end 
+  # end
+  # for i = 2:size(data,1)
+  #   for j = 1:size(data,2)
+  #     if (data[i,j] == "")
+  #       if (typeof(data[i-1,j])<:AbstractString)&(length(data[i-1,j])>0)
+  #         if (data[i-1,j]=="0-5 Miles")||(data[i-1,j]=="5-15 Miles")||(data[i-1,j]=="15-25 Miles")
+  #           data[i, j] = data[i-1,j] # matches previous line.
+  #         else 
+  #           data[i,j]="NONE"
+  #         end 
+  #       else 
+  #         data[i,j] = 0
+  #       end 
+  #     end 
+  #   end 
+  # end
 
 
 
