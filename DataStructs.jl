@@ -738,169 +738,18 @@ end
 
 
 
-# """
-# `FillPPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
-# Takes the imported matrix of *privately-insured* patients and records the number at each DRG 385-391 in each zip record.
-# There is a separate function for the Medicaid patients.
-# There is now one zip which patients are in but which is not in pats as constructed above.
-# #Testing -
-# Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-# patients = CreateZips(ProjectModule.alldists, Texas);
-# FillPPatients(patients , ProjectModule.pinsured);
-
-# Timing:
-# 0.012576 seconds (71 allocations: 619.688 KB)
-# """
-# function FillPPatients(pats::patientcollection, imported::Matrix;
-#                        ziploc::Int64 = 101,
-#                        drgloc::Int64 = 104,
-#                        notavail::Array{Float32,1} = setdiff(imported[:,ziploc] ,keys(pats.zips)))
-#   notfound = Array{Int64,1}()
-#   for row in 1:size(imported, 1)
-#     if !in(imported[row,ziploc], notavail)
-#       if imported[row, drgloc] == 385
-#         pats.zips[imported[row, ziploc]].ppatients.count385 += 1;
-#       elseif imported[row, drgloc] == 386
-#         pats.zips[imported[row, ziploc]].ppatients.count386 += 1;
-#       elseif imported[row, drgloc] == 387
-#         pats.zips[imported[row, ziploc]].ppatients.count387 += 1;
-#       elseif imported[row, drgloc] == 388
-#         pats.zips[imported[row, ziploc]].ppatients.count388 += 1;
-#       elseif imported[row, drgloc] == 389
-#         pats.zips[imported[row, ziploc]].ppatients.count389 += 1;
-#       elseif imported[row, drgloc] == 390
-#         pats.zips[imported[row, ziploc]].ppatients.count390 += 1;
-#       elseif imported[row, drgloc] == 391
-#         pats.zips[imported[row, ziploc]].ppatients.count391 += 1;
-#       else # not found?
-#           push!(notfound, pats.zips[imported[row, ziploc]].code);
-#       end
-#     end
-#   end
-# end
-
-
-
-
-# """
-# `FillMPatients(pats::patientcollection, imported::Matrix; ziploc = 101, drgloc = 104)`
-# Takes the imported matrix of *Medicaid* patients and records the number at each DRG 385-391 in each zip record.
-# There is a separate function for the privately-insured patients.
-# Testing:
-# Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-# patients = CreateZips(ProjectModule.alldists, Texas);
-# FillMPatients(patients , ProjectModule.pinsured)
-
-# Timing:
-# 0.012498 seconds (71 allocations: 619.688 KB)
-
-# TODO - this can be rewritten to use pcount.  
-# Just take the value from that set of numbers, which is the same as the result here.  Easy...
-
-# """
-# function FillMPatients(pats::patientcollection, imported::Matrix;
-#                        ziploc::Int64 = 101,
-#                        drgloc::Int64 = 104,
-#                        notavail::Array{Float32,1} = setdiff(imported[:,ziploc] ,keys(pats.zips)))
-#   notfound = Array{Int64,1}()
-#   for row in 1:size(imported, 1)
-#     if !in(imported[row,ziploc], notavail)
-#       if imported[row, drgloc] == 385
-#         pats.zips[imported[row, ziploc]].mpatients.count385 += 1;
-#       elseif imported[row, drgloc] == 386
-#         pats.zips[imported[row, ziploc]].mpatients.count386 += 1;
-#       elseif imported[row, drgloc] == 387
-#         pats.zips[imported[row, ziploc]].mpatients.count387 += 1;
-#       elseif imported[row, drgloc] == 388
-#         pats.zips[imported[row, ziploc]].mpatients.count388 += 1;
-#       elseif imported[row, drgloc] == 389
-#         pats.zips[imported[row, ziploc]].mpatients.count389 += 1;
-#       elseif imported[row, drgloc] == 390
-#         pats.zips[imported[row, ziploc]].mpatients.count390 += 1;
-#       elseif imported[row, drgloc] == 391
-#         pats.zips[imported[row, ziploc]].mpatients.count391 += 1;
-#       else # not found?
-#           push!(notfound, pats.zips[imported[row, ziploc]].code);
-#       end
-#     end
-#   end
-# end
-
-
-
-
-# """
-# `FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)`
-#  Adds the privately insured and medicaid patients to the zip records.
-#  0.027785 seconds (138 allocations: 1.308 MB)
-
-# Testing:
-# Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-# patients = CreateZips(ProjectModule.alldists, Texas);
-# FillPatients(patients , ProjectModule.pinsured, ProjectModule.pmedicaid)
-
-# Timing.
-#  0.029902 seconds (138 allocations: 1.308 MB)
-# """
-# function FillPatients(pats::patientcollection, private::Matrix, medicaid::Matrix)
-#   FillPPatients(pats, private)
-#   FillMPatients(pats, medicaid)
-# end
-
 """
-`variant`
-WILL RENAME THIS FILLPATIENTS.  
+`FillPatients(pats::patientcollection, pcounts::Matrix)`
+Adds the privately insured and medicaid patients to the zip records.
+Combines in one function the previous FillPPatients and FillMPatients.
+Uses different data too - pcounts rather than Medicaid/Private Individual Choices.  
+
 Testing: 
 
 Texas2 = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients2 = CreateZips(ProjectModule.alldists, Texas2);
-varpatient(patients2, ProjectModule.pcount)
+FillPatients(patients2, ProjectModule.pcount)
 
-for k1 in keys(patients.zips)
-  println(k1)
-  if patients.zips[k1].ppatients.count385 != patients2.zips[k1].ppatients.count385
-    print(" p 385 ", patients.zips[k1].ppatients.count385, " ", patients2.zips[k1].ppatients.count385, " ")
-  end 
-  if patients.zips[k1].ppatients.count386 != patients2.zips[k1].ppatients.count386
-    print(" p 386 ", patients.zips[k1].ppatients.count386, " ", patients2.zips[k1].ppatients.count386, " ")
-  end 
-  if patients.zips[k1].ppatients.count387 != patients2.zips[k1].ppatients.count387
-    print(" p 387 ", patients.zips[k1].ppatients.count387, " ", patients2.zips[k1].ppatients.count387, " ")
-  end 
-  if patients.zips[k1].ppatients.count388 != patients2.zips[k1].ppatients.count388
-    print(" p 388 ", patients.zips[k1].ppatients.count388, " ", patients2.zips[k1].ppatients.count388, " ")
-  end 
-  if patients.zips[k1].ppatients.count389 != patients2.zips[k1].ppatients.count389
-    print(" p 389 ", patients.zips[k1].ppatients.count389, " ", patients2.zips[k1].ppatients.count389, " ")
-  end 
-  if patients.zips[k1].ppatients.count390 != patients2.zips[k1].ppatients.count390
-    print(" p 390 ", patients.zips[k1].ppatients.count390, " ", patients2.zips[k1].ppatients.count390, " ")
-  end 
-  if patients.zips[k1].ppatients.count391 != patients2.zips[k1].ppatients.count391
-    print(" p 391 ", patients.zips[k1].ppatients.count391, " ", patients2.zips[k1].ppatients.count391, " ")
-  end 
-  if patients.zips[k1].mpatients.count385 != patients2.zips[k1].mpatients.count385
-    print(" m 385 ", patients.zips[k1].mpatients.count385, " ", patients2.zips[k1].mpatients.count385, " ")
-  end 
-  if patients.zips[k1].mpatients.count386 != patients2.zips[k1].mpatients.count386
-    print(" m 386 ", patients.zips[k1].mpatients.count386, " ", patients2.zips[k1].mpatients.count386, " ")
-  end 
-  if patients.zips[k1].mpatients.count387 != patients2.zips[k1].mpatients.count387
-    print(" m 387 ", patients.zips[k1].mpatients.count387, " ", patients2.zips[k1].mpatients.count387, " ")
-  end 
-  if patients.zips[k1].mpatients.count388 != patients2.zips[k1].mpatients.count388
-    print(" m 388 ", patients.zips[k1].mpatients.count388, " ", patients2.zips[k1].mpatients.count388, " ")
-  end 
-  if patients.zips[k1].mpatients.count389 != patients2.zips[k1].mpatients.count389
-    print(" m 389 ", patients.zips[k1].mpatients.count389, " ", patients2.zips[k1].mpatients.count389, " ")
-  end 
-  if patients.zips[k1].mpatients.count390 != patients2.zips[k1].mpatients.count390
-    print(" m 390 ", patients.zips[k1].mpatients.count390, " ", patients2.zips[k1].mpatients.count390, " ")
-  end 
-  if patients.zips[k1].mpatients.count391 != patients2.zips[k1].mpatients.count391
-    print(" m 391 ", patients.zips[k1].mpatients.count391, " ", patients2.zips[k1].mpatients.count391, " ")
-  end 
-end 
 
 """
 function FillPatients(pats::patientcollection, pcounts::Matrix)
@@ -1015,11 +864,9 @@ Timing:
 """
 function NewPatients(Tex::EntireState;
                      dists::Array{Any,2} = ProjectModule.alldists,
-                     phrloc::Int64 = 103,
-                     pins = ProjectModule.pinsured,
-                     pmed = ProjectModule.pmedicaid)
+                     pins = ProjectModule.pcount)
   patients = CreateZips(dists, Tex) #NB: This needs to take the whole state so that the hosps in zips point to the same underlying record.
-  FillPatients(patients, pins, pmed)
+  FillPatients(patients, pins)
   UpdateDeterministic(patients)
   AddOO(patients)
   return patients
@@ -1046,10 +893,9 @@ function NewPatientsTest(Tex::EntireState;
                      dists::Array{Any,2} = ProjectModule.alldists,
                      phrloc::Int64 = 103,
                      ziploc::Int64 = 101,
-                     pins::Array{Float32,2} = ProjectModule.pinsured,
-                     pmed::Array{Float32,2} = ProjectModule.pmedicaid)
+                     pins = ProjectModule.pcount)
   patients = CreateZips(dists, Tex) # creates empty zip codes.
-  patients = FillPatients(patients, pins, pmed)
+  patients = FillPatients(patients, pins)
   UpdateDeterministic(patients)
   AddOO(patients)
   pzips::Dict{Int64, Int64} = Dict(k => 0 for k in unique(pins[:,ziploc])) # this is guaranteed to get all of the zips.
