@@ -672,8 +672,6 @@ end
   export HospUpdate
   export HospPerturb
   export CreateZips
-  export FillPPatients
-  export FillMPatients
   export FillPatients
   export NewPatients
   export PrintZip
