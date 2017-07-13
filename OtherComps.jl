@@ -393,6 +393,16 @@ BenchmarkTools.Trial:
 
 
 
+# getting rid of the patient counts:  
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = CreateZips(ProjectModule.alldists, Texas);
+FillPatients(patients , ProjectModule.pinsured, ProjectModule.pmedicaid)
+
+"/Users/austinbean/Google Drive/Texas Inpatient Discharge/TX 2005 Medicaid Individual Choices.csv"
+
+
+
 #=
 
 =#
