@@ -7,8 +7,8 @@
     1.  "TX Transition Probabilities.csv"             NB: could be removed easily since I have LogitEst.jl
     2.  "TX 2005 Medicaid Model.csv"                  NB: could be removed easily since it's only a few numbers
     3.  "TX 2005 Private Ins Model.csv"               NB: same comment as for Medicaid Model.
-    4.  "TX 2005 Medicaid Individual Choices.csv"     NB: certainly could be made smaller.
-    5.  "TX 2005 Private Ins Individual Choices.csv"  NB: could be made smaller.
+    4.  "TX 2005 Medicaid Individual Choices.csv"     NB: REMOVED
+    5.  "TX 2005 Private Ins Individual Choices.csv"  NB: REMOVED
     6.  "TXzipsonly.csv"                              NB: probably removable - TODO - where is this used?
     7.  "TXfidsonly.csv"                              NB: probably removable
     8.  "TX Zip All Hospital Distances.csv"           NB: Removable since I have all lats and longs for zips and hospitals
@@ -122,40 +122,6 @@
       global const privateclosest_c = privcoeffs[5,2]
       global const privatedistbed_c = privcoeffs[6,2]
       privatedemandmodelparameters = [privatedistance_c privatedistsq_c privateneoint_c privatesoloint_c privateclosest_c privatedistbed_c]
-
-#Medicaid Patients. 
-    println("Importing Medicaid Patients") # use the infants only.
-    pmedicaid, medicaidnames = readcsv(pathpeople*"TX 2005 Medicaid Individual Choices.csv", header = true);
-
-    for i = 1:size(pmedicaid,1)
-        for j = 1:size(pmedicaid,2)
-            if typeof(pmedicaid[i,j])<:AbstractString
-                if (pmedicaid[i,j]=="")
-                    pmedicaid[i,j] = 0 # = 0
-                end 
-            end
-        end 
-    end 
-
-    pmedicaid = convert(Array{Float32, 2}, pmedicaid);
-
-#Privately Insured Patients.  
-    println("Importing Privately Insured Patients") #use the infants only.
-    
-    pinsured, pinsurednames = readcsv(pathpeople*"TX 2005 Private Ins Individual Choices.csv", header = true);
-
-
-    for i = 1:size(pinsured,1)
-        for j = 1:size(pinsured,2)
-            if typeof(pinsured[i,j])<:AbstractString
-                if (pinsured[i,j]=="")
-                    pinsured[i,j] = 0 # = 0
-                end 
-            end
-        end 
-    end 
-    # Note this change - I don't think there's anything that requires 64 bits.
-     pinsured= convert(Array{Float32, 2}, pinsured);
 
 
   # Zip Codes - a list of all of them.   
