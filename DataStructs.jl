@@ -2335,6 +2335,25 @@ end
 Combiner - 
 Goal here to get two outputs from one simulation.  
 
+TODO - something is making this REALLY slow.  REALLY slow.  What the hell?
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
+eq_patients = NewPatients(TexasEq);
+NewSim(20, TexasEq, eq_patients);
+NewSim(20,...) takes 7 seconds.  
+PSim - probably 30*7 = 210 seconds... roughly.  (Actually 214)
+
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 40);
+eq_patients = NewPatients(TexasEq);
+@time NewSim(40, TexasEq, eq_patients); 14 seconds 
+
+@time PSim(40); probably 30*14 seconds = 420 seconds, roughly.  (Actually 441.245888 seconds)
+
+
+What about DoubleResults?
+
+DoubleResults(NewSim(20, TexasEq, eq_patients), PSim(20))
 
 """
 function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
@@ -2342,6 +2361,7 @@ function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = 
     println("iteration: ", j)
     TexasEq = CreateEmpty(fi, di, T1)
     eq_patients = NewPatients(TexasEq)
+    # TODO - what does T do in the next function? 
     DoubleResults(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)
   end 
   outp1[:,1] = outp1[:,1]/MCcount 
@@ -2365,6 +2385,7 @@ NewSim(50, Texas, patients);
 DoubleResults(Texas, Texas)
 
 """
+# TODO - what does T do here?  Nothing, it seems... 
 function DoubleResults(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50)
   # return two arrays, this can be combined with (+)
   # no - tuple of arrays cannot be combined because tuples are immutable.  
