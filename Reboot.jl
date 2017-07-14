@@ -7,6 +7,8 @@
     1.  "TX Transition Probabilities.csv"             NB: REMOVED - but import code still below.
     2.  "TX 2005 Medicaid Model.csv"                  NB: could be removed easily since it's only a few numbers
     3.  "TX 2005 Private Ins Model.csv"               NB: same comment as for Medicaid Model.
+    4.  - old medicaid individual choices - 
+    5.  - old private ins individual choices -
     6.  "TXzipsonly.csv"                              NB: probably removable - TODO - where is this used?
     7.  "TXfidsonly.csv"                              NB: probably removable
     8.  "TX Zip All Hospital Distances.csv"           NB: Removable since I have all lats and longs for zips and hospitals
