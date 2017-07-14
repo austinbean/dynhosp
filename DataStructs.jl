@@ -2339,21 +2339,30 @@ TODO - something is making this REALLY slow.  REALLY slow.  What the hell?
 
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
 eq_patients = NewPatients(TexasEq);
-NewSim(20, TexasEq, eq_patients);
-NewSim(20,...) takes 7 seconds.  
-PSim - probably 30*7 = 210 seconds... roughly.  (Actually 214)
+@time NewSim(20, TexasEq, eq_patients); # 7 seconds.  
+PSim(20) # - probably 30*7 = 210 seconds... roughly.  (Actually 214)
 
 
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 40);
 eq_patients = NewPatients(TexasEq);
-@time NewSim(40, TexasEq, eq_patients); 14 seconds 
+@time NewSim(40, TexasEq, eq_patients); # 14 seconds @ 1 thread,  17 second @ 4 threads.  Weird.  
 
-@time PSim(40); probably 30*14 seconds = 420 seconds, roughly.  (Actually 441.245888 seconds)
+@time PSim(40); #  441.245888 seconds @ 1 thread, 466.358290 seconds @ 4 threads.  
 
 
 What about DoubleResults?
 
-DoubleResults(NewSim(20, TexasEq, eq_patients), PSim(20))
+DoubleResults(NewSim(1, TexasEq, eq_patients), PSim(1)); # compile 
+
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
+eq_patients = NewPatients(TexasEq);
+@time DoubleResults(NewSim(20, TexasEq, eq_patients), PSim(20)); # 223.502099 seconds - the sum of the individual times.
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 40);
+eq_patients = NewPatients(TexasEq);
+@time DoubleResults(NewSim(40, TexasEq, eq_patients), PSim(40)) ; # 461.640865 seconds - basically the sum.
+
 
 """
 function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
@@ -2363,6 +2372,7 @@ function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = 
     eq_patients = NewPatients(TexasEq)
     # TODO - what does T do in the next function? 
     DoubleResults(NewSim(T1, TexasEq, eq_patients), PSim(T1); T = T1)
+    # This will create a new TexasEq and patients every loop - can they be cleaned up instead?  
   end 
   outp1[:,1] = outp1[:,1]/MCcount 
   outp2[:,1] = outp2[:,1]/MCcount
