@@ -2335,7 +2335,27 @@ end
 Combiner - 
 Goal here to get two outputs from one simulation.  
 
-TODO - something is making this REALLY slow.  REALLY slow.  What the hell?
+TODO - something is making this REALLY slow on stampede2.  REALLY slow.  What the hell?
+
+# STAMPEDE2 BENCHMARKS: 
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 5);
+patients = NewPatients(Texas);
+@time NewSim(5, Texas, patients); #9.312147 seconds
+
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 40);
+patients = NewPatients(Texas);
+@time NewSim(40, Texas, patients); #73.896560 seconds (37.03 M allocations: 823.834 MiB, 1.02% gc time)
+# if this takes 5x longer on stampede, then...
+# PSim(20) = 210*5 = 1050 ≈ 17 mins...
+# PSim(40) = 441*5 = 2205 seconds ≈ 0.5 hours... Why so long?  
+
+
+PSim(1); # force compilation, though that's almost nothing in this case.  Or maybe not... ?
+
+
+# COMPUTER Benchmarks 
 
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
 eq_patients = NewPatients(TexasEq);
