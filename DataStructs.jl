@@ -1159,6 +1159,10 @@ Input is from CalcWTP.  Output is sent to WriteWTP
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 WTPMap(patients, Texas)
+
+# TODO - room for optimization both here and in CalcWTP.  
+
+
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}() 
