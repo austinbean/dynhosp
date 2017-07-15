@@ -685,6 +685,7 @@ function CreateZips(alld::Array,
                     dat::Array{Any,2} = ProjectModule.alldists,
                     datfidloc::Int64 = 4,
                     bedmean::Float64 = round(mean(alld[:,bedcol])))
+  # TODO - hard-code the model coefficients here.  
   ppatients::patientcollection = patientcollection( Dict{Int64, zipcode}() )
   # unfound = Array{Int64,1}()
   # found = Array{Int64,1}()
@@ -1022,7 +1023,6 @@ function CMakeIt(Tex::EntireState, fip::Vector)
     end
   end
   Tex.mkts = Dict(m.fipscode => m for m in Tex.ms)
-  # Tex.mkts = [ m.fipscode => m for m in Tex.ms] # this is the pre0.5 generator syntax
 end
 
 """
@@ -1133,6 +1133,39 @@ Output is sent to WTPMap.
 Testing:
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
+@benchmark CalcWTP(patients.zips[78702]) # add dollar sign before patients.
+
+OLD: 
+BenchmarkTools.Trial:
+  memory estimate:  1.97 KiB
+  allocs estimate:  7
+  --------------
+  minimum time:     1.553 μs (0.00% GC)
+  median time:      1.665 μs (0.00% GC)
+  mean time:        1.850 μs (7.54% GC)
+  maximum time:     236.433 μs (93.32% GC)
+  --------------
+  samples:          10000
+  evals/sample:     10
+
+NEW:
+BenchmarkTools.Trial:
+memory estimate:  1.97 KiB
+allocs estimate:  7
+--------------
+minimum time:     1.565 μs (0.00% GC)
+median time:      1.638 μs (0.00% GC)
+mean time:        1.815 μs (7.53% GC)
+maximum time:     218.030 μs (94.04% GC)
+--------------
+samples:          10000
+evals/sample:     10
+
+How is this actually used again?  In NewSim...
+
+WriteWTP(WTPMap(pats, Tex), Tex, i) # and WTPMap calls CalcWTP
+
+
 
 """
 function CalcWTP(zipc::zipcode)
@@ -1140,10 +1173,10 @@ function CalcWTP(zipc::zipcode)
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}()
   interim::Float64 = 0.0
   for el in keys(zipc.pdetutils)
-    interim +=  (outp[el] = exp(zipc.pdetutils[el]) )
+    interim += exp(zipc.pdetutils[el]) 
   end
   for k in keys(zipc.pdetutils)
-    outp[k] = outp[k]/interim
+    outp[k] = exp(zipc.pdetutils[k])/interim
   end 
   return outp::Dict{Int64,Float64}
 end
@@ -1170,6 +1203,8 @@ function WTPMap(pats::patientcollection, Tex::EntireState)
     outp[k1] = 0.0
   end 
   for zipc in keys(pats.zips)
+    # there is no need for this intermediate dict.  WTP can be added directly.  Let CalcWTP take the 
+    # dict created in this function, have it calculate, then add.  That can be done in an array, perhaps... ?  
     vals = CalcWTP(pats.zips[zipc]) #TODO - this allocates.  That's sort of dumb.  
     for el in keys(vals) 
       if el != 0 # don't try to map the OO.
