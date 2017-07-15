@@ -1169,7 +1169,11 @@ WriteWTP(WTPMap(pats, Tex), Tex, i) # and WTPMap calls CalcWTP
 
 """
 function CalcWTP(zipc::zipcode)
-  # TODO - fix the allocation somewhere here.  
+  # TODO - fix the allocation somewhere here. 
+  # No need to return a dict.  Work in place on a vector, 2x11 or so, assign
+  # values, return nothing, work on this vector in WTPMap.  
+  # But even that doesn't really need to use a new dict every time.  
+  # Can reuse, assigning values to zero after use.   
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}()
   interim::Float64 = 0.0
   for el in keys(zipc.pdetutils)
@@ -1195,6 +1199,7 @@ WTPMap(patients, Texas)
 
 # TODO - room for optimization both here and in CalcWTP.  
 
+I could create a temporary vector at the top level which is reused at every call to CalcWTP
 
 """
 function WTPMap(pats::patientcollection, Tex::EntireState)
