@@ -1129,6 +1129,7 @@ patients = NewPatients(Texas);
 
 """
 function CalcWTP(zipc::zipcode)
+  # TODO - fix the allocation somewhere here.  
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}()
   interim::Float64 = 0.0
   for el in keys(zipc.pdetutils)
@@ -1179,6 +1180,14 @@ end
 `WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState)`
 Takes a dict of {fid, WTP} and writes it out by DRG.
 Works on the output of WTPMap
+
+## Testing ## 
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+d1 = WTPMap(patients, Texas)
+WriteWTP(d1, Texas, 1)
+
 """
 function WriteWTP(reslt::Dict{Int64, Float64}, Tex::EntireState, index::Int64)
   for els in keys(reslt)
@@ -1501,6 +1510,16 @@ end
 `PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)`
 Maps Private patient demand out to the state record.
 Note - now cleans out the dictionary from GenPChoices.
+
+### Testing ### 
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+dic1 = NewHospDict(Texas);
+inpt = ones(Int64, 1550);
+GenPChoices(patients, dic1, inpt)
+PDemandMap(dic1, Texas, 1)
+
 """
 function PDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState, index::Int64)
   for el in keys(patd)
@@ -1518,6 +1537,16 @@ end
 `MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState)`
 Maps Medicaid Patient demand out to the state record.
 Note - now cleans out the dictionary from GenMChoices.
+
+## Testing ##
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+dic1 = NewHospDict(Texas);
+inpt = ones(Int64, 1550);
+GenMChoices(patients, dic1, inpt)
+MDemandMap(dic1, Texas, 1)
+
 """
 function MDemandMap(patd::Dict{Int64, patientcount}, Tex::EntireState, index::Int64)
   for el in keys(patd)
@@ -1542,8 +1571,8 @@ This function also returns the two arguments ppat and mpat.  These are needed la
 
 function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
                      bins = collect(1:13),
-                     weightpr = weightprobs[:,2],
-                     admitprobs = nicuprobs[:,2],
+                     weightpr = weightprobs[:,2], # TODO - these are vectors of fixed size.  Hard code them and drop the import 
+                     admitprobs = nicuprobs[:,2], # TODO - also a fixed size vector.  Hard code.  
                      w1 = Weights([1-admitprobs[1],admitprobs[1]]), # next few lines unused.
                      w2 = Weights([1-admitprobs[2],admitprobs[2]]),
                      w3 = Weights([1-admitprobs[3],admitprobs[3]]),
