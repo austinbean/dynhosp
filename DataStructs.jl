@@ -835,6 +835,13 @@ end
 Computes the deterministic component of the utility - updates every firm every time it is called.
 Is called during the Eq and Non-eq simulations.
 0.043695 seconds (483.33 k allocations: 7.605 MB)
+
+## Testing ##
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+UpdateDeterministic(patients)
+
 """
 function UpdateDeterministic(collt::patientcollection)
   for el in keys(collt.zips) #iterates over zips
