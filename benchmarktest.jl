@@ -26,14 +26,15 @@ res = run(bg, verbose = true, seconds = 10)
 
 
 function BRPrint(x::BenchmarkTools.Trial)
-    println("memory: ", x.memory)
-    println("allocations: ", x.allocs)
+    println("memory estimate: ", x.memory)
+    println("allocations estimate: ", x.allocs)
     println("--------")
     println("minimum time: ", minimum(x.times))
     println("median time: ", median(x.times))
     println("mean time: ", mean(x.times))
     println("maximum time: ", maximum(x.times))
     println("--------")
+    println("samples: ", x.params.samples)
     println("        ")
 end 
 
