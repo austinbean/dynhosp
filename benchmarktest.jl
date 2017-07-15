@@ -7,7 +7,7 @@ patients = NewPatients(Texas);
 dic1 = NewHospDict(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
 d1 = WTPMap(patients, Texas);
-ids1, utils1 = DV(patients.zips[78759].pdetutils);
+fids1, utils1 = DV(patients.zips[78759].pdetutils);
 ut = [0.1, 0.2, 0.3, 0.4, 0.5];
 fi = [111, 222, 333, 444, 19];
 
