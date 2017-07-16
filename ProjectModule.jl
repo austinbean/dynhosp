@@ -726,6 +726,8 @@ end
   export DoubleResults
   export CombinedSim
   export ArrayTupleSum 
+  export WTPDict
+  export CleanWTPDict
   
 
   # Export Counter1.jl Functions 
