@@ -1807,12 +1807,17 @@ end
 Runs a T period simulation using the whole state and whole collection of patient records.
 
 ## Testing: ## 
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 10);
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
 patients = NewPatients(Texas);
-@time NewSim(10, Texas, patients);
+@time NewSim(10, Texas, patients); # 3.386766 seconds (9.28 M allocations: 183.511 MiB, 2.48% gc time)
 
-3.386766 seconds (9.28 M allocations: 183.511 MiB, 2.48% gc time)
-
+Sources of Allocations: 
+GenPChoices: memory estimate:  9.58 MiB   allocs estimate:  511404   mean time:   143.855 ms 
+UpdateDeterministic: memory estimate:  7.15 MiB allocs estimate:  453242 mean time:   22.707 ms
+WriteWTP: memory estimate:  62.56 KiB allocs estimate:  4004 mean time:   366.285 μs
+WTPMap: memory estimate:  30.03 KiB allocs estimate:  1922 mean time:     3.061 ms (0.19% GC) 
+EntryProcess: memory estimate:  422 bytes allocs estimate:  3 mean time:   84.371 μs (0.16% GC)
+CleanWTPDict: memory estimate:  0 bytes allocs estimate:  0 mean time:        8.756 μs
 """
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   const entrants::Array{Float64,1} = [0, 1, 2, 3] 
