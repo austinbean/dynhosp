@@ -1135,54 +1135,25 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 @benchmark CalcWTP(patients.zips[78702]) # add dollar sign before patients.
 
-OLD: 
-BenchmarkTools.Trial:
-  memory estimate:  1.97 KiB
-  allocs estimate:  7
-  --------------
-  minimum time:     1.553 μs (0.00% GC)
-  median time:      1.665 μs (0.00% GC)
-  mean time:        1.850 μs (7.54% GC)
-  maximum time:     236.433 μs (93.32% GC)
-  --------------
-  samples:          10000
-  evals/sample:     10
-
-NEW:
-BenchmarkTools.Trial:
-memory estimate:  1.97 KiB
-allocs estimate:  7
---------------
-minimum time:     1.565 μs (0.00% GC)
-median time:      1.638 μs (0.00% GC)
-mean time:        1.815 μs (7.53% GC)
-maximum time:     218.030 μs (94.04% GC)
---------------
-samples:          10000
-evals/sample:     10
+Nice speed up - from 1.5 μs to 700 ns.  
 
 How is this actually used again?  In NewSim...
 
 WriteWTP(WTPMap(pats, Tex), Tex, i) # and WTPMap calls CalcWTP
 
-
-
+newarr = zeros(2,12)
+CalcWTP2(patients.zips[78759], newarr)
 """
-function CalcWTP(zipc::zipcode)
-  # TODO - fix the allocation somewhere here. 
-  # No need to return a dict.  Work in place on a vector, 2x11 or so, assign
-  # values, return nothing, work on this vector in WTPMap.  
-  # But even that doesn't really need to use a new dict every time.  
-  # Can reuse, assigning values to zero after use.   
-  outp::Dict{Int64,Float64} = Dict{Int64,Float64}()
+function CalcWTP(zipc::zipcode, arr::Array{Float64,2})  
   interim::Float64 = 0.0
-  for el in keys(zipc.pdetutils)
+  for (i,el) in enumerate(keys(zipc.pdetutils))
+    arr[1,i] = el 
+    arr[2,i] = exp(zipc.pdetutils[el])
     interim += exp(zipc.pdetutils[el]) 
   end
-  for k in keys(zipc.pdetutils)
-    outp[k] = exp(zipc.pdetutils[k])/interim
+  for k in 1:size(arr,2)
+    arr[2,k] = arr[2,k]/interim
   end 
-  return outp::Dict{Int64,Float64}
 end
 
 
@@ -1201,15 +1172,19 @@ WTPMap(patients, Texas)
 
 I could create a temporary vector at the top level which is reused at every call to CalcWTP
 
+Plan - take dict as argument, clean up afterwards.  Take Array as argument, pass to CalcWTP then clean up.  
+
 """
-function WTPMap(pats::patientcollection, Tex::EntireState)
+function WTPMap(pats::patientcollection, Tex::EntireState) # TODO - dict and array added to function call.  
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}() 
+  # TODO - put this outside.  
   for k1 in keys(Tex.fipsdirectory) # need a list of all fids to initialize the dictionary.
     outp[k1] = 0.0
   end 
   for zipc in keys(pats.zips)
     # there is no need for this intermediate dict.  WTP can be added directly.  Let CalcWTP take the 
-    # dict created in this function, have it calculate, then add.  That can be done in an array, perhaps... ?  
+    # dict created in this function, have it calculate, then add.  That can be done in an array, perhaps... ?
+    # TODO - call ArrayZero before passing   
     vals = CalcWTP(pats.zips[zipc]) #TODO - this allocates.  That's sort of dumb.  
     for el in keys(vals) 
       if el != 0 # don't try to map the OO.
@@ -1221,6 +1196,7 @@ function WTPMap(pats::patientcollection, Tex::EntireState)
       end 
     end
   end
+  # TODO - no return, operate on dict.  
   return outp # gives a dict{fid, WTP} back
 end
 
