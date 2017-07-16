@@ -1126,7 +1126,7 @@ end
 
 
 """
-`CalcWTP(zipc::zip)`
+`CalcWTP(zipc::zip, arr::Array{Float64,2})`
 Takes the deterministic component of utility for the privately insured patients and returns a WTP measure.
 Output is sent to WTPMap.
 
@@ -1135,14 +1135,42 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 @benchmark CalcWTP(patients.zips[78702]) # add dollar sign before patients.
 
-Nice speed up - from 1.5 μs to 700 ns.  
+Nice speed up - from 1.5 μs to 700 ns. 
+
+TO: 
+BenchmarkTools.Trial:
+  memory estimate:  16 bytes
+  allocs estimate:  1
+  --------------
+  minimum time:     708.850 ns (0.00% GC)
+  median time:      711.886 ns (0.00% GC)
+  mean time:        728.721 ns (0.61% GC)
+  maximum time:     45.392 μs (97.25% GC)
+  --------------
+  samples:          10000
+  evals/sample:     140
+
+FROM: 
+
+@benchmark CalcWTP(patients.zips[78759])
+BenchmarkTools.Trial:
+  memory estimate:  1.97 KiB
+  allocs estimate:  7
+  --------------
+  minimum time:     1.552 μs (0.00% GC)
+  median time:      1.627 μs (0.00% GC)
+  mean time:        1.814 μs (7.34% GC)
+  maximum time:     228.033 μs (94.43% GC)
+  --------------
+  samples:          10000
+  evals/sample:     10 
 
 How is this actually used again?  In NewSim...
 
 WriteWTP(WTPMap(pats, Tex), Tex, i) # and WTPMap calls CalcWTP
 
 newarr = zeros(2,12)
-CalcWTP2(patients.zips[78759], newarr)
+CalcWTP(patients.zips[78759], newarr)
 """
 function CalcWTP(zipc::zipcode, arr::Array{Float64,2})  
   interim::Float64 = 0.0
@@ -1157,6 +1185,40 @@ function CalcWTP(zipc::zipcode, arr::Array{Float64,2})
 end
 
 
+"""
+`WTPDict(Tex::EntireState)`
+Makes a dict of FIDS from those in the state.
+
+## Testing ## 
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+wtd = WTPDict(Texas)
+
+"""
+function WTPDict(Tex::EntireState)
+  outp::Dict{Int64,Float64} = Dict{Int64,Float64}() 
+  for k1 in keys(Tex.fipsdirectory) # need a list of all fids to initialize the dictionary.
+    outp[k1] = 0.0
+  end 
+  return outp 
+end 
+
+"""
+`CleanWTPDict(d::Dict{Int64,Float64})`
+Takes the WTP Dict and sets all values back to zero.  
+
+## Testing ## 
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+wtd = WTPDict(Texas)
+CleanWTPDict(wtd)
+
+
+"""
+function CleanWTPDict(d::Dict{Int64,Float64})
+  for k1 in keys(d)
+    d[k1] = 0.0
+  end 
+end 
+
 
 """
 `WTPMap(pats::patientcollection, Tex::EntireState)`
@@ -1167,37 +1229,36 @@ Input is from CalcWTP.  Output is sent to WriteWTP
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 WTPMap(patients, Texas)
+FROM:
+memory estimate:  2.50 MiB
+allocs estimate:  10737 
+mean time:        6.060 ms (3.14% GC) 
 
-# TODO - room for optimization both here and in CalcWTP.  
+TO: 
+memory estimate:  30.03 KiB
+allocs estimate:  1922
+mean time:        3.134 ms (0.21% GC)
 
-I could create a temporary vector at the top level which is reused at every call to CalcWTP
 
-Plan - take dict as argument, clean up afterwards.  Take Array as argument, pass to CalcWTP then clean up.  
+wtd = WTPDict(Texas)
+newarr = zeros(2,12)
+WTPMap(patients, Texas, wtd, newarr)
 
 """
-function WTPMap(pats::patientcollection, Tex::EntireState) # TODO - dict and array added to function call.  
-  outp::Dict{Int64,Float64} = Dict{Int64,Float64}() 
-  # TODO - put this outside.  
-  for k1 in keys(Tex.fipsdirectory) # need a list of all fids to initialize the dictionary.
-    outp[k1] = 0.0
-  end 
+function WTPMap(pats::patientcollection, Tex::EntireState, wtpd::Dict{Int64,Float64}, arr::Array{Float64,2})   
   for zipc in keys(pats.zips)
-    # there is no need for this intermediate dict.  WTP can be added directly.  Let CalcWTP take the 
-    # dict created in this function, have it calculate, then add.  That can be done in an array, perhaps... ?
-    # TODO - call ArrayZero before passing   
-    vals = CalcWTP(pats.zips[zipc]) #TODO - this allocates.  That's sort of dumb.  
-    for el in keys(vals) 
-      if el != 0 # don't try to map the OO.
-        if (vals[el]!=1)&(!isnan(vals[el])) # there should be no way for this to be 1 anyway.
-          outp[el] += log(1/(1-vals[el]))
-        elseif (vals[el] == 1)||(isnan(vals[el]))
-            println(zipc, "  ", vals[el])
+    ArrayZero(arr)                                    # call this before CalcWTP is called on each zip code   
+    CalcWTP(pats.zips[zipc], arr)                     # calculate WTP and store result in arr.
+    for ix1 in 1:size(arr,2)                          # all of the fids are in the first row 
+      if arr[1,ix1] != 0                              # don't try to map the OO.
+        if (arr[2,ix1]!=1)&(!isnan(arr[2,ix1]))       # there should be no way for this to be 1 anyway.
+          wtpd[arr[1,ix1]] += log(1/(1-arr[2,ix1]))   # add WTP to dict 
+        elseif (arr[2,ix1] == 1)||(isnan(arr[2,ix1])) # if an error occurs, print it.  
+            println(zipc, "  ", arr[2,ix1])
         end
       end 
     end
-  end
-  # TODO - no return, operate on dict.  
-  return outp # gives a dict{fid, WTP} back
+  end                                                 # return nothing. 
 end
 
 
@@ -1745,20 +1806,26 @@ end
 `NewSim(T::Int, Tex::EntireState, pats::patientcollection; entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002] )`
 Runs a T period simulation using the whole state and whole collection of patient records.
 
-Testing:
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+## Testing: ## 
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 10);
 patients = NewPatients(Texas);
-NewSim(50, Texas, patients);
+@time NewSim(10, Texas, patients);
+
+3.386766 seconds (9.28 M allocations: 183.511 MiB, 2.48% gc time)
+
 """
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   const entrants::Array{Float64,1} = [0, 1, 2, 3] 
   const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
   d1 = NewHospDict(Tex)                                                                        # creates a dict for GenP below.
   d2 = NewHospDict(Tex)                                                                        # creates a dict for GenM below
+  wtpd1 = WTPDict(Tex)                                                                         # creates a dict for WTPMap
+  wtparr1 = zeros(2,12)                                                                        # temporary array for CalcWTP
   arry1 = zeros(Int64, 1550)                                                                   # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550)                                                                   # allocates an array for use in GenM.  Can be re-used.
   for i = 1:T
-    WriteWTP(WTPMap(pats, Tex), Tex, i)
+    WTPMap(pats, Tex, wtpd1, wtparr1)
+    WriteWTP(wtpd1, Tex, i) 
     GenPChoices(pats, d1, arry1)                                                               # this now modifies the dictionary in-place
     PDemandMap(d1, Tex, i)                                                                     # and this now cleans the dictionary up at the end, setting all demands to 0.
     GenMChoices(pats, d2, arry2)                                                               # this now modifies the dictionary in-place
@@ -1775,9 +1842,9 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
       end
     end
     UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
+    CleanWTPDict(wtpd1)                                                                        # cleans the WTP Dictionary
   end
-  # TODO: Why return this?  Why not modify in place? 
-  # this would require further modifications below 
+  # TODO: Why return this?  Why not modify in place? this would require further modifications below 
   return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
 
@@ -1827,9 +1894,9 @@ Takes an entire state (or the empty state for data recording) and returns "true"
 """
 function Termination(EmTex::EntireState)
   isdone = true
-  for mark in keys(EmTex.mkts) # iterates over markets
+  for mrk in keys(EmTex.mkts) # iterates over markets
     # TODO - remove this comprehension - better to just iterate with & over all elements rather than allocating this.  
-    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].noneqrecord[i] for i in keys(EmTex.mkts[mark].noneqrecord) ] ))
+    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mrk].noneqrecord[i] for i in keys(EmTex.mkts[mrk].noneqrecord) ] ))
   end
   return isdone
 end
@@ -1895,6 +1962,8 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
   counter = 1
   arry1 = zeros(Int64, 1550)                                                                            # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550)                                                                            # allocates an array for use in GenM.  Can be re-used.
+  # TODO - 2 dicts for WTPMap
+  # TODO - 2 arrays for WTPMap
   Tex = CreateEmpty(fi, di, T)                                                                          # NB: New state once.
   pats = NewPatients(Tex);                                                                              # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
@@ -1947,6 +2016,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
           end
         end
       end
+      # TODO - clean up both of the dicts for WTPMap.  
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     for fips in pmarkets                                                                              # a collection of fips codes
