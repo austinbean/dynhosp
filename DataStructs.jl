@@ -1956,8 +1956,11 @@ This is for sure the slowest thing around.
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 NewSim(50, Texas, patients);
-PSim(50);
-520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time) # getting close to ten minutes...  
+
+Personal:
+
+@time PSim(50); #520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time) # getting close to ten minutes...
+@time PSim(40); #438.128597 seconds (1.16 G allocations: 21.903 GiB, 1.75% gc time)  
 """
 function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)                           # fi = fips,
   const entrants::Array{Int64,1} = [0, 1, 2, 3]
@@ -1967,10 +1970,10 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
   counter = 1
   arry1 = zeros(Int64, 1550)                                                                            # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550)                                                                            # allocates an array for use in GenM.  Can be re-used.
-  # TODO - 2 dicts for WTPMap
-  # TODO - 2 arrays for WTPMap
+  wtparr1 = zeros(2,12)                                                                        # temporary array for CalcWTP
   Tex = CreateEmpty(fi, di, T)                                                                          # NB: New state once.
   pats = NewPatients(Tex);                                                                              # NB: New patient collection, linked to the new state.  Must be created AFTER "Tex."
+  wtpd1 = WTPDict(Tex)                                                                         # creates a dict for WTPMap
   while termflag                                                                                        # true if there is some hospital which has not been perturbed.
     currentfac = Dict{Int64, Int64}()                                                                   # Dict{FID, fipscode} = {key, value}
     Restore(Tex)                                                                                        # cleans out all recorded data.
@@ -1994,7 +1997,8 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
     end
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
     for i = 1:T
-      WriteWTP(WTPMap(pats, Tex), Tex, i)
+      WTPMap(pats, Tex, wtpd1, wtparr1)
+      WriteWTP(wtpd1, Tex, i)
       GenPChoices(pats, d1, arry1)                                                                     # this now modifies the dictionary in-place
       PDemandMap(d1, Tex, i)                                                                           # and this now cleans the dictionary up at the end, setting all demands to 0.
       GenMChoices(pats, d2, arry2)                                                                     # this now modifies the dictionary in-place
@@ -2021,7 +2025,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
           end
         end
       end
-      # TODO - clean up both of the dicts for WTPMap.  
+      CleanWTPDict(wtpd1)                                                                        # cleans the WTP Dictionary
       UpdateDeterministic(pats)                                                                       # Updates deterministic component of utility for all patients and zips.
     end
     for fips in pmarkets                                                                              # a collection of fips codes
