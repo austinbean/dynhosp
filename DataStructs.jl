@@ -2463,10 +2463,17 @@ end
 
 
 """
-Combiner - 
+`CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)` 
 Goal here to get two outputs from one simulation.  
 
 TODO - something is making this REALLY slow on stampede2.  REALLY slow.  What the hell?
+NB - this comparison isn't quite fair yet because Stampede does not have the most recent version w/ changes to WTPMap etc.  
+Stampede MKL: @time NewSim(5, Texas, patients); #6.970327 seconds (4.71 M allocations: 104.489 MiB, 1.93% gc time)
+Stampede MKL: @time NewSim(40, Texas, patients); #55.357845 seconds (37.32 M allocations: 828.682 MiB, 1.37% gc time)
+
+Personal: @time NewSim(5, Texas, patients); #1.751509 seconds (4.69 M allocations: 92.628 MiB, 2.81% gc time)
+Personal: @time NewSim(40, Texas, patients); #13.861571 seconds (36.96 M allocations: 730.009 MiB, 1.82% gc time)
+
 
 # STAMPEDE2 BENCHMARKS: 
 
