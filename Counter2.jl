@@ -2732,6 +2732,13 @@ Parallelizes ExactValue computation across cores.
 function ExactControl()
   np = nprocs()
   # put object on different cores: 
+  # can do Dict{Int64,Channel} ?
+  d1 = Dict{Int64, Channel}()
+  # the next line does work, sort of.
+  # WARNING - this may not actually quit with a cntrl-C.
+  # this may require rmprocs( pid )
+  remotecall_fetch(ExactVal, 3, CounterObjects(5), [11], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
+
   for el in 1:np 
     r = RemoteChannel(el)   
     put!(r, dyn = CounterObjects(5))
