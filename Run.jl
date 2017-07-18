@@ -2,14 +2,14 @@
 
 #addprocs(30) # will work on Amazon.
 #addprocs() # will work on home machine.
-#addprocs(10) # will work on Stampede
+addprocs(68) # will work on Stampede
 
 loc = pwd()
 
 using ProjectModule
 
 
-res1, res2 = CombinedSim(4; T1 = 2)
+res1, res2 = CombinedSim(68; T1 = 40)
 
 println("Estimation Done - Saving")
 
