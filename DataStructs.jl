@@ -1856,6 +1856,7 @@ end
 
 function EqAction{T<:Fac}( H::T,i::Int64)
   action = StatsBase.sample( ChoicesAvailable(H), H.chprobability  )                 # Take the action
+  # TODO - surely this next line can be fixed.  
   H.probhistory[i] = H.chprobability[ findin(ChoicesAvailable(H), action)[1] ]     # Record the prob with which the action was taken.
   newchoice = LevelFunction(H, action)                                                 # What is the new level?
   H.chprobability = HospUpdate(H, newchoice)                                         # What are the new probabilities, given the new level?
