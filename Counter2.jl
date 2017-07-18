@@ -2715,7 +2715,28 @@ function HospitalDemand(pats::ProjectModule.patientcollection;
 end 
 
 
+"""
+`ExactControl`
 
+Parallelizes ExactValue computation across cores.  
+- get available procs.  
+- should take a list of procs - NB: "using ProjectModule" brings into scope across processes. 
+- create object across cores: create everywhere.
+- divide the list of firms into those w/ correct number of neighbors.
+- send computation out to core 
+- wait for completion
+- Record something when the results are returned - values, probably.
+- send next one in the list.  
+"""
+
+function ExactControl()
+  np = nprocs()
+  # put object on different cores: 
+  for el in 1:np 
+    r = RemoteChannel(el)   
+    put!(r, dyn = CounterObjects(5))
+  end 
+end 
 
 
 
