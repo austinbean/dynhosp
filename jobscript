@@ -1,0 +1,37 @@
+#!/bin/bash
+#----------------------------------------------------
+# Sample SLURM job script
+#   for TACC Stampede2 KNL nodes
+#
+#   *** Serial Job on Normal Queue ***
+#
+# Last revised: 27 Jun 2017
+#
+# Notes:
+#
+#   -- Copy/edit this script as desired.  Launch by executing
+#      "sbatch knl.serial.slurm" on a Stampede2 login node.
+#----------------------------------------------------
+
+#SBATCH -J testjob           # Job name
+#SBATCH -o testjob.o%j       # Name of stdout output file
+#SBATCH -e testjob.e%j       # Name of stderr error file
+#SBATCH -p normal          # Queue (partition) name
+#SBATCH -N 1               # Total # of nodes (must be 1 for serial)
+#SBATCH -n 1               # Total # of mpi tasks (should be 1 for serial)
+#SBATCH -t 01:00:00        # Run time (hh:mm:ss)
+#SBATCH --mail-user=austinbean@utexas.edu
+#SBATCH --mail-type=all    # Send email at begin and end of job
+#SBATCH -A        # Allocation name (req'd if you have more than 1)
+
+# Other commands must follow all #SBATCH directives...
+
+cd dynhosp
+pwd
+date
+
+# Launch serial code...
+
+../julia/julia Run.jl         # Do not use ibrun or any other MPI launcher
+
+# ---------------------------------------------------
