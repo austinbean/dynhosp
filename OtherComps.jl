@@ -8,6 +8,52 @@ Miscellaneous model computations for the paper:
 
 
 
+### Some work with types and different processes...
+
+l1 = addprocs()
+
+@everywhere mutable struct smth 
+    f::Array{Int64,1}
+end 
+
+@everywhere function adder(n::smth, i::Int64)
+    for j = 1:i 
+        push!(n.f, j)
+    end 
+end 
+
+@everywhere function buildsm()
+return smth([])
+end 
+
+s1 = smth([1,2,3,4,5,6])
+
+b1 = RemoteChannel(3)
+
+put!(b1, s1)
+
+s1 = 0; # destroy on master process. 
+
+r1 = remotecall(buildsm, 3)
+
+fetch(r1)
+
+remotecall_fetch(adder, 3, )
+
+# c1 = remotecall_fetch(adder, 3, fetch(r1), 100) # error?
+
+
+remotecall_fetch(adder, 3, s1, 200) # clearly this isn't doing what I thought.
+
+remotecall_fetch(adder, 3, smth([1,2,3,4,5,6]), 200)
+
+# this does work:
+
+remotecall_fetch(ExactVal, 3, CounterObjects(5), [11], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
+
+# take!(b1)
+
+
 """
 `WTPchange(d::DynState)`
 Take each firm.  Update the level.  Update the WTP.  Compute the change.
