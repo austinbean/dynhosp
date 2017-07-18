@@ -1854,6 +1854,17 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
 end
 
 
+function EqAction{T<:Fac}( H::T,i::Int64)
+  action = StatsBase.sample( ChoicesAvailable(H), H.chprobability  )                 # Take the action
+  H.probhistory[i] = H.chprobability[ findin(ChoicesAvailable(H), action)[1] ]     # Record the prob with which the action was taken.
+  newchoice = LevelFunction(H, action)                                                 # What is the new level?
+  H.chprobability = HospUpdate(H, newchoice)                                         # What are the new probabilities, given the new level?
+  H.level = newchoice                                                                  # Set the level to be the new choice.
+  H.levelhistory[i] = newchoice
+end
+
+
+
 
 
 """
@@ -1957,10 +1968,18 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 NewSim(50, Texas, patients);
 
-Personal:
+Stampede:
+@time PSim(1);  # 89.929505 seconds (65.28 M allocations: 1.263 GiB, 1.77% gc time)   x5.56
+@time PSim(10); # 486.703537 seconds (314.47 M allocations: 5.919 GiB, 1.11% gc time) x4.86
+@time PSim(40); # 1766.959950 seconds (1.16 G allocations: 21.890 GiB, 1.18% gc time) x4.38 (about 0.5 hours)
+@time CombinedSim(1; T1 = 40);
 
-@time PSim(50); #520.349212 seconds (1.91 G allocations: 105.887 GiB, 2.71% gc time) # getting close to ten minutes...
-@time PSim(40); #438.128597 seconds (1.16 G allocations: 21.903 GiB, 1.75% gc time)  
+Personal:
+@time PSim(1);                   # 16.223982 seconds (65.29 M allocations: 1.263 GiB, 3.50% gc time)
+@time PSim(10);                  # 100.210398 seconds (314.59 M allocations: 5.920 GiB, 1.96% gc time)
+@time PSim(40);                  # 403.344224 seconds (1.16 G allocations: 21.912 GiB, 1.85% gc time)  
+@time CombinedSim(1; T1 = 40);   # 415.258146 seconds (1.20 G allocations: 22.750 GiB, 1.90% gc time)
+
 """
 function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)                           # fi = fips,
   const entrants::Array{Int64,1} = [0, 1, 2, 3]
