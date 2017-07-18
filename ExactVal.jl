@@ -27,7 +27,7 @@ ExactVal(dyn, ch, p1, p2)
 
 PatientZero(p1, p2)
 
-ExactVal(dyn, [11], p1, p2)
+ExactVal(dyn, [11], p1, p2);
 
 
 ch2 = [11] # larger market. 
@@ -38,7 +38,7 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 3000)
+                  itlim::Int64 = 300)
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(outvals)                                                                    # initialize to zero 
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
@@ -87,7 +87,7 @@ function ExactVal(D::DynState,
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
     # FIXME - prints minimum difference every 1,000 iterations.  Should be removed eventually. 
-    if its %1000 == 0
+    if its %100 == 0
       println("iteration: ", its)
       for k1 in keys(outvals)
         mins::Float64 = 1.0
@@ -97,7 +97,7 @@ function ExactVal(D::DynState,
               mins = abs(outvals[k1][k2] - tempvals[k1][k2])
             end
           end 
-          println(k1, " ", k2, " ", mins) # just print the minimum difference.  
+          #println(k1, " ", k2, " ", mins) # just print the minimum difference.  
         end 
       end 
     end 
