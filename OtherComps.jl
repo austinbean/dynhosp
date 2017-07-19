@@ -57,7 +57,13 @@ remotecall_fetch(adder, 3, smth([1,2,3,4,5,6]), 200)
 
 remotecall_fetch(ExactVal, 3, CounterObjects(5), [11], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
 
+remotecall_fetch(ExactVal, 4, CounterObjects(5), [1], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
+
+
+
 # take!(b1)
+
+# I would like to PUT objects on the subsidiary processes and refer to them by name on the main process.  
 
 
 """
