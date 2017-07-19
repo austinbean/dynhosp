@@ -1,7 +1,7 @@
 """
-`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; debug::Bool = true)`
+`ExactVal(D::DynState, V::allvisits, itlim::Int64, chunk::Array{Int64,1}; itlim::Int64 = 1, outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())`
 Computes the exact solution for smaller markets.  1 - 5 firms at most.
-
+Note that this can take an argument with existing values.  This can be restarted, in other words.  
 
 entries to consideR: 1-15 are all.
 Here number of neighbors and entry (dyn.all[x])
@@ -38,9 +38,8 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 1)
-  outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-  DictClean(outvals)                                                                    # initialize to zero 
+                  itlim::Int64 = 1,
+                  outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence (Fid, Bool) Dict.
@@ -53,7 +52,9 @@ function ExactVal(D::DynState,
     FindComps(D, neighbors, D.all[el])                                                  # these are addresses of competitors in D.all 
     NFids(D, nfds, D.all[el])                                                           # records the fids of neighbors only, as fids.  
     push!(neighbors, el)                                                                # add the location of the firm in chunk
-    outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    if !haskey(outvals, D.all[el].fid)                                                  # add an empty dict IF there isn't already an entry.
+      outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    end 
     tempvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     CompsDict(neighbors, D, all_locs)                                                   # now this is Dict{Fid, Location}
     StateRecord(all_locs, D, st_dict)                                                   # returns the restricted state.
@@ -64,8 +65,13 @@ function ExactVal(D::DynState,
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), outvals[D.all[el2].fid]) 
       StateEnumerate(TupletoCNS(st_dict[D.all[el2].fid]), tempvals[D.all[el2].fid])
     end 
-    StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])                               # TODO - starting values here.
-    StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                              # this does NOT need starting values.  
+    if !haskey(outvals, D.all[el].fid)
+      StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])
+      StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
+    end 
+    if haskey(outvals, D.all[el].fid)
+      DictCopy(tempvals, outvals, 1)                                                    # if there is an entry for the value, copy FROM outvals TO tempvals.  
+    end                                
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
   end
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
