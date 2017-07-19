@@ -2726,24 +2726,46 @@ Parallelizes ExactValue computation across cores.
 - send computation out to core 
 - wait for completion
 - Record something when the results are returned - values, probably.
-- send next one in the list.  
+- send next one in the list. 
+ WARNING - this may not actually quit with a ctrl-C.
+this may require rmprocs( pid ; waitfor=0)
+OR: interrupt(pid) - to immediately do it. 
 """
 
-function ExactControl()
+function ExactControl(D::DynState)
   np = nprocs()
-  # put object on different cores: 
-  # can do Dict{Int64,Channel} ?
-  d1 = Dict{Int64, Channel}()
-  # the next line does work, sort of.
-  # WARNING - this may not actually quit with a cntrl-C.
-  # this may require rmprocs( pid )
-  remotecall_fetch(ExactVal, 3, CounterObjects(5), [11], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
-
-  for el in 1:np 
-    r = RemoteChannel(el)   
-    put!(r, dyn = CounterObjects(5))
+  results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()  
+  # Create the set of smaller markets.
+  chs::Array{Int64,1} = Array{Int64,1}()
+  for el in D.all 
+    if sum(el.cns) < 5
+      push!(chs, el.fid)
+    end 
   end 
+  # Schedule these chunks across available processes.
+  i = 1
+  nextix()=(idx=i;i+=1;idx)          # this function can use the i = 1 in this local scope - and i does persist within it.
+  avail = procs()
+  @sync begin                        # this will wait for everything to finish.
+    for p in 1:np                    # this will work through all of the processes
+      if p!=myid()||np == 1          # catches the single processor case, but also makes sure we don't use process 1, the main process.
+        @async begin                 # this permits not waiting - but where?  On the subsidiary processes, I guess?  
+          while true                 # continues indefinitely - break statement within.
+            ix = nextix()            # increment the index - i does persist so this will be a counter.
+            if ix > 4 #length(chs)      # stop when we exceed the number of markets.
+              break 
+            end 
+            println("current: ", chs[ix])
+            DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results)
+          end 
+        end
+      end  
+    end 
+  end 
+  return results 
 end 
+
+
 
 
 
