@@ -2731,7 +2731,8 @@ Parallelizes ExactValue computation across cores.
 - this may require rmprocs( pid ; waitfor=0)
 - OR: interrupt(pid) - to immediately do it. 
 - Note that the program will stop after the time given by wallh:wallm (hr:mn)
-- This can take a dict argument with existing values, but does not have to.  
+- This can take a dict argument with existing values, but does not have to. 
+- That part is not perfect yet - this won't give those values TO ExactVal yet.   
 
 ## Testing ## 
 
@@ -2743,26 +2744,25 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minutes(wallm)) # wall time in hours and minutes 
   strt = now()
   np = nprocs()
-  # Create the set of smaller markets.
-  chs::Array{Int64,1} = Array{Int64,1}()
+  
+  chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
   for el in 1:size(D.all,1) 
     if sum(D.all[el].cns) < 5
       push!(chs, el) 
-      results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}() # populate the dict to hold results.  
+      results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}()                       # populate the dict to hold results.  
     end 
   end 
-  # Schedule these chunks across available processes.
   i = 1
-  nextix()=(idx=i;i+=1;idx)          # this function can use the i = 1 in this local scope - and i does persist within it.
-  avail = procs()
-  @sync begin                        # this will wait for everything to finish.
-    for p in 1:np                    # this will work through all of the processes
-      if p!=myid()||np == 1          # catches the single processor case, but also makes sure we don't use process 1, the main process.
-        @async begin                 # this permits not waiting - but where?  On the subsidiary processes, I guess?  
-          while true                 # continues indefinitely - break statement within.
+  nextix()=(idx=i;i+=1;idx)                                                           # this function can use the i = 1 in this local scope - and i does persist within it.
+  avail = procs()                                                                     # list of available processes, including the master process 1.
+  @sync begin                                                                         # this will wait for everything to finish.
+    for p in 1:np                                                                     # this will work through all of the processes, but see next line.  
+      if p!=myid()||np == 1                                                           # catches the single processor case, but also makes sure we don't use process 1, the main process.
+        @async begin                                                                  # this permits not waiting on the individual subsidiary processes  
+          while true                                                                  # continues indefinitely - break statement within.
             current = now()
-            ix = nextix()            # increment the index - i does persist so this will be a counter.
-            if ix>length(chs) || ((current-strt)>wl )  #      # stop when we exceed the number of markets.
+            ix = nextix()                                                             # increment the index - i does persist so this will be a counter.
+            if ix>length(chs) || ((current-strt)>wl )                                 # stop when we exceed the number of markets OR the wall time.
               DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
               break 
             end 
