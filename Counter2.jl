@@ -2716,7 +2716,7 @@ end
 
 
 """
-`ExactControl`
+`ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}())`
 
 Parallelizes ExactValue computation across cores.  
 - get available procs.  
@@ -2727,19 +2727,28 @@ Parallelizes ExactValue computation across cores.
 - wait for completion
 - Record something when the results are returned - values, probably.
 - send next one in the list. 
- WARNING - this may not actually quit with a ctrl-C.
-this may require rmprocs( pid ; waitfor=0)
-OR: interrupt(pid) - to immediately do it. 
-"""
+- WARNING - this may not actually quit with a ctrl-C.
+- this may require rmprocs( pid ; waitfor=0)
+- OR: interrupt(pid) - to immediately do it. 
+- Note that the program will stop after the time given by wallh:wallm (hr:mn)
+- This can take a dict argument with existing values, but does not have to.  
 
-function ExactControl(D::DynState)
+## Testing ## 
+
+dyn = CounterObjects(5);
+ExactControl(dyn)
+
+"""
+function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
+  wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minutes(wallm)) # wall time in hours and minutes 
+  strt = now()
   np = nprocs()
-  results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()  
   # Create the set of smaller markets.
   chs::Array{Int64,1} = Array{Int64,1}()
-  for el in D.all 
-    if sum(el.cns) < 5
-      push!(chs, el.fid)
+  for el in 1:size(D.all,1) 
+    if sum(D.all[el].cns) < 5
+      push!(chs, el) 
+      results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}() # populate the dict to hold results.  
     end 
   end 
   # Schedule these chunks across available processes.
@@ -2751,12 +2760,14 @@ function ExactControl(D::DynState)
       if p!=myid()||np == 1          # catches the single processor case, but also makes sure we don't use process 1, the main process.
         @async begin                 # this permits not waiting - but where?  On the subsidiary processes, I guess?  
           while true                 # continues indefinitely - break statement within.
+            current = now()
             ix = nextix()            # increment the index - i does persist so this will be a counter.
-            if ix > 4 #length(chs)      # stop when we exceed the number of markets.
+            if ix>length(chs) || ((current-strt)>wl )  #      # stop when we exceed the number of markets.
+              DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
               break 
             end 
-            println("current: ", chs[ix])
-            DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results)
+            println("current: ", D.all[chs[ix]].fid)
+            DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
           end 
         end
       end  
