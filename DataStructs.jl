@@ -1326,7 +1326,7 @@ function UMap(utils::Array{Float64,1},fids::Array{Int64,1})::Int64
 end 
 
 """
-`function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}`
+`DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}`
 This is a more efficient version of `DicttoVec`.  Takes a dictionary of {Int64,Float64}
 and returns two vectors.
 
@@ -1336,16 +1336,18 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 DV(patients.zips[78702].pdetutils)
 
+@code_warntype DV(patients.zips[78702].pdetutils)
+
 This is not type stable, which is weird...
 """
 function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
-  out1::Array{Int64,1} = zeros(Int64, d.count) #for the keys/FIDs
+  out1::Array{Int64,1} = zeros(Int64, d.count)     #for the keys/FIDs
   out2::Array{Float64,1} = zeros(Float64, d.count) #for the utils
   for (i,k) in enumerate(keys(d))
     out1[i]::Int64 = k
     out2[i]::Float64 = d[k]
   end
-  return out1::Array{Int64,1}, out2::Array{Float64,1}
+  return out1, out2
 end
 
 
