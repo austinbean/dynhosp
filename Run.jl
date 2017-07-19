@@ -10,7 +10,10 @@ using ProjectModule
 ds1 = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
 println("Sim Starting at: ", ds1)
 
-res1, res2 = CombinedSim(68; T1 = 40)
+#res1, res2 = CombinedSim(68; T1 = 40)
+
+res1 = rand(100,100);
+res2 = rand(100,100);
 
 println("Estimation Done - Saving")
 
