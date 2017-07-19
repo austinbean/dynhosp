@@ -20,13 +20,19 @@ end
     for j = 1:i 
         push!(n.f, j)
     end 
+    return n # this function needs an explicit return statement, otherwise remotecall_fetch won't return anything.
 end 
+
+@everywhere function getter(n::smth)
+    return n.f 
+end 
+
 
 @everywhere function buildsm()
 return smth([])
 end 
 
-s1 = smth([1,2,3,4,5,6])
+#s1 = smth([1,2,3,4,5,6])
 
 b1 = RemoteChannel(3)
 
@@ -47,7 +53,7 @@ remotecall_fetch(adder, 3, s1, 200) # clearly this isn't doing what I thought.
 
 remotecall_fetch(adder, 3, smth([1,2,3,4,5,6]), 200)
 
-# this does work:
+# this does work, but does not obviously terminate when it should. :
 
 remotecall_fetch(ExactVal, 3, CounterObjects(5), [11], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
 
