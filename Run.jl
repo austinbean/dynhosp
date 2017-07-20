@@ -16,7 +16,7 @@ res1 = rand(100,100);
 res2 = rand(100,100);
 
 println("Estimation Done - Saving")
-
+println("size? ", size(res1), " ", size(res2))
 ds = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
 println("Finished at: ", ds)
 
