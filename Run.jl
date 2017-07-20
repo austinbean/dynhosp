@@ -19,7 +19,8 @@ println("Estimation Done - Saving")
 println("size? ", size(res1), " ", size(res2))
 ds = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
 println("Finished at: ", ds)
-
+println("locs: ", loc*"/longobjective"*ds*".csv")
+println("locs2: ", loc*"/shortobjective"*ds*".csv")
 writecsv(loc*"/longobjective"*ds*".csv", res1)
 writecsv(loc*"/shortobjective"*ds*".csv", res2)
 
