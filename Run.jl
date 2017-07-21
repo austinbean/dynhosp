@@ -10,7 +10,7 @@ using ProjectModule
 ds1 = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
 println("Sim Starting at: ", ds1)
 
-res1, res2 = CombinedSim(68; T1 = 40)
+res1, res2 = CombinedSim(476; T1 = 40) # 476/68 = 7 reps/core.  
 
 println("Estimation Done - Saving")
 println("size? ", size(res1), " ", size(res2))
