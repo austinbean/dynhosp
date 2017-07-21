@@ -2240,6 +2240,9 @@ end
 """
 `GetNewLevel(f::shortrec, states::Array{Tuple{Int64,Int64}})`
 This is dumb.  Takes a row of (fid,level) tuples and a shortrec, and changes the level.
+
+# TODO - probably the main facility doesn't read the level from this part of the state.  
+# TODO - where does the state come from?  Or - where does it read the state?  
 """
 function GetNewLevel(f::shortrec, states::Array{Tuple{Int64,Int64}})
   for el in states                       # Set of (fid,level) tuples
