@@ -19,15 +19,14 @@ triopoly:
 
 
 dyn = CounterObjects(50);
-
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ExactVal(dyn, ch, p1, p2)
+ExactVal(dyn, ch, p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
 
 PatientZero(p1, p2)
 
-ExactVal(dyn, [11], p1, p2);
+ExactVal(dyn, [11], p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }());
 
 
 ch2 = [11] # larger market. 
@@ -38,7 +37,7 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 1,
+                  itlim::Int64 = 1000,
                   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(tempvals)                                                                   # initialize to zero. 
@@ -70,7 +69,7 @@ function ExactVal(D::DynState,
       StateEnumerate(D.all[el].cns, tempvals[D.all[el].fid])                            # this does NOT need starting values.  
     end 
     if haskey(outvals, D.all[el].fid)
-      DictCopy(tempvals, outvals, 1)                                                    # if there is an entry for the value, copy FROM outvals TO tempvals.  
+      DictCopy(tempvals, outvals, 1.0)                                                  # if there is an entry for the value, copy FROM outvals TO tempvals.  
     end                                
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
   end
@@ -81,9 +80,9 @@ function ExactVal(D::DynState,
     for k in keys(totest)                                                              
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
+          println("current state: ", altstates[r,:])
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
-          # TODO - there is an UpdateD called in ExactChoice - maybe that isn't necessary anymore?
-          UpdateDUtil(D.all[all_locs[k]])    
+          # TODO - probably MapCompState is not working correctly.  Or it is not updating the state correctly.  
           FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right 
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
