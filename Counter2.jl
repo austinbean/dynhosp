@@ -2161,6 +2161,77 @@ function NStateKey(rstate::NTuple{9,Int64},lev::Int64)
 end 
 
 
+"""
+`GiveState`
+
+This is going to - 
+Take addresses, fids and levels
+
+ExactChoice Comments: 
+          # Problem is here, potentially.  This doesn't update the state correctly.  Or doesn't recompute the state.
+          # It is only drawing a single state.
+          # How is this state even unique?  It is unique, but that's a problem.
+          # ACtually I suspect that this IS doing the right thing - checking all alternate states - but 
+          # it is not WRITING the right state out.  Hm.  Ok.  
+          # Change exact choice to accept a state as the st_dict argument, I think.
+          # then write out that using altstates row and a location dict, which I think exists.  
+          # check all_locs.  But there should be a function which can return the total state.
+
+Really I just want this to return a neighbors type.  
+I need the location of main firm too.  
+"""
+function GiveState(D::dyn, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, block::Array{Tuple{Int64,Int64}}, res::ProjectModule.neighbors)
+  NeighborsZero(res) # set all elements to zero.  
+  for m in ch # should have only one element - this is the MAIN firm.  
+    for el in block #tuples - these are neighbors fids/levels.  
+      distance::Float64 = dist( D.all[m].lat, D.all[m].long, D.all[locs[el[1]]].lat, D.all[locs[el[1]]].long) # compute the distance.
+      if el[2] == 1
+        if (dist>0.0)&(dist<=5.0)
+          res.level105
+        elseif (dist>5.0)&(dist<=15.0)
+          res.level1515 
+        elseif (dist>15.0)&(dist<=25.0)
+          res.level11525
+        end 
+      elseif el[2] == 2
+        if (dist>0.0)&(dist<=5.0)
+          res.level205
+        elseif (dist>5.0)&(dist<=15.0)
+          res.level2515 
+        elseif (dist>15.0)&(dist<=25.0)
+          res.level21525
+        end 
+      elseif el[2] == 3
+        if (dist>0.0)&(dist<=5.0)
+          res.level305
+        elseif (dist>5.0)&(dist<=15.0)
+          res.level3515 
+        elseif (dist>15.0)&(dist<=25.0)
+          res.level31525
+        end 
+      else # el[2] == -999
+        # do nothing - not present.
+      end 
+    end 
+  end 
+end 
+
+"""
+`NeighborsZero(c::ProjectModule.neighbors)`
+Sets all neighbors to zero.  
+"""
+function NeighborsZero(c::ProjectModule.neighbors)
+  c.level105 = 0
+  c.level205 = 0
+  c.level305 = 0
+  c.level1515 = 0
+  c.level2515 = 0
+  c.level3515 = 0
+  c.level11525 = 0
+  c.level21525 = 0
+  c.level31525 = 0
+end 
+
 
 """
 `FindComps(D::DynState, arr::Array{Int64,1}, args::simh...)`
