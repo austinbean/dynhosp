@@ -42,9 +42,9 @@ function ExactVal(D::DynState,
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence (Fid, Bool) Dict.
-  all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict 
+  all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
-  neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms.
+  neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms AND the firm itself.
   nfds::Array{Int64,1} = Array{Int64,1}()                                               # records the fids of neighbors, as fids, not locations. 
   its::Int64 = 0                                                                        # records iterations, but will be dropped after debugging.
   for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
@@ -80,18 +80,10 @@ function ExactVal(D::DynState,
     for k in keys(totest)                                                              
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
-          println("current state: ", altstates[r,:])
+         # println("current state: ", altstates[r,:])
+          #println("k: ", k) # is a fid!
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
-          # TODO - probably MapCompState is not working correctly.  Or it is not updating the state correctly.  
-          FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right
-          # Problem is here, potentially.  This doesn't update the state correctly.  Or doesn't recompute the state.
-          # It is only drawing a single state.
-          # How is this state even unique?  It is unique, but that's a problem.
-          # ACtually I suspect that this IS doing the right thing - checking all alternate states - but 
-          # it is not WRITING the right state out.  Hm.  Ok.  
-          # Change exact choice to accept a state as the st_dict argument, I think.
-          # then write out that using altstates row and a location dict, which I think exists.  
-          # check all_locs.  But there should be a function which can return the total state.   
+          FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right   
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
