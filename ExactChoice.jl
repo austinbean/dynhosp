@@ -59,7 +59,7 @@ d1[dyn.all[1].fid]
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
                      nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict  
-                     st_recs::Dict{Int64,NTuple{9,Int64}}, # these should contain restricted states.  
+                     st_recs::Dict{Int64,NTuple{9,Int64}}, # TODO - change for NTuple{9,Int64} OR   
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
