@@ -83,7 +83,15 @@ function ExactVal(D::DynState,
           println("current state: ", altstates[r,:])
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
           # TODO - probably MapCompState is not working correctly.  Or it is not updating the state correctly.  
-          FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right 
+          FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right
+          # Problem is here, potentially.  This doesn't update the state correctly.  Or doesn't recompute the state.
+          # It is only drawing a single state.
+          # How is this state even unique?  It is unique, but that's a problem.
+          # ACtually I suspect that this IS doing the right thing - checking all alternate states - but 
+          # it is not WRITING the right state out.  Hm.  Ok.  
+          # Change exact choice to accept a state as the st_dict argument, I think.
+          # then write out that using altstates row and a location dict, which I think exists.  
+          # check all_locs.  But there should be a function which can return the total state.   
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
