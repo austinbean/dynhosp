@@ -2226,6 +2226,8 @@ MapCompState(dyn, ch1, fids1, states1)
 function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
   for el in ch                     # these are locations in D.all 
     for zp in D.all[el].mk.m       # these are the zipcodes at each D.all[el]
+      # this is only doing part of what needs to be updated.  This is updating zipcodes.  
+      # but that's not all that needs to be updated.  The level of the facility itself should be changed.
       for f in zp.facs             # these are the facilities in the zip.
         if f.fid in(f, fids)       # update those which are relevant ONLY 
           GetNewLevel(f, states)   # calls this to fix the level and record that it must be updated.
