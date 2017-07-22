@@ -1958,7 +1958,7 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 
 test2 = Dict(3396057=>195, 3390720=>196 , 3396327=>197 , 3396189=>198, 2910645 => 11)
 out_1 = Dict{Int64,NTuple{9,Int64}}()
@@ -2166,6 +2166,16 @@ end
 
 This is going to - 
 Take addresses, fids and levels
+
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
+CMakeIt(Tex, ProjectModule.fips);
+FillState(Tex, ProjectModule.alldists, 50);
+patients = NewPatients(Tex);
+
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
+
 
 ExactChoice Comments: 
           # Problem is here, potentially.  This doesn't update the state correctly.  Or doesn't recompute the state.
