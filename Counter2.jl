@@ -1425,9 +1425,14 @@ needs to be called once, so not so bad.
 
 """
 function MakeStateBlock(n::Array{Int64,1})
+  # FIXME - check the base, empty-array n case.  
   outp::Array{Tuple{Int64,Int64}} = Array{Tuple{Int64,Int64}}()
-  for i in n 
-    outp = StateBlock(outp, i)
+  if length(n) > 1
+    for i in n 
+      outp = StateBlock(outp, i)
+    end
+  else 
+    push!(outp, (0, 0)) 
   end 
   return outp 
 end 
@@ -2164,8 +2169,7 @@ end
 """
 `GiveState`
 
-This is going to - 
-Take addresses, fids and levels
+This changes the dyn.all[].cns of the main firm to match the changed state.  
 
 
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
@@ -2174,52 +2178,54 @@ CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists, 50);
 patients = NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
+dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
+all_locs1 = Dict{Int64, Int64}()
+st_dict1 = Dict{Int64,NTuple{9,Int64}}()
+neighbors1 = Array{Int64,1}()
+nfds1 = Array{Int64,1}()
+FindComps(dyn, neighbors1, dyn.all[11])
+NFids(dyn, nfds1, dyn.all[11])
+dyn.all[11].cns 
+push!(neighbors1, 11)
+CompsDict(neighbors1, dyn, all_locs1)
+StateRecord(all_locs1, dyn, st_dict1)
+altstates1 = MakeStateBlock(nfds1)
 
+testcns = ProjectModule.neighbors(0,0,0,0,0,0,0,1,3)
 
-ExactChoice Comments: 
-          # Problem is here, potentially.  This doesn't update the state correctly.  Or doesn't recompute the state.
-          # It is only drawing a single state.
-          # How is this state even unique?  It is unique, but that's a problem.
-          # ACtually I suspect that this IS doing the right thing - checking all alternate states - but 
-          # it is not WRITING the right state out.  Hm.  Ok.  
-          # Change exact choice to accept a state as the st_dict argument, I think.
-          # then write out that using altstates row and a location dict, which I think exists.  
-          # check all_locs.  But there should be a function which can return the total state.
+GiveState(dyn, [11], all_locs1, altstates1[1,:], testcns)
 
-Really I just want this to return a neighbors type.  
-I need the location of main firm too.  
+testcns==ProjectModule.neighbors(0,0,0,0,0,0,4,0,0)
 
-STARt HERE - this is to take the input cns res and operate on it to create the NEW state.  
 """
 function GiveState(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, block::Array{Tuple{Int64,Int64}}, res::ProjectModule.neighbors)
   NeighborsZero(res) # set all elements to zero.  
   for m in ch # should have only one element - this is the MAIN firm.  
     for el in block #tuples - these are neighbors fids/levels.  
-      distance::Float64 = dist( D.all[m].lat, D.all[m].long, D.all[locs[el[1]]].lat, D.all[locs[el[1]]].long) # compute the distance.
+      dist::Float64 = distance( D.all[m].lat, D.all[m].long, D.all[locs[el[1]]].lat, D.all[locs[el[1]]].long) # compute the distance.
       if el[2] == 1
         if (dist>0.0)&(dist<=5.0)
-          res.level105
+          res.level105+=1
         elseif (dist>5.0)&(dist<=15.0)
-          res.level1515 
+          res.level1515 +=1
         elseif (dist>15.0)&(dist<=25.0)
-          res.level11525
+          res.level11525+=1
         end 
       elseif el[2] == 2
         if (dist>0.0)&(dist<=5.0)
-          res.level205
+          res.level205+=1
         elseif (dist>5.0)&(dist<=15.0)
-          res.level2515 
+          res.level2515 +=1
         elseif (dist>15.0)&(dist<=25.0)
-          res.level21525
+          res.level21525+=1
         end 
       elseif el[2] == 3
         if (dist>0.0)&(dist<=5.0)
-          res.level305
+          res.level305+=1
         elseif (dist>5.0)&(dist<=15.0)
-          res.level3515 
+          res.level3515+=1 
         elseif (dist>15.0)&(dist<=25.0)
-          res.level31525
+          res.level31525+=1
         end 
       else # el[2] == -999
         # do nothing - not present.
