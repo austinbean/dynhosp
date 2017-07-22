@@ -2179,8 +2179,10 @@ ExactChoice Comments:
 
 Really I just want this to return a neighbors type.  
 I need the location of main firm too.  
+
+STARt HERE - this is to take the input cns res and operate on it to create the NEW state.  
 """
-function GiveState(D::dyn, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, block::Array{Tuple{Int64,Int64}}, res::ProjectModule.neighbors)
+function GiveState(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, block::Array{Tuple{Int64,Int64}}, res::ProjectModule.neighbors)
   NeighborsZero(res) # set all elements to zero.  
   for m in ch # should have only one element - this is the MAIN firm.  
     for el in block #tuples - these are neighbors fids/levels.  
