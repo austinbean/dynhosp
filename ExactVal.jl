@@ -86,7 +86,14 @@ function ExactVal(D::DynState,
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
           # TODO - after this state has been mapped, we need to update all of the zips for all of the different firms.  
           FixNN(D.all[all_locs[k]])        # TODO - What problem is this solving exactly?  
-          # Why aren't utilities getting updated in here and/or why doesn't demand differ at all?     
+          # Why aren't utilities getting updated in here and/or why doesn't demand differ at all? 
+          # Which function updates D?  Where does it update it?  Where are utilities drawn from here?
+          #  What we need to do is update the utility of this group of facilities at all zips
+          # from which demand is drawn here in ExactChoice.  The utilities do not need to be updated everywhere.
+          # UpdateD is called on D.all[all_locs[k]] - this should update for everyone.  
+          # We can call UtilUp PERHAPS on the other firms.  But then need to call UtilDown on the same after this step.
+          # Ok - where does UtilDown draw the level information from?  UtilUp can work on any, since it just requires a fid.
+          # The hypothetical function should take the altstate and call UtilUp    
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
