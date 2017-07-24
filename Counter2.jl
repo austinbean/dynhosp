@@ -2195,7 +2195,10 @@ testcns = ProjectModule.neighbors(0,0,0,0,0,0,0,1,3)
 
 GiveState(dyn, [11], all_locs1, altstates1[1,:], testcns)
 
-testcns==ProjectModule.neighbors(0,0,0,0,0,0,4,0,0)
+for r in 1:size(altstates1,1)
+  GiveState(dyn, [11], all_locs1, altstates1[r,:], testcns)
+  println(testcns)
+end 
 
 """
 function GiveState(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, block::Array{Tuple{Int64,Int64}}, res::ProjectModule.neighbors)
@@ -2292,7 +2295,7 @@ end
 """
 `MapCompState`
 
-This is a fucking nightmare.  There must be a better way...
+This is a  nightmare.  There must be a better way...
 For EACH firm listed in ch, 
 for EACH state in states,
 for EACH fac in D.all[].mk.m.facs, 
