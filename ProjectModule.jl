@@ -854,6 +854,7 @@ end
   export ExactControl
   export NeighborsZero
   export GiveState
+  export NeighborsTuple
    
   
 
