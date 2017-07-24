@@ -81,19 +81,15 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)  
-    # Adding a test for the incrementing NaN problem.  NANFIX
    # testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
   # Update value at Level 1
     D.all[location].level = 1
+    # We should update the utility for ALL zips for ALL firms, but this update can just fix this one firm.  
     UpdateD(D.all[location])                                  # updates the utility for a new level 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
     temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
-    # NANFIX - can delete eventually.
-        # if !isapprox(testfloat, D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
-        #     error("First Update Failed.")
-        # end 
   # Update value at Level 2 (repeats steps above!)
     D.all[location].level = 2
     UpdateD(D.all[location]) # Updates deterministic part of utility.  
