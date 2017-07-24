@@ -2170,7 +2170,7 @@ end
 `GiveState`
 
 This changes the dyn.all[].cns of the main firm to match the changed state.  
-
+Does not operate in place now.  But changes CNS and returns a tuple, hopefully.  
 
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
@@ -2185,7 +2185,6 @@ neighbors1 = Array{Int64,1}()
 nfds1 = Array{Int64,1}()
 FindComps(dyn, neighbors1, dyn.all[11])
 NFids(dyn, nfds1, dyn.all[11])
-dyn.all[11].cns 
 push!(neighbors1, 11)
 CompsDict(neighbors1, dyn, all_locs1)
 StateRecord(all_locs1, dyn, st_dict1)
@@ -2197,8 +2196,37 @@ GiveState(dyn, [11], all_locs1, altstates1[1,:], testcns)
 
 for r in 1:size(altstates1,1)
   GiveState(dyn, [11], all_locs1, altstates1[r,:], testcns)
+  println(altstates1[r,:])
   println(testcns)
 end 
+
+
+all_locs2 = Dict{Int64, Int64}()
+st_dict2 = Dict{Int64,NTuple{9,Int64}}()
+neighbors2 = Array{Int64,1}()
+nfds2 = Array{Int64,1}()
+FindComps(dyn, neighbors2, dyn.all[100])
+NFids(dyn, nfds2, dyn.all[100])
+push!(neighbors2, 100)
+CompsDict(neighbors2, dyn, all_locs2)
+StateRecord(all_locs2, dyn, st_dict2)
+altstates2 = MakeStateBlock(nfds2)
+
+for r in 1:100 #size(altstates2,1) - there are 16 million or so states in total 
+  GiveState(dyn, [100], all_locs2, altstates2[r,:], testcns)
+  println(altstates2[r,:])
+  println(testcns)
+end 
+
+
+@benchmark GiveState( dyn, [11], all_locs1, altstates1[50,:], testcns)
+
+  memory estimate:  160 bytes
+  allocs estimate:  2
+  --------------
+  minimum time:     400.510 ns (0.00% GC)
+  median time:      406.860 ns (0.00% GC)
+  mean time:        424.453 ns (2.71% GC)
 
 """
 function GiveState(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, block::Array{Tuple{Int64,Int64}}, res::ProjectModule.neighbors)
@@ -2235,6 +2263,7 @@ function GiveState(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, blo
       end 
     end 
   end 
+  return NeighborsTuple(res)
 end 
 
 """
@@ -2878,6 +2907,13 @@ end
 
 
 ### Above this line... Exact Value development ###
+"""
+`NeighborsTuple`
+Returns tuple from neighbors.  
+"""
+function NeighborsTuple(c::ProjectModule.neighbors)
+  return (c.level105,c.level205,c.level305,c.level1515,c.level2515,c.level3515,c.level11525,c.level21525,c.level31525)
+end 
 
 
 
