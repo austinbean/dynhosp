@@ -22,7 +22,7 @@ dyn = CounterObjects(50);
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ExactVal(dyn, ch, p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
+#ExactVal(dyn, ch, p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
 
 PatientZero(p1, p2)
 
@@ -37,12 +37,14 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 1000,
+                  itlim::Int64 = 100,
                   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence (Fid, Bool) Dict.
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
+  # TODO - this is kind of dumb... why not record this as a mutable cns type?  Can be converted to Tuple for Dict.
+  # Or return a tuple in GiveState.
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
   neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms AND the firm itself.
   nfds::Array{Int64,1} = Array{Int64,1}()                                               # records the fids of neighbors, as fids, not locations. 
@@ -80,8 +82,7 @@ function ExactVal(D::DynState,
     for k in keys(totest)                                                              
       if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
-         # println("current state: ", altstates[r,:])
-          #println("k: ", k) # is a fid!
+          st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
           FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right   
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
