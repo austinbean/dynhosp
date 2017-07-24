@@ -22,7 +22,7 @@ dyn = CounterObjects(50);
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-#ExactVal(dyn, ch, p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
+ExactVal(dyn, ch, p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }() )
 
 PatientZero(p1, p2)
 
@@ -84,7 +84,9 @@ function ExactVal(D::DynState,
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
           st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
           MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
-          FixNN(D.all[all_locs[k]])                                                     # TODO - is this getting it right? fix the neighbors here for the main firm to get the state right   
+          # TODO - after this state has been mapped, we need to update all of the zips for all of the different firms.  
+          FixNN(D.all[all_locs[k]])        # TODO - What problem is this solving exactly?  
+          # Why aren't utilities getting updated in here and/or why doesn't demand differ at all?     
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
