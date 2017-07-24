@@ -853,6 +853,7 @@ end
   export PolicyUp2
   export ExactControl
   export NeighborsZero
+  export GiveState
    
   
 
