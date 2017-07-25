@@ -2340,19 +2340,32 @@ TODO - finish this.
 
 ### Testing ### 
 
-dyn = CounterObjects(50);
+dyn = CounterObjects(5);
+all_locs1 = Dict(1391330 => 90)
 fids1 =  [1391330]
 ch1 = [1]
-states1 = [(1391330, 3)] # changing level
+states_1 = [(1391330, 3)] # changing level
 
-MapCompState(dyn, ch1, fids1, states1)
+MapCompState(dyn, all_locs1, ch1, fids1, states_1)
+
+### another test ### 
+
+all_locs2 = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
+fids2 = [ 3396057, 3390720, 3396327, 3396189]
+ch2 = [11]
+states_2 = [ (3396057,2), (3390720,2), (3396327,1), (3396189,1)]
+
+MapCompState(dyn, all_locs2, ch2, fids2, states_2)
 
 """
-function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
-  for el in ch                     # these are locations in D.all 
+function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
+  for el in ch                     # these are locations in D.all - but there should be only one.    
+    for tp in states # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+      # TODO - do these levels need to be updated?  I don't know if they are necessary to compute the changed utilities.  
+      D.all[locs[tp[1]]].level = tp[2]
+    end 
     for zp in D.all[el].mk.m       # these are the zipcodes at each D.all[el]
-      # this is only doing part of what needs to be updated.  This is updating zipcodes.  
-      # but that's not all that needs to be updated.  The level of the facility itself should be changed.
+      UtilUp(zp, tp[1], D.all[locs[tp[1]]], tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
       for f in zp.facs             # these are the facilities in the zip.
         if f.fid in(f, fids)       # update those which are relevant ONLY 
           GetNewLevel(f, states)   # calls this to fix the level and record that it must be updated.
@@ -2363,9 +2376,35 @@ function MapCompState(D::DynState, ch::Array{Int64,1}, fids::Array{Int64,1} , st
 end 
 
 """
+`UpdateOthers()`
+Updates all of the utilities of neighbors firms.
+TODO - 
+loop over every zip,
+each facility that has changed,
+need levels,
+update according to changes. 
+What do we have?  
+  The locs.  
+  The fids.  
+  The new levels.   
+"""
+function UpdateOthers(locs::Dict{Int64,Int64}, states::Array{Tuple{Int64,Int64}})
+  # this is called within MapCompState
+  # when this has been called, levels have already been mapped out.  
+  # this should call the update utility function on all of the firms in the new state. 
+  # Can call UtilUp on this thing.
+  for st in states 
+
+
+  end 
+end 
+
+
+
+"""
 `GetNewLevel(f::shortrec, states::Array{Tuple{Int64,Int64}})`
 This is dumb.  Takes a row of (fid,level) tuples and a shortrec, and changes the level.
-
+# TODO - is it even important to change this in these records?  
 # TODO - probably the main facility doesn't read the level from this part of the state.  
 # TODO - where does the state come from?  Or - where does it read the state?  
 """
@@ -2550,7 +2589,6 @@ function UtilDown(h::simh)
   # reset the level AFTER this is called:
   h.level = h.actual  
 end 
-
 
 
 
