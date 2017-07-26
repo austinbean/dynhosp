@@ -419,6 +419,7 @@ function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
   # doing int_sum = 1.0 captures the fact that there is one outside option, with util 0, so int_sum must
   # be at least one.  This solves the division by zero problem.  plus all elements which are zero can be ignored.
   # the first zero in the top row receives 1/int_sum in the second row.  This gets the prob of the OO.   
+  # Note that nothing here is specific to WTP - this can compute shares given deterministic utilities too.  
   int_sum::Float64 = 1.0 
   for el in 1:size(c,2)
     if c[1,el]!=0.0 
@@ -457,20 +458,13 @@ temparr = zeros(2, 12) # 12 is max # of facilities.
 
 DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid,   ptest)
 
-function TestDemComp(n::Int64)
-  p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
-  temparr = zeros(2, 12) # 12 is max # of facilities. 
+testinp = [ 1.0 2.0 3.0 4.0 5.0 ; 0.2 0.2 0.2 0.2 0.2]
+ptest2 = patientcount(10, 20, 100, 1000, 0, 0,0)
+temparr = zeros(2, 12) # 12 is max # of facilities.
+ArrayZero(temparr)
+DemComp(testinp, temparr, p1, 3, ptest2)
 
-  for i = 1:n
-    @time DemComp(dyn.all[2].mk.m[1].putils, temparr, p1, dyn.all[2].fid, dyn.all[2].mk.m[1], true, false )
-    PatientZero(p1, p2)
-  end 
-
-end 
-
-TestDemComp(5)
 """
 function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)  
   # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
@@ -480,8 +474,9 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
     if inparr[1,i] == fid
       index = i #reassign - XXX - double check that this reassignment works.  I think it does.  
     end
-  end
-  WTPNew(inparr, temparr) # updates temparr
+  end 
+  WTPNew(inparr, temparr) # updates temparr - it should be with shares given by utilities. 
+  # println("temparr: ", temparr) 
   if index!=0 # don't look for a facility that isn't there.
     for j in c
       if counter == 0   
@@ -545,31 +540,82 @@ patients = NewPatients(Tex);
 dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);;
 
 
-
+dyn = CounterObjects(5);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
 
-function TestDSimNew(n::Int64)
-  p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  for i = 1:n 
-    @time DSimNew(dyn.all[2].mk, dyn.all[2].fid, p1, p2)
-    #println(p1, "  ", p2)
-    PatientZero(p1, p2)
+DSimNew(dyn.all[11].mk, dyn.all[11].fid, p1, p2)
+
+# p1 = ProjectModule.patientcount{Float64}(2.0879107292535313, 1.7913755690672475, 1.6264664382308343, 2.297623713487652, 2.622551339951635, 5.498552127594167, 16.63115231271507)
+# p2 = ProjectModule.patientcount{Float64}(1.4794909635232927, 2.14009783984081, 1.448210930504281, 1.8949860065471087, 3.0603414528608868, 4.784089035836015, 13.667420510686808)
+
+PatientZero(p1, p2)
+
+all_locs2 = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
+fids2 = [ 3396057, 3390720, 3396327, 3396189]
+ch2 = [11]
+states_2 = [ (3396057,3), (3390720,2), (3396327,1), (3396189,1)]
+MapCompState(dyn, all_locs2, ch2, fids2, states_2) 
+
+DSimNew(dyn.all[11].mk, dyn.all[11].fid, p1, p2)
+
+# p1 = ProjectModule.patientcount{Float64}(2.4238562557017667, 2.0692437965898165, 1.9007786182746174, 2.707284115723127, 3.0528024604461184, 6.464480330930232, 19.641518149860257)
+# p2 = ProjectModule.patientcount{Float64}(1.596352817385505, 2.288459610427415, 1.5614404507886803, 2.079242600083628, 3.302991640702228, 5.073354960890666, 14.556343120721364)
+
+### Another Test 
+
+OK - maybe the problem is that the utilities are not ALL getting updated.  In fact it seems like most or all 
+are not getting updated.  WHY??? 
+
+dyn = CounterObjects(5);
+
+
+for i = 1:10
+  for j = 1:size(dyn.all[11].mk.m[i].putils,2)
+    if dyn.all[11].mk.m[i].putils[1,j] == dyn.all[11].fid
+     println(dyn.all[11].mk.m[i].zp, "  ", dyn.all[11].mk.m[i].putils[2,j])
+   end 
+  end 
+end 
+
+
+all_locs2 = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198);
+fids2 = [ 3396057, 3390720, 3396327, 3396189];
+ch2 = [11];
+states_2 = [ (3396057,3), (3390720,2), (3396327,1), (3396189,1)];
+MapCompState(dyn, all_locs2, ch2, fids2, states_2) ;
+
+for i = 1:10
+  for j = 1:size(dyn.all[11].mk.m[i].putils,2)
+    if dyn.all[11].mk.m[i].putils[1,j] == dyn.all[11].fid
+     println(dyn.all[11].mk.m[i].zp, "  ", dyn.all[11].mk.m[i].putils[2,j])
+   end 
   end
 end 
 
-TestDSimNew(5)
+
 
 """
-function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12)
+function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; maxh::Int64 = 12, test1::Bool = false)
   temparr::Array{Float64,2} = zeros(2, maxh)
+  if test1 
+    nt::patientcount = patientcount(0,0,0,0,0,0,0)
+    mt::patientcount = patientcount(0,0,0,0,0,0,0)
+  end 
+  # TODO - which item here is the target?  pcount and mcount.  Those are modified in place.
+  # question... are these going to get added up correctly?  I mean, will they get the full quantity?  Over all zips?  
   for el in c.m
     ArrayZero(temparr)
+    if test1
+      nt += PatExpByType(el.pcounts, true)
+      mt += PatExpByType(el.mcounts, false)
+    end 
     DemComp(el.putils, temparr, pcount, f, PatExpByType(el.pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
     DemComp(el.mutils, temparr, mcount, f, PatExpByType(el.mcounts, false)) 
   end
+  if test1 
+    return nt, mt 
+  end 
 end
 
 
