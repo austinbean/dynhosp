@@ -93,7 +93,8 @@ function ExactVal(D::DynState,
           # UpdateD is called on D.all[all_locs[k]] - this should update for everyone.  
           # We can call UtilUp PERHAPS on the other firms.  But then need to call UtilDown on the same after this step.
           # Ok - where does UtilDown draw the level information from?  UtilUp can work on any, since it just requires a fid.
-          # The hypothetical function should take the altstate and call UtilUp    
+          # The hypothetical function should take the altstate and call UtilUp
+          # Verify that MapCompState puts level info in the real level, then UtilUp can be called on the main firm.      
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
         end 
       end 
