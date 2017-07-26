@@ -1652,7 +1652,7 @@ function ContProbs(fid::Int64,
              stable_vals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64} })
   outp::Dict{Int64, Array{Float64,1}} = Dict{Int64, Array{Float64,1}}()
   for el in keys(stable_vals) # these should be all the fids.
-    if el != fid  # we skip continuation probs for one firm.   
+    if el != fid              # we skip continuation probs for one firm.  TODO - explain this?    
       outp[el] = exp.([stable_vals[el][TAddLevel(state_recs[el], 1)], stable_vals[el][TAddLevel(state_recs[el],2)], stable_vals[el][TAddLevel(state_recs[el], 3)]])
       outp[el] ./=(sum(outp[el]))
     end 
@@ -2370,15 +2370,17 @@ MapCompState(dyn, all_locs2, ch2, fids2, states_2)
 
 """
 function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
-  for el in ch                                                # these are locations in D.all - but there should be only one.
-    for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-      if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
-        D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
-        for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
-          UtilUp(zp, tp[1], D.all[locs[tp[1]]].actual, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+  if (length(states)>1)||(states[1][1] != 0)
+    for el in ch                                                # these are locations in D.all - but there should be only one.
+      for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+        if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
+          D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
+          for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+            UtilUp(zp, tp[1], D.all[locs[tp[1]]].actual, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+          end 
         end 
-      end 
-    end
+      end
+    end 
   end 
 end 
 
@@ -2388,15 +2390,17 @@ end
 What is done in `MapCompState` will be undone in this function.
 """
 function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
-  for el in ch                                                # these are locations in D.all - but there should be only one.
-    for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-      if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
-        D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
-        for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
-          UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+  if (length(states)>1)||(states[1][1] != 0)
+    for el in ch                                                # these are locations in D.all - but there should be only one.
+      for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+        if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
+          D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
+          for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+            UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+          end 
         end 
-      end 
-    end
+      end
+    end 
   end 
 end 
 
