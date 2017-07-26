@@ -18,19 +18,23 @@ triopoly:
 # testing: 
 
 
-dyn = CounterObjects(50);
+dyn = CounterObjects(5);
 ch = [1] # first element
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ExactVal(dyn, ch, p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }() )
+out1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+ExactVal(dyn, ch, p1, p2; outvals = out1 )
 
 PatientZero(p1, p2)
 
 ExactVal(dyn, [11], p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }());
 
-
+dyn = CounterObjects(5);
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
-ExactVal(dyn, ch2, p1, p2)
+out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+ExactVal(dyn, ch2, p1, p2; outvals = out2)
 
 """
 function ExactVal(D::DynState,
@@ -77,25 +81,21 @@ function ExactVal(D::DynState,
   end
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   # Updating process:
+  for k1 in keys(totest)
+    println(k1, " ", totest[k1])
+  end 
   converge::Bool = true
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
-      if !totest[k]                                                                     # only run those for which FALSE, ie, not converged. 
+      if !totest[k]  
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
+          # TODO - is the next line used anywhere?  
           st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
-          MapCompState(D, chunk, FindFids(D, chunk), altstates[r,:])
-          # TODO - after this state has been mapped, we need to update all of the zips for all of the different firms.  
-          FixNN(D.all[all_locs[k]])        # TODO - What problem is this solving exactly?  
-          # Why aren't utilities getting updated in here and/or why doesn't demand differ at all? 
-          # Which function updates D?  Where does it update it?  Where are utilities drawn from here?
-          #  What we need to do is update the utility of this group of facilities at all zips
-          # from which demand is drawn here in ExactChoice.  The utilities do not need to be updated everywhere.
-          # UpdateD is called on D.all[all_locs[k]] - this should update for everyone.  
-          # We can call UtilUp PERHAPS on the other firms.  But then need to call UtilDown on the same after this step.
-          # Ok - where does UtilDown draw the level information from?  UtilUp can work on any, since it just requires a fid.
-          # The hypothetical function should take the altstate and call UtilUp
-          # Verify that MapCompState puts level info in the real level, then UtilUp can be called on the main firm.      
+          MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
+          # check the state, which is... cns?  Specifically - do ContProbs and TotalCombine and ContVal use the neighbors?  Or what?
+          #FixNN(D.all[all_locs[k]])        # TODO - What problem is this solving exactly?       
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
+          ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
       # TODO - at some point reset all of the states to actual
