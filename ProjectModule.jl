@@ -754,7 +754,6 @@ end
   export StateBlock 
   export StatePermute
   export MakeStateBlock 
-  export MapCompState
   export NFids 
   export PatExpByType
   
@@ -855,7 +854,8 @@ end
   export NeighborsZero
   export GiveState
   export NeighborsTuple
-   
+  export MapCompState
+  export ResetCompState
   
 
 
