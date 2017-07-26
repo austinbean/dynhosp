@@ -2337,6 +2337,17 @@ update level according to states.
 At the end update DUtil.  What the fuck...
 
 TODO - finish this.
+junk:
+    # for zp in D.all[el].mk.m       # these are the zipcodes at each D.all[el]
+    #   UtilUp(zp, tp[1], D.all[locs[tp[1]]], tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+    #   # I am not convinced this next section is strictly necessary.  
+    #   # for f in zp.facs             # these are the facilities in the zip.
+    #   #   if f.fid in(f, fids)       # update those which are relevant ONLY 
+    #   #     GetNewLevel(f, states)   # calls this to fix the level and record that it must be updated.
+    #   #   end 
+    #   # end 
+    #   # above here - possibly useless.  
+    # end 
 
 ### Testing ### 
 
@@ -2353,51 +2364,42 @@ MapCompState(dyn, all_locs1, ch1, fids1, states_1)
 all_locs2 = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
 fids2 = [ 3396057, 3390720, 3396327, 3396189]
 ch2 = [11]
-states_2 = [ (3396057,2), (3390720,2), (3396327,1), (3396189,1)]
+states_2 = [ (3396057,3), (3390720,2), (3396327,1), (3396189,1)]
 
 MapCompState(dyn, all_locs2, ch2, fids2, states_2)
 
 """
 function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
-  for el in ch                     # these are locations in D.all - but there should be only one.    
-    for tp in states # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-      # TODO - do these levels need to be updated?  I don't know if they are necessary to compute the changed utilities.  
-      D.all[locs[tp[1]]].level = tp[2]
-    end 
-    for zp in D.all[el].mk.m       # these are the zipcodes at each D.all[el]
-      UtilUp(zp, tp[1], D.all[locs[tp[1]]], tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
-      for f in zp.facs             # these are the facilities in the zip.
-        if f.fid in(f, fids)       # update those which are relevant ONLY 
-          GetNewLevel(f, states)   # calls this to fix the level and record that it must be updated.
+  for el in ch                                                # these are locations in D.all - but there should be only one.
+    for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+      if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
+        D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
+        for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+          UtilUp(zp, tp[1], D.all[locs[tp[1]]].actual, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
         end 
       end 
-    end 
+    end
   end 
 end 
 
-"""
-`UpdateOthers()`
-Updates all of the utilities of neighbors firms.
-TODO - 
-loop over every zip,
-each facility that has changed,
-need levels,
-update according to changes. 
-What do we have?  
-  The locs.  
-  The fids.  
-  The new levels.   
-"""
-function UpdateOthers(locs::Dict{Int64,Int64}, states::Array{Tuple{Int64,Int64}})
-  # this is called within MapCompState
-  # when this has been called, levels have already been mapped out.  
-  # this should call the update utility function on all of the firms in the new state. 
-  # Can call UtilUp on this thing.
-  for st in states 
 
-
+"""
+`ResetCompState`
+What is done in `MapCompState` will be undone in this function.
+"""
+function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
+  for el in ch                                                # these are locations in D.all - but there should be only one.
+    for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+      if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
+        D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
+        for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+          UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+        end 
+      end 
+    end
   end 
 end 
+
 
 
 
@@ -2513,32 +2515,35 @@ function UtilUp(c::cpats,
   const interinten_p::Float64 = -0.3197218
   const inten_p::Float64 = 1.18599
   const inter_p::Float64 = 0.866268
+  # TODO - maybe find this by hand and cut that allocation?  
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   const indx_p::Int64 = findfirst(c.putils[1,:], fid)
-  if (actual == 1)&(current == 1)
-    # do nothing.
-  elseif (actual == 1)&(current == 2) # definitely want addition
-    c.putils[2,indx_p] += inter_p
-    c.mutils[2,indx_m] += inter_med
-  elseif (actual == 1)&(current == 3) # definitely want addition
-    c.putils[2,indx_p] += inten_p
-    c.mutils[2,indx_m] += inten_med 
-  elseif (actual == 2)&(current == 1) # This should be subtraction.
-    c.putils[2,indx_p] -= inter_p
-    c.mutils[2,indx_m] -= inter_med
-  elseif (actual == 2)&(current == 2)
-    # do nothing.
-  elseif (actual == 2)&(current == 3) # definitely want adding here. 
-    c.putils[2,indx_p] += inteninter_p 
-    c.mutils[2,indx_m] += inteninter_med
-  elseif (actual == 3)&(current == 1) # definitely want subtraction.
-    c.putils[2,indx_p] -= inten_p 
-    c.mutils[2,indx_m] -= inten_med 
-  elseif (actual == 3)&(current == 2)
-    c.putils[2,indx_p] += interinten_p   # FIXME - is this subtracted?
-    c.mutils[2,indx_m] += interinten_med # FIXME - is this subtracted?
-  elseif (actual == 3)&(current == 3)
-    # do nothing.
+  if (indx_m!=0)&(indx_p!=0)
+    if (actual == 1)&(current == 1)
+      # do nothing.
+    elseif (actual == 1)&(current == 2) # definitely want addition
+      c.putils[2,indx_p] += inter_p
+      c.mutils[2,indx_m] += inter_med
+    elseif (actual == 1)&(current == 3) # definitely want addition
+      c.putils[2,indx_p] += inten_p
+      c.mutils[2,indx_m] += inten_med 
+    elseif (actual == 2)&(current == 1) # This should be subtraction.
+      c.putils[2,indx_p] -= inter_p
+      c.mutils[2,indx_m] -= inter_med
+    elseif (actual == 2)&(current == 2)
+      # do nothing.
+    elseif (actual == 2)&(current == 3) # definitely want adding here. 
+      c.putils[2,indx_p] += inteninter_p 
+      c.mutils[2,indx_m] += inteninter_med
+    elseif (actual == 3)&(current == 1) # definitely want subtraction.
+      c.putils[2,indx_p] -= inten_p 
+      c.mutils[2,indx_m] -= inten_med 
+    elseif (actual == 3)&(current == 2)
+      c.putils[2,indx_p] += interinten_p   # FIXME - is this subtracted?
+      c.mutils[2,indx_m] += interinten_med # FIXME - is this subtracted?
+    elseif (actual == 3)&(current == 3)
+      # do nothing.
+    end 
   end 
 end 
 
