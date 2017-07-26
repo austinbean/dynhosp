@@ -84,34 +84,25 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
    # testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
   # Update value at Level 1
     D.all[location].level = 1
-    # We should update the utility for ALL zips for ALL firms, but this update can just fix this one firm.  
-    UpdateD(D.all[location])                                  # updates the utility for a new level 
+    UpdateD(D.all[location])                                  # updates the utility for a new level only for the main firm. 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
     temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
-    UtilDown(D.all[location])                                 # resets the utility and level
+    UtilDown(D.all[location])                                 # resets the utility and level - just for the single firm.
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
   # Update value at Level 2 (repeats steps above!)
     D.all[location].level = 2
-    UpdateD(D.all[location]) # Updates deterministic part of utility.  
-    DSimNew( D.all[location].mk, fid, p1, p2) # NANFIX # Computes the demand.  
+    UpdateD(D.all[location])                                  # Updates deterministic part of utility for the main firm.  
+    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand.  
     temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
-    UtilDown(D.all[location])                                 # resets the utility and level
+    UtilDown(D.all[location])                                 # resets the utility and level for the main firm.  
     PatientZero(p1, p2)
-    # NANFIX - can delete eventually.
-    # if !isapprox(testfloat, D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
-    #     error("Second Update Failed.")
-    # end 
   # Update value at Level 3
     D.all[location].level = 3
     UpdateD(D.all[location])
-    DSimNew( D.all[location].mk, fid, p1, p2)   # Computes the demand.
+    DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand.
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
-    UtilDown(D.all[location])                                 # resets the utility and level
+    UtilDown(D.all[location])                                 # resets the utility and level for the main firm.
     PatientZero(p1, p2)
-    # NANFIX - can delete eventually.
-    # if !isapprox(testfloat, D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
-    #     error("Third Update Failed.")
-    # end 
 end 
 
 
