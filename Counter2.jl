@@ -2742,6 +2742,29 @@ function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permane
 end 
 
 
+"""
+`PureCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }, alpha::Float64)`
+Copy results from the temporary to the permanent.
+Let d1 be the permanent and d2 be the temporary. 
+""" 
+function PureCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permanent / outvals
+                  d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  } # temporary / tempvals
+                  )
+  for k1 in keys(d1) # these are fids 
+    for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
+      if !haskey(d2[k1],k2 ) # if the temporary doesn't have the key 
+        # do nothing???  
+      else # FIXME - there should be a test here concerning whether of these is zero, eg. the temp.  
+        if d1[k1][k2] > 0 # don't copy states with zero value yet. - nope, this won't work.  Recall the initial value...  
+          d1[k1][k2] = d2[k1][k2]  # this should copy from the temp to the permanent.   
+        end 
+      end  
+    end 
+  end 
+end 
+
+
+
 
 """
 `StateEnumerate(c::ProjectModule.neighbors, inp::Dict{NTuple{10, Int64},  Float64 }; fxd::Bool = false)`
