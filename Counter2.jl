@@ -566,14 +566,16 @@ DSimNew(dyn.all[11].mk, dyn.all[11].fid, p1, p2)
 
 OK - maybe the problem is that the utilities are not ALL getting updated.  In fact it seems like most or all 
 are not getting updated.  WHY??? 
+Be clear about which one should be updated - what fid am I looking to compare specifically.  Print more. 
+Provisionally it looks like neighbors are updated by maybe the main firm is not?  That is possible.  
 
 dyn = CounterObjects(5);
 
 
 for i = 1:10
   for j = 1:size(dyn.all[11].mk.m[i].putils,2)
-    if dyn.all[11].mk.m[i].putils[1,j] == dyn.all[11].fid
-     println(dyn.all[11].mk.m[i].zp, "  ", dyn.all[11].mk.m[i].putils[2,j])
+    if dyn.all[11].mk.m[i].putils[1,j] == 3396189
+     println(dyn.all[11].mk.m[i].zp, "  ", 3396189, "  ", dyn.all[11].mk.m[i].putils[2,j])
    end 
   end 
 end 
@@ -587,8 +589,8 @@ MapCompState(dyn, all_locs2, ch2, fids2, states_2) ;
 
 for i = 1:10
   for j = 1:size(dyn.all[11].mk.m[i].putils,2)
-    if dyn.all[11].mk.m[i].putils[1,j] == dyn.all[11].fid
-     println(dyn.all[11].mk.m[i].zp, "  ", dyn.all[11].mk.m[i].putils[2,j])
+    if dyn.all[11].mk.m[i].putils[1,j] == 3396189
+     println(dyn.all[11].mk.m[i].zp, "  ", 3396189, "  ",  dyn.all[11].mk.m[i].putils[2,j])
    end 
   end
 end 
@@ -2406,6 +2408,7 @@ states_1 = [(1391330, 3)] # changing level
 MapCompState(dyn, all_locs1, ch1, fids1, states_1)
 
 ### another test ### 
+dyn = CounterObjects(5);
 
 all_locs2 = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
 fids2 = [ 3396057, 3390720, 3396327, 3396189]
@@ -2422,7 +2425,10 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
         if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
           D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+            println("before ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
+            # TODO - next function does not handle exit yet.  
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].actual, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+            println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
           end 
         end 
       end
@@ -2565,7 +2571,8 @@ function UtilUp(c::cpats,
   const interinten_p::Float64 = -0.3197218
   const inten_p::Float64 = 1.18599
   const inter_p::Float64 = 0.866268
-  # TODO - maybe find this by hand and cut that allocation?  
+  # TODO - maybe find this by hand and cut that allocation? 
+  # TOOD - this does not handle exiting yet.   
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   const indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if (indx_m!=0)&(indx_p!=0)
