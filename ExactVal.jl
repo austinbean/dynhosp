@@ -34,7 +34,7 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; outvals = out2)
+ExactVal(dyn, ch2, p1, p2; itlim = 5, outvals = out2)
 
 """
 function ExactVal(D::DynState,
@@ -93,12 +93,12 @@ function ExactVal(D::DynState,
           # TODO - GiveState is definitely not working.   
           st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
           MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-          println(st_dict[k])
           # The problem: the demand is not varying by the state!  It does vary by the own state of the 
           # main firm, but not by the states of other firms.  Why not?  DSimNew?  or UpdateD?  One or the other... 
           # OR the utility isn't getting updated properly in MapCompState.  But it should be one of those.
-          # The point is that the shares are not changing enough to capture the utility change.    
-          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
+          # The point is that the shares are not changing enough to capture the utility change.   
+          println("Call Exact Choice?") 
+          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false) 
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
@@ -122,6 +122,7 @@ function ExactVal(D::DynState,
       end 
     end 
     # Copy the values and clean up.
+    # TODO - check the weighting system here... iteration numbers so far are really low.  
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
     DictClean(tempvals)                                                               # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
