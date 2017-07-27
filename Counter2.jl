@@ -567,15 +567,15 @@ DSimNew(dyn.all[11].mk, dyn.all[11].fid, p1, p2)
 OK - maybe the problem is that the utilities are not ALL getting updated.  In fact it seems like most or all 
 are not getting updated.  WHY??? 
 Be clear about which one should be updated - what fid am I looking to compare specifically.  Print more. 
-Provisionally it looks like neighbors are updated by maybe the main firm is not?  That is possible.  
+TO CHECK: it looks like neighbors are updated but maybe the main firm is not?  That is possible.  
+Print the utility of the MAIN firm.  Where is that getting updated?  
 
 dyn = CounterObjects(5);
 
-
 for i = 1:10
   for j = 1:size(dyn.all[11].mk.m[i].putils,2)
-    if dyn.all[11].mk.m[i].putils[1,j] == 3396189
-     println(dyn.all[11].mk.m[i].zp, "  ", 3396189, "  ", dyn.all[11].mk.m[i].putils[2,j])
+    if dyn.all[11].mk.m[i].putils[1,j] == 2910645 # 3396189 or 2910645 (MAIN firm.)
+     println(dyn.all[11].mk.m[i].zp, "  ", 2910645, "  ", dyn.all[11].mk.m[i].putils[2,j])
    end 
   end 
 end 
@@ -585,12 +585,15 @@ all_locs2 = Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198)
 fids2 = [ 3396057, 3390720, 3396327, 3396189];
 ch2 = [11];
 states_2 = [ (3396057,3), (3390720,2), (3396327,1), (3396189,1)];
+dyn.all[11].level = 3; # make sure this will trigger the update correctly in UpdateD 
 MapCompState(dyn, all_locs2, ch2, fids2, states_2) ;
+
+UpdateD(dyn.all[11]) # this should update the main firm only.  
 
 for i = 1:10
   for j = 1:size(dyn.all[11].mk.m[i].putils,2)
-    if dyn.all[11].mk.m[i].putils[1,j] == 3396189
-     println(dyn.all[11].mk.m[i].zp, "  ", 3396189, "  ",  dyn.all[11].mk.m[i].putils[2,j])
+    if dyn.all[11].mk.m[i].putils[1,j] == 2910645 # 3396189 or 2910645 (MAIN firm.)
+     println(dyn.all[11].mk.m[i].zp, "  ", 2910645, "  ",  dyn.all[11].mk.m[i].putils[2,j])
    end 
   end
 end 
@@ -619,6 +622,23 @@ function DSimNew(c::cmkt, f::Int64, pcount::patientcount, mcount::patientcount; 
     return nt, mt 
   end 
 end
+
+
+"""
+`UpdateUCheck(h::simh)`
+This checks that the utility update actually worked.  Apply in ExactChoice.  
+
+"""
+function UpdateUCheck(h::simh)
+  for el in h.mk.m 
+    for j = 1:size(el.putils,2)
+      if el.putils[1,j] == h.fid 
+       println(el.zp, "  ", h.fid, "  ",  el.putils[2,j])
+     end 
+    end
+  end 
+end 
+
 
 
 """
@@ -2425,10 +2445,10 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
         if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
           D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
-            println("before ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
+            #println("before ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
             # TODO - next function does not handle exit yet.  
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].actual, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
-            println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
+            #println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
           end 
         end 
       end
