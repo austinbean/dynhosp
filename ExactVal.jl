@@ -96,13 +96,12 @@ function ExactVal(D::DynState,
           # The problem: the demand is not varying by the state!  It does vary by the own state of the 
           # main firm, but not by the states of other firms.  Why not?  DSimNew?  or UpdateD?  One or the other... 
           # OR the utility isn't getting updated properly in MapCompState.  But it should be one of those.
-          # The point is that the shares are not changing enough to capture the utility change.   
-          println("Call Exact Choice?") 
+          # The point is that the shares are not changing enough to capture the utility change.  
+          # Other possibilities: it could be the continuation value.  It could be the continuation probabilities.   
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false) 
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
-      # TODO - at some point reset all of the states to actual
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
@@ -123,7 +122,8 @@ function ExactVal(D::DynState,
     end 
     # Copy the values and clean up.
     # TODO - check the weighting system here... iteration numbers so far are really low.  
-    DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
+    PureCopy(outvals, tempvals)
+    #DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
     DictClean(tempvals)                                                               # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
