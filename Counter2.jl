@@ -480,7 +480,7 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
   if index!=0 # don't look for a facility that isn't there.
     for j in c
       if counter == 0   
-        pp.count385 += temparr[2,index]*j
+        pp.count385 += temparr[2,index]*j # WTP is written to temparr, so at this index that will be the relevant WTP.
         counter += 1
       elseif counter == 1
         pp.count386 += temparr[2,index]*j
@@ -627,13 +627,18 @@ end
 """
 `UpdateUCheck(h::simh)`
 This checks that the utility update actually worked.  Apply in ExactChoice.  
-
+Find the WTP shares and print them too.  
 """
 function UpdateUCheck(h::simh)
+  #   WTPNew(inparr, temparr) # updates temparr - it should be with shares given by utilities. 
+  #   ArrayZero(temparr)
+  temparr = zeros(2,12) # for WTP.  
   for el in h.mk.m 
     for j = 1:size(el.putils,2)
       if el.putils[1,j] == h.fid 
-       println(el.zp, "  ", h.fid, "  ",  el.putils[2,j])
+       WTPNew(el.putils, temparr) # what array dimensions?  
+       println(el.zp, "  ", h.fid, " UTIL: ",  el.putils[2,j], " WTP: ", temparr[j] )
+       ArrayZero(temparr)
      end 
     end
   end 
