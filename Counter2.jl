@@ -634,15 +634,21 @@ function UpdateUCheck(h::simh)
   #   ArrayZero(temparr)
   temparr = zeros(2,12) # for WTP.  
   for el in h.mk.m 
+    println(el.zp)
+    u1, iu1 = findmax(el.putils[2,:])
+    u2, iu2 = findmin(el.putils[2,:])
+    WTPNew(el.putils, temparr) # what array dimensions? 
+    m1, i1 = findmax(temparr[2,:]) 
+    m2, i2 = findmin(temparr[2,:])
     for j = 1:size(el.putils,2)
       if el.putils[1,j] == h.fid 
-       WTPNew(el.putils, temparr) # what array dimensions?  
-       println(el.zp, "  ", h.fid, " UTIL: ",  el.putils[2,j], " WTP: ", temparr[j] )
-       ArrayZero(temparr)
-     end 
+       println(el.zp, "  ", h.fid, " UTIL: ",  el.putils[2,j], " WTP: ", temparr[j], " MAX WTP: ", m1, " FAC: ", el.putils[1,i1], "  MIN WTP: ", m2, " FAC: ", el.putils[1,i2], " MAX U: ", u1, " FAC: ", el.putils[1,iu1], " MIN U: ", u2, " FAC: ", el.putils[1,iu2] )
+      end 
     end
+    ArrayZero(temparr)
   end 
 end 
+
 
 
 
