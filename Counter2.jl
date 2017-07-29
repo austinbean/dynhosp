@@ -630,7 +630,9 @@ This checks that the utility update actually worked.  Apply in ExactChoice.
 Find the WTP shares and print them too. 
 
 TODO - there is a utility computation problem.  The lowest value is way too low.  
-This is not an initialization problem.  This is a change problem.   
+This is not an initialization problem.  This is a change problem.  
+Clearly the problem is with the util up and down functions and the way they are called.  
+
 """
 function UpdateUCheck(h::simh)
   #   WTPNew(inparr, temparr) # updates temparr - it should be with shares given by utilities. 
@@ -641,10 +643,10 @@ function UpdateUCheck(h::simh)
     u2, iu2 = findmin(el.putils[2,:])
     WTPNew(el.putils, temparr) # what array dimensions? 
     m1, i1 = findmax(temparr[2,:]) 
-    m2, i2 = findmin(temparr[2,:])
+    #m2, i2 = findmin(temparr[2,:]) # not informative since frequently zero. 
     for j = 1:size(el.putils,2)
       if el.putils[1,j] == h.fid 
-       println(el.zp, "  ", h.fid, " UTIL: ",  round(el.putils[2,j],4), " WTP: ", round(temparr[j],4), " MAX WTP: ", round(m1,4), " FAC: ", el.putils[1,i1], "  MIN WTP: ", round(m2,4), " FAC: ", el.putils[1,i2], " MAX U: ", round(u1,4), " FAC: ", el.putils[1,iu1], " MIN U: ", round(u2,4), " FAC: ", el.putils[1,iu2] )
+       println(el.zp, "  ", h.fid, " UTIL: ",  round(el.putils[2,j],4), " WTP: ", round(temparr[j],4), " MAX WTP: ", round(m1,4), " FAC: ", el.putils[1,i1],  " MAX U: ", round(u1,4), " FAC: ", el.putils[1,iu1], " MIN U: ", round(u2,4), " FAC: ", el.putils[1,iu2] )
       end 
     end
     ArrayZero(temparr)
@@ -659,10 +661,25 @@ Checks the creation of dynstate, especially the utility and WTP levels.
 dyn = CounterObjects(5);
 DynAudit(dyn)
 
+d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i]
+  # for h in d.all 
+  #   UpdateUCheck(h)
+  # end 
+
+  dyn = CounterObjects(5);
+  d2 = CounterObjects(5);
+  dyn.all[1].mk.m[1].putils[2,3] += 20.0
+  DynAudit(dyn, d2)
 """
-function DynAudit(d::DynState)
-  for h in d.all 
-    UpdateUCheck(h)
+function DynAudit(d::DynState, d2::DynState)
+  for el in 1:size(d.all,1) 
+    for z in 1:size(d.all[el].mk.m,1) 
+      for i = 1:size(d.all[el].mk.m[z].putils,2)
+        if !isapprox(d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i])
+          println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i]), " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
+        end 
+      end 
+    end 
   end 
 end 
 
@@ -2611,14 +2628,16 @@ function UtilUp(c::cpats,
                 fid::Int64, 
                 actual::Int64,  # this one should be permanent.
                 current::Int64) # this one should vary.
-  const inteninter_med::Float64 = -0.572397
-  const interinten_med::Float64 = 0.572397
-  const inten_med::Float64 = 1.34994
-  const inter_med::Float64 = 0.777542
-  const inteninter_p::Float64 = 0.3197218
-  const interinten_p::Float64 = -0.3197218
-  const inten_p::Float64 = 1.18599
-  const inter_p::Float64 = 0.866268
+  # Medicaid.
+  const inten2inter_med::Float64 = -0.572397 # Should be: - intensive + intermediate, both medicaid:  - ProjectModule.medicaidneoint_c + ProjectModule.medicaidsoloint_c       
+  const inter2inten_med::Float64 = 0.572397  # Should be: - intermediate + intensive, both medicaid:  + ProjectModule.medicaidsoloint_c - ProjectModule.medicaidneoint_c           
+  const inten_med::Float64 = 1.34994         # Should be: the intensive coeff for medicaid:  
+  const inter_med::Float64 = 0.777542        # Should be: the intermediate coeff for medicaid:  
+  # Private 
+  const inten2inter_p::Float64 = 0.3197218   # Should be: - intensive + intermediate, both private:      
+  const inter2inten_p::Float64 = -0.3197218  # Should be: - intermediate + intensive, both private:       
+  const inten_p::Float64 = 1.18599           # Should be: intensive coeff for private:  
+  const inter_p::Float64 = 0.866268          # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
   # TOOD - this does not handle exiting yet.   
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
@@ -2638,14 +2657,14 @@ function UtilUp(c::cpats,
     elseif (actual == 2)&(current == 2)
       # do nothing.
     elseif (actual == 2)&(current == 3) # definitely want adding here. 
-      c.putils[2,indx_p] += inteninter_p 
-      c.mutils[2,indx_m] += inteninter_med
+      c.putils[2,indx_p] += inten2inter_p 
+      c.mutils[2,indx_m] += inten2inter_med
     elseif (actual == 3)&(current == 1) # definitely want subtraction.
       c.putils[2,indx_p] -= inten_p 
       c.mutils[2,indx_m] -= inten_med 
     elseif (actual == 3)&(current == 2)
-      c.putils[2,indx_p] += interinten_p   # FIXME - is this subtracted?
-      c.mutils[2,indx_m] += interinten_med # FIXME - is this subtracted?
+      c.putils[2,indx_p] += inter2inten_p   # added
+      c.mutils[2,indx_m] += inter2inten_med # added
     elseif (actual == 3)&(current == 3)
       # do nothing.
     end 
@@ -2657,6 +2676,9 @@ end
 `UtilDown(h::simh)`
 Adjusts the deterministic utility back down.  
 Now changed so that this function updates the level back to the actual value.  
+
+TODO - this is not going to be right when the actual is not the relevant comparison.
+The actual is immutable.  Herein must be the error.  
 """
 function UtilDown(h::simh)
   if h.level == 1
@@ -2700,6 +2722,15 @@ function UtilDown(h::simh)
   h.level = h.actual  
 end 
 
+"""
+`UtilCCheck`
+Check whether the U up and down functions correctly restore to the original state.
+
+"""
+function UtilCCheck(d1::DynState, d2::DynState)
+
+
+end
 
 
 
