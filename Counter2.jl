@@ -657,6 +657,8 @@ end
 """
 `DynAudit`
 Checks the creation of dynstate, especially the utility and WTP levels.
+The condition in isapprox should nearly always be triggered for all firms and zips, 
+but differences should be the same as those appearing in `UtilUp`
 
 dyn = CounterObjects(5);
 DynAudit(dyn)
@@ -675,8 +677,9 @@ function DynAudit(d::DynState, d2::DynState)
   for el in 1:size(d.all,1) 
     for z in 1:size(d.all[el].mk.m,1) 
       for i = 1:size(d.all[el].mk.m[z].putils,2)
-        if !isapprox(d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i])
-          println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i]), " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
+        if !isapprox(d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i], atol=10e-5)
+          # NB - this is always triggered because the levels are being updated!  Switch it...
+          println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i])," ", d.all[el].level, " ", d.all[el].actual  , " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
         end 
       end 
     end 
@@ -2441,7 +2444,7 @@ end
 """
 `MapCompState`
 
-This is a  nightmare.  There must be a better way...
+This is a nightmare.  There must be a better way...
 For EACH firm listed in ch, 
 for EACH state in states,
 for EACH fac in D.all[].mk.m.facs, 
@@ -2487,14 +2490,18 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
   if (length(states)>1)||(states[1][1] != 0)
     for el in ch                                                # these are locations in D.all - but there should be only one.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-        if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
-          D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
+        if (D.all[locs[tp[1]]].level != tp[2])&(tp[2]!=999) # SKIPPING EXIT.                    # level changes!
+          # TODO - what is happening here when the level is set first to exit and then away?
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             #println("before ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
-            # TODO - next function does not handle exit yet.  
-            UtilUp(zp, tp[1], D.all[locs[tp[1]]].actual, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+            # TODO - next function does not handle exit yet.
+            # FIXME - updating on the basis of current "actual" is going to be wrong.  This is NOT the relevant
+            # value.  It should be D.all[locs[tp[1]]].level   
+            UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
             #println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
           end 
+          # NB: timing of this line matters.  
+          D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
         end 
       end
     end 
@@ -2513,6 +2520,7 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
         if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
           D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+            # NB: note that this use of actual is correct: I want to reset this to the original level. 
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
         end 
@@ -2629,15 +2637,15 @@ function UtilUp(c::cpats,
                 actual::Int64,  # this one should be permanent.
                 current::Int64) # this one should vary.
   # Medicaid.
-  const inten2inter_med::Float64 = -0.572397 # Should be: - intensive + intermediate, both medicaid:  - ProjectModule.medicaidneoint_c + ProjectModule.medicaidsoloint_c       
-  const inter2inten_med::Float64 = 0.572397  # Should be: - intermediate + intensive, both medicaid:  + ProjectModule.medicaidsoloint_c - ProjectModule.medicaidneoint_c           
-  const inten_med::Float64 = 1.34994         # Should be: the intensive coeff for medicaid:  
-  const inter_med::Float64 = 0.777542        # Should be: the intermediate coeff for medicaid:  
+  const inten2inter_med::Float64 = -0.57239721 # Should be positive: - intensive + intermediate, both medicaid:  (-ProjectModule.medicaidneoint_c) + ProjectModule.medicaidsoloint_c       
+  const inter2inten_med::Float64 = 0.57239721  # Should be negatve: - intermediate + intensive, both medicaid:  (-ProjectModule.medicaidsoloint_c) + ProjectModule.medicaidneoint_c           
+  const inten_med::Float64 = 1.3499395         # Should be positive: the intensive coeff for medicaid:  ProjectModule.medicaidneoint_c
+  const inter_med::Float64 = 0.77754229        # Should be positive: the intermediate coeff for medicaid:  ProjectModule.medicaidsoloint_c
   # Private 
-  const inten2inter_p::Float64 = 0.3197218   # Should be: - intensive + intermediate, both private:      
-  const inter2inten_p::Float64 = -0.3197218  # Should be: - intermediate + intensive, both private:       
-  const inten_p::Float64 = 1.18599           # Should be: intensive coeff for private:  
-  const inter_p::Float64 = 0.866268          # Should be: intermediate coeff for private:  
+  const inten2inter_p::Float64 = 0.31972186    # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
+  const inter2inten_p::Float64 = -0.31972186   # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
+  const inten_p::Float64 = 1.18599             # Should be: intensive coeff for private:  
+  const inter_p::Float64 = 0.866268            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
   # TOOD - this does not handle exiting yet.   
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
