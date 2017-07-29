@@ -34,7 +34,7 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; itlim = 1, outvals = out2)
+ExactVal(dyn, ch2, p1, p2; itlim = 5, outvals = out2)
 
 """
 function ExactVal(D::DynState,
@@ -52,7 +52,7 @@ function ExactVal(D::DynState,
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
   neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms AND the firm itself.
   nfds::Array{Int64,1} = Array{Int64,1}()                                               # records the fids of neighbors, as fids, not locations. 
-  its::Int64 = 0                                                                        # records iterations, but will be dropped after debugging.
+  its::Int64 = 1                                                                        # records iterations, but will be dropped after debugging.
   for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
     FindComps(D, neighbors, D.all[el])                                                  # these are addresses of competitors in D.all 
     NFids(D, nfds, D.all[el])                                                           # records the fids of neighbors only, as fids.  
@@ -85,6 +85,7 @@ function ExactVal(D::DynState,
     println(k1, " ", totest[k1])
   end 
   converge::Bool = true
+  d2 = CounterObjects(5) # TODO - REMOVE.
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
@@ -92,6 +93,7 @@ function ExactVal(D::DynState,
           # Be careful about this next line... is it changing the state in the right places?  
           # TODO - GiveState is definitely not working.   
           st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
+          # TODO - check for each of these functions how util is changed.  
           MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
           # The problem: the demand is not varying by the state!  It does vary by the own state of the 
           # main firm, but not by the states of other firms.  Why not?  DSimNew?  or UpdateD?  One or the other... 
@@ -99,7 +101,8 @@ function ExactVal(D::DynState,
           # The point is that the shares are not changing enough to capture the utility change.  
           # Other possibilities: it could be the continuation value.  It could be the continuation probabilities. 
           # TODO - print the share implied by WTP.    
-          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = true) 
+          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)
+          DynAudit(D, d2) # TODO - remove  
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
