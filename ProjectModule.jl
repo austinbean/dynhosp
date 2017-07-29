@@ -856,7 +856,8 @@ end
   export NeighborsTuple
   export MapCompState
   export ResetCompState
-  
+  export UpdateUCheck
+  export DynAudit
 
 
   # Export types
