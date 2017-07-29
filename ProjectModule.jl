@@ -858,6 +858,7 @@ end
   export ResetCompState
   export UpdateUCheck
   export DynAudit
+  export CollectApprox
 
 
   # Export types
