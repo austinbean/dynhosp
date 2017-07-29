@@ -672,21 +672,44 @@ d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i]
   d2 = CounterObjects(5);
   dyn.all[1].mk.m[1].putils[2,3] += 20.0
   DynAudit(dyn, d2)
+
+  diffs = [-0.57239721 0.57239721 1.3499395 0.77754229 0.31972186 -0.31972186 1.18599 0.866268]
+  [ abs(i-j) for i in diffs, j in diffs]
 """
 function DynAudit(d::DynState, d2::DynState)
+  diffs::Array{Float64} = [-0.57239721 0.57239721 1.3499395 0.77754229 0.31972186 -0.31972186 1.18599 0.866268]
   for el in 1:size(d.all,1) 
     for z in 1:size(d.all[el].mk.m,1) 
       for i = 1:size(d.all[el].mk.m[z].putils,2)
         if !isapprox(d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i], atol=10e-5)
-          # NB - this is always triggered because the levels are being updated!  Switch it...
-          println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i])," ", d.all[el].level, " ", d.all[el].actual  , " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
+          if !CollectApprox(abs(d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i]),diffs)
+            println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i])," ", d.all[el].level, " ", d.all[el].actual  , " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
+          end 
         end 
       end 
     end 
   end 
 end 
 
+"""
+`CollectApprox`
+Is the element approximately equal to one element in the collection?
 
+test1 = [0.57239721 1.3499395 0.77754229 0.31972186 1.18599 0.866268]
+CollectApprox(1.185991400000000, test1)
+
+
+"""
+function CollectApprox(x, coll; toler::Float64 = 10e-4)
+  res::Bool = false 
+  for el in coll 
+    res = res||isapprox(x, el; rtol = toler)
+    if res 
+      break 
+    end 
+  end 
+  return res 
+end 
 
 
 """
@@ -2518,11 +2541,11 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
     for el in ch                                                # these are locations in D.all - but there should be only one.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
         if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
-          D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             # NB: note that this use of actual is correct: I want to reset this to the original level. 
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
+          D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
         end 
       end
     end 
@@ -2736,8 +2759,7 @@ Check whether the U up and down functions correctly restore to the original stat
 
 """
 function UtilCCheck(d1::DynState, d2::DynState)
-
-
+  nothing 
 end
 
 
