@@ -627,14 +627,16 @@ end
 """
 `UpdateUCheck(h::simh)`
 This checks that the utility update actually worked.  Apply in ExactChoice.  
-Find the WTP shares and print them too.  
+Find the WTP shares and print them too. 
+
+TODO - there is a utility computation problem.  The lowest value is way too low.  
+This is not an initialization problem.  This is a change problem.   
 """
 function UpdateUCheck(h::simh)
   #   WTPNew(inparr, temparr) # updates temparr - it should be with shares given by utilities. 
   #   ArrayZero(temparr)
   temparr = zeros(2,12) # for WTP.  
   for el in h.mk.m 
-    println(el.zp)
     u1, iu1 = findmax(el.putils[2,:])
     u2, iu2 = findmin(el.putils[2,:])
     WTPNew(el.putils, temparr) # what array dimensions? 
@@ -642,10 +644,25 @@ function UpdateUCheck(h::simh)
     m2, i2 = findmin(temparr[2,:])
     for j = 1:size(el.putils,2)
       if el.putils[1,j] == h.fid 
-       println(el.zp, "  ", h.fid, " UTIL: ",  el.putils[2,j], " WTP: ", temparr[j], " MAX WTP: ", m1, " FAC: ", el.putils[1,i1], "  MIN WTP: ", m2, " FAC: ", el.putils[1,i2], " MAX U: ", u1, " FAC: ", el.putils[1,iu1], " MIN U: ", u2, " FAC: ", el.putils[1,iu2] )
+       println(el.zp, "  ", h.fid, " UTIL: ",  round(el.putils[2,j],4), " WTP: ", round(temparr[j],4), " MAX WTP: ", round(m1,4), " FAC: ", el.putils[1,i1], "  MIN WTP: ", round(m2,4), " FAC: ", el.putils[1,i2], " MAX U: ", round(u1,4), " FAC: ", el.putils[1,iu1], " MIN U: ", round(u2,4), " FAC: ", el.putils[1,iu2] )
       end 
     end
     ArrayZero(temparr)
+  end 
+end 
+
+
+"""
+`DynAudit`
+Checks the creation of dynstate, especially the utility and WTP levels.
+
+dyn = CounterObjects(5);
+DynAudit(dyn)
+
+"""
+function DynAudit(d::DynState)
+  for h in d.all 
+    UpdateUCheck(h)
   end 
 end 
 
