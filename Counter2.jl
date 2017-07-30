@@ -675,6 +675,9 @@ d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i]
 
   diffs = [-0.57239721 0.57239721 1.3499395 0.77754229 0.31972186 -0.31972186 1.18599 0.866268]
   [ abs(i-j) for i in diffs, j in diffs]
+
+  # this is still showing increasing utility over iterations.  Maybe it's time to just compute the fucking thing 
+  directly?  That is really stupid.  
 """
 function DynAudit(d::DynState, d2::DynState)
   diffs::Array{Float64} = [-0.57239721 0.57239721 1.3499395 0.77754229 0.31972186 -0.31972186 1.18599 0.866268]
@@ -756,10 +759,9 @@ end
 Computes the deterministic component of the utility for a hospital - the goal is for this to update the entire cpat list of facilities.
 And I want to do both - I don't want to update either private or medicaid.
 """
-
-function HUtil{T<:ProjectModule.Fac}(c::cpats, sr::T, p_or_m::Bool;
-               mcoeffs::ProjectModule.coefficients =  coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c),
-               pcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c),)
+function HUtil{T<:ProjectModule.Fac}(c::cpats, sr::T, p_or_m::Bool)
+  mcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c)
+  pcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c)
   d::Float64 = distance(c.lat, c.long, sr.lat, sr.long)
   if p_or_m # if TRUE private
     if sr.level == 1
