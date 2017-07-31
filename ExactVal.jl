@@ -36,6 +36,13 @@ ch2 = [11] # larger market.
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
 ExactVal(dyn, ch2, p1, p2; itlim = 5, outvals = out2)
 
+# The following debugger will compare utility values at each point during the sim, but it is very slow.  
+DynAudit(D, d2) # TODO - remove  
+Insert this line somewhere in ExactVal:   
+d2 = CounterObjects(5) # TODO - REMOVE.
+
+
+
 """
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
@@ -80,9 +87,7 @@ function ExactVal(D::DynState,
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
   end
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
-  println(altstates[1:10,:])
   converge::Bool = true
-  d2 = CounterObjects(5) # TODO - REMOVE.
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
@@ -90,16 +95,9 @@ function ExactVal(D::DynState,
           # Be careful about this next line... is it changing the state in the right places?  
           # TODO - GiveState is definitely not working.   
           st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
-          # TODO - check for each of these functions how util is changed.  
           MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-          # The problem: the demand is not varying by the state!  It does vary by the own state of the 
-          # main firm, but not by the states of other firms.  Why not?  DSimNew?  or UpdateD?  One or the other... 
-          # OR the utility isn't getting updated properly in MapCompState.  But it should be one of those.
-          # The point is that the shares are not changing enough to capture the utility change.  
-          # Other possibilities: it could be the continuation value.  It could be the continuation probabilities. 
           #TODO - print the share implied by WTP.    
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)
-          DynAudit(D, d2) # TODO - remove  
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
