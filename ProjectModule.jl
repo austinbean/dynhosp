@@ -42,15 +42,15 @@ module ProjectModule
 
   abstract type Fac end    # Facility 
   abstract type WT end     # WTP 
-  abstract type Demand end # demandhistory 
+  abstract type DEMAND end # demandhistory 
   abstract type LB end     # lowbirthweight/LBW 
-  abstract type Neighs end # neighbors 
+  abstract type NEIGHS end # neighbors 
   abstract type PC end     # patientcount 
   abstract type MKT end    # market 
   abstract type ES end     # entirestate 
   abstract type PR end     # patientrange 
   abstract type CFS end    # coefficients
-  abstract type Patcol end # patientcollection 
+  abstract type PATCOL end # patientcollection 
   abstract type HY end     # hyrec 
   abstract type SR end     # simrun 
   abstract type MKH end    # markethist 
@@ -76,7 +76,7 @@ module ProjectModule
     w391::Array{Float64, 1}
   end
 
-  mutable struct DemandHistory <: Demand 
+  mutable struct DemandHistory <: DEMAND 
     demand385::Array{Int64, 1}
     demand386::Array{Int64, 1}
     demand387::Array{Int64, 1}
@@ -101,7 +101,7 @@ module ProjectModule
   end
 
 
-  mutable struct neighbors <: Neighs 
+  mutable struct neighbors <: NEIGHS 
     level105::Int64
     level205::Int64
     level305::Int64
@@ -432,7 +432,7 @@ end
    mpatients::patientcount
   end
 
-  mutable struct patientcollection <: Patcol 
+  mutable struct patientcollection <: PATCOL 
    zips::Dict{Int64, zipcode}
   end
 
