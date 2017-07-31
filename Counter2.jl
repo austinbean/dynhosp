@@ -676,7 +676,7 @@ d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i]
   diffs = [-0.57239721 0.57239721 1.3499395 0.77754229 0.31972186 -0.31972186 1.18599 0.866268]
   [ abs(i-j) for i in diffs, j in diffs]
 
-  # this is still showing increasing utility over iterations.  Maybe it's time to just compute the fucking thing 
+  this is still showing increasing utility over iterations.  Maybe it's time to just compute the thing 
   directly?  That is really stupid.  
 """
 function DynAudit(d::DynState, d2::DynState)
@@ -685,9 +685,9 @@ function DynAudit(d::DynState, d2::DynState)
     for z in 1:size(d.all[el].mk.m,1) 
       for i = 1:size(d.all[el].mk.m[z].putils,2)
         if !isapprox(d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i], atol=10e-5)
-          if !CollectApprox(abs(d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i]),diffs)
+         # if !CollectApprox(abs(d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i]),diffs)
             println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i])," ", d.all[el].level, " ", d.all[el].actual  , " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
-          end 
+         # end 
         end 
       end 
     end 
@@ -755,13 +755,22 @@ end
 
 
 """
-`HUtil{T<:Fac}( c::cpats, sr::T, p_or_m::Bool; pparameters::ProjectModule.coefficients = ..., mparameters::ProjectModule.coefficients  = ...)`
+`HUtil{T<:Fac}( c::cpats, sr::T, p_or_m::Bool)`
 Computes the deterministic component of the utility for a hospital - the goal is for this to update the entire cpat list of facilities.
 And I want to do both - I don't want to update either private or medicaid.
+
+memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     72.979 ns (0.00% GC)
+  median time:      72.993 ns (0.00% GC)
+  mean time:        74.396 ns (0.00% GC)
+  maximum time:     202.816 ns (0.00% GC)
 """
 function HUtil{T<:ProjectModule.Fac}(c::cpats, sr::T, p_or_m::Bool)
   mcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c)
   pcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c)
+  # TODO - hardcode these values above in mcoeffs and pcoeffs for now.  
   d::Float64 = distance(c.lat, c.long, sr.lat, sr.long)
   if p_or_m # if TRUE private
     if sr.level == 1
@@ -2537,6 +2546,9 @@ end
 """
 `ResetCompState`
 What is done in `MapCompState` will be undone in this function.
+
+Maybe this is the thing to change.  This should recompute the utility...?  But that is so fucking costly!
+
 """
 function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
   if (length(states)>1)||(states[1][1] != 0)
@@ -2759,9 +2771,79 @@ end
 `UtilCCheck`
 Check whether the U up and down functions correctly restore to the original state.
 
+dyn = CounterObjects(5);
+dyn2 = CounterObjects(5);
+UtilCCheck(dyn, dyn2)
+
+
+this should maybe call a new state, map it out, do the update, then check all the utilities across the values.  
+That can happen just once, let's say.  
+
 """
 function UtilCCheck(d1::DynState, d2::DynState)
-  nothing 
+  # what do I want this to check?  Create a state, write out some different utilities, 
+  # change them using UtilUp and UtilDown, then figure out where the fuckup is coming.
+  # This is facilitated by comparing the utility to the original value in d2.
+  outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+  tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+  totest::Dict{Int64,Bool} = Dict{Int64,Bool}()
+  el = 11 # testing this on a specific facility. 
+  chunk = [11]; 
+  k = 2910645; # fid of dyn.all[el]
+  st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()
+  neighbors::Array{Int64,1} = Array{Int64,1}()                                          
+  nfds::Array{Int64,1} = Array{Int64,1}()
+  all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()
+  for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
+    FindComps(d1, neighbors, d1.all[el])                                                  # these are addresses of competitors in D.all 
+    NFids(d1, nfds, d1.all[el])                                                           # records the fids of neighbors only, as fids.  
+    push!(neighbors, el)                                                                # add the location of the firm in chunk
+    if !haskey(outvals, d1.all[el].fid)                                                  # add an empty dict IF there isn't already an entry.
+      outvals[d1.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    end 
+    tempvals[d1.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    CompsDict(neighbors, d1, all_locs)                                                   # now this is Dict{Fid, Location}
+    StateRecord(all_locs, d1, st_dict)                                                   # returns the restricted state.
+    for el2 in neighbors                                                                # adds keys for the neighbors to the temp dict. 
+      outvals[d1.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
+      tempvals[d1.all[el2].fid] = Dict{NTuple{10, Int64},Float64}() 
+      totest[d1.all[el2].fid] = false                                                    # initialized to FALSE - not converged. 
+      StateEnumerate(TupletoCNS(st_dict[d1.all[el2].fid]), outvals[d1.all[el2].fid]) 
+      StateEnumerate(TupletoCNS(st_dict[d1.all[el2].fid]), tempvals[d1.all[el2].fid])
+    end 
+    if !haskey(outvals, d1.all[el].fid)
+      StateEnumerate(d1.all[el].cns, outvals[d1.all[el].fid])
+      StateEnumerate(d1.all[el].cns, tempvals[d1.all[el].fid])                            # this does NOT need starting values.  
+    end 
+    if haskey(outvals, d1.all[el].fid)
+      DictCopy(tempvals, outvals, 1.0)                                                  # if there is an entry for the value, copy FROM outvals TO tempvals.  
+    end                                
+    totest[d1.all[el].fid] = false                                                       # all facilities to do initially set to false.  
+  end
+  #=
+  Other States to test:
+  Tuple{Int64,Int64}[(3396189, 3), (3396327, 3), (3390720, 1), (3396057, 2)]
+  Tuple{Int64,Int64}[(3396189, 1), (3396327, 1), (3390720, 2), (3396057, 2)]
+  Tuple{Int64,Int64}[(3396189, 1), (3396327, 1), (3390720, 1), (3396057, 2)]
+
+  [(3396189, 1) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 3) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 3) (3390720, 1) (3396057, 1)]
+  =#
+  altstates =   [(3396189, 1) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 3) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 3) (3390720, 1) (3396057, 1)]
+  for k in keys(totest)                                                              
+    if !totest[k]  
+      for r in 1:size(altstates,1)
+        #println(altstates[r,:])
+        st_dict[k] = GiveState(d1, chunk, all_locs, altstates[r,:], d1.all[el].cns)
+        MapCompState(d1, all_locs, chunk, FindFids(d1, chunk), altstates[r,:]) 
+        println("Pre-audit: ")
+        DynAudit(d1, d2)
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, d1; messages = false) 
+        ResetCompState(d1, all_locs, chunk, FindFids(d1, chunk), altstates[r,:])
+        println("Post audit: ")
+        DynAudit(d1, d2)
+      end 
+    end 
+  end 
 end
 
 
