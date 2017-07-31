@@ -685,9 +685,9 @@ function DynAudit(d::DynState, d2::DynState)
     for z in 1:size(d.all[el].mk.m,1) 
       for i = 1:size(d.all[el].mk.m[z].putils,2)
         if !isapprox(d.all[el].mk.m[z].putils[2,i], d2.all[el].mk.m[z].putils[2,i], atol=10e-5)
-         # if !CollectApprox(abs(d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i]),diffs)
+          if !CollectApprox(abs(d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i]),diffs)
             println(d.all[el].fid, " ", d.all[el].mk.m[z].zp, " ", convert(Int64,d.all[el].mk.m[z].putils[1,i])," ", d.all[el].level, " ", d.all[el].actual  , " ", d.all[el].mk.m[z].putils[2,i]- d2.all[el].mk.m[z].putils[2,i] )
-         # end 
+          end 
         end 
       end 
     end 
@@ -2529,16 +2529,12 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
           # TODO - what is happening here when the level is set first to exit and then away?
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             #println("before ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
-            # TODO - next function does not handle exit yet.
-            # FIXME - updating on the basis of current "actual" is going to be wrong.  This is NOT the relevant
-            # value.  It should be D.all[locs[tp[1]]].level   
+            # FIXME - updating on the basis of current "actual" is going to be wrong.  This is NOT the relevant level 
+            # FIXME - problem here is probably update relative to ACTUAL, rather than previous, necessarily.  
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
-            #println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
-            # TODO - the problem may be that the update doesn't move it down enough.  
-            # If it always updates relative to actual, that will not always be correct.  
-            # Suppose I'm a 2, then I update to 3, then to 1.  The difference is different.  Why?  Because "previous" isn't 
-            # always actual.  That's the key thing.  
+            #println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])]) 
           end 
+          D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level    # level update DOES work.  
           D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work. NB: timing of this line matters for utility update.  
         end 
       end
@@ -2563,7 +2559,8 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
             # NB: note that this use of actual is correct: I want to reset this to the original level. 
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
-          D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual  # level update DOES work.  
+          # D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level
+          # D.all[locs[tp[1]]].level = tp[2]
         end 
       end
     end 
@@ -2683,12 +2680,13 @@ function UtilUp(c::cpats,
   const inten_med::Float64 = 1.3499395         # Should be positive: the intensive coeff for medicaid:  ProjectModule.medicaidneoint_c
   const inter_med::Float64 = 0.77754229        # Should be positive: the intermediate coeff for medicaid:  ProjectModule.medicaidsoloint_c
   # Private 
-  const inten2inter_p::Float64 = 0.31972186    # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
-  const inter2inten_p::Float64 = -0.31972186   # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
-  const inten_p::Float64 = 1.18599             # Should be: intensive coeff for private:  
-  const inter_p::Float64 = 0.866268            # Should be: intermediate coeff for private:  
+  # BE CAREFUL CHANGING THE NEXT TWO LINES, even if they look wrong.  
+  const inten2inter_p::Float64 = 0.31972186   # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
+  const inter2inten_p::Float64 = -0.31972186    # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
+  const inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
+  const inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
-  # TOOD - this does not handle exiting yet.   
+  # Handling Exit - subtract 20, or add it.     
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   const indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if (indx_m!=0)&(indx_p!=0)
@@ -2700,6 +2698,9 @@ function UtilUp(c::cpats,
     elseif (actual == 1)&(current == 3) # definitely want addition
       c.putils[2,indx_p] += inten_p
       c.mutils[2,indx_m] += inten_med 
+    elseif (actual == 1)&(current == 999) # handling exit - subtract 20 from each.  
+      # c.putils[2,indx_p] -= 20.0
+      # c.mutils[2,indx_m] -= 20.0
     elseif (actual == 2)&(current == 1) # This should be subtraction.
       c.putils[2,indx_p] -= inter_p
       c.mutils[2,indx_m] -= inter_med
@@ -2708,6 +2709,9 @@ function UtilUp(c::cpats,
     elseif (actual == 2)&(current == 3) # definitely want adding here. 
       c.putils[2,indx_p] += inten2inter_p 
       c.mutils[2,indx_m] += inten2inter_med
+    elseif (actual == 2)&(current == 999) # handling exit - subtract 20 from each.
+      # c.putils[2,indx_p] -= 20.0
+      # c.mutils[2,indx_m] -= 20.0      
     elseif (actual == 3)&(current == 1) # definitely want subtraction.
       c.putils[2,indx_p] -= inten_p 
       c.mutils[2,indx_m] -= inten_med 
@@ -2716,8 +2720,23 @@ function UtilUp(c::cpats,
       c.mutils[2,indx_m] += inter2inten_med # added
     elseif (actual == 3)&(current == 3)
       # do nothing.
+    elseif (actual == 3)&(current == 999) # handling exit - subtract 20 from each.
+      # c.putils[2,indx_p] -= 20.0
+      # c.mutils[2,indx_m] -= 20.0      
+    elseif (actual == 999)&(current == 1)
+      # c.putils[2,indx_p] += 20.0
+      # c.mutils[2,indx_m] += 20.0
+    elseif (actual == 999)&(current == 2)
+      # c.putils[2,indx_p] += 20.0
+      # c.mutils[2,indx_m] += 20.0
+    elseif (actual == 999)&(current == 3)
+      # c.putils[2,indx_p] += 20.0
+      # c.mutils[2,indx_m] += 20.0
+    elseif (actual == 999)&(current == 999)
+      # do nothing.
     end 
   end 
+  # TODO - can these values be rounded or chopped off to keep errors from coming in?  
 end 
 
 
