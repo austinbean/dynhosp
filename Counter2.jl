@@ -2522,8 +2522,9 @@ MapCompState(dyn, all_locs2, ch2, fids2, states_2)
 """
 function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
   if (length(states)>1)||(states[1][1] != 0)
-    for el in ch                                                # these are locations in D.all - but there should be only one.
+    for el in ch                                                # these are locations in D.all - but there should be only one ALWAYS.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+        # TODO - remove the no-exit restriction.  
         if (D.all[locs[tp[1]]].level != tp[2])&(tp[2]!=999) # SKIPPING EXIT.                    # level changes!
           # TODO - what is happening here when the level is set first to exit and then away?
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
@@ -2533,9 +2534,12 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
             # value.  It should be D.all[locs[tp[1]]].level   
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
             #println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
+            # TODO - the problem may be that the update doesn't move it down enough.  
+            # If it always updates relative to actual, that will not always be correct.  
+            # Suppose I'm a 2, then I update to 3, then to 1.  The difference is different.  Why?  Because "previous" isn't 
+            # always actual.  That's the key thing.  
           end 
-          # NB: timing of this line matters.  
-          D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work.  
+          D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work. NB: timing of this line matters for utility update.  
         end 
       end
     end 
