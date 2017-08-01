@@ -2524,18 +2524,12 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
   if (length(states)>1)||(states[1][1] != 0)
     for el in ch                                                # these are locations in D.all - but there should be only one ALWAYS.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-        # TODO - remove the no-exit restriction.  
-        if (D.all[locs[tp[1]]].level != tp[2])&(tp[2]!=999) # SKIPPING EXIT.                    # level changes!
-          # TODO - what is happening here when the level is set first to exit and then away?
+        if (D.all[locs[tp[1]]].level != tp[2])                  # level changes!
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
-            #println("before ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])])
-            # FIXME - updating on the basis of current "actual" is going to be wrong.  This is NOT the relevant level 
-            # FIXME - problem here is probably update relative to ACTUAL, rather than previous, necessarily.  
-            UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
-            #println("after ", zp.zp, " ", tp[1], "  ", zp.putils[2, findin(zp.putils[1,:], tp[1])]) 
+            UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
-          D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level    # level update DOES work.  
-          D.all[locs[tp[1]]].level = tp[2]                      # level update DOES work. NB: timing of this line matters for utility update.  
+          D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # level update DOES work.  
+          D.all[locs[tp[1]]].level = tp[2]                      # NB: timing of this line matters for utility update.  
         end 
       end
     end 
@@ -2546,21 +2540,16 @@ end
 """
 `ResetCompState`
 What is done in `MapCompState` will be undone in this function.
-
-Maybe this is the thing to change.  This should recompute the utility...?  But that is so fucking costly!
-
+All utils are set back to that implied by the original level.  
 """
 function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
   if (length(states)>1)||(states[1][1] != 0)
     for el in ch                                                # these are locations in D.all - but there should be only one.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
         if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
-          for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
-            # NB: note that this use of actual is correct: I want to reset this to the original level. 
-            UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+          for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el] 
+            UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # NB: note that this use of actual is correct: I want to reset this to the original level.
           end 
-          # D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level
-          # D.all[locs[tp[1]]].level = tp[2]
         end 
       end
     end 
@@ -2623,8 +2612,14 @@ function UpdateD(h::simh)
       for el in 1:size(h.mk.m,1) # this is an array of cpats
         UtilUp(h.mk.m[el], h.fid, 2,1) 
       end 
-    else # h.actual == 1
+    elseif  h.actual == 1
       # do nothing.
+    elseif h.actual == 999
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 999,1) 
+      end
+    else
+      println("1 - unknown level called in UpdateD")
     end 
   elseif h.level == 2
     if h.actual == 1
@@ -2635,10 +2630,16 @@ function UpdateD(h::simh)
       for el in 1:size(h.mk.m,1) # this is an array of cpats
         UtilUp(h.mk.m[el], h.fid, 3, 2)
       end       
-    else # h.actual == 2
-      # do nothing. 
+    elseif h.actual == 2
+      # do nothing.
+    elseif h.actual == 999
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 999, 2)
+      end 
+    else
+      println("2 - unknown level called in UpdateD")
     end
-  else #h.level == 3
+  elseif h.level == 3 
     if h.actual == 1
       for el in 1:size(h.mk.m,1) # this is an array of cpats
         UtilUp(h.mk.m[el], h.fid, 1, 3)
@@ -2647,24 +2648,42 @@ function UpdateD(h::simh)
       for el in 1:size(h.mk.m,1) # this is an array of cpats
         UtilUp(h.mk.m[el], h.fid, 2,3)
       end 
-    else # h.actual == 3
+    elseif h.actual == 3
       # do nothing.
+    elseif h.actual == 999
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 999,3)
+      end 
+    else
+      println("3 - unknown level called in UpdateD")
     end
+  elseif h.level == 999 # this is the exit state.
+    if h.actual == 1
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 1, 999)
+      end 
+    elseif h.actual == 2
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 2,999)
+      end 
+    elseif h.actual == 3 # h.actual == 3
+      for el in 1:size(h.mk.m,1) # this is an array of cpats
+        UtilUp(h.mk.m[el], h.fid, 2,999)
+      end
+    elseif h.actual == 999 
+      # do nothing 
+    else
+      println("999 - unknown level called in UpdateD")
+    end
+  else 
+    println("hi - unknown level called in UpdateD")
   end 
 end 
 
 
 
 """
-`UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64;
-                 inteninter_med::Float64 = -0.572397,
-                 interinten_med::Float64 = 0.572397,
-                 inten_med::Float64 = 1.34994,
-                 inter_med::Float64 = 0.777542,
-                 inteninter_p::Float64 = 0.3197218,
-                 interinten_p::Float64 = -0.3197218,
-                 inten_p::Float64 = 1.18599,
-                 inter_p::Float64 = 0.866268) `
+`UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64) `
 Updates the deterministic component of the utility quickly.  
 The change works like: UtilUp(c, fid, actual, current)
 where "actual" is the field dyn.all[].actual - the immutable real level,
@@ -2686,7 +2705,6 @@ function UtilUp(c::cpats,
   const inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
   const inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
-  # Handling Exit - subtract 20, or add it.     
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   const indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if (indx_m!=0)&(indx_p!=0)
@@ -2699,8 +2717,8 @@ function UtilUp(c::cpats,
       c.putils[2,indx_p] += inten_p
       c.mutils[2,indx_m] += inten_med 
     elseif (actual == 1)&(current == 999) # handling exit - subtract 20 from each.  
-      # c.putils[2,indx_p] -= 20.0
-      # c.mutils[2,indx_m] -= 20.0
+      c.putils[2,indx_p] -= 20.0
+      c.mutils[2,indx_m] -= 20.0
     elseif (actual == 2)&(current == 1) # This should be subtraction.
       c.putils[2,indx_p] -= inter_p
       c.mutils[2,indx_m] -= inter_med
@@ -2710,8 +2728,8 @@ function UtilUp(c::cpats,
       c.putils[2,indx_p] += inten2inter_p 
       c.mutils[2,indx_m] += inten2inter_med
     elseif (actual == 2)&(current == 999) # handling exit - subtract 20 from each.
-      # c.putils[2,indx_p] -= 20.0
-      # c.mutils[2,indx_m] -= 20.0      
+      c.putils[2,indx_p] -= 20.0
+      c.mutils[2,indx_m] -= 20.0      
     elseif (actual == 3)&(current == 1) # definitely want subtraction.
       c.putils[2,indx_p] -= inten_p 
       c.mutils[2,indx_m] -= inten_med 
@@ -2721,17 +2739,17 @@ function UtilUp(c::cpats,
     elseif (actual == 3)&(current == 3)
       # do nothing.
     elseif (actual == 3)&(current == 999) # handling exit - subtract 20 from each.
-      # c.putils[2,indx_p] -= 20.0
-      # c.mutils[2,indx_m] -= 20.0      
-    elseif (actual == 999)&(current == 1)
-      # c.putils[2,indx_p] += 20.0
-      # c.mutils[2,indx_m] += 20.0
+      c.putils[2,indx_p] -= 20.0
+      c.mutils[2,indx_m] -= 20.0      
+    elseif (actual == 999)&(current == 1) # to return from exit, add 20 to each.
+      c.putils[2,indx_p] += 20.0
+      c.mutils[2,indx_m] += 20.0
     elseif (actual == 999)&(current == 2)
-      # c.putils[2,indx_p] += 20.0
-      # c.mutils[2,indx_m] += 20.0
+      c.putils[2,indx_p] += 20.0
+      c.mutils[2,indx_m] += 20.0
     elseif (actual == 999)&(current == 3)
-      # c.putils[2,indx_p] += 20.0
-      # c.mutils[2,indx_m] += 20.0
+      c.putils[2,indx_p] += 20.0
+      c.mutils[2,indx_m] += 20.0
     elseif (actual == 999)&(current == 999)
       # do nothing.
     end 
