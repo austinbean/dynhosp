@@ -2486,18 +2486,7 @@ IF fid in states
 update level according to states.
 At the end update DUtil.  What the fuck...
 
-TODO - finish this.
-junk:
-    # for zp in D.all[el].mk.m       # these are the zipcodes at each D.all[el]
-    #   UtilUp(zp, tp[1], D.all[locs[tp[1]]], tp[2]) # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
-    #   # I am not convinced this next section is strictly necessary.  
-    #   # for f in zp.facs             # these are the facilities in the zip.
-    #   #   if f.fid in(f, fids)       # update those which are relevant ONLY 
-    #   #     GetNewLevel(f, states)   # calls this to fix the level and record that it must be updated.
-    #   #   end 
-    #   # end 
-    #   # above here - possibly useless.  
-    # end 
+
 
 ### Testing ### 
 
@@ -2528,8 +2517,9 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
-          D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # level update DOES work.  
-          D.all[locs[tp[1]]].level = tp[2]                      # NB: timing of this line matters for utility update.  
+          # Both of these need to be tracked to make the correction later.  
+          D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # this is "storing where I was to fix it later"  
+          D.all[locs[tp[1]]].level = tp[2]                      # this is "recording where I am" NB: timing of this line matters for utility update.  
         end 
       end
     end 
@@ -2540,7 +2530,8 @@ end
 """
 `ResetCompState`
 What is done in `MapCompState` will be undone in this function.
-All utils are set back to that implied by the original level.  
+All utils are set back to that implied by the original level. 
+Why does this not fix the levels at all?   
 """
 function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
   if (length(states)>1)||(states[1][1] != 0)
@@ -2550,6 +2541,8 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el] 
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # NB: note that this use of actual is correct: I want to reset this to the original level.
           end 
+          # CHECK - logically I need to restore the level to where it WAS.  
+          # D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual 
         end 
       end
     end 
@@ -2681,6 +2674,56 @@ function UpdateD(h::simh)
 end 
 
 
+"""
+`ExitUpdate(h::simh, l::Int64)::Array{Float64,2}`
+Checks that the update of h to level l works:
+- Records utils across zips
+- Changes level to l, updates utils, records those 
+- Changes level back, resets utils, records them 
+- Return results by zip in an array.  
+"""
+function ExitUpdate(h::simh, l::Int64)::Array{Float64,2}
+  dim1 = size(h.mk.m,1)
+  original = dyn.all[1].level
+  outp::Array{Float64,2}=Array{Float64,2}(dim1, 4)
+  for el in 1:size(h.mk.m,1)
+     outp[el,1] = h.mk.m[el].zp
+     for f1 in 1:size(h.mk.m[el].putils,2)
+        if h.fid == h.mk.m[el].putils[1,f1]
+           outp[el,2] = h.mk.m[el].putils[2,f1] 
+        end 
+     end 
+  end 
+  # do the update 
+  h.actual = h.level 
+  h.level = l
+  UpdateD(h)
+  # check the results.
+  for el in 1:size(h.mk.m,1)
+    outp[el,1] = h.mk.m[el].zp
+    for f1 in 1:size(h.mk.m[el].putils,2)
+      if h.fid == h.mk.m[el].putils[1,f1]
+        outp[el,3] = h.mk.m[el].putils[2,f1] 
+      end 
+    end 
+  end 
+  # return to original
+  println("original: ", original)
+  h.actual = h.level 
+  h.level = original 
+  UpdateD(h)
+  for el in 1:size(h.mk.m,1)
+    outp[el,1] = h.mk.m[el].zp
+    for f1 in 1:size(h.mk.m[el].putils,2)
+      if h.fid == h.mk.m[el].putils[1,f1]
+        outp[el,4] = h.mk.m[el].putils[2,f1] 
+      end 
+    end 
+  end
+  return outp
+end 
+
+
 
 """
 `UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64) `
@@ -2688,6 +2731,39 @@ Updates the deterministic component of the utility quickly.
 The change works like: UtilUp(c, fid, actual, current)
 where "actual" is the field dyn.all[].actual - the immutable real level,
 and "current" is the field dyn.all[].level - this can and may change.  
+
+Testing the exit change...
+dyn = CounterObjects(5);
+for el in dyn.all[1].mk.m 
+  for fid in 1:size(el.putils,2)
+    if dyn.all[1].fid == el.putils[1,fid]
+      println(el.zp, " ", el.putils[2,fid])
+    end 
+  end 
+end 
+
+dyn.all[1].level = 999 
+UpdateD(dyn.all[1])
+
+for el in dyn.all[1].mk.m 
+  for fid in 1:size(el.putils,2)
+    if dyn.all[1].fid == el.putils[1,fid]
+      println(el.zp, " ", el.putils[2,fid])
+    end 
+  end 
+end 
+
+dyn.all[1].level = 1
+dyn.all[1].actual = 999
+UpdateD(dyn.all[1])
+
+dyn.all[1].level = 2
+dyn.all[1].actual = 1
+UpdateD(dyn.all[1])
+
+dyn.all[1].level = 
+
+
 """
 function UtilUp(c::cpats, 
                 fid::Int64, 
@@ -2702,6 +2778,7 @@ function UtilUp(c::cpats,
   # BE CAREFUL CHANGING THE NEXT TWO LINES, even if they look wrong.  
   const inten2inter_p::Float64 = 0.31972186   # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
   const inter2inten_p::Float64 = -0.31972186    # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
+  # BE CAREFUL CHANING ABOVE TWO LINES.
   const inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
   const inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
@@ -2716,7 +2793,7 @@ function UtilUp(c::cpats,
     elseif (actual == 1)&(current == 3) # definitely want addition
       c.putils[2,indx_p] += inten_p
       c.mutils[2,indx_m] += inten_med 
-    elseif (actual == 1)&(current == 999) # handling exit - subtract 20 from each.  
+    elseif (actual == 1)&(current == 999) # going TO exit - subtract 20 from each.  
       c.putils[2,indx_p] -= 20.0
       c.mutils[2,indx_m] -= 20.0
     elseif (actual == 2)&(current == 1) # This should be subtraction.
@@ -2727,7 +2804,7 @@ function UtilUp(c::cpats,
     elseif (actual == 2)&(current == 3) # definitely want adding here. 
       c.putils[2,indx_p] += inten2inter_p 
       c.mutils[2,indx_m] += inten2inter_med
-    elseif (actual == 2)&(current == 999) # handling exit - subtract 20 from each.
+    elseif (actual == 2)&(current == 999) # going TO exit - subtract 20 from each.
       c.putils[2,indx_p] -= 20.0
       c.mutils[2,indx_m] -= 20.0      
     elseif (actual == 3)&(current == 1) # definitely want subtraction.
@@ -2738,10 +2815,10 @@ function UtilUp(c::cpats,
       c.mutils[2,indx_m] += inter2inten_med # added
     elseif (actual == 3)&(current == 3)
       # do nothing.
-    elseif (actual == 3)&(current == 999) # handling exit - subtract 20 from each.
+    elseif (actual == 3)&(current == 999) # going TO exit - subtract 20 from each.
       c.putils[2,indx_p] -= 20.0
       c.mutils[2,indx_m] -= 20.0      
-    elseif (actual == 999)&(current == 1) # to return from exit, add 20 to each.
+    elseif (actual == 999)&(current == 1) # returning from exit, add 20 to each.
       c.putils[2,indx_p] += 20.0
       c.mutils[2,indx_m] += 20.0
     elseif (actual == 999)&(current == 2)
@@ -2869,7 +2946,7 @@ function UtilCCheck(d1::DynState, d2::DynState)
 
   [(3396189, 1) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 3) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 3) (3390720, 1) (3396057, 1)]
   =#
-  altstates =   [(3396189, 1) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 3) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 3) (3390720, 1) (3396057, 1)]
+  altstates =   [(3396189, 1) (3396327, 999) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 999) (3390720, 999) (3396057, 1); (3396189, 3) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 1) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 3) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 999) (3396327, 2) (3390720, 1) (3396057, 1); (3396189, 1) (3396327, 3) (3390720, 1) (3396057, 1); (3396189, 2) (3396327, 3) (3390720, 1) (3396057, 1)]
   for k in keys(totest)                                                              
     if !totest[k]  
       for r in 1:size(altstates,1)
