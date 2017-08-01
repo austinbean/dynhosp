@@ -37,9 +37,7 @@ out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
 ExactVal(dyn, ch2, p1, p2; itlim = 5, outvals = out2)
 
 # The following debugger will compare utility values at each point during the sim, but it is very slow.  
-DynAudit(D, d2) # TODO - remove  
 Insert this line somewhere in ExactVal:   
-d2 = CounterObjects(5) # TODO - REMOVE.
 
 
 
@@ -88,6 +86,8 @@ function ExactVal(D::DynState,
   end
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
+  d2 = CounterObjects(5) # TODO - REMOVE.
+
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
@@ -98,6 +98,7 @@ function ExactVal(D::DynState,
           MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
           #TODO - print the share implied by WTP.    
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)
+          DynAudit(D, d2) # TODO - remove  
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
