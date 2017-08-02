@@ -649,6 +649,7 @@ end
   include("ExactConvergence.jl")
   include("ValApprox.jl")
   include("CheckConvergence.jl")
+  include("utilities.jl")
   #include("Reboot.jl")
 
 
