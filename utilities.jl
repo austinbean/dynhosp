@@ -103,7 +103,7 @@ end
 `PrintZip(zi::zip)`
 Prints the fid and the name of the facilities attached to the zips.
 """
-function PrintZip(zi::zip)
+function PrintZip(zi::zipcode)
   for el in keys(zi.facilities)
     println("⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒⭒")
     println(el, "  ", zi.facilities[el].name)
