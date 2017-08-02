@@ -882,6 +882,7 @@ end
   export UpdateUCheck
   export DynAudit
   export CollectApprox
+  export CpatsUChange
 
 
   # Export types
