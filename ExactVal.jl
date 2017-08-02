@@ -98,8 +98,8 @@ function ExactVal(D::DynState,
           MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
           #TODO - print the share implied by WTP.    
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)
+          ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
           DynAudit(D, d2) # TODO - remove  
-          ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back  
         end 
       end 
     end
