@@ -83,6 +83,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     CV3::Float64 = ContVal(nstates, fid, stable ,3)  
    # testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
   # Update value at Level 1
+    original = D.all[location].level # try to save the orginal level. 
+    println("original: ", original) 
     D.all[location].level = 1
     if messages println("First Update:") end 
     if messages UpdateUCheck(D.all[location]) end 
@@ -115,6 +117,8 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level for the main firm.
     PatientZero(p1, p2)
+    D.all[location].level = original # try to reset. 
+    #println("original 2: ", original, " ", D.all[location].level) 
 end 
 
 
