@@ -481,3 +481,23 @@ function UpdateUCheck(h::simh)
 end 
 
 
+
+"""
+`CpatsUChange(c::cpats, f::Int64)`
+
+take a fid and a cpat, find the fid in putils and mutils, print out the fid and the utility value.
+"""
+function CpatsUChange(c::cpats, f::Int64)
+  for el in 1:size(c.putils,2)
+    if c.putils[1,el] == f 
+      print(f, " ", c.putils[2,el])
+    end 
+  end 
+  for el in 1:size(c.mutils,2) 
+    if c.mutils[1,el] == f 
+      println(" ", c.mutils[2,el])
+    end 
+  end 
+end
+
+
