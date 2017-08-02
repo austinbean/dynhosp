@@ -2369,19 +2369,23 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
     for el in ch                                                # these are locations in D.all - but there should be only one.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
         if (D.all[locs[tp[1]]].level != tp[2])                    # level changes!
-          println("changes to reverse: ", tp[1], " new level:", tp[2], " current level:", D.all[locs[tp[1]]].level, " actual: ", D.all[locs[tp[1]]].actual )
+          # TODO - this function call is not getting inside this conditional.  
+          # The level has been changed back prior to this... ?  
+          #println("changes to reverse: ", tp[1], " new level:", tp[2], " current level:", D.all[locs[tp[1]]].level, " actual: ", D.all[locs[tp[1]]].actual )
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el] 
-            print("before: ")
-            CpatsUChange(zp, tp[1])
+           # print("before: ")
+            #CpatsUChange(zp, tp[1])
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # NB: note that this use of actual is correct: I want to reset this to the original level.
-            print(" after: ")
-            CpatsUChange(zp, tp[1])
-            println("")
+            #print(" after: ")
+            #CpatsUChange(zp, tp[1])
+           # println("")
           end 
           # CHECK - logically I need to restore the level to where it WAS. 
           # I think it is this that must be wrong... 
            D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual 
-           println("having reversed: ", tp[1], " level value: ",  D.all[locs[tp[1]]].level, " must agree with current level." )
+           println("yooooooo")
+           println("From Reset: level ", D.all[locs[tp[1]]].level, " actual ", D.all[locs[tp[1]]].actual, " tp[2] ", tp[2])
+           #println("having reversed: ", tp[1], " level value: ",  D.all[locs[tp[1]]].level, " must agree with current level." )
         end 
       end
     end 
@@ -2436,7 +2440,7 @@ This will *only* change by the amount of a switched level.  Does not recompute.
 """
 function UpdateD(h::simh)
   if h.level == 1 # this item varies.
-    if h.actual == 3
+    if h.actual == 3 # I return to this later.  
       for el in 1:size(h.mk.m,1) # this is an array of cpats
         UtilUp(h.mk.m[el], h.fid, 3, 1)
       end 
