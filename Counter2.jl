@@ -2660,7 +2660,8 @@ function UtilDown(h::simh)
   end 
   # reset the level AFTER this is called:
   # TODO - not sure about doing this next line here...
-  # h.level = h.actual  
+  # this line should be correct since this is NOT used in the ResetCompState function.  
+   h.level = h.actual  
 end 
 
 
