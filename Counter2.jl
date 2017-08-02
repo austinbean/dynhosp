@@ -2330,7 +2330,7 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
   if (length(states)>1)||(states[1][1] != 0)
     for el in ch                                                # these are locations in D.all - but there should be only one ALWAYS.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-        if (D.all[locs[tp[1]]].level != tp[2])                  # level changes!
+        if (D.all[locs[tp[1]]].level != tp[2]) #&(tp[2]!=999)                  # level changes!
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
@@ -2350,19 +2350,38 @@ end
 `ResetCompState`
 What is done in `MapCompState` will be undone in this function.
 All utils are set back to that implied by the original level. 
-Why does this not fix the levels at all?   
+
+The only functions which can be implicated here are this one and UtilUp.
+Either the level is not changed correctly initially OR it is incorrectly set downwards in UtilUp here.
+
+What do I *want* these things to be?  
+
+- Start at 2, but new state is (fid, 3)
+- map level to 3, map actual to 2.
+- <do stuff>
+- reverse: restore level to original, i.e., copy actual to level.  
+- Then below, should see...
+- next to having reversed, should see (fid, level)
+
 """
 function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
   if (length(states)>1)||(states[1][1] != 0)
     for el in ch                                                # these are locations in D.all - but there should be only one.
       for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
-        if D.all[locs[tp[1]]].level != tp[2]                    # level changes!
+        if (D.all[locs[tp[1]]].level != tp[2])                    # level changes!
+          println("changes to reverse: ", tp[1], " new level:", tp[2], " current level:", D.all[locs[tp[1]]].level, " actual: ", D.all[locs[tp[1]]].actual )
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el] 
+            print("before: ")
+            CpatsUChange(zp, tp[1])
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # NB: note that this use of actual is correct: I want to reset this to the original level.
+            print(" after: ")
+            CpatsUChange(zp, tp[1])
+            println("")
           end 
           # CHECK - logically I need to restore the level to where it WAS. 
           # I think it is this that must be wrong... 
            D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual 
+           println("having reversed: ", tp[1], " level value: ",  D.all[locs[tp[1]]].level, " must agree with current level." )
         end 
       end
     end 
