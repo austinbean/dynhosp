@@ -2360,7 +2360,8 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el] 
             UtilUp(zp, tp[1],tp[2],D.all[locs[tp[1]]].actual)   # NB: note that this use of actual is correct: I want to reset this to the original level.
           end 
-          # CHECK - logically I need to restore the level to where it WAS.  
+          # CHECK - logically I need to restore the level to where it WAS. 
+          # I think it is this that must be wrong... 
            D.all[locs[tp[1]]].level = D.all[locs[tp[1]]].actual 
         end 
       end
@@ -2524,7 +2525,7 @@ function UtilUp(c::cpats,
   # TODO - maybe find this by hand and cut that allocation? 
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   const indx_p::Int64 = findfirst(c.putils[1,:], fid)
-  # NB: format of the next set of lines is: if you WERE actual and are going TO current... 
+  # NB: format of the next set of lines is: if you WERE actual and are going TO current... So FROM "actual" TO "current".
   if (indx_m!=0)&(indx_p!=0) # only update when both are present - it is never possible for one to be present and the other absent
     if (actual == 1)&(current == 1)
       # do nothing.
@@ -2580,8 +2581,6 @@ end
 Adjusts the deterministic utility back down.  
 Now changed so that this function updates the level back to the actual value.  
 
-TODO - this is not going to be right when the actual is not the relevant comparison.
-The actual is immutable.  Herein must be the error.  
 """
 function UtilDown(h::simh)
   if h.level == 1
@@ -2660,7 +2659,8 @@ function UtilDown(h::simh)
     println("Unknown level called in UtilDown")
   end 
   # reset the level AFTER this is called:
-  h.level = h.actual  
+  # TODO - not sure about doing this next line here...
+  # h.level = h.actual  
 end 
 
 
