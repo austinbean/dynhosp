@@ -34,13 +34,12 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; itlim = 2, outvals = out2)
+ExactVal(dyn, ch2, p1, p2; itlim = 100, outvals = out2)
 
 # The following debugger will compare utility values at each point during the sim, but it is very slow.  
 Insert this line somewhere in ExactVal:   
-
-
-
+#d2 = CounterObjects(5) # TODO - REMOVE.
+#DynAudit(D, d2) # TODO - remove  
 """
 function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
@@ -86,8 +85,6 @@ function ExactVal(D::DynState,
   end
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
-  #d2 = CounterObjects(5) # TODO - REMOVE.
-
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
@@ -100,7 +97,6 @@ function ExactVal(D::DynState,
           ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)
           #println("calling reset !")
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
-          #DynAudit(D, d2) # TODO - remove  
         end 
       end 
     end
@@ -122,7 +118,6 @@ function ExactVal(D::DynState,
       end 
     end 
     # Copy the values and clean up.
-    # TODO - check the weighting system here... iteration numbers so far are really low.  
     #PureCopy(outvals, tempvals)
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
     DictClean(tempvals)                                                               # sets up for rewriting.
