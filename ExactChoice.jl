@@ -84,7 +84,7 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
    # testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
   # Update value at Level 1
     original = D.all[location].level # try to save the orginal level. 
-    println("original: ", original) 
+    #println("original: ", original) 
     D.all[location].level = 1
     if messages println("First Update:") end 
     if messages UpdateUCheck(D.all[location]) end 
