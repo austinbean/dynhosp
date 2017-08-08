@@ -3001,14 +3001,15 @@ Parallelizes ExactValue computation across cores.
 ## Testing ## 
 
 dyn = CounterObjects(5);
-ExactControl(dyn)
+res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}
+ExactControl(dyn, 0, 1; res1)
+ResultsWrite(res1)
 
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minutes(wallm)) # wall time in hours and minutes 
   strt = now()
   np = nprocs()
-  
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
   for el in 1:size(D.all,1) 
     if sum(D.all[el].cns) < 5
@@ -3040,6 +3041,50 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
   return results 
 end 
 
+
+"""
+`KeyArr(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} })`
+
+Returns an iterable array of all FID, state elements for use in `ResultsWrite`.
+"""
+function KeyArr(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} })
+  outp::Array{Tuple{Int64, NTuple{10, Int64}}, 1} = Array{Tuple{Int64, NTuple{10, Int64}}, 1}()
+  for k1 in keys(vals)
+    for k2 in keys(vals[k1])
+      push!(outp, (k1, k2))
+    end 
+  end 
+  return outp 
+end 
+
+
+"""
+`ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, f::Int64)`
+
+Write out the results of the simulation.  Uses `KeyArr` to get an iterable
+over the (fid,key) pairs. f tracks the fid I want.  
+
+
+"""
+function ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, f::Int64)
+  cols = 4 # fid, key, value, ismain?
+  rows = 0
+  for k1 in keys(vals)
+    rows += vals[k1].count 
+  end 
+  outp::Array{Any,2} = Array{Any,2}(rows, cols)
+  for (i,el) in enumerate(KeyArr(vals))
+    outp[i,1] = el[1]
+    outp[i,2] = el[2]
+    outp[i,3] = vals[el[1]][el[2]]
+    if el[1] == f 
+      outp[i,4] = true 
+    else 
+      outp[i,4] = false 
+    end 
+  end 
+  return outp 
+end 
 
 
 
