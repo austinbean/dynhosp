@@ -3001,13 +3001,13 @@ Parallelizes ExactValue computation across cores.
 ## Testing ## 
 
 dyn = CounterObjects(5);
-res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}
-ExactControl(dyn, 0, 1; res1)
+res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
+ExactControl(dyn, 0, 2; results = res1)
 ResultsWrite(res1)
 
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
-  wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minutes(wallm)) # wall time in hours and minutes 
+  wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) # wall time in hours and minutes 
   strt = now()
   np = nprocs()
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
