@@ -2722,7 +2722,8 @@ function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permane
   for k1 in keys(d1) # these are fids 
     for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
       if !haskey(d2[k1],k2 ) # if the temporary doesn't have the key 
-        # do nothing???  
+        # do nothing??? 
+        println("Didn't find: ", k1, " ", k2) 
       else # FIXME - there should be a test here concerning whether of these is zero, eg. the temp.  
         if d1[k1][k2] > 0 # don't copy states with zero value yet. - nope, this won't work.  Recall the initial value...  
           d1[k1][k2] = alpha*d2[k1][k2] + (1-alpha)*d1[k1][k2] # this should copy from the temp to the permanent.   
