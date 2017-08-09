@@ -883,6 +883,8 @@ end
   export DynAudit
   export CollectApprox
   export CpatsUChange
+  export KeyArr
+  export ResultsWrite
 
 
   # Export types
