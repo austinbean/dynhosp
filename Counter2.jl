@@ -3004,7 +3004,19 @@ Parallelizes ExactValue computation across cores.
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
 ExactControl(dyn, 0, 2; results = res1)
-ResultsWrite(res1)
+ResultsWrite(res1,1)
+
+Why is this terminating?
+
+dyn = CounterObjects(5);
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ch2 = [195] # larger market. 
+out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+ExactVal(dyn, ch2, p1, p2; itlim = 1, outvals = out2)
+
+
+TODO - this needs to SKIP markets which are too large.  That's a problem because of Exactcontrol?  Or maybe not...
 
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
@@ -3029,11 +3041,23 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
             current = now()
             ix = nextix()                                                             # increment the index - i does persist so this will be a counter.
             if ix>length(chs) || ((current-strt)>wl )                                 # stop when we exceed the number of markets OR the wall time.
-              DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
+              # TODO - why am I running this once more when the wall has expired?  Write out results only.  
+              #DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
+              # ResultsWrite(results, ) # TODO - take fid argument 
               break 
             end 
-            println("current: ", D.all[chs[ix]].fid)
-            DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
+            println("current: ", D.all[chs[ix]].fid, " ix ", ix)
+            # for k1 in keys(results)
+            #   println(k1)
+            # end 
+            # fids that don't work: 3396057, 616318
+            # TODO - this needs to write results at an intermediate stage to capture which facility is the correct one to record results for. 
+            # The copying error will probably be here, since ExactVal seems to run fine w/ ch = [195] 
+            if (ix != 11)&(ix != 13) # 13 also! # should do: if D.all[chs[ix]].cns < 6 - but lets see where else this fails first 
+              DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
+            end 
+            # could write out here, for each firm.  Then can combine later.  
+            # eg: ResultsWrite(results, chs[ix]) - but write this out to a file, I think.  
           end 
         end
       end  
@@ -3085,6 +3109,20 @@ function ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, f:
     end 
   end 
   return outp 
+end 
+
+
+function Saver(outp::Array{Any,2})
+  counter = sum(outp[:,4])
+  tosave = Array{Any,2}(counter, 3)
+  for i = 1:size(outp,1)  
+    if out[i,3] 
+      tosave[i, 1] = outp[i,1]
+      tosave[i, 2] = outp[i,2]
+      tosave[i, 3] = outp[i,3]
+    end 
+  end 
+  return tosave 
 end 
 
 
