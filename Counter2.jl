@@ -2106,6 +2106,58 @@ function PatientRev(s::simh,
 end
 
 
+"""
+`InvCosts(state:: , counter::Bool, outp::Array{Float64,1})`
+Takes the vector outp as an input and changes particular coordinates
+which correspond to costs used in `ExactChoice` to represent the costs 
+of changing levels.  
+"""
+function InvCosts(st::NTuple{9,Int64},b1::Bool,outp::Array{Float64,1})
+  #=
+    ϕ13::Float64 = inv_costs[1] 
+    ϕ12::Float64 = inv_costs[2]
+    ϕ1EX::Float64 = inv_costs[3]
+    ϕ23::Float64 = inv_costs[4]
+    ϕ21::Float64 = inv_costs[5]
+    ϕ2EX::Float64 = inv_costs[6]
+    ϕ31::Float64 = inv_costs[7]
+    ϕ32::Float64 = inv_costs[8]
+    ϕ3EX::Float64 = inv_costs[9] 
+  =#
+  l1::Int64 = st[1]+st[4]+st[7]
+  l2::Int64 = st[2]+st[5]+st[8]
+  l3::Int64 = st[3]+st[6]+st[9]
+  outp[1] = Cost3(l3)
+  outp[2] = Cost2(l2)
+  outp[3] = 0.0 
+  outp[4] = Cost3(l3)
+  #outp[5] = 
+  outp[6] = 0.0
+  #outp[7] = 
+  outp[8] = Cost2(l2)
+  outp[9] = 0.0
+  return outp
+end
+
+"""
+`Cost3(n::Int64)`
+Returns Cost of Level 3 given existing number.
+Scaling factor included.
+"""
+function Cost3(n::Int64)
+  return 0.2*n
+end 
+
+
+"""
+`Cost2(n::Int64)`
+Returns Cost of Level 2 given existing number.
+Scaling factor included.  
+"""
+function Cost2(n::Int64)
+  return 0.2*n
+end  
+
 
 
 """
@@ -3000,6 +3052,39 @@ function HospitalDemand(pats::ProjectModule.patientcollection;
   end 
   return inter, outp_p, outp_m, unfound
 end 
+
+
+
+"""
+`CheckMin(outvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }, tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  })`
+
+d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
+d1[123] = Dict{NTuple{10, Int64}, Float64}()
+d2[123] = Dict{NTuple{10, Int64}, Float64}()
+
+d1[123][(1,1,1,1,1,1,1,1,1,1)] = 1.0
+d2[123][(1,1,1,1,1,1,1,1,1,1)] = 2.0
+
+CheckMin(d1, d2) == 1.0
+
+"""
+function CheckMin(outvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }, tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  })
+  minv::Float64 = 1.0
+  for k1 in keys(outvals)
+    for k2 in keys(outvals[k1])
+      if tempvals[k1][k2] > 0
+        if abs(outvals[k1][k2] - tempvals[k1][k2]) < minv 
+          minv = abs(outvals[k1][k2] - tempvals[k1][k2])
+        end
+      end 
+    end 
+  end 
+  return minv
+end 
+
+
+
 
 
 """
