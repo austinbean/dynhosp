@@ -55,70 +55,61 @@ ExactChoice(d1, d2, locs_d, st_dict, 3490795, 1, p1, p2, dyn, false)
 
 d1[dyn.all[1].fid]
 
+For debugging: 
+UpdateUCheck(D.all[location]) 
+can be used
+
 """
 function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, 
                      stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
-                     nbs::Dict{Int64, Int64}, # this should be a {Fid, Loc} dict  
+                     nbs::Dict{Int64, Int64},              # this should be a {Fid, Loc} dict  
                      st_recs::Dict{Int64,NTuple{9,Int64}}, # TODO - change for NTuple{9,Int64} OR   
                      fid::Int64, 
                      location::Int64,
                      p1::patientcount,
                      p2::patientcount,
-                     D::DynState;    
-                     messages::Bool = false) 
+                     D::DynState,
+                     inv_costs::Array{Float64};    
+                     counter::Bool = false) 
     β::Float64 = 0.95
-    ϕ13::Float64 = 0.0 # FIXME - substitute correct values and scale.
-    ϕ12::Float64 = 0.0
-    ϕ1EX::Float64 = 0.0
-    ϕ23::Float64 = 0.0
-    ϕ21::Float64 = 0.0
-    ϕ2EX::Float64 = 0.0
-    ϕ31::Float64 = 0.0
-    ϕ32::Float64 = 0.0
-    ϕ3EX::Float64 = 0.0   
+    #InvCosts(st_recs[k], counter, inv_costs)
+    ϕ13::Float64 = inv_costs[1] 
+    ϕ12::Float64 = inv_costs[2]
+    ϕ1EX::Float64 = inv_costs[3]
+    ϕ23::Float64 = inv_costs[4]
+    ϕ21::Float64 = inv_costs[5]
+    ϕ2EX::Float64 = inv_costs[6]
+    ϕ31::Float64 = inv_costs[7]
+    ϕ32::Float64 = inv_costs[8]
+    ϕ3EX::Float64 = inv_costs[9]   
     cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, stable)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, nbs, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
     CV2::Float64 = ContVal(nstates, fid, stable ,2)
     CV3::Float64 = ContVal(nstates, fid, stable ,3)  
-   # testfloat::Float64 = deepcopy(D.all[location].mk.m[1].putils[2, findfirst(D.all[location].mk.m[1].putils[1,:], D.all[location].fid)])
   # Update value at Level 1
-    original = D.all[location].level # try to save the orginal level. 
-    #println("original: ", original) 
+    original = D.all[location].level                          # save the orginal level. 
     D.all[location].level = 1
-    if messages println("First Update:") end 
-    if messages UpdateUCheck(D.all[location]) end 
     UpdateD(D.all[location])                                  # updates the utility for a new level only for the main firm.
-    if messages println("**************************  AFTER *****************") end 
-    if messages UpdateUCheck(D.all[location])  end 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
     temp[fid][NStateKey(st_recs[fid],1)] = maximum([ϕ1EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([β*(CV1),-ϕ12+β*(CV2),-ϕ13+β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level - just for the single firm.
     PatientZero(p1, p2)                                       # overwrites the patientcount with zeros 
-  # Update value at Level 2 (repeats steps above!)
+  # Update value at Level 2  
     D.all[location].level = 2
-    if messages println("First Update:") end 
-    if messages UpdateUCheck(D.all[location]) end 
     UpdateD(D.all[location])                                  # Updates deterministic part of utility for the main firm.
-    if messages println("**************************  AFTER *****************") end 
-    if messages UpdateUCheck(D.all[location]) end 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand.  
     temp[fid][NStateKey(st_recs[fid],2)] = maximum([ϕ2EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ21+β*(CV1),β*(CV2),-ϕ23+β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level for the main firm.  
     PatientZero(p1, p2)
   # Update value at Level 3
     D.all[location].level = 3
-    if messages println("First Update:") end 
-    if messages UpdateUCheck(D.all[location]) end 
     UpdateD(D.all[location])
-    if messages println("**************************  AFTER *****************") end 
-    if messages UpdateUCheck(D.all[location]) end 
     DSimNew( D.all[location].mk, fid, p1, p2)                 # Computes the demand.
     temp[fid][NStateKey(st_recs[fid],3)] = maximum([ϕ3EX, PatientRev(D.all[location],p1,p2,10)+β*maximum([-ϕ31+β*(CV1),-ϕ32+β*(CV2),β*(CV3)])])
     UtilDown(D.all[location])                                 # resets the utility and level for the main firm.
     PatientZero(p1, p2)
-    D.all[location].level = original # try to reset. 
-    #println("original 2: ", original, " ", D.all[location].level) 
+    D.all[location].level = original                          # reset original level. 
 end 
 
 
