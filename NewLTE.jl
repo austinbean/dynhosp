@@ -1,5 +1,8 @@
 # Redoing the LTE.
 
+
+
+#TODO - remove DataFrames, sub for readcsv.  Ugh.  
 using DataFrames
 using Distributions
 using StatsBase
