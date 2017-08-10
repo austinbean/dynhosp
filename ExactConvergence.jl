@@ -49,7 +49,7 @@ function ExactConvergence(current::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 
             if (current[fid][state]>0.0)&(stable[fid][state]>0.0)            # test states at which value is > 0, since some state values are not computed
               if current[fid][state] == stable[fid][state]
                 # FIXME - too many of these are identical.  That can't be right.  
-                println("identical at: ", fid, " ", state)
+                # println("identical at: ", fid, " ", state)
               end 
               if abs(current[fid][state] - stable[fid][state]) > maxdiff # we want MAX difference. 
                 maxdiff = abs(current[fid][state] - stable[fid][state])
