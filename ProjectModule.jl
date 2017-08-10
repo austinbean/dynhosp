@@ -885,6 +885,7 @@ end
   export CpatsUChange
   export KeyArr
   export ResultsWrite
+  export DictCopyFID
 
 
   # Export types
