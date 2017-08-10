@@ -2723,7 +2723,7 @@ function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permane
     for k2 in keys(d1[k1]) # these are neighbor state/level keys at the hospital level.  
       if !haskey(d2[k1],k2 ) # if the temporary doesn't have the key 
         # do nothing??? 
-        println("Didn't find: ", k1, " ", k2) 
+        # println("Didn't find: ", k1, " ", k2) 
       else # FIXME - there should be a test here concerning whether of these is zero, eg. the temp.  
         if d1[k1][k2] > 0 # don't copy states with zero value yet. - nope, this won't work.  Recall the initial value...  
           d1[k1][k2] = alpha*d2[k1][k2] + (1-alpha)*d1[k1][k2] # this should copy from the temp to the permanent.   
@@ -3004,6 +3004,8 @@ Parallelizes ExactValue computation across cores.
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
 ExactControl(dyn, 0, 2; results = res1)
+
+
 ResultsWrite(res1,1)
 
 Why is this terminating?
@@ -3017,6 +3019,10 @@ ExactVal(dyn, ch2, p1, p2; itlim = 1, outvals = out2)
 
 
 TODO - this needs to SKIP markets which are too large.  That's a problem because of Exactcontrol?  Or maybe not...
+fids that don't work: 3396057, 616318, 293010, 1216116, 1576070, 1672185, 1136061, 4395142, 4396125 (81), 1132528 (121, 122), 1832150 (135, 136)
+Bad indices: 11, 13, 14, 15, 35, 45, 48, 63, 64, 65, 73, 81, 121, 122, 135, 136
+
+TODO - maybe these aren't getting written into the dictionary properly?  That has to be part of it.  Check FindComps and NFids tomorrow.  
 
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
@@ -3030,7 +3036,8 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
       results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}()                       # populate the dict to hold results.  
     end 
   end 
-  i = 1
+  # TODO - reset to 1!
+  i = 136 #1
   nextix()=(idx=i;i+=1;idx)                                                           # this function can use the i = 1 in this local scope - and i does persist within it.
   avail = procs()                                                                     # list of available processes, including the master process 1.
   @sync begin                                                                         # this will wait for everything to finish.
@@ -3050,10 +3057,9 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
             # for k1 in keys(results)
             #   println(k1)
             # end 
-            # fids that don't work: 3396057, 616318
             # TODO - this needs to write results at an intermediate stage to capture which facility is the correct one to record results for. 
             # The copying error will probably be here, since ExactVal seems to run fine w/ ch = [195] 
-            if (ix != 11)&(ix != 13) # 13 also! # should do: if D.all[chs[ix]].cns < 6 - but lets see where else this fails first 
+            if (ix != 11)&(ix != 13)&(ix != 14)&(ix != 15)&(ix != 35)&(ix != 45) # 13 also! # should do: if D.all[chs[ix]].cns < 6 - but lets see where else this fails first 
               DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
             end 
             # could write out here, for each firm.  Then can combine later.  
