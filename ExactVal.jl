@@ -45,13 +45,12 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
-                  itlim::Int64 = 1000,
+                  itlim::Int64 = 100000,
                   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence (Fid, Bool) Dict.
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
-  # TODO - this is kind of dumb... why not record this as a mutable cns type?  Can be converted to Tuple for Dict.
   # Or return a tuple in GiveState.
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
   neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms AND the firm itself.
@@ -85,40 +84,26 @@ function ExactVal(D::DynState,
   end
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
+  inv_costs = zeros(9)
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
         for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
-          # Be careful about this next line... is it changing the state in the right places?  
-          # TODO - GiveState is definitely not working.   
           st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
           MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-          #TODO - print the share implied by WTP.    
-          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D; messages = false)
-          #println("calling reset !")
+          InvCosts(st_dict[k], false, inv_costs)
+          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
           ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
         end 
       end 
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
-    # FIXME - prints minimum difference every 1,000 iterations.  Should be removed eventually. 
-    if its %100 == 0
+    if its %1000 == 0
       println("iteration: ", its)
-      for k1 in keys(outvals)
-        mins::Float64 = 1.0
-        for k2 in keys(outvals[k1])
-          if tempvals[k1][k2] > 0
-            if abs(outvals[k1][k2] - tempvals[k1][k2]) < mins
-              mins = abs(outvals[k1][k2] - tempvals[k1][k2])
-            end
-          end 
-          #println(k1, " ", k2, " ", mins) # just print the minimum difference.  
-        end 
-      end 
+      println("minimum: ", CheckMin(outvals, tempvals))
     end 
     # Copy the values and clean up.
-    #PureCopy(outvals, tempvals)
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
     DictClean(tempvals)                                                               # sets up for rewriting.
     for ky1 in keys(totest)                                                           # this tests every facility every time, but that's ok. 
