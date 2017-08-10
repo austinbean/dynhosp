@@ -886,6 +886,10 @@ end
   export KeyArr
   export ResultsWrite
   export DictCopyFID
+  export CheckMin
+  export InvCosts
+  export Cost3
+  export Cost2
 
 
   # Export types
