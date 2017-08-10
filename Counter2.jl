@@ -2733,6 +2733,28 @@ function DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permane
   end 
 end 
 
+"""
+`DictCopyFID(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permanent / outvals / TO 
+                  d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }, # temporary / tempvals / FROM
+                  FID::Int64)`
+
+Copies TO d1 (first argument) FROM d2 (second argument) when the key == FID.
+
+## Testing ## 
+
+"""
+function DictCopyFID(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, #permanent / outvals / TO 
+                  d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }, # temporary / tempvals / FROM
+                  FID::Int64)
+  for k1 in keys(d2)            # these are fids 
+    if k1 == FID                # ensures that only the specific firm with FID == FID is copied. 
+      for k2 in keys(d2[k1])    # these are neighbor state/level keys at the hospital level.     
+        d1[k1][k2] = d2[k1][k2] # this should copy from the temp to the permanent.   
+      end 
+    end 
+  end 
+end 
+
 
 """
 `PureCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }, alpha::Float64)`
@@ -3003,7 +3025,7 @@ Parallelizes ExactValue computation across cores.
 
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 0, 2; results = res1)
+ExactControl(dyn, 0, 1; results = res1)
 
 
 ResultsWrite(res1,1)
@@ -3017,28 +3039,18 @@ ch2 = [195] # larger market.
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
 ExactVal(dyn, ch2, p1, p2; itlim = 1, outvals = out2)
 
-
-TODO - this needs to SKIP markets which are too large.  That's a problem because of Exactcontrol?  Or maybe not...
-fids that don't work: 3396057, 616318, 293010, 1216116, 1576070, 1672185, 1136061, 4395142, 4396125 (81), 1132528 (121, 122), 1832150 (135, 136)
-Bad indices: 11, 13, 14, 15, 35, 45, 48, 63, 64, 65, 73, 81, 121, 122, 135, 136
-
-TODO - maybe these aren't getting written into the dictionary properly?  That has to be part of it.  Check FindComps and NFids tomorrow.  
-
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) # wall time in hours and minutes 
   strt = now()
   np = nprocs()
+  sizelim::Int64 = 5
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
-  for el in 1:size(D.all,1) 
-    if sum(D.all[el].cns) < 5 # FIXME - here is the problem.  This limits to small markets but later it should but isn't working correctly.
-      push!(chs, el)          # the issue is that some firms are not added because they are not in small markets, but they are neighbors of firms which are.  
-      # What markets end up in chs?  What firms do not?
-      results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}()                       # populate the dict to hold results.  
-    end 
+  for el in 1:size(D.all,1)                                                           # this is going to copy all firms and markets.  
+    push!(chs, el)            
+    results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}()                         # populate the dict to hold results.  
   end 
-  # TODO - reset to 1!
-  i = 121 #1
+  i = 1
   nextix()=(idx=i;i+=1;idx)                                                           # this function can use the i = 1 in this local scope - and i does persist within it.
   avail = procs()                                                                     # list of available processes, including the master process 1.
   @sync begin                                                                         # this will wait for everything to finish.
@@ -3049,24 +3061,18 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
             current = now()
             ix = nextix()                                                             # increment the index - i does persist so this will be a counter.
             if ix>length(chs) || ((current-strt)>wl )                                 # stop when we exceed the number of markets OR the wall time.
-              # TODO - why am I running this once more when the wall has expired?  Write out results only.  
-              #DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
-              # ResultsWrite(results, ) # TODO - take fid argument 
-              break 
-            end 
-            println("current: ", D.all[chs[ix]].fid, " ix ", ix)
-            # TODO - this needs to write results at an intermediate stage to capture which facility is the correct one to record results for. 
-            # FIXME - this can't be el.  It must be something.  
-            if sum(D.all[el].cns) <= 5
-              DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
-            end 
-            # eg: ResultsWrite(results, chs[ix]) - but write this out to a file, I think.  
+              break                                                                   # function operates in place on results, so should break to permit saving. 
+            else 
+              if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
+                println(D.all[chs[ix]].fid) 
+                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)),  D.all[chs[ix]].fid)
+              end  
+            end  
           end 
         end
       end  
     end 
   end 
-  return results 
 end 
 
 
