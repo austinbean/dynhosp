@@ -3031,13 +3031,14 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
   np = nprocs()
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
   for el in 1:size(D.all,1) 
-    if sum(D.all[el].cns) < 5
-      push!(chs, el) 
+    if sum(D.all[el].cns) < 5 # FIXME - here is the problem.  This limits to small markets but later it should but isn't working correctly.
+      push!(chs, el)          # the issue is that some firms are not added because they are not in small markets, but they are neighbors of firms which are.  
+      # What markets end up in chs?  What firms do not?
       results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}()                       # populate the dict to hold results.  
     end 
   end 
   # TODO - reset to 1!
-  i = 136 #1
+  i = 121 #1
   nextix()=(idx=i;i+=1;idx)                                                           # this function can use the i = 1 in this local scope - and i does persist within it.
   avail = procs()                                                                     # list of available processes, including the master process 1.
   @sync begin                                                                         # this will wait for everything to finish.
@@ -3054,15 +3055,11 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
               break 
             end 
             println("current: ", D.all[chs[ix]].fid, " ix ", ix)
-            # for k1 in keys(results)
-            #   println(k1)
-            # end 
             # TODO - this needs to write results at an intermediate stage to capture which facility is the correct one to record results for. 
-            # The copying error will probably be here, since ExactVal seems to run fine w/ ch = [195] 
-            if (ix != 11)&(ix != 13)&(ix != 14)&(ix != 15)&(ix != 35)&(ix != 45) # 13 also! # should do: if D.all[chs[ix]].cns < 6 - but lets see where else this fails first 
+            # FIXME - this can't be el.  It must be something.  
+            if sum(D.all[el].cns) <= 5
               DictCopy(remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), results, 1.0)
             end 
-            # could write out here, for each firm.  Then can combine later.  
             # eg: ResultsWrite(results, chs[ix]) - but write this out to a file, I think.  
           end 
         end
