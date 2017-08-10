@@ -65,17 +65,17 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      p1::patientcount,
                      p2::patientcount,
                      D::DynState;    
-                     messages::Bool = false, 
-                     β::Float64 = 0.95,
-                     ϕ13::Float64 = 0.0, # FIXME - substitute correct values and scale.
-                     ϕ12::Float64 = 0.0,
-                     ϕ1EX::Float64 = 0.0,
-                     ϕ23::Float64 = 0.0,
-                     ϕ21::Float64 = 0.0,
-                     ϕ2EX::Float64 = 0.0,
-                     ϕ31::Float64 = 0.0,
-                     ϕ32::Float64 = 0.0,
-                     ϕ3EX::Float64 = 0.0)   
+                     messages::Bool = false) 
+    β::Float64 = 0.95
+    ϕ13::Float64 = 0.0 # FIXME - substitute correct values and scale.
+    ϕ12::Float64 = 0.0
+    ϕ1EX::Float64 = 0.0
+    ϕ23::Float64 = 0.0
+    ϕ21::Float64 = 0.0
+    ϕ2EX::Float64 = 0.0
+    ϕ31::Float64 = 0.0
+    ϕ32::Float64 = 0.0
+    ϕ3EX::Float64 = 0.0   
     cps::Dict{Int64,Array{Float64,1}} = ContProbs(fid, st_recs, stable)  
     nstates::Dict{NTuple{9,Int64},Float64} = TotalCombine(D, location, nbs, cps)
     CV1::Float64 = ContVal(nstates, fid, stable ,1)
