@@ -72,7 +72,6 @@ function ExactChoice(temp::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } },
                      inv_costs::Array{Float64};    
                      counter::Bool = false) 
     β::Float64 = 0.95
-    #InvCosts(st_recs[k], counter, inv_costs)
     ϕ13::Float64 = inv_costs[1] 
     ϕ12::Float64 = inv_costs[2]
     ϕ1EX::Float64 = inv_costs[3]
