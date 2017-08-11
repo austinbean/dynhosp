@@ -2143,9 +2143,10 @@ end
 `Cost3(n::Int64)`
 Returns Cost of Level 3 given existing number.
 Scaling factor included.
+TODO - eventually both should be functions of the estimated cost OR estimated volume changes.
 """
 function Cost3(n::Int64)
-  return 0.2*n
+  return 0.002*n
 end 
 
 
@@ -2153,9 +2154,10 @@ end
 `Cost2(n::Int64)`
 Returns Cost of Level 2 given existing number.
 Scaling factor included.  
+TODO - eventually both should be functions of the estimated cost OR estimated volume changes.
 """
 function Cost2(n::Int64)
-  return 0.2*n
+  return 0.002*n
 end  
 
 
