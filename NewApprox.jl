@@ -62,10 +62,12 @@ function NewApprox(D::DynState,
   inv_costs = zeros(9)
   wgts = zeros(outvals[D.all[ch[1]]].count)                   # this will hold the weights.  
   elts = Array{NTuple{10,Int64}}(outvals[D.all[ch[1]]].count) # this will hold the states
+  dists = RecordDists(D, chunk, all_locs)  # for each neighbor, record the distance to the main firm.  Do this once.
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
-        # randomize uniformly over configurations giving that state.
+        # find configuration giving that state.
+        # use the distances in dists.  
         # Write config out - done.  
         # Exact choice can still consider all actions there.
         # need a counter for iterations.
