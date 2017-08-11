@@ -3252,6 +3252,51 @@ function DictRandomize(d::Dict{NTuple{10,Int64}, Float64},kys::Array{NTuple{10,I
   return StatsBase.sample(kys, StatsBase.Weights(wts))
 end 
 
+"""
+`RecordDists(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64})`
+
+Takes a Dict of {neighbors,locations} and writes an array of [Fid, Distance]
+where this is measured to the main firm.  
+
+Testing: 
+
+dyn = CounterObjects(5);
+ch = [11];
+neighbors = Array{Int64,1}()
+push!(neighbors, 11)
+FindComps(dyn, neighbors, dyn.all[ch[1]])
+all_locs = Dict{Int64,Int64}()
+CompsDict(neighbors , dyn, all_locs)
+RecordDists(dyn, ch, all_locs)
+"""
+function RecordDists(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64})
+  outp::Array{Float64,2} = Array{Float64,2}(locs.count-1, 2)
+  for (i,el) in enumerate(keys(locs))
+    if D.all[ch[1]].fid != el 
+      outp[i,1] = el 
+      outp[i,2] = distance(D.all[ch[1]].lat, D.all[ch[1]].long, D.all[locs[el]].lat, D.all[locs[el]].long)
+    end 
+  end 
+  return outp 
+end 
+
+"""
+`MakeConfig()`
+Takes a set of distances and a state and creates a record which 
+can be returned and mapped.
+"""
+function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altstates::Array{Tuple{Int64,Int64},2}, alloct::Array{Int64,1})
+  # This should just FIND the relevant state among altstates and return the int.  
+  ArrayZero(alloct) # this will hold the state 
+  for r = 1:size(altstates,1)
+    for c = 1:size(altstates,2)
+      if altstates[r,c][2] != 999 # don't bother checking exiters.  
+        ix = findin(dists[:,1], altstates[r,c][1])
+        # TODO - iterate through the row, check if the state matches, break if yes, return the index of the row.
+      end 
+    end 
+  end 
+end 
 
 
 
