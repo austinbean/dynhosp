@@ -509,11 +509,13 @@ function DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patien
 end
 
 """
-`ArrayZero(arr::Array{Float64,2})`
-This quickly sets the array used in WTPNew back to zero.
+`ArrayZero(arr::Array{Float64})`
+This quickly sets the array used in `WTPNew` back to zero.
+Also used in `DictRandomize`
 """
-function ArrayZero(arr::Array{Float64,2})
-  dim1::Int64, dim2::Int64 = size(arr)
+function ArrayZero(arr::Array{Float64})
+  dim1::Int64 = size(arr,1)
+  dim2::Int64 = size(arr,2)
   for i = 1:dim1
     for j = 1:dim2
       arr[i,j] = 0.0
@@ -3112,19 +3114,13 @@ Parallelizes ExactValue computation across cores.
 
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 0, 1; results = res1)
+ExactControl(dyn, 0, 5; results = res1)
 
 
 ResultsWrite(res1,1)
 
-Why is this terminating?
 
-dyn = CounterObjects(5);
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ch2 = [195] # larger market. 
-out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; itlim = 1, outvals = out2)
+Check dyn.all[3]
 
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
@@ -3225,6 +3221,40 @@ end
 
 
 ### Above this line... Exact Value development ###
+
+"""
+`DictSum(Dict{NTuple{10,Int64}, Float64})`
+Takes the sum of the elements of the dict.
+Used in `DictRandomize` to compute denominator.
+"""
+function DictSum(d::Dict{NTuple{10,Int64}, Float64})
+  sm::Float64 = 0.0
+  for k1 in keys(d)
+    sm += d[k1]
+  end 
+  return sm 
+end 
+
+
+"""
+`DictRandomize`
+Designed to take a random key from a Dict{NTuple{10,Int64}, Float64}
+according to weights stored in the value.
+Uses `DictSum` to compute denominator.
+"""
+function DictRandomize(d::Dict{NTuple{10,Int64}, Float64},kys::Array{NTuple{10,Int64}}, wts::Array{Float64,1})
+  int_sum::Float64 = DictSum(d)
+  ArrayZero(wts) # set all elements to 0.0
+  for (i,k1) in enumerate(keys(d))
+    kys[i] = k1
+    wts[i] = d[k1]/int_sum
+  end 
+  return StatsBase.sample(kys, StatsBase.Weights(wts))
+end 
+
+
+
+
 """
 `NeighborsTuple`
 Returns tuple from neighbors.  
