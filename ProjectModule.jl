@@ -890,6 +890,8 @@ end
   export InvCosts
   export Cost3
   export Cost2
+  export DictRandomize
+  export DictSum
 
 
   # Export types
