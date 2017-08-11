@@ -7,6 +7,13 @@
                   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())`
 
 Second attempt at EP approximation.
+
+dyn = CounterObjects(5);
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ch2 = [11] # larger market. 
+out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
@@ -15,6 +22,7 @@ function NewApprox(D::DynState,
                    itlim::Int64 = 100000,
                    outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+  tracker::Dict{NTuple{10, Int64}, Int64} = Dict{NTuple{10, Int64}, Int64}()            # Dict to hold visited states
   DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence (Fid, Bool) Dict.
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
@@ -52,22 +60,22 @@ function NewApprox(D::DynState,
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
   inv_costs = zeros(9)
+  wgts = zeros(outvals[D.all[ch[1]]].count)                   # this will hold the weights.  
+  elts = Array{NTuple{10,Int64}}(outvals[D.all[ch[1]]].count) # this will hold the states
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
-        for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
-          # TODO - randomize over a state, taking vals from dict.
-          # randomize uniformly over configurations giving that state.
-          # Write config out - done.  
-          # Exact choice can still consider all actions there.
-          # need a counter for iterations.
-          # need a new convergence check too.  
-          st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
-          MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-          InvCosts(st_dict[k], false, inv_costs)
-          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
-          ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
-        end 
+        # randomize uniformly over configurations giving that state.
+        # Write config out - done.  
+        # Exact choice can still consider all actions there.
+        # need a counter for iterations.
+        # need a new convergence check too.  
+        nextstate = DictRandomize(outvals, elts, wgts)
+        st_dict[k] = GiveState(D, chunk, all_locs, XXX, D.all[all_locs[k]].cns) 
+        MapCompState(D, all_locs, chunk, FindFids(D, chunk), XXX)
+        InvCosts(st_dict[k], false, inv_costs)
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
+        ResetCompState(D, all_locs, chunk, FindFids(D, chunk), XXX) # set it back 
       end 
     end
     # Convergence Test - this modifies bools in totest.
@@ -83,7 +91,6 @@ function NewApprox(D::DynState,
       converge = ConvTest(totest)                                                     # iterates over bools in totest returns product
     end   
     its += 1
-    #println("converge? ", converge)
   end 
   # Return equilibrium values:
   return outvals
