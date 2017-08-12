@@ -224,3 +224,15 @@ end
   a1 = 0; a2 = 0; a = 0; b = 0
 end 
 
+
+@testset "StateCheck Tests" begin 
+    ns1 = (1,2,3,4,5,6,7,8,9,10)
+    ns2 = (1,2,3,4,5,6,7,8,9,38)
+    ns3 = (4,2,3,4,5,6,7,8,9,10)
+    cl = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    Base.Test.@test StateCheck(ns1, cl)
+    Base.Test.@test StateCheck(ns2, cl)
+    Base.Test.@test !StateCheck(ns3, cl)
+end 
+
