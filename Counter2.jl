@@ -3281,9 +3281,13 @@ function RecordDists(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64})
 end 
 
 """
-`MakeConfig()`
+`MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altstates::Array{Tuple{Int64,Int64},2}, alloct::Array{Int64,1})`
 Takes a set of distances and a state and creates a record which 
 can be returned and mapped.
+
+
+
+
 """
 function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altstates::Array{Tuple{Int64,Int64},2}, alloct::Array{Int64,1})
   # This should just FIND the relevant state among altstates and return the int.  
@@ -3293,9 +3297,57 @@ function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altsta
       if altstates[r,c][2] != 999 # don't bother checking exiters.  
         ix = findin(dists[:,1], altstates[r,c][1])
         # TODO - iterate through the row, check if the state matches, break if yes, return the index of the row.
+        if dists[ix, 2]<5
+          if altstates[r,c][2] == 1
+            alloct[1] += 1
+          elseif altstates[r,c][2] == 2
+            alloct[2] += 1
+          elseif altstates[r,c][2] == 3
+            alloct[3] += 1
+          else # 999
+            # case skipped already
+          end           
+        elseif (dists[ix,2]>5)&(dists[ix,2]<=15)
+          if altstates[r,c][2] == 1
+            alloct[4] += 1
+          elseif altstates[r,c][2] == 2
+            alloct[5] += 1
+          elseif altstates[r,c][2] == 3
+            alloct[6] += 1
+          else # 999
+            # case skipped already
+          end 
+        elseif (dists[ix,2]>15)&(dists[ix,2]<=25)
+          if altstates[r,c][2] == 1
+            alloct[7] += 1
+          elseif altstates[r,c][2] == 2
+            alloct[8] += 1
+          elseif altstates[r,c][2] == 3
+            alloct[9] += 1
+          else # 999
+            # case skipped already
+          end 
+        else
+          # see if this happens... 
+        end 
       end 
+    end
+    if StateCheck(nextstate, alloct) # when the state is correct...
+      return r
+      break 
     end 
   end 
+end 
+
+"""
+`StateCheck(nextstate::NTuple{10,Int64},alloct::Array{Int64,1})`
+Tests for equality between the first nine elements of a 10-tuple of Ints and a 9-vector of ints.
+The state (including the level) is the 10-tuple.  
+
+
+"""
+function StateCheck(nextstate::NTuple{10,Int64},alloct::Array{Int64,1})
+  return (nextstate[1]==alloct[1])&(nextstate[2]==alloct[2])&(nextstate[3]==alloct[3])&(nextstate[4]==alloct[4])&(nextstate[5]==alloct[5])&(nextstate[6]==alloct[6])&(nextstate[7]==alloct[7])&(nextstate[8]==alloct[8])&(nextstate[9]==alloct[9])
 end 
 
 
