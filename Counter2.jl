@@ -3317,20 +3317,18 @@ MakeConfig((0,0,0,0,0,0,3,0,0,3), dists, altstates, allc)
 
 """
 function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altstates::Array{Tuple{Int64,Int64},2}, alloct::Array{Int64,1})
-  ix = 0
+  ix::Int64 = 0
   for r = 1:size(altstates,1)
-    ArrayZero(alloct) # this will hold the state 
+    ArrayZero(alloct)                # this will hold the state 
     for c = 1:size(altstates,2)
-      fid = altstates[r,c][1]
-      ix = findfirst(dists[:,1], fid)
-      for i = 1:size(dists,2)
+      fid::Int64 = altstates[r,c][1]
+      for i = 1:size(dists,1)        # find the index.
         if dists[i,1] == fid 
-          ix = i # find the index.  
+          ix = i   
         end 
       end 
-      # find this separately... ?
-      dis = dists[ix,2]
-      lev = altstates[r,c][2]
+      dis::Int64 = dists[ix,2]
+      lev::Int64 = altstates[r,c][2]
       if (dis<5.0)&(dis>0.0)
         if lev == 1
           alloct[1] += 1
@@ -3339,7 +3337,7 @@ function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altsta
         elseif lev == 3
           alloct[3] += 1
         else # 999
-          # case skipped already
+          # do nothing.
         end           
       elseif (dis>5.0)&(dis<=15.0)
         if lev == 1
@@ -3349,7 +3347,7 @@ function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altsta
         elseif lev == 3
           alloct[6] += 1
         else # 999
-          # case skipped already
+          # do nothing
         end 
       elseif (dis>15.0)&(dis<=25.0)
         if lev == 1
@@ -3359,13 +3357,13 @@ function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altsta
         elseif lev == 3
           alloct[9] += 1
         else # 999
-          # case skipped already
+          # do nothing.
         end 
       else
         # see if this happens... 
       end 
     end 
-    if StateCheck(nextstate, alloct) # when the state is correct...
+    if StateCheck(nextstate, alloct) # when the state is correct.
       return r
       break 
     end 
