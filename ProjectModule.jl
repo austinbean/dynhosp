@@ -892,6 +892,8 @@ end
   export Cost2
   export DictRandomize
   export DictSum
+  export StateCheck
+  export MakeConfig
 
 
   # Export types
