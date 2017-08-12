@@ -894,6 +894,7 @@ end
   export DictSum
   export StateCheck
   export MakeConfig
+  export RecordDists
 
 
   # Export types
