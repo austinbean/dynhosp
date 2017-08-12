@@ -513,12 +513,12 @@ end
 This quickly sets the array used in `WTPNew` back to zero.
 Also used in `DictRandomize`
 """
-function ArrayZero(arr::Array{Float64})
+function ArrayZero(arr::Array{T}) where T 
   dim1::Int64 = size(arr,1)
   dim2::Int64 = size(arr,2)
   for i = 1:dim1
     for j = 1:dim2
-      arr[i,j] = 0.0
+      arr[i,j] = zero(arr[i,j])
     end
   end
 end
@@ -3285,59 +3285,94 @@ end
 Takes a set of distances and a state and creates a record which 
 can be returned and mapped.
 
+dyn = CounterObjects(5);
+outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }();
+ch = [11];
+allc = zeros(Int64,9); # fourth argument.
+all_locs = Dict{Int64, Int64}()                                   
+st_dict = Dict{Int64,NTuple{9,Int64}}() 
+neighbors = Array{Int64,1}()                                    
+nfds = Array{Int64,1}() 
 
+FindComps(dyn, neighbors, dyn.all[ch[1]])  
+NFids(dyn, nfds, dyn.all[ch[1]])
+push!(neighbors, 11)
+CompsDict(neighbors, dyn, all_locs)
+StateRecord(all_locs, dyn, st_dict)
+for el2 in neighbors                                                                
+  outvals[dyn.all[el2].fid] = Dict{NTuple{10, Int64}, Float64}()
+  StateEnumerate(TupletoCNS(st_dict[dyn.all[el2].fid]), outvals[dyn.all[el2].fid]) 
+end 
+if !haskey(outvals, dyn.all[ch[1]].fid)
+  StateEnumerate(dyn.all[ch[1]].cns, outvals[dyn.all[ch[1]].fid])
+end 
+altstates = MakeStateBlock(nfds) 
+wgts = zeros(outvals[dyn.all[ch[1]].fid].count)
+elts = Array{NTuple{10,Int64}}(outvals[dyn.all[ch[1]].fid].count) 
+dists = RecordDists(dyn, ch, all_locs)
 
+# dyn.all[11].cns == ProjectModule.neighbors(0, 0, 0, 0, 0, 0, 0, 1, 3)
+
+MakeConfig((0,0,0,0,0,0,3,0,0,3), dists, altstates, allc)
 
 """
 function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altstates::Array{Tuple{Int64,Int64},2}, alloct::Array{Int64,1})
-  # This should just FIND the relevant state among altstates and return the int.  
-  ArrayZero(alloct) # this will hold the state 
+  ix = 0
   for r = 1:size(altstates,1)
+    ArrayZero(alloct) # this will hold the state 
     for c = 1:size(altstates,2)
-      if altstates[r,c][2] != 999 # don't bother checking exiters.  
-        ix = findin(dists[:,1], altstates[r,c][1])
-        # TODO - iterate through the row, check if the state matches, break if yes, return the index of the row.
-        if dists[ix, 2]<5
-          if altstates[r,c][2] == 1
-            alloct[1] += 1
-          elseif altstates[r,c][2] == 2
-            alloct[2] += 1
-          elseif altstates[r,c][2] == 3
-            alloct[3] += 1
-          else # 999
-            # case skipped already
-          end           
-        elseif (dists[ix,2]>5)&(dists[ix,2]<=15)
-          if altstates[r,c][2] == 1
-            alloct[4] += 1
-          elseif altstates[r,c][2] == 2
-            alloct[5] += 1
-          elseif altstates[r,c][2] == 3
-            alloct[6] += 1
-          else # 999
-            # case skipped already
-          end 
-        elseif (dists[ix,2]>15)&(dists[ix,2]<=25)
-          if altstates[r,c][2] == 1
-            alloct[7] += 1
-          elseif altstates[r,c][2] == 2
-            alloct[8] += 1
-          elseif altstates[r,c][2] == 3
-            alloct[9] += 1
-          else # 999
-            # case skipped already
-          end 
-        else
-          # see if this happens... 
+      fid = altstates[r,c][1]
+      ix = findfirst(dists[:,1], fid)
+      for i = 1:size(dists,2)
+        if dists[i,1] == fid 
+          ix = i # find the index.  
         end 
       end 
-    end
+      # find this separately... ?
+      dis = dists[ix,2]
+      lev = altstates[r,c][2]
+      if (dis<5.0)&(dis>0.0)
+        if lev == 1
+          alloct[1] += 1
+        elseif lev == 2
+          alloct[2] += 1
+        elseif lev == 3
+          alloct[3] += 1
+        else # 999
+          # case skipped already
+        end           
+      elseif (dis>5.0)&(dis<=15.0)
+        if lev == 1
+          alloct[4] += 1
+        elseif lev == 2
+          alloct[5] += 1
+        elseif lev == 3
+          alloct[6] += 1
+        else # 999
+          # case skipped already
+        end 
+      elseif (dis>15.0)&(dis<=25.0)
+        if lev == 1
+          alloct[7] += 1
+        elseif lev == 2
+          alloct[8] += 1
+        elseif lev == 3
+          alloct[9] += 1
+        else # 999
+          # case skipped already
+        end 
+      else
+        # see if this happens... 
+      end 
+    end 
     if StateCheck(nextstate, alloct) # when the state is correct...
       return r
       break 
     end 
   end 
 end 
+
+
 
 """
 `StateCheck(nextstate::NTuple{10,Int64},alloct::Array{Int64,1})`
