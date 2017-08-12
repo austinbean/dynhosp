@@ -60,28 +60,24 @@ function NewApprox(D::DynState,
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
   inv_costs = zeros(9)
-  wgts = zeros(outvals[D.all[ch[1]]].count)                   # this will hold the weights.  
-  elts = Array{NTuple{10,Int64}}(outvals[D.all[ch[1]]].count) # this will hold the states
-  dists = RecordDists(D, chunk, all_locs)  # for each neighbor, record the distance to the main firm.  Do this once.
+  wgts = zeros(outvals[D.all[ch[1]].fid].count)                   # this will hold the weights.  
+  elts = Array{NTuple{10,Int64}}(outvals[D.all[ch[1]].fid].count) # this will hold the states
+  dists = RecordDists(D, chunk, all_locs)                         # for each neighbor, record the distance to the main firm.  Do this once.
+  statehold = zeros(Int64,9)
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       if !totest[k]  
-        # find configuration giving that state.
-        # use the distances in dists.  
-        # Write config out - done.  
-        # Exact choice can still consider all actions there.
         # need a counter for iterations.
-        # need a new convergence check too.  
         nextstate = DictRandomize(outvals, elts, wgts)
-        config = MakeConfig(nextstate, dists)
-        st_dict[k] = GiveState(D, chunk, all_locs, XXX, D.all[all_locs[k]].cns) 
-        MapCompState(D, all_locs, chunk, FindFids(D, chunk), XXX)
+        r = MakeConfig(nextstate, dists, altstates, statehold)
+        st_dict[k] = GiveState(D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
+        MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
         InvCosts(st_dict[k], false, inv_costs)
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
-        ResetCompState(D, all_locs, chunk, FindFids(D, chunk), XXX) # set it back 
+        ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
       end 
     end
-    # Convergence Test - this modifies bools in totest.
+    # need a new convergence check too.  
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
     if its %1000 == 0
       println("iteration: ", its)
