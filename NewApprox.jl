@@ -13,7 +13,7 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-
+NewApprox(dyn, ch2, p1, p2; outvals = out2)
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
@@ -64,21 +64,18 @@ function NewApprox(D::DynState,
   elts = Array{NTuple{10,Int64}}(outvals[D.all[ch[1]].fid].count) # this will hold the states
   dists = RecordDists(D, chunk, all_locs)                         # for each neighbor, record the distance to the main firm.  Do this once.
   statehold = zeros(Int64,9)
+  k::Int64 = D.all[ch[1]].fid 
   while (converge)&(its<itlim)                                                          # if true keep going.  
-    for k in keys(totest)                                                              
-      if !totest[k]  
-        # need a counter for iterations.
-        nextstate = DictRandomize(outvals, elts, wgts)
-        r = MakeConfig(nextstate, dists, altstates, statehold)
-        st_dict[k] = GiveState(D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
-        MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-        InvCosts(st_dict[k], false, inv_costs)
-        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
-        ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
-      end 
-    end
+    # need a counter for iterations.
+    nextstate = DictRandomize(outvals[k], elts, wgts)
+    r = MakeConfig(nextstate, dists, altstates, statehold)
+    st_dict[k] = GiveState(D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
+    MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
+    InvCosts(st_dict[k], false, inv_costs)
+    ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
+    ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
     # need a new convergence check too.  
-    ExactConvergence(tempvals, outvals, totest, its; messages = false)   
+    #ExactConvergence(tempvals, outvals, totest, its; messages = false)   
     if its %1000 == 0
       println("iteration: ", its)
       println("minimum: ", CheckMin(outvals, tempvals))
