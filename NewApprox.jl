@@ -73,6 +73,7 @@ function NewApprox(D::DynState,
         # need a counter for iterations.
         # need a new convergence check too.  
         nextstate = DictRandomize(outvals, elts, wgts)
+        config = MakeConfig(nextstate, dists)
         st_dict[k] = GiveState(D, chunk, all_locs, XXX, D.all[all_locs[k]].cns) 
         MapCompState(D, all_locs, chunk, FindFids(D, chunk), XXX)
         InvCosts(st_dict[k], false, inv_costs)
