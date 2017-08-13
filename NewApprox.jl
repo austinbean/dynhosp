@@ -13,7 +13,9 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-NewApprox(dyn, ch2, p1, p2; outvals = out2)
+NewApprox(dyn, ch2, p1, p2; itlim = 20_000, outvals = out2)
+
+
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
@@ -60,11 +62,11 @@ function NewApprox(D::DynState,
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
   inv_costs = zeros(9)
-  wgts = zeros(outvals[D.all[ch[1]].fid].count)                   # this will hold the weights.  
-  elts = Array{NTuple{10,Int64}}(outvals[D.all[ch[1]].fid].count) # this will hold the states
+  wgts = zeros(outvals[D.all[chunk[1]].fid].count)                   # this will hold the weights.  
+  elts = Array{NTuple{10,Int64}}(outvals[D.all[chunk[1]].fid].count) # this will hold the states
   dists = RecordDists(D, chunk, all_locs)                         # for each neighbor, record the distance to the main firm.  Do this once.
   statehold = zeros(Int64,9)
-  k::Int64 = D.all[ch[1]].fid 
+  k::Int64 = D.all[chunk[1]].fid 
   while (converge)&(its<itlim)                                                          # if true keep going.  
     # need a counter for iterations.
     nextstate = DictRandomize(outvals[k], elts, wgts)
@@ -77,15 +79,15 @@ function NewApprox(D::DynState,
     st_dict[k] = GiveState(D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
     MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
     InvCosts(st_dict[k], false, inv_costs)
-    ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
+    AppChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
     # need a new convergence check too.  
     #ExactConvergence(tempvals, outvals, totest, its; messages = false)   
     if its %1_000 == 0
-      #InexactConvergence(outvals, tracker)
+      InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
       #ResetTracker(tracker) # TODO - uncomment when ready.  
       println("iteration: ", its)
-      println("minimum: ", CheckMin(outvals, tempvals))
+      println("minimum: ", CheckMin(outvals, tempvals)) # NB:  this doesn't really compute a sensible comparison in this case, I think.
     end 
     # Copy the values and clean up.
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
