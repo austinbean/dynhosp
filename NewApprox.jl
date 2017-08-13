@@ -24,7 +24,6 @@ function NewApprox(D::DynState,
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tracker::Dict{NTuple{10, Int64}, Int64} = Dict{NTuple{10, Int64}, Int64}()            # Dict to hold visited states
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
-  # Or return a tuple in GiveState.
   st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
   neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms AND the firm itself.
   nfds::Array{Int64,1} = Array{Int64,1}()                                               # records the fids of neighbors, as fids, not locations. 
@@ -53,16 +52,14 @@ function NewApprox(D::DynState,
     else 
       tracker[nextstate] = 1
     end 
-    r = MakeConfig(nextstate, dists, altstates, statehold)
-    # TODO - for what is the next line used?  
-    st_dict[k] = GiveState(D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
+    r = MakeConfig(nextstate, dists, altstates, statehold) 
     MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
     InvCosts(st_dict[k], false, inv_costs)
     outvals[k][nextstate] = (1-(1/(1+tracker[nextstate])))*(outvals[k][nextstate]) + (1/(1+tracker[nextstate]))*(AppChoice(all_locs[k], k, p1, p2, D, inv_costs)) # only map the state out to one element of outvals.
     println("its: ", its, " min: ", OutMin(outvals, tracker, k))
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])              # set it back 
     if its %10_000 == 0
-      cv = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
+      cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
       if cv < 1e-6
         converge = false # stop.
       end 
