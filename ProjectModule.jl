@@ -650,6 +650,7 @@ end
   include("ValApprox.jl")
   include("CheckConvergence.jl")
   include("utilities.jl")
+  include("InexactConvergence.jl")
   #include("Reboot.jl")
 
 
@@ -897,6 +898,10 @@ end
   export RecordDists
   export StateShorten
   export ResetTracker
+  export AppContinuation
+  export AppChoice
+  export RoughCheck
+
 
 
   # Export types
