@@ -19,7 +19,7 @@ function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
                    p1::patientcount,
                    p2::patientcount;
-                   itlim::Int64 = 100000,
+                   itlim::Int64 = 1000,
                    outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tracker::Dict{NTuple{10, Int64}, Int64} = Dict{NTuple{10, Int64}, Int64}()            # Dict to hold visited states
@@ -68,6 +68,11 @@ function NewApprox(D::DynState,
   while (converge)&(its<itlim)                                                          # if true keep going.  
     # need a counter for iterations.
     nextstate = DictRandomize(outvals[k], elts, wgts)
+    if haskey(tracker, nextstate)
+      tracker[nextstate] += 1
+    else 
+      tracker[nextstate] = 1
+    end 
     r = MakeConfig(nextstate, dists, altstates, statehold)
     st_dict[k] = GiveState(D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
     MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
@@ -76,7 +81,9 @@ function NewApprox(D::DynState,
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
     # need a new convergence check too.  
     #ExactConvergence(tempvals, outvals, totest, its; messages = false)   
-    if its %1000 == 0
+    if its %1_000 == 0
+      #InexactConvergence(outvals, tracker)
+      #ResetTracker(tracker) # TODO - uncomment when ready.  
       println("iteration: ", its)
       println("minimum: ", CheckMin(outvals, tempvals))
     end 
@@ -89,5 +96,5 @@ function NewApprox(D::DynState,
     its += 1
   end 
   # Return equilibrium values:
-  return outvals
+  return outvals, tracker
 end

@@ -895,6 +895,8 @@ end
   export StateCheck
   export MakeConfig
   export RecordDists
+  export StateShorten
+  export ResetTracker
 
 
   # Export types

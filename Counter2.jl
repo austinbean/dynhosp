@@ -2748,6 +2748,17 @@ function DictClean(d::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } })
   end 
 end 
 
+"""
+`ResetTracker(tr::Dict{NTuple{10, Int64}, Int64})`
+
+Resets the count of states visited in the tracker in `NewApprox`.
+"""
+function ResetTracker(tr::Dict{NTuple{10, Int64}, Int64})
+  for k1 in keys(tr)
+    tr[k1] = 0
+  end 
+end 
+
 
 """
 `DictCopy(d1::Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }, d2::Dict{ Int64, Dict{NTuple{10, Int64},  Float64}  }, alpha::Float64)`
@@ -3381,6 +3392,16 @@ The state (including the level) is the 10-tuple.
 """
 function StateCheck(nextstate::NTuple{10,Int64},alloct::Array{Int64,1})
   return (nextstate[1]==alloct[1])&(nextstate[2]==alloct[2])&(nextstate[3]==alloct[3])&(nextstate[4]==alloct[4])&(nextstate[5]==alloct[5])&(nextstate[6]==alloct[6])&(nextstate[7]==alloct[7])&(nextstate[8]==alloct[8])&(nextstate[9]==alloct[9])
+end 
+
+
+"""
+`StateShorten(state::NTuple{10,Int64})`
+Returns the state minus the level 
+Used in NewApprox to help the counter track states.  
+"""
+function StateShorten(state::NTuple{10,Int64})
+  return (state[1],state[2],state[3],state[4],state[5],state[6],state[7],state[8],state[9])
 end 
 
 
