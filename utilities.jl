@@ -501,3 +501,20 @@ function CpatsUChange(c::cpats, f::Int64)
 end
 
 
+"""
+`OutMin`
+Find the minimum value of OutVals, print it.
+"""
+function OutMin(outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, tracker::Dict{NTuple{10, Int64}, Int64}, fid::Int64)
+  minv::Float64 = 106.0
+  for k1 in keys(tracker)
+    if tracker[k1] > 0
+      if outvals[fid][k1] < minv 
+        minv = outvals[fid][k1]
+      end 
+    end 
+  end 
+  return minv 
+end 
+
+
