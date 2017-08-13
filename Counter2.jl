@@ -3252,6 +3252,17 @@ end
 Designed to take a random key from a Dict{NTuple{10,Int64}, Float64}
 according to weights stored in the value.
 Uses `DictSum` to compute denominator.
+
+Testing: 
+
+dyn = CounterObjects(5);
+chunk = [11];
+outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }();
+
+wgts = zeros(outvals[D.all[chunk[1]].fid].count)
+elts = Array{NTuple{10,Int64}}(outvals[dyn.all[ch[1]].fid].count) 
+
+DictRandomize( outvals[chunk[1]], elts, wgts)
 """
 function DictRandomize(d::Dict{NTuple{10,Int64}, Float64},kys::Array{NTuple{10,Int64}}, wts::Array{Float64,1})
   int_sum::Float64 = DictSum(d)
@@ -3338,7 +3349,7 @@ function MakeConfig(nextstate::NTuple{10,Int64}, dists::Array{Float64,2}, altsta
           ix = i   
         end 
       end 
-      dis::Int64 = dists[ix,2]
+      dis::Float64 = dists[ix,2]
       lev::Int64 = altstates[r,c][2]
       if (dis<5.0)&(dis>0.0)
         if lev == 1
@@ -3404,6 +3415,109 @@ function StateShorten(state::NTuple{10,Int64})
   return (state[1],state[2],state[3],state[4],state[5],state[6],state[7],state[8],state[9])
 end 
 
+
+"""
+`AppContinuation(nextstate::NTuple{10,Int64},outvals::Dict{Int64, Dict{NTuple{10, Int64},Float64}})`
+
+Computes a continuation value for the PM approximation.
+Takes a next state and a section of the outvals for one firm, i.e., a single firm's values.
+
+#
+
+"""
+function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64},Float64})
+  β::Float64 = 0.95
+  s1::Float64 = 0.0
+  s2::Float64 = 0.0
+  s3::Float64 = 0.0
+  if haskey(vals, (nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1))
+    s1 = vals[(nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1)]
+  else
+    # do nothing, already 0 
+  end  
+  if haskey(vals, (nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1))
+    s2 = vals[(nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],2)]
+  else
+    # do nothing, already 0 
+  end  
+  if haskey(vals, (nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1))  
+    s3 = vals[(nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],3)]
+  else
+    # do nothing, already 0 
+  end 
+  ss::Float64 = s1+s2+s3
+  pr1::Float64 = s1/ss
+  pr2::Float64 = s2/ss
+  pr3::Float64 = s3/ss 
+  if (s1!=0.0)||(s2!=0.0)||(s3!=0.0)  
+    return β*(s1*pr1+s2*pr2+s3*pr3)#+β*(eulergamma-log(pr1)*pr1-log(pr2)*pr2-log(pr3)*pr3)
+  else 
+    return 0.0
+  end 
+end 
+
+
+"""
+`AppChoice(location::Int64,fid::Int64,p1::patientcount,p2::patientcount,D::DynState,inv_costs::Array{Float64})`
+Computes return to state in equilibrium approximation test.  Used in `NewApprox`
+"""
+function AppChoice(location::Int64,
+                   fid::Int64,
+                   p1::patientcount,
+                   p2::patientcount,
+                   D::DynState,
+                   inv_costs::Array{Float64}) 
+  β::Float64 = 0.95
+  ϕ13::Float64 = inv_costs[1] 
+  ϕ12::Float64 = inv_costs[2]
+  ϕ1EX::Float64 = inv_costs[3]
+  ϕ23::Float64 = inv_costs[4]
+  ϕ21::Float64 = inv_costs[5]
+  ϕ2EX::Float64 = inv_costs[6]
+  ϕ31::Float64 = inv_costs[7]
+  ϕ32::Float64 = inv_costs[8]
+  ϕ3EX::Float64 = inv_costs[9] 
+  r::Float64 = 0.0  
+  # TODO - there is a switching cost to include potentially.  
+  if D.all[location].level == 1                               # Compute value at Level 1
+    original = D.all[location].level
+    UpdateD(D.all[location])                                  # updates the utility for a new level only for the main firm.
+    DSimNew(D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
+    r = PatientRev(D.all[location],p1,p2,10)
+    UtilDown(D.all[location])                                 # resets the utility and level - just for the single firm.
+    PatientZero(p1, p2)
+    D.all[location].level = original
+    return r                                       
+  elseif D.all[location].level == 2                           # Compute value at Level 2
+    original = D.all[location].level
+    UpdateD(D.all[location])                                  # Updates deterministic part of utility for the main firm.
+    DSimNew(D.all[location].mk, fid, p1, p2)                 # Computes the demand.  
+    r = PatientRev(D.all[location],p1,p2,10)
+    UtilDown(D.all[location])                                 # resets the utility and level for the main firm.  
+    PatientZero(p1, p2)
+    D.all[location].level = original
+    return r
+  elseif D.all[location].level == 3                           # Compute value at Level 3
+    original = D.all[location].level
+    UpdateD(D.all[location])
+    DSimNew(D.all[location].mk, fid, p1, p2)                 # Computes the demand.
+    r = PatientRev(D.all[location],p1,p2,10)
+    UtilDown(D.all[location])                                 # resets the utility and level for the main firm.
+    PatientZero(p1, p2)
+    D.all[location].level = original
+    return r
+  end 
+end 
+
+
+"""
+`RoughCheck(d1::Dict{NTuple{10, Int64},Float64}, approx::Dict{NTuple{10, Int64},Float64})`
+"""
+function RoughCheck(d1::Dict{NTuple{10, Int64},Float64}, approx::Dict{NTuple{10, Int64},Float64})
+  for k1 in keys(approx)
+    println(d1[k1], "  ", approx[k1])
+  end 
+end 
 
 
 """
