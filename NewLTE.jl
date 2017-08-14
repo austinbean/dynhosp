@@ -3,7 +3,7 @@
 
 
 #TODO - remove DataFrames, sub for readcsv.  Ugh.  
-using DataFrames
+#using DataFrames
 using Distributions
 using StatsBase
 using Plots
@@ -12,7 +12,7 @@ plotlyjs()   # call PlotljJS backend to Plots.
 #dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
 #dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
 
-dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults 102716 330pm.csv");
+dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-21-19-03-37.csv", header = false)
 
 dat = convert(Array{Float64,2}, dat)
 
@@ -24,7 +24,16 @@ neq_const = sum( dat[:,66:72], 2);
 interimeq_opt = hcat(dat[:, 2:25], dat[:, 33:41]);
 interimneq_opt = hcat(dat[:,42:65], dat[:,73:81]);
 
+"""
+`objfun(x::Vector;scale_fact = 1,inp1::Array{Float64,2}=scale_fact*interimeq_opt,inp2::Array{Float64,2}=scale_fact*interimneq_opt,cons1::Array{Float64,2}=scale_fact*eq_const,cons2::Array{Float64,2}=scale_fact*neq_const,diffmat::Array{Float64,2}=inp1-inp2)`
 
+The BBL objective function.
+
+## Testing ## 
+
+objfun(ones(33))
+
+"""
 function objfun(x::Vector;
                 scale_fact = 1,
                 inp1::Array{Float64,2}=scale_fact*interimeq_opt,
@@ -33,10 +42,28 @@ function objfun(x::Vector;
                 cons2::Array{Float64,2}=scale_fact*neq_const,
                 diffmat::Array{Float64,2}=inp1-inp2)
   # this is the BBL objective function
-  return sum(min(diffmat*x+eq_const - neq_const, 0).^2)
+  return sum(min.(diffmat*x+eq_const - neq_const, 0).^2)
 end
 
+#=
 
+"""
+`TestMH`
+"""
+function objfun(x::Array{Float64})
+  #              [10.0,          1.0,            1.0,          12038.0,           12038,           12038,           66143,           66143,           66143,            19799,            19799,            19799,            4044,            4044,            4044,            6242,            6242,            6242,            1329,            1329,            1329,            412,            412,            412,            2000000,            5000000,            0,           -100000,            2000000,            0,           -200000,           -100000,            0 ],
+  return -((x[1]-10.0)^2)+((x[2]-1.0)^2)+((x[3]-1.0)^2)+((x[4]-12038.0)^2)+((x[5]-12038)^2)+((x[6]-12038)^2)+((x[7]-66143)^2)+((x[8]-66143)^2)+((x[9]-66143)^2)+((x[10]-19799)^2)+((x[11]-19799)^2)+((x[12]-19799)^2)+((x[13]-4044)^2)+((x[14]-4044)^2)+((x[15]-4044)^2)+((x[16]-6242)^2)+((x[17]-6242)^2)+((x[18]-6242)^2)+((x[19]-1329)^2)+((x[20]-1329)^2)+((x[21]-1329)^2)+((x[22]-412)^2)+((x[23]-412)^2)+((x[24]-412)^2)+((x[25]-2000000)^2)+((x[26]-5000000)^2)+((x[27]-0)^2)+((x[28]+100000)^2)+((x[29]-2000000)^2)+((x[30]-0)^2)+((x[31]+200000)^2)+((x[32]+100000)^2)+((x[33]-0)^2) 
+end 
+
+=#
+
+
+
+"""
+`MetropolisHastings`
+
+Runs the LTE estimate on objfun above.
+"""
 function MetropolisHastings(initialpr::Vector,
                             max_iterations::Int64;
                             param_dim = length(initialpr),
@@ -89,21 +116,31 @@ function MetropolisHastings(initialpr::Vector,
 
   # Probability of initial guess under proposal/Initialize a proposal probability. q(Θ'|Θ)
   curr_proposal_prob = 1
-
+  preall = zeros(Float64, param_dim)
+  proposed =  zeros(param_dim)
   while curr_it <= max_iterations
     for i =1:param_dim
         # Proposed next value, Θ'[i] - this is just *one* element.
         # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
 
-        proposed =  zeros(param_dim)
-        disturb = rand(proposal)[i] #perturbation value.
-        proposed[i] += disturb
+        ArrayZero(proposed)       # Clean up
+        ArrayZero(preall)         # Clean up  
+        rand!(proposal, preall)   # perturbation value. 
+        proposed[i] += preall[i] # Changes just the one location 
+        if !(find(proposed)==[i])
+          println(proposed)
+        end 
 
         # Probability of proposed new value  Θ' under the *prior*: π(Θ')
         # This is *not* conditional on the current location
         # Using Log of normal PDF to avoid underflow.
         # Compute the prob of the entire new proposal under the prior π()
+        pr1 = logpdf(Distributions.MvNormal(prior_μ, prior_σ), curr_x)
         next_prior = logpdf(Distributions.MvNormal(prior_μ, prior_σ), curr_x + proposed) # could be done as logpdf(prior, next_x)
+        if pr1 == next_prior # this never happens.  
+          println("priors equal? ", pr1, "  ", next_prior)
+        end 
+
 
         # Probability of new value under the *proposal* q(x|y) distribution:
         # This one *is* conditional on the current location.
@@ -125,8 +162,6 @@ function MetropolisHastings(initialpr::Vector,
         end
         # The probability under the proposal is symmetric - q(next_x|curr_x) = q(curr_x|next_x) - I can drop it.
         # Next line is log of Hastings ratio.
-    # TODO - this can't be working right.  there are always well-defined minima in the functions, at least graphed variable at a time.
-    # Something is wrong with this.
         logrho = minimum([val_diff+next_prior-curr_prior,0.0])
         if debug
           tr[counter, 1] = logrho
@@ -141,7 +176,9 @@ function MetropolisHastings(initialpr::Vector,
         end
         if (logrho >= 0 || rand() < exp(logrho) )
           # Accepted Proposal
-          curr_x[i] += disturb
+          println("assignment works? ", curr_x[i] )
+          curr_x[i] += proposed[i]
+          println("post: ", curr_x[i])
           curr_prior = next_prior
           curr_vals = next_vals
           curr_proposal_prob = next_proposal_prob
@@ -181,7 +218,7 @@ function MetropolisHastings(initialpr::Vector,
   end
 end # of MetropolisHastings()
 
-const nsims = 1_000_00 #_000
+const nsims = 1_000 #_000
 
 #drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
 guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
@@ -194,7 +231,7 @@ function GetModes(x::Array{Float64,2})
   # Round these values and get the modes of the round values
   outp = zeros(size(x,2))
   for i = 1:size(x,2)
-    outp[i] = mode(round(x[:,i], 4)) # round to four digits and take the mode.
+    outp[i] = mode(round.(x[:,i], 4)) # round to four digits and take the mode.
   end
   return outp
 end
@@ -215,7 +252,8 @@ function ResultsPrint(x::Array{Float64,1}, start::Array{Float64,1})
 end
 
 # NB!! Re-enter "Guess"
-# ResultsPrint(ans1, guess)
+guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+ResultsPrint(ans1, guess)
 
 
 # Plotting Results:
