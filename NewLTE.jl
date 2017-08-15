@@ -162,7 +162,14 @@ function MetropolisHastings(initialpr::Vector,
         end
         # The probability under the proposal is symmetric - q(next_x|curr_x) = q(curr_x|next_x) - I can drop it.
         # Next line is log of Hastings ratio.
+        # TODO - this can't be quite right - it's almost always 0.
+        # seems like proposals will almost only be accepted at random.
         logrho = minimum([val_diff+next_prior-curr_prior,0.0])
+        if i != 1
+          if logrho > 0
+            println("accepted!")
+          end 
+        end 
         if debug
           tr[counter, 1] = logrho
           tr[counter, 2] = val_diff
@@ -174,11 +181,9 @@ function MetropolisHastings(initialpr::Vector,
             @inbounds allvals[counter,k] = (curr_x + proposed)[k]
           end
         end
-        if (logrho >= 0 || rand() < exp(logrho) )
+        if (logrho >= 0)||(rand() < exp(logrho))
           # Accepted Proposal
-          println("assignment works? ", curr_x[i] )
           curr_x[i] += proposed[i]
-          println("post: ", curr_x[i])
           curr_prior = next_prior
           curr_vals = next_vals
           curr_proposal_prob = next_proposal_prob
@@ -188,6 +193,7 @@ function MetropolisHastings(initialpr::Vector,
           end
           # Keep track of this too - should change the scaling factor.
           if logrho < 0
+            # TODO - how can this condition ever be satisfied?  logrho < 0 but exp(logrho) = Inf?  
             if exp(logrho) == Inf
               overflowcount += 1
             end
@@ -252,6 +258,7 @@ function ResultsPrint(x::Array{Float64,1}, start::Array{Float64,1})
 end
 
 # NB!! Re-enter "Guess"
+ans1 = GetModes(sim_vals)
 guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 ResultsPrint(ans1, guess)
 
@@ -265,7 +272,7 @@ histogram(sim_vals[:,2], nbins=50)
 # Sim Annealing:
 guess = [1.0, 1, 1, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 
-res1 =  optimize(objfun, guess, method = SimulatedAnnealing(), iterations = 10_000_000, show_trace = true, show_every = 500_000)
+res1 =  optimize(objfun, guess, method = SimulatedAnnealing(), iterations = 10_000_0, show_trace = true, show_every = 500_000)
 
 
 
