@@ -3161,7 +3161,7 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
                 println(D.all[chs[ix]].fid) 
                 DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)),  D.all[chs[ix]].fid)
-              elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl)
+              elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl))
                 # use the other function.  
               end  
             end  
