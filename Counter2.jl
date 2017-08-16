@@ -2062,9 +2062,9 @@ function PatientRev(s::simh,
                     ppats::ProjectModule.patientcount,
                     action::Int64)
     const scalefact::Float64 = 3.0e9
-    const alf1::Float64 = 8336.17
-    const alf2::Float64 = 36166.6
-    const alf3::Float64 = 16309.47
+    const alf1::Float64 = 8336.17  # SA Run 
+    const alf2::Float64 = 19062.0  # SA run
+    const alf3::Float64 = 798648.0 # SA run 
     const gamma_1_385::Float64 = 20680.0 # ✓
     const gamma_2_385::Float64 = 42692.37 # ✓
     const gamma_3_385::Float64 = 20962.97 # ✓
@@ -2094,7 +2094,7 @@ function PatientRev(s::simh,
     const mcaid390::Float64 = 4623.0
     const mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
-    wtp::Float64 = FindWTP(s) # FIXME - can this give me a NaN? 
+    wtp::Float64 = FindWTP(s)  
     if s.level == 1
       outp = alf1*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_1_385*(ppats.count385+mpats.count385) - gamma_1_386*(ppats.count386+mpats.count386) - gamma_1_387*(ppats.count387+mpats.count387) - gamma_1_388*(mpats.count388+ppats.count388) - gamma_1_389*(mpats.count389+ppats.count389) - gamma_1_390*(ppats.count390+mpats.count390) - gamma_1_391*(ppats.count391+mpats.count391)
     elseif s.level == 2
@@ -2102,7 +2102,7 @@ function PatientRev(s::simh,
     elseif s.level == 3
       outp = alf3*wtp*(sum(ppats)) + mpats.count385*mcaid385 + mpats.count386*mcaid386 + mpats.count387*mcaid387 + mpats.count388*mcaid388 + mpats.count389*mcaid389 + mpats.count390*mcaid390 + mpats.count391*mcaid391 - gamma_3_385*(ppats.count385+mpats.count385) - gamma_3_386*(ppats.count386+mpats.count386) - gamma_3_387*(ppats.count387+mpats.count387) - gamma_3_388*(mpats.count388+ppats.count388) - gamma_3_389*(mpats.count389+ppats.count389) - gamma_3_390*(ppats.count390+mpats.count390) - gamma_3_391*(ppats.count391+mpats.count391)
     else # level = -999 (exit)
-      outp = pi*scalefact  # FIXME - what is pi doing here?  
+      outp = pi*scalefact  # tracking exit.    
     end
     return outp/scalefact
 end
