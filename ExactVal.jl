@@ -32,9 +32,9 @@ ExactVal(dyn, [11], p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float
 dyn = CounterObjects(5);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ch2 = [11] # larger market. 
+ch2 = [1] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; itlim = 100, outvals = out2)
+ExactVal(dyn, ch2, p1, p2; itlim = 100_000, outvals = out2)
 
 # The following debugger will compare utility values at each point during the sim, but it is very slow.  
 Insert this line somewhere in ExactVal:   
