@@ -14,7 +14,7 @@ plotlyjs()   # call PlotlyJS backend to Plots.
 
 dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-21-19-03-37.csv", header = false)
 
-dat = convert(Array{Float64,2}, dat)
+#dat = convert(Array{Float64,2}, dat)
 
 # Equilibrium and non-equilibrium Medicaid patient revenue:
 eq_const = sum( dat[:, 26:31], 2);
@@ -33,8 +33,9 @@ The BBL objective function.
 
 objfun(ones(33))
 
-"""
-function objfun(x::Vector;
+TODO - rewrite this!  It has to access the global scope for eqconst and neqconst.  
+
+function objfunold(x::Vector;
                 scale_fact = 1,
                 inp1::Array{Float64,2}=scale_fact*interimeq_opt,
                 inp2::Array{Float64,2}=scale_fact*interimneq_opt,
@@ -43,6 +44,19 @@ function objfun(x::Vector;
                 diffmat::Array{Float64,2}=inp1-inp2)
   # this is the BBL objective function
   return sum(min.(diffmat*x+eq_const - neq_const, 0).^2)
+  #return sum(min.(diffmat*x+cons1 - cons2))
+end
+
+
+objfun(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
+
+objfun2(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
+
+
+"""
+function objfun(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
+  # this is the BBL objective function
+  return sum(min.((inp1-inp2)*x+cons1 - cons2, 0).^2)
 end
 
 #=
