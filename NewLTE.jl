@@ -33,15 +33,13 @@ The BBL objective function.
 
 bblobjfun(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
 
-
+TODO - I think I want this to be MINIMIZED, so should return -1 of this.  
 """
 function bblobjfun(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
   # this is the BBL objective function
   nc::Float64 = 1/size(inp1,1)
   return nc*sum(min.((inp1.-inp2).*x.+cons1.- cons2, 0).^2)
   # this is not the smartest way to do this anyway: why not loop over elements?
-
-
 end
 
 
@@ -49,6 +47,10 @@ end
 bbl2(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
 
 Not done yet.  Gives different answer.  But allocation is lower and speed is better.  
+
+
+TODO - I think I want this to be MINIMIZED, so should return -1 of this.  
+
 """
 function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
   nc::Float64 = 1/size(inp1,1)
@@ -61,7 +63,7 @@ function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::
     end 
     sm += 1/nc.*(min.(interim.+cons1[i].-cons2[i],0)).^2
   end 
-  return sm 
+  return -sm 
 end 
 
 
@@ -70,14 +72,14 @@ end
 """
 `TestMH`
 
-guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+guess = [100.0, 100.0, 100.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 
 testfun(guess) # should be 0.0
 
 """
 function testfun(x::Array{Float64})
-  #              [10.0,          1.0,            1.0,          12038.0,           12038,           12038,           66143,           66143,           66143,            19799,            19799,            19799,            4044,            4044,            4044,            6242,            6242,            6242,            1329,            1329,            1329,            412,            412,            412,            2000000,            5000000,            0,           -100000,            2000000,            0,           -200000,           -100000,            0 ],
-  return -((x[1]-10.0)^2)+((x[2]-1.0)^2)+((x[3]-1.0)^2)+((x[4]-12038.0)^2)+((x[5]-12038)^2)+((x[6]-12038)^2)+((x[7]-66143)^2)+((x[8]-66143)^2)+((x[9]-66143)^2)+((x[10]-19799)^2)+((x[11]-19799)^2)+((x[12]-19799)^2)+((x[13]-4044)^2)+((x[14]-4044)^2)+((x[15]-4044)^2)+((x[16]-6242)^2)+((x[17]-6242)^2)+((x[18]-6242)^2)+((x[19]-1329)^2)+((x[20]-1329)^2)+((x[21]-1329)^2)+((x[22]-412)^2)+((x[23]-412)^2)+((x[24]-412)^2)+((x[25]-2000000)^2)+((x[26]-5000000)^2)+((x[27]-0)^2)+((x[28]+100000)^2)+((x[29]-2000000)^2)+((x[30]-0)^2)+((x[31]+200000)^2)+((x[32]+100000)^2)+((x[33]-0)^2) 
+  #              [100.0,          100.0,            100.0,          12038.0,           12038,           12038,           66143,           66143,           66143,            19799,            19799,            19799,            4044,            4044,            4044,            6242,            6242,            6242,            1329,            1329,            1329,            412,            412,            412,            2000000,            5000000,            0,           -100000,            2000000,            0,           -200000,           -100000,            0 ],
+  return -(((x[1]-100.0)^2)+((x[2]-100.0)^2)+((x[3]-100.0)^2)+((x[4]-12038.0)^2)+((x[5]-12038)^2)+((x[6]-12038)^2)+((x[7]-66143)^2)+((x[8]-66143)^2)+((x[9]-66143)^2)+((x[10]-19799)^2)+((x[11]-19799)^2)+((x[12]-19799)^2)+((x[13]-4044)^2)+((x[14]-4044)^2)+((x[15]-4044)^2)+((x[16]-6242)^2)+((x[17]-6242)^2)+((x[18]-6242)^2)+((x[19]-1329)^2)+((x[20]-1329)^2)+((x[21]-1329)^2)+((x[22]-412)^2)+((x[23]-412)^2)+((x[24]-412)^2)+((x[25]-2000000)^2)+((x[26]-5000000)^2)+((x[27]-0)^2)+((x[28]+100000)^2)+((x[29]-2000000)^2)+((x[30]-0)^2)+((x[31]+200000)^2)+((x[32]+100000)^2)+((x[33]-0)^2))
 end 
 
 
@@ -141,8 +143,8 @@ ResultsPrint(ans1, guess)
 
 # Plotting Results:
 
-histogram(sim_vals[:,1], nbins=50)
-histogram(sim_vals[:,2], nbins=50)
+histogram(sim_vals[:,1], nbins=20)
+histogram(sim_vals[:,2], nbins=20)
 
 
 # Sim Annealing:
