@@ -6,7 +6,18 @@
 Runs the LTE estimate on objfun above.
 
 I suspect current issues are related to the probability only.  It must be that...
+guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun; debug = false) # no debugging output.
 
+function tester()
+  nsims = 15
+  guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+  sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun; debug = false) # no debugging output.
+  ans1 = GetModes(sim_vals);
+  guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+  ResultsPrint(ans1, guess)
+end 
+tester()
 
 """
 function MetropolisHastings(initialpr::Vector,
@@ -75,11 +86,12 @@ function MetropolisHastings(initialpr::Vector,
         rand!(proposal, preall)   # perturbation value. 
         proposed[i] += preall[i] # Changes just the one location 
         if !(find(proposed)==[i])
-          println(proposed)
+          println(proposed) # this vector should be identically zero except at coordinate i.  
         end 
-        if curr_it > 2 
-          println("outside update: ", curr_prior, " iter ", curr_it)
-        end 
+        # if ((i == 1 )||(i == 2))
+        #   println(curr_it, " ***** ", i, " ********")
+        #   println("outside update: ", curr_prior, " iter ", curr_it)
+        # end 
 
         # Probability of proposed new value  Θ' under the *prior*: π(Θ')
         # This is *not* conditional on the current location
@@ -90,13 +102,6 @@ function MetropolisHastings(initialpr::Vector,
         if pr1 == next_prior # this never happens.  
           println("priors equal? ", pr1, "  ", next_prior)
         end 
-        if curr_it > 2
-          print(" current pdf ", pdf(Distributions.MvNormal(prior_μ, prior_σ), curr_x), " ")
-          print(" proposed logpdf ", logpdf(Distributions.MvNormal(prior_μ, prior_σ), curr_x + proposed), "  ")
-          println("current pdf ", pdf(Distributions.MvNormal(prior_μ, prior_σ), curr_x + proposed))
-        end 
-
-
         # Probability of new value under the *proposal* q(x|y) distribution:
         # This one *is* conditional on the current location.
         # Using Log of normal PDF to avoid underflow.
@@ -105,16 +110,12 @@ function MetropolisHastings(initialpr::Vector,
 
         # Value of objective at Proposal
         # This should be a scalar...
-        if i == 1 
-          # check the update below.  
-        end 
-        if i == 2
-
-        end 
         next_vals = objfun(curr_x + proposed) #14 allocations / 9 kb
-
         # Difference in value of objectives
         val_diff = next_vals - curr_vals
+        if val_diff == 0.0
+          println("Value difference is 0.0 ")
+        end 
 
         if val_diff == Inf || val_diff == 0.0  # keep track of times when this is too large.
           if val_diff == Inf
@@ -126,9 +127,13 @@ function MetropolisHastings(initialpr::Vector,
         # The probability under the proposal is symmetric - q(next_x|curr_x) = q(curr_x|next_x) - I can drop it.
         # Next line is log of Hastings ratio.
         # seems like proposals will almost only be accepted at random.
-        # TODO - this is weird... next_prior and curr_prior are going to be small, no?  
-        logrho = minimum([val_diff+next_prior-curr_prior,0.0])
-        if i != 1
+        # NOTE - the proposal distribution is symmetric so the following quantities are identical. 
+        # TODO - remove these, because it doesn't matter numerically.   
+        prop_cond_curr = logpdf(Distributions.MvNormal(curr_x + proposed, pro_σ), curr_x) # this one subtracted
+        curr_cond_prop = logpdf(Distributions.MvNormal(curr_x, pro_σ), curr_x + proposed) # this one added
+        # OK - the acceptance probability must be wrong.  That's the problem - or part of it.  
+        logrho = minimum([next_vals-curr_vals+next_prior-curr_prior+curr_cond_prop-prop_cond_curr,0.0])
+        if (i == 1)|(i==2)
           if logrho > 0
             println("accepted!")
           end 
@@ -147,19 +152,24 @@ function MetropolisHastings(initialpr::Vector,
         # TODO - below this enables tracking acceptance 
         b1::Bool = false 
         b2::Bool = false 
-        if logrho>=0
-          b1 = true 
-          println("accepted logrho ", logrho, " ", curr_it)
-        end   
-        if rand() < exp(logrho)
-          b2 = true 
-          println("accepted rand ", curr_it)
+        # TODO - remove this - right now only accepting updates to coors 1 and 2.
+        # this thing is wrong.  These updates are ONLY agreeing.  That shouldn't be right.    
+        if (i == 1) || (i == 2)
+          if logrho>=0
+            b1 = true 
+          end   
+          if rand() < exp(logrho)
+            b2 = true 
+          end 
         end 
-        # TODO - above this enables tracking acceptance.  
+        # TODO - above this enables tracking acceptance. 
+        if (i == 1) || (i == 2)
+          println("pre-update ", curr_it, " ", i, " ", curr_x[i], " ", proposed[i], " accepted: ", b1, " ", b2) 
+        end 
         if (b1)||(b2)
           # Accepted Proposal
           curr_x[i] += proposed[i]
-          curr_prior = next_prior # this is a float.
+          curr_prior = next_prior # this is a scalar, equal to the objective function at the present parameters.
           curr_vals = next_vals # this is a float?
           curr_proposal_prob = next_proposal_prob # this is a float.
           accepted += 1 # this is counting acceptances over all parameters.
@@ -178,6 +188,9 @@ function MetropolisHastings(initialpr::Vector,
         if debug
           counter += 1
         end
+        if (i == 1) || (i == 2)
+          println("post-update ", curr_it, " ", i, " ", curr_x[i], " ", proposed[i]) 
+        end 
     end # of iteration over state elements.
       # Record the current parameter values whether they changed or not.
       # This is OUTSIDE the loop over parameter elements.
