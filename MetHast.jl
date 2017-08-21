@@ -10,15 +10,18 @@ guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 1979
 sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun; debug = false) # no debugging output.
 
 function tester()
-  nsims = 15
-  guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+  srand(1) # seed the generator to reproduce.
+  nsims = 1500
+  guess = [100.0, 100.0, 100.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
   sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun; debug = false) # no debugging output.
   ans1 = GetModes(sim_vals);
-  guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
+  guess = [100.0, 100.0, 100.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
   ResultsPrint(ans1, guess)
 end 
 tester()
 
+
+# dumb question... minimize or maximize?  
 """
 function MetropolisHastings(initialpr::Vector,
                             max_iterations::Int64,
@@ -79,8 +82,6 @@ function MetropolisHastings(initialpr::Vector,
     for i =1:param_dim
         # Proposed next value, Θ'[i] - this is just *one* element.
         # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
-
-
         ArrayZero(proposed)       # Clean up proposal 
         ArrayZero(preall)         # Clean up preallocated 
         rand!(proposal, preall)   # perturbation value. 
@@ -113,7 +114,7 @@ function MetropolisHastings(initialpr::Vector,
         next_vals = objfun(curr_x + proposed) #14 allocations / 9 kb
         # Difference in value of objectives
         val_diff = next_vals - curr_vals
-        if val_diff == 0.0
+        if val_diff == 0.0 # this never happens.  
           println("Value difference is 0.0 ")
         end 
 
@@ -131,13 +132,10 @@ function MetropolisHastings(initialpr::Vector,
         # TODO - remove these, because it doesn't matter numerically.   
         prop_cond_curr = logpdf(Distributions.MvNormal(curr_x + proposed, pro_σ), curr_x) # this one subtracted
         curr_cond_prop = logpdf(Distributions.MvNormal(curr_x, pro_σ), curr_x + proposed) # this one added
-        # OK - the acceptance probability must be wrong.  That's the problem - or part of it.  
-        logrho = minimum([next_vals-curr_vals+next_prior-curr_prior+curr_cond_prop-prop_cond_curr,0.0])
-        if (i == 1)|(i==2)
-          if logrho > 0
-            println("accepted!")
-          end 
-        end 
+        #logrho = minimum([next_vals-curr_vals+next_prior-curr_prior+curr_cond_prop-prop_cond_curr,0.0])
+        acpt::Bool = false
+        p::Float64 = min(exp(next_vals-curr_vals)*(next_prior/curr_prior)*(curr_cond_prop/prop_cond_curr),1)
+        acpt = StatsBase.sample([true, false], StatsBase.weights([p, 1-p])) 
         if debug
           tr[counter, 1] = logrho
           tr[counter, 2] = val_diff
@@ -149,49 +147,22 @@ function MetropolisHastings(initialpr::Vector,
             @inbounds allvals[counter,k] = (curr_x + proposed)[k]
           end
         end
-        # TODO - below this enables tracking acceptance 
-        b1::Bool = false 
-        b2::Bool = false 
-        # TODO - remove this - right now only accepting updates to coors 1 and 2.
-        # this thing is wrong.  These updates are ONLY agreeing.  That shouldn't be right.    
-        if (i == 1) || (i == 2)
-          if logrho>=0
-            b1 = true 
-          end   
-          if rand() < exp(logrho)
-            b2 = true 
-          end 
-        end 
-        # TODO - above this enables tracking acceptance. 
-        if (i == 1) || (i == 2)
-          println("pre-update ", curr_it, " ", i, " ", curr_x[i], " ", proposed[i], " accepted: ", b1, " ", b2) 
-        end 
-        if (b1)||(b2)
+        if acpt
           # Accepted Proposal
           curr_x[i] += proposed[i]
-          curr_prior = next_prior # this is a scalar, equal to the objective function at the present parameters.
-          curr_vals = next_vals # this is a float?
+          curr_prior = next_prior # this is a scalar
+          curr_vals = next_vals # this is a float, equal to the objective function at the present parameters.
           curr_proposal_prob = next_proposal_prob # this is a float.
           accepted += 1 # this is counting acceptances over all parameters.
           if debug
             param_accept[i] += 1
           end
-          # Keep track of this too - should change the scaling factor.
-          if logrho < 0
-            # TODO - how can this condition ever be satisfied?  logrho < 0 but exp(logrho) = Inf?  
-            if exp(logrho) == Inf
-              println("some bullshit happpened")
-              overflowcount += 1
-            end
-          end
         end
         if debug
           counter += 1
         end
-        if (i == 1) || (i == 2)
-          println("post-update ", curr_it, " ", i, " ", curr_x[i], " ", proposed[i]) 
-        end 
     end # of iteration over state elements.
+    # TODO - another problem.  How does the objective change so much between iterations 1 and 2???  
       # Record the current parameter values whether they changed or not.
       # This is OUTSIDE the loop over parameter elements.
     for el = 1:param_dim
