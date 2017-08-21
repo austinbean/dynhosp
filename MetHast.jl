@@ -69,6 +69,7 @@ function MetropolisHastings(initialpr::Vector,
         # Proposed next value, Θ'[i] - this is just *one* element.
         # Randomly generated conditional on current value, according to the proposal dist q(Θ'|Θ)
 
+
         ArrayZero(proposed)       # Clean up proposal 
         ArrayZero(preall)         # Clean up preallocated 
         rand!(proposal, preall)   # perturbation value. 
@@ -104,6 +105,12 @@ function MetropolisHastings(initialpr::Vector,
 
         # Value of objective at Proposal
         # This should be a scalar...
+        if i == 1 
+          # check the update below.  
+        end 
+        if i == 2
+
+        end 
         next_vals = objfun(curr_x + proposed) #14 allocations / 9 kb
 
         # Difference in value of objectives
