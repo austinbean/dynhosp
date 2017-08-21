@@ -38,7 +38,7 @@ TODO - I think I want this to be MINIMIZED, so should return -1 of this.
 function bblobjfun(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
   # this is the BBL objective function
   nc::Float64 = 1/size(inp1,1)
-  return nc*sum(min.((inp1.-inp2).*x.+cons1.- cons2, 0).^2)
+  return -nc*sum(min.((inp1-inp2)*x+cons1- cons2, 0).^2)
   # this is not the smartest way to do this anyway: why not loop over elements?
 end
 
@@ -49,19 +49,40 @@ bbl2(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
 Not done yet.  Gives different answer.  But allocation is lower and speed is better.  
 
 
-TODO - I think I want this to be MINIMIZED, so should return -1 of this.  
+I think I want this to be MINIMIZED, so should return -1 of this. 
+
+Ok - time to debug this. 
+
+# test this.
+sm = 0.0  
+for j = 1:33
+  sm += (interimeq_opt[1,j]-interimneq_opt[1,j]) 
+end 
+println(sm)
+println(eq_const[1], " ", neq_const[1])
+sm += (eq_const[1] - neq_const[1])
+
+println(-(1/286)*(min(sm,0 )^2) )
+
+-3.3546970628060017e18
 
 """
 function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
   nc::Float64 = 1/size(inp1,1)
   sm::Float64 = 0.0
   interim::Float64 = 0.0
-  for i = 1:size(inp1,1)
+  for i = 1:size(inp1,1)                                   # rows of inp1 - single inequalities.  
     interim = 0.0
-    for j = 1:size(x,1)
+    for j = 1:size(x,1)                                    # rows of x - parameter values.
       interim += (inp1[i,j].-inp2[i,j]).*x[j]
     end 
-    sm += 1/nc.*(min.(interim.+cons1[i].-cons2[i],0)).^2
+    if i == 1 println(interim) end # correct through here.
+    if i == 1 println(cons1[i], "  ", cons2[i]) end
+    sm += 1/nc*((min(interim+cons1[i]-cons2[i],0))^2)      # params*(eq_opt - neq_opt) + eq_const - neq_const
+    if i == 1
+      println("sm ", -sm)
+      println("at 1: ", -1/nc*(min(interim+cons1[1]-cons2[1],0)^2))
+    end 
   end 
   return -sm 
 end 
