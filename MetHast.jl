@@ -7,6 +7,7 @@ Runs the LTE estimate on objfun above.
 
 I suspect current issues are related to the probability only.  It must be that...
 
+
 """
 function MetropolisHastings(initialpr::Vector,
                             max_iterations::Int64,
