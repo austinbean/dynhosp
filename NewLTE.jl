@@ -31,33 +31,39 @@ The BBL objective function.
 
 ## Testing ## 
 
-objfun(ones(33))
-
-TODO - rewrite this!  It has to access the global scope for eqconst and neqconst.  
-
-function objfunold(x::Vector;
-                scale_fact = 1,
-                inp1::Array{Float64,2}=scale_fact*interimeq_opt,
-                inp2::Array{Float64,2}=scale_fact*interimneq_opt,
-                cons1::Array{Float64,2}=scale_fact*eq_const,
-                cons2::Array{Float64,2}=scale_fact*neq_const,
-                diffmat::Array{Float64,2}=inp1-inp2)
-  # this is the BBL objective function
-  return sum(min.(diffmat*x+eq_const - neq_const, 0).^2)
-  #return sum(min.(diffmat*x+cons1 - cons2))
-end
-
-
-bblobjfun(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
-
 bblobjfun(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
 
 
 """
 function bblobjfun(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
   # this is the BBL objective function
-  return sum(min.((inp1-inp2)*x+cons1 - cons2, 0).^2)
+  nc::Float64 = 1/size(inp1,1)
+  return nc*sum(min.((inp1.-inp2).*x.+cons1.- cons2, 0).^2)
+  # this is not the smartest way to do this anyway: why not loop over elements?
+
+
 end
+
+
+"""
+bbl2(ones(33), interimeq_opt, interimneq_opt, eq_const, neq_const)
+
+Not done yet.  Gives different answer.  But allocation is lower and speed is better.  
+"""
+function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
+  nc::Float64 = 1/size(inp1,1)
+  sm::Float64 = 0.0
+  interim::Float64 = 0.0
+  for i = 1:size(inp1,1)
+    interim = 0.0
+    for j = 1:size(x,1)
+      interim += (inp1[i,j].-inp2[i,j]).*x[j]
+    end 
+    sm += 1/nc.*(min.(interim.+cons1[i].-cons2[i],0)).^2
+  end 
+  return sm 
+end 
+
 
 
 
@@ -116,7 +122,7 @@ guess = [10.0, 1.0, 1.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 1979
 sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun; debug = false) # no debugging output.
 
 
-sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, ; debug = false) # no debugging output.
+sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun ; debug = false) # no debugging output.
 
 
 
