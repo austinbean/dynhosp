@@ -11,7 +11,7 @@ sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims,
 
 function tester()
   srand(1) # seed the generator to reproduce.
-  nsims = 1500
+  nsims = 100_000
   guess = [100.0, 100.0, 100.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
   sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, nsims, testfun; debug = false) # no debugging output.
   ans1 = GetModes(sim_vals);
