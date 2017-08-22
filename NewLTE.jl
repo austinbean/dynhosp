@@ -13,6 +13,10 @@ plotlyjs()   # call PlotlyJS backend to Plots.
 #dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
 
 dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-21-19-03-37.csv", header = false)
+dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-22-15-49-17.csv", header = false)
+dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-31-18-32-44.csv", header = false)
+
+
 
 #dat = convert(Array{Float64,2}, dat)
 
@@ -118,18 +122,26 @@ function GetModes(x::Array{Float64,2})
   return outp
 end
 
+
+
 """
-`GetMeans`
-Compute the means.
+`Intervals`
+Returns the summary stats of the simulation.
 """
-function GetMeans(x::Array{Float64,2})
-  # Round these values and get the modes of the round values
-  outp = zeros(size(x,2))
+function Intervals(x::Array{Float64,2})
+  # mean, variance, 5%-th percentile, 95%-th percentile
+  params::Int64 = 4
+  syms = [:α₁, :α₂, :α₃, :γ¹₅, :γ₅², :γ₅³, :γ₆¹, :γ₆², :γ₆³, :γ₇¹, :γ₇², :γ₇³, :γ₈¹, :γ₈², :γ₈³, :γ₉¹, :γ₉², :γ₉³, :γ₀¹, :γ₀², :γ₀³, :γ₁¹, :γ₁², :γ₁³, :ϕ12, :ϕ13, :ϕ1EX, :ϕ21, :ϕ23, :ϕ2EX, :ϕ31, :ϕ32, :ϕ3EX]
+  outp::Array{Any,2} = Array{Any,2}(size(x,2), params+1)
   for i = 1:size(x,2)
-    outp[i] = mode(round.(x[:,i], 4)) # round to four digits and take the mode.
-  end
-  return outp
-end
+    outp[i,1] = syms[i]
+    outp[i,2] = mean(x[:,i])
+    outp[i,3] = StatsBase.std(x[:,i])
+    outp[i,4] = StatsBase.percentile(x[:,i], 5)
+    outp[i,5] = StatsBase.percentile(x[:,i], 95)      
+  end 
+  return outp 
+end 
 
 
 
@@ -138,9 +150,9 @@ end
 `ResultsPrint(x::Array{Float64,1}, start::Array{Float64,1})`
 Take the initial guess and the final value and print them next to the parameter name.
 """
-function ResultsPrint(x::Array{Float64,1}, start::Array{Float64,1})
+function ResultsPrint(x::Array{Float64}, start::Array{Float64,1})
   syms = [:α₁, :α₂, :α₃, :γ¹₅, :γ₅², :γ₅³, :γ₆¹, :γ₆², :γ₆³, :γ₇¹, :γ₇², :γ₇³, :γ₈¹, :γ₈², :γ₈³, :γ₉¹, :γ₉², :γ₉³, :γ₀¹, :γ₀², :γ₀³, :γ₁¹, :γ₁², :γ₁³, :ϕ12, :ϕ13, :ϕ1EX, :ϕ21, :ϕ23, :ϕ2EX, :ϕ31, :ϕ32, :ϕ3EX]
-  for el in 1:size(x,1)
+  for el in 1:maximum(size(x))
     println( syms[el], "  Initial: ", round(start[el],2), "  Final:  ", round(x[el], 2))
   end
 end
@@ -165,7 +177,7 @@ println("Count of Underflow ", undercounter)
 
 # NB!! Re-enter "Guess"
 
-ans1 = GetModes(sim_vals);
+ans1 = mean(sim_vals,1);
 guess = [1000.0, 100.0, 10.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 ResultsPrint(ans1, guess)
 
