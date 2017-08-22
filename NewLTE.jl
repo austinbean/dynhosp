@@ -54,16 +54,22 @@ I think I want this to be MINIMIZED, so should return -1 of this.
 Ok - time to debug this. 
 
 # test this.
-sm = 0.0  
-for j = 1:33
-  sm += (interimeq_opt[1,j]-interimneq_opt[1,j]) 
+begin 
+  q = 5;
+  sm = 0.0  
+  println("inverse of scaling: ", size(interimeq_opt,1))
+  for j = 1:33
+    sm += (interimeq_opt[q,j]-interimneq_opt[q,j]) 
+  end 
+  println("interim sum: ", sm)
+  println("constants: ",eq_const[q], " ", neq_const[q])
+  sm += eq_const[q] 
+  sm -= neq_const[q]
+  println("before min: ", sm)
+  println("squaring min: ", min(sm, 0)^2)
+  println("scaling factor: ", 1/size(interimeq_opt, 1))
+  println("scaling: ", -(1/size(interimeq_opt,1))*((min(sm,0 ))^2) )
 end 
-println("interim sum: ", sm)
-println("constants: ",eq_const[1], " ", neq_const[1])
-sm += (eq_const[1] - neq_const[1])
-println("before min: ", sm)
-println("taking min: ", min(sm, 0)^2)
-println("at 1: ", -(1/286)*(min(sm,0 )^2) )
 
 """
 function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
@@ -75,17 +81,7 @@ function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::
     for j = 1:size(x,1)                                    # rows of x - parameter values.
       interim += (inp1[i,j].-inp2[i,j]).*x[j]
     end 
-    if i == 1 println("interim sum: ", interim) end # correct through here.
-    if i == 1 println("constants ",cons1[i], "  ", cons2[i]) end
-    if i == 1 println("before min: ", interim + cons1[i] - cons2[i]) end 
-    if i == 1 println("squaring min: ", min(interim + cons1[i] - cons2[i], 0)^2 ) end
-    if i == 1 println("scaling: ", -(1/nc)*min(interim + cons1[i] - cons2[i], 0)^2 ) end 
-      #TODO - the error is in the scaling factor...?  This is the last thing to fix.  
-    sm += 1/nc*((min(interim+cons1[i]-cons2[i],0))^2)      # params*(eq_opt - neq_opt) + eq_const - neq_const
-    if i == 1
-      println("sm ", -sm)
-      println("at 1: ", -(1/nc)*(min(interim+cons1[1]-cons2[1],0)^2))
-    end 
+    sm += nc*((min(interim+cons1[i]-cons2[i],0))^2)        # params*(eq_opt - neq_opt) + eq_const - neq_const
   end 
   return -sm 
 end 
