@@ -30,11 +30,11 @@ function MetropolisHastings(initialpr::Vector,
                             cons2::Array{Float64,2};  # arguments to objfun
                             param_dim = length(initialpr),
                             pro_μ = zeros(param_dim),
-                            pro_σ_scale::Float64 = 100.0,
+                            pro_σ_scale::Float64 = 10.0,
                             pro_σ = pro_σ_scale*eye(param_dim),
                             proposal = Distributions.MvNormal(pro_μ, pro_σ),
                             prior_μ::Array{Float64,1} = [1000.0, 100.0, 10.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412,  2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ],
-                            prior_σ_scale::Float64 = 100.0,
+                            prior_σ_scale::Float64 = 10.0,
                             prior_σ = prior_σ_scale*eye(param_dim),
                             prior = Distributions.MvNormal(prior_μ, prior_σ))
   # Basics
