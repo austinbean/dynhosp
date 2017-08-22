@@ -58,13 +58,12 @@ sm = 0.0
 for j = 1:33
   sm += (interimeq_opt[1,j]-interimneq_opt[1,j]) 
 end 
-println(sm)
-println(eq_const[1], " ", neq_const[1])
+println("interim sum: ", sm)
+println("constants: ",eq_const[1], " ", neq_const[1])
 sm += (eq_const[1] - neq_const[1])
-
-println(-(1/286)*(min(sm,0 )^2) )
-
--3.3546970628060017e18
+println("before min: ", sm)
+println("taking min: ", min(sm, 0)^2)
+println("at 1: ", -(1/286)*(min(sm,0 )^2) )
 
 """
 function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::Array{Float64,2}, cons2::Array{Float64,2})
@@ -76,12 +75,16 @@ function bbl2(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2}, cons1::
     for j = 1:size(x,1)                                    # rows of x - parameter values.
       interim += (inp1[i,j].-inp2[i,j]).*x[j]
     end 
-    if i == 1 println(interim) end # correct through here.
-    if i == 1 println(cons1[i], "  ", cons2[i]) end
+    if i == 1 println("interim sum: ", interim) end # correct through here.
+    if i == 1 println("constants ",cons1[i], "  ", cons2[i]) end
+    if i == 1 println("before min: ", interim + cons1[i] - cons2[i]) end 
+    if i == 1 println("squaring min: ", min(interim + cons1[i] - cons2[i], 0)^2 ) end
+    if i == 1 println("scaling: ", -(1/nc)*min(interim + cons1[i] - cons2[i], 0)^2 ) end 
+      #TODO - the error is in the scaling factor...?  This is the last thing to fix.  
     sm += 1/nc*((min(interim+cons1[i]-cons2[i],0))^2)      # params*(eq_opt - neq_opt) + eq_const - neq_const
     if i == 1
       println("sm ", -sm)
-      println("at 1: ", -1/nc*(min(interim+cons1[1]-cons2[1],0)^2))
+      println("at 1: ", -(1/nc)*(min(interim+cons1[1]-cons2[1],0)^2))
     end 
   end 
   return -sm 
