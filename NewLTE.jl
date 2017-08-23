@@ -162,7 +162,7 @@ end
 #drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
 guess = [1000.0, 100.0, 10.0, 12038.0, 12038, 12038, 66143, 66143, 66143, 19799, 19799, 19799, 4044, 4044, 4044, 6242, 6242, 6242, 1329, 1329, 1329, 412, 412, 412, 2000000, 5000000, 0, -100000, 2000000, 0, -200000, -100000, 0 ];
 
-sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, 100_000, BBLObjective, interimeq_opt, interimneq_opt, eq_const, neq_const) # no debugging output.
+sim_vals, overcounter, undercounter, accepted, sign_check = MetropolisHastings(guess, 100_000, BBLObjective, interimeq_opt, interimneq_opt, eq_const, neq_const) # no debugging output.
 
 
 #sim_vals, overcounter, undercounter, accepted = MetropolisHastings(guess, 1000, testfun, interimeq_opt, interimneq_opt, eq_const, neq_const) # no debugging output.
