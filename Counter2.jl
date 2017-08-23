@@ -3160,9 +3160,9 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
             else 
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
                 println(D.all[chs[ix]].fid) 
-                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)),  D.all[chs[ix]].fid)
+                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), D.all[chs[ix]].fid)
               elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl))
-                # use the other function.  
+                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), D.all[chs[ix]].fid)
               end  
             end  
           end 
@@ -3425,7 +3425,7 @@ end
 Computes a continuation value for the PM approximation.
 Takes a next state and a section of the outvals for one firm, i.e., a single firm's values.
 
-#
+# TODO - maybe the eulergamma term needs to be scaled?
 
 """
 function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64},Float64})
@@ -3448,13 +3448,13 @@ function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64
   else
     # do nothing, already 0 
   end 
-  if (s1<0)|(s2<0)|(s3<0)
-    println("s1 ", s1, " s2 ", s2, " s3 ", s3)
-  end 
-  ss::Float64 = s1+s2+s3
-  pr1::Float64 = s1/ss
-  pr2::Float64 = s2/ss
-  pr3::Float64 = s3/ss 
+  # if (s1<0)|(s2<0)|(s3<0)
+  #   println("s1 ", s1, " s2 ", s2, " s3 ", s3)
+  # end 
+  ss::Float64 = abs(s1)+abs(s2)+abs(s3) # FIXME - temporarily imposing abs, but this should be no-op.
+  pr1::Float64 = abs(s1)/ss
+  pr2::Float64 = abs(s2)/ss
+  pr3::Float64 = abs(s3)/ss 
   if (s1!=0.0)||(s2!=0.0)||(s3!=0.0)  
     return β*(s1*pr1+s2*pr2+s3*pr3)+β*(eulergamma-log(pr1)*pr1-log(pr2)*pr2-log(pr3)*pr3)
   else 
