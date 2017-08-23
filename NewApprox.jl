@@ -17,16 +17,18 @@ ch2 = [11] # larger market.
 NewApprox(dyn, ch2, p1, p2; wallh = 0, wallm = 2, itlim = 200_000)
 
 
+remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wallh = 0, wallm = 2 )
+
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
                    p1::patientcount,
                    p2::patientcount;
-                   wallh::Int64 = 100, 
-                   wallm::Int64 = 0,
+                   wlh::Int64 = 100, 
+                   wlm::Int64 = 0,
                    itlim::Int64 = 100_000)
   strt = now()
-  wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) - Dates.Millisecond(Dates.Minute(1))
+  wl = Dates.Millisecond(Dates.Hour(wlh)) + Dates.Millisecond(Dates.Minute(wlm)) - Dates.Millisecond(Dates.Minute(1))
   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   tracker::Dict{NTuple{10, Int64}, Int64} = Dict{NTuple{10, Int64}, Int64}()            # Dict to hold visited states
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
