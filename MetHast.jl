@@ -149,8 +149,5 @@ function MetropolisHastings(initialpr::Vector,
   # Overflowcount - number of times the function overflowed
   # Underflowcount - number of times the function underflowed
   # Accepted - Counts the number of times the proposal was accepted (one parameter at a time)
-  for k = 1:size(sign_check,1)
-    println(sign_check[k])
-  end 
-  return path, overflowcount, underflowcount, accepted
+  return path, overflowcount, underflowcount, accepted, sign_check
 end # of MetropolisHastings()
