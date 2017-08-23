@@ -3191,14 +3191,18 @@ end
 
 
 """
-`ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, f::Int64)`
+`ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} })`
 
 Write out the results of the simulation.  Uses `KeyArr` to get an iterable
 over the (fid,key) pairs. f tracks the fid I want.  
 
+TODO - the reason this isn't working is that it's remaking the whole array outp every time it is called.
+That should be fixed.  
+
+this could start with an empty array outp, check its size, then add whatever to it.  Perhaps that's more annoying.  
 
 """
-function ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, f::Int64)
+function ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} })
   cols = 4 # fid, key, value, ismain?
   rows = 0
   for k1 in keys(vals)
@@ -3209,29 +3213,10 @@ function ResultsWrite(vals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} }, f:
     outp[i,1] = el[1]
     outp[i,2] = el[2]
     outp[i,3] = vals[el[1]][el[2]]
-    if el[1] == f 
-      outp[i,4] = true 
-    else 
-      outp[i,4] = false 
-    end 
+    outp[i,4] = true 
   end 
   return outp 
 end 
-
-
-function Saver(outp::Array{Any,2})
-  counter = sum(outp[:,4])
-  tosave = Array{Any,2}(counter, 3)
-  for i = 1:size(outp,1)  
-    if outp[i,4] 
-      tosave[i, 1] = outp[i,1]
-      tosave[i, 2] = outp[i,2]
-      tosave[i, 3] = outp[i,3]
-    end 
-  end 
-  return tosave 
-end 
-
 
 
 
