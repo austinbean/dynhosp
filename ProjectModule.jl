@@ -651,6 +651,7 @@ end
   include("CheckConvergence.jl")
   include("utilities.jl")
   include("InexactConvergence.jl")
+  include("NewApprox.jl")
   #include("Reboot.jl")
 
 
@@ -901,6 +902,8 @@ end
   export AppContinuation
   export AppChoice
   export RoughCheck
+  export InexactConvergence 
+  export NewApprox 
 
 
 
