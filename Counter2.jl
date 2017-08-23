@@ -3125,7 +3125,7 @@ Parallelizes ExactValue computation across cores.
 
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 0, 5; results = res1)
+ExactControl(dyn, 0, 2; results = res1)
 
 
 ResultsWrite(res1,1)
@@ -3159,10 +3159,11 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
               break                                                                   # function operates in place on results, so should break to permit saving. 
             else 
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
-                println(D.all[chs[ix]].fid) 
-                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), D.all[chs[ix]].fid)
+                println("Solving: ", D.all[chs[ix]].fid)
+                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm), D.all[chs[ix]].fid)
               elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl))
-                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)), D.all[chs[ix]].fid)
+                println("Approximating: ", D.all[chs[ix]].fid)
+                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm), D.all[chs[ix]].fid)
               end  
             end  
           end 
@@ -3222,7 +3223,7 @@ function Saver(outp::Array{Any,2})
   counter = sum(outp[:,4])
   tosave = Array{Any,2}(counter, 3)
   for i = 1:size(outp,1)  
-    if out[i,3] 
+    if outp[i,4] 
       tosave[i, 1] = outp[i,1]
       tosave[i, 2] = outp[i,2]
       tosave[i, 3] = outp[i,3]
