@@ -87,14 +87,12 @@ function ExactVal(D::DynState,
   inv_costs = zeros(9)
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
-      if !totest[k]  
-        for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
-          st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
-          MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-          InvCosts(st_dict[k], false, inv_costs)
-          ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
-          ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
-        end 
+      for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
+        st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
+        MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
+        InvCosts(st_dict[k], false, inv_costs)
+        ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
+        ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
       end 
     end
     # Convergence Test - this modifies bools in totest.
