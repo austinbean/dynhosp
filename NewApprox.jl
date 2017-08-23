@@ -12,7 +12,7 @@ dyn = CounterObjects(5);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
-NewApprox(dyn, ch2, p1, p2; itlim = 20_000)
+NewApprox(dyn, ch2, p1, p2; itlim = 20_00)
 
 
 """
@@ -56,7 +56,7 @@ function NewApprox(D::DynState,
     MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
     InvCosts(st_dict[k], false, inv_costs)
     outvals[k][nextstate] = (1-(1/(1+tracker[nextstate])))*(outvals[k][nextstate]) + (1/(1+tracker[nextstate]))*(AppChoice(all_locs[k], k, p1, p2, D, inv_costs)) # only map the state out to one element of outvals.
-    println("its: ", its, " min: ", OutMin(outvals, tracker, k))
+    #println("its: ", its, " min: ", OutMin(outvals, tracker, k))
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])              # set it back 
     if its %10_000 == 0
       cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
