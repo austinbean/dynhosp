@@ -34,7 +34,7 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [1] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; itlim = 100_000, outvals = out2)
+ExactVal(dyn, ch2, p1, p2; wallh = 0, wallm = 2, itlim = 100_000_0, outvals = out2)
 
 # The following debugger will compare utility values at each point during the sim, but it is very slow.  
 Insert this line somewhere in ExactVal:   
@@ -45,8 +45,12 @@ function ExactVal(D::DynState,
                   chunk::Array{Int64,1}, 
                   p1::patientcount,
                   p2::patientcount;
+                  wallh::Int64 = 100, 
+                  wallm::Int64 = 0,
                   itlim::Int64 = 100000,
                   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
+  strt = now()                                                                          # keep track of starting time, then check periodically to make sure it doesn't go over. 
+  wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) - Dates.Millisecond(Dates.Minute(1))
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   DictClean(tempvals)                                                                   # initialize to zero. 
   totest::Dict{Int64,Bool} = Dict{Int64,Bool}()                                         # will record convergence (Fid, Bool) Dict.
@@ -100,6 +104,13 @@ function ExactVal(D::DynState,
     if its %1000 == 0
       println("iteration: ", its)
       println("minimum: ", CheckMin(outvals, tempvals))
+      # add check on duration.
+      current = now()
+      if (current-strt)>wl 
+        println("Time exceeded!") 
+        return outvals
+        break 
+      end 
     end 
     # Copy the values and clean up.
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
