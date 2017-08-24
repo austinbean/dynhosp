@@ -1,7 +1,7 @@
 # Runs the dynamic computation
 # Note the parameters wallh and wallm in ExactControl - these determine how long the simulation should take.  
 
-addprocs(68) # will work on Stampede
+#addprocs(68) # will work on Stampede
 addprocs(2) # for testing at home.
 
 
@@ -15,7 +15,7 @@ println("Sim Starting at: ", ds1)
 
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 0, 5; wallh = 0, wallm = 1, results = res1)
+ExactControl(dyn, 0, 5; results = res1)
 
 
 outp = ResultsWrite(res1)
