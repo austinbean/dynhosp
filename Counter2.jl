@@ -3267,26 +3267,44 @@ end
 `RecordDists(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64})`
 
 Takes a Dict of {neighbors,locations} and writes an array of [Fid, Distance]
-where this is measured to the main firm.  
+where this is measured to the main firm.  This loops through keys twice 
+since we don't know in advance where the key for the main fac will be.  
+
 
 Testing: 
 
 dyn = CounterObjects(5);
-ch = [11];
-neighbors = Array{Int64,1}()
-push!(neighbors, 11)
-FindComps(dyn, neighbors, dyn.all[ch[1]])
-all_locs = Dict{Int64,Int64}()
-CompsDict(neighbors , dyn, all_locs)
-RecordDists(dyn, ch, all_locs)
+ch1 = [11];
+neighbors1 = Array{Int64,1}()
+push!(neighbors1, 11)
+FindComps(dyn, neighbors1, dyn.all[ch1[1]])
+all_locs1 = Dict{Int64,Int64}()
+CompsDict(neighbors1 , dyn, all_locs1)
+RecordDists(dyn, ch1, all_locs1)
+
+ch2 = [13];
+neighbors2 = Array{Int64,1}()
+push!(neighbors2, 13)
+FindComps(dyn, neighbors2, dyn.all[ch2[1]])
+all_locs2 = Dict{Int64,Int64}()
+CompsDict(neighbors2 , dyn, all_locs2)
+RecordDists(dyn, ch2, all_locs2)
+
 """
 function RecordDists(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64})
   outp::Array{Float64,2} = Array{Float64,2}(locs.count-1, 2)
-  for (i,el) in enumerate(keys(locs))
-    if D.all[ch[1]].fid != el 
-      outp[i,1] = el 
-      outp[i,2] = distance(D.all[ch[1]].lat, D.all[ch[1]].long, D.all[locs[el]].lat, D.all[locs[el]].long)
+  fds::Array{Int64,1} = Array{Int64,1}()
+  mfd::Int64 = D.all[ch[1]].fid
+  mlat::Float64 = D.all[ch[1]].lat
+  mlong::Float64 = D.all[ch[1]].long
+  for el in keys(locs)               # the keys of locs are fids, the values are locations in dyn.all[]
+    if mfd != el
+      push!(fds, el)
     end 
+  end   
+  for (i,el) in enumerate(fds)      
+    outp[i,1] = el 
+    outp[i,2] = distance(mlat, mlong, D.all[locs[el]].lat, D.all[locs[el]].long)
   end 
   return outp 
 end 
