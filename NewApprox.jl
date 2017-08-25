@@ -14,11 +14,34 @@ dyn = CounterObjects(5);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
-NewApprox(dyn, ch2, p1, p2; wallh = 0, wallm = 2, itlim = 200_000)
+NewApprox(dyn, [13], p1, p2; wlh = 0, wlm = 5, itlim = 200_000)
 
-
+# Testing remote call: 
 remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wallh = 0, wallm = 2 )
 
+
+# Testing beginning:  
+dyn = CounterObjects(5);
+all_l = Dict{Int64,Int64}()
+st_d = Dict{Int64, NTuple{9,Int64}}()
+neb = Array{Int64,1}()
+nfs = Array{Int64,1}()
+outv = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+outv[dyn.all[13].fid] = Dict{NTuple{10, Int64}, Float64 }()
+
+FindComps(dyn, neb, dyn.all[13])
+NFids(dyn, nfs, dyn.all[13])
+push!(neb, 13)
+CompsDict(neb, dyn, all_l)
+StateRecord(all_l, dyn, st_d)
+StateEnumerate(dyn.all[13].cns, outv[dyn.all[13].fid])
+altstates = MakeStateBlock(nfs)                                                        
+inv_costs = zeros(9)
+wgts = zeros(outv[dyn.all[13].fid].count)                                            
+elts = Array{NTuple{10,Int64}}(outv[dyn.all[13].fid].count)                    
+dists = RecordDists(dyn, [13], all_l)                                               
+statehold = zeros(Int64,9)
+k = dyn.all[13].fid
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
@@ -42,6 +65,7 @@ function NewApprox(D::DynState,
     push!(neighbors, el)                                                                # add the location of the firm in chunk
     outvals[D.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
     CompsDict(neighbors, D, all_locs)                                                   # now this is Dict{Fid, Location}
+    # TODO - I think that this is causing a problem.  I am not sure that this state is the best.  
     StateRecord(all_locs, D, st_dict)                                                   # returns the restricted state. 
     StateEnumerate(D.all[el].cns, outvals[D.all[el].fid])
   end
