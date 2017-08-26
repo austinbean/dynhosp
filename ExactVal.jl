@@ -34,7 +34,7 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ch2 = [11] # larger market. 
 out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; wlh = 0, wlm = 10, itlim = 100, outvals = out2)
+ExactVal(dyn, ch2, p1, p2; wlh = 0, wlm = 10, itlim = 10, outvals = out2)
 
 # The following debugger will compare utility values at each point during the sim, but it is very slow.  
 Insert this line somewhere in ExactVal:   
@@ -49,6 +49,8 @@ function ExactVal(D::DynState,
                   wlm::Int64 = 0,
                   itlim::Int64 = 100000,
                   outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
+  # TODO - for now start with outvals inside and return it.
+
   strt = now()                                                                          # keep track of starting time, then check periodically to make sure it doesn't go over. 
   wl = Dates.Millisecond(Dates.Hour(wlh)) + Dates.Millisecond(Dates.Minute(wlm)) - Dates.Millisecond(Dates.Minute(1))
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
