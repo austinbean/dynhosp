@@ -92,6 +92,8 @@ function ExactVal(D::DynState,
   while (converge)&(its<itlim)                                                          # if true keep going.  
     for k in keys(totest)                                                              
       for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
+        # TODO - not getting all of these still, weirdly.  Or maybe they aren't getting written out.  
+        # What happens now when a state is not found in outvals?  
         st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
         MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
         InvCosts(st_dict[k], false, inv_costs)
