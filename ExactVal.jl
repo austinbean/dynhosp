@@ -32,9 +32,11 @@ ExactVal(dyn, [11], p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float
 dyn = CounterObjects(5);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ch2 = [11] # larger market. 
-out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch2, p1, p2; wlh = 0, wlm = 10, itlim = 10, outvals = out2)
+ch2 = [4] # larger market. 
+#out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+out2 =ExactVal(dyn, ch2, p1, p2; wlh = 0, wlm = 10, itlim = 10)
+
+# For example, at dyn.all[4] it does not appear to go over all states.  
 
 # The following debugger will compare utility values at each point during the sim, but it is very slow.  
 Insert this line somewhere in ExactVal:   
@@ -47,10 +49,8 @@ function ExactVal(D::DynState,
                   p2::patientcount;
                   wlh::Int64 = 100, 
                   wlm::Int64 = 0,
-                  itlim::Int64 = 100000,
-                  outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }())
-  # TODO - for now start with outvals inside and return it.
-
+                  itlim::Int64 = 100000)
+  outvals::Dict{ Int64, Dict{NTuple{10, Int64},  Float64} } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
   strt = now()                                                                          # keep track of starting time, then check periodically to make sure it doesn't go over. 
   wl = Dates.Millisecond(Dates.Hour(wlh)) + Dates.Millisecond(Dates.Minute(wlm)) - Dates.Millisecond(Dates.Minute(1))
   tempvals::Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  } = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
@@ -96,7 +96,9 @@ function ExactVal(D::DynState,
       for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
         # TODO - not getting all of these still, weirdly.  Or maybe they aren't getting written out.  
         # What happens now when a state is not found in outvals?  
+        # Or perhaps the problem is with the way the state is recorded.  
         st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
+        # Where is CNS getting updated and is it working right?  How do CNS changes then feed through to states?  
         MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
         InvCosts(st_dict[k], false, inv_costs)
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
