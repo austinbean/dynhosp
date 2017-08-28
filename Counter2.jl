@@ -1385,18 +1385,17 @@ different levels (999 is exit).
 Not efficient due to reallocation of outp every time, but only 
 needs to be called once, so not so bad.  
 
+FIXME - This needs to fix the 0 neighbor and 1 neighbor cases 
+
 """
 function MakeStateBlock(n::Array{Int64,1}) # called on an array of FIDS.  
-  # FIXME - check the base, empty-array n case.  
-  # This is kind of right.  
   outp::Array{Tuple{Int64,Int64}} = Array{Tuple{Int64,Int64},1}()
-  if length(n) > 1
+  if length(n) >= 1   
     for i in n 
       outp = StateBlock(outp, i)
     end
   else 
-    # This has to provide a key that can be interpreted!  Or test for it.  
-    push!(outp, (0, 999)) # TODO - what do I want the base case to be?  
+    push!(outp, (0, 999)) # This is the base case.  
   end 
   return outp 
 end 
