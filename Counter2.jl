@@ -1384,9 +1384,6 @@ different levels (999 is exit).
 
 Not efficient due to reallocation of outp every time, but only 
 needs to be called once, so not so bad.  
-
-FIXME - This needs to fix the 0 neighbor and 1 neighbor cases 
-
 """
 function MakeStateBlock(n::Array{Int64,1}) # called on an array of FIDS.  
   outp::Array{Tuple{Int64,Int64}} = Array{Tuple{Int64,Int64},1}()
@@ -3122,7 +3119,7 @@ Parallelizes ExactValue computation across cores.
 
 ## Testing ## 
 
-dyn = CounterObjects(5);
+dyn = CounterObjects(1);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
 ExactControl(dyn, 0, 2; results = res1)
 
