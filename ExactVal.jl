@@ -29,11 +29,10 @@ ExactVal(dyn, ch, p1, p2; outvals = out1 )
 
 ExactVal(dyn, [11], p1, p2; outvals = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }());
 
-dyn = CounterObjects(5);
+dyn = CounterObjects(1);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ch2 = [4] # larger market. 
-#out2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
+ch2 = [4]  
 out2 =ExactVal(dyn, ch2, p1, p2; wlh = 0, wlm = 10, itlim = 10)
 
 # For example, at dyn.all[4] it does not appear to go over all states.  
@@ -92,13 +91,11 @@ function ExactVal(D::DynState,
   converge::Bool = true
   inv_costs = zeros(9)
   while (converge)&(its<itlim)                                                          # if true keep going.  
+    # FIXME - is this now iterating over each state too many times?  Now it's k × |altstates| - is that necessary?  
+    # If changed, then k must be changed somewhere.  Perhaps just re-order these two loops?  
     for k in keys(totest)                                                              
-      for r in 1:size(altstates,1)                                                    # Chooses a configuration. NB: Iterating over rows is not a great idea 
-        # TODO - not getting all of these still, weirdly.  Or maybe they aren't getting written out.  
-        # What happens now when a state is not found in outvals?  
-        # Or perhaps the problem is with the way the state is recorded.  
+      for r in 1:size(altstates,1)                                                      # Chooses a configuration. NB: Iterating over rows is not a great idea 
         st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
-        # Where is CNS getting updated and is it working right?  How do CNS changes then feed through to states?  
         MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
         InvCosts(st_dict[k], false, inv_costs)
         ExactChoice(tempvals, outvals, all_locs, st_dict, k, all_locs[k], p1, p2, D, inv_costs; counter = false)
