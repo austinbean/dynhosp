@@ -16,7 +16,7 @@ println("Sim Starting at: ", ds1)
 
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 4, 15; results = res1)
+ExactControl(dyn, 0, 10; results = res1)
 
 
 outp = ResultsWrite(res1)
