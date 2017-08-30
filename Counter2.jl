@@ -2420,6 +2420,19 @@ function ResetCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
   end 
 end 
 
+"""
+`FixWTP()`
+For each zip in the market, fix the WTP once the utility has been updated.  
+This can be called in `MapCompState` and `ResetCompState`
+- Call in `ResetCompState` is not necessary, perhaps?  
+"""
+function FixWTP()
+
+end 
+
+
+
+
 
 
 
