@@ -70,8 +70,8 @@ remotecall_fetch(ExactVal, 4, CounterObjects(5), [1], patientcount(0.0,0.0,0.0,0
 `WTPchange(d::DynState)`
 Take each firm.  Update the level.  Update the WTP.  Compute the change.
 
-dyn = CounterObjects(50);
-
+dyn = CounterObjects(1);
+WTPchange(dyn)
 
 """
 function WTPchange(d::DynState)
