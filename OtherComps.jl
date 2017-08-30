@@ -73,35 +73,39 @@ Take each firm.  Update the level.  Update the WTP.  Compute the change.
 dyn = CounterObjects(1);
 WTPchange(dyn)
 
+- What is happening here is... FindWTP probably measures the field with that name, 
+while this is update dutil without changing that.
+- What else might this affect?
+
 """
 function WTPchange(d::DynState)
     outp::Array{Float64,2} = zeros(286, 3)
-    for ix in 1:size(dyn.all,1)
-        outp[ix,1] = dyn.all[ix].fid
-        if dyn.all[ix].level == 1
-            println(dyn.all[ix].fid)
-            outp[ix,2] = FindWTP(dyn.all[ix])
-            println(FindWTP(dyn.all[ix]))
-            dyn.all[ix].level = 3
-            dyn.all[ix].tbu = true 
-            # Ok - this doesn't update yet.  
-            UpdateDUtil(dyn.all[ix]) 
-            outp[ix,3] = FindWTP(dyn.all[ix])
-            println(FindWTP(dyn.all[ix]))
-            dyn.all[ix].level = 1
-            dyn.all[ix].tbu = true 
-            UpdateDUtil(dyn.all[ix])
+    for ix in 1:size(d.all,1)
+        outp[ix,1] = d.all[ix].fid
+        if d.all[ix].level == 1
+            println(d.all[ix].fid)
+            outp[ix,2] = FindWTP(d.all[ix])
+            println(FindWTP(d.all[ix]))
+            for zp in d.all[ix].mk.m                              
+                UtilUp(zp, d.all[ix].fid, d.all[ix].level, 3)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+            end 
+            outp[ix,3] = FindWTP(d.all[ix])
+            println(FindWTP(d.all[ix]))
+            d.all[ix].level = 1
+            d.all[ix].tbu = true 
+            UtilDown(d.all[ix])
+            println(FindWTP(d.all[ix]))
             println("********")
-        elseif dyn.all[ix].level == 2
-            outp[ix,2] = FindWTP(dyn.all[ix])
-            dyn.all[ix].level = 3 
-            dyn.all[ix].tbu = true 
-            UpdateDUtil(dyn.all[ix])
-            outp[ix,3] = FindWTP(dyn.all[ix])
-            dyn.all[ix].level = 2
-            dyn.all[ix].tbu = true 
-            UpdateDUtil(dyn.all[ix])
-        elseif dyn.all[ix].level == 3
+        # elseif dyn.all[ix].level == 2
+        #     outp[ix,2] = FindWTP(dyn.all[ix])
+        #     dyn.all[ix].level = 3 
+        #     dyn.all[ix].tbu = true 
+        #     UpdateDUtil(dyn.all[ix])
+        #     outp[ix,3] = FindWTP(dyn.all[ix])
+        #     dyn.all[ix].level = 2
+        #     dyn.all[ix].tbu = true 
+        #     UpdateDUtil(dyn.all[ix])
+        # elseif dyn.all[ix].level == 3
             # do nothing.
         end 
     end 
