@@ -79,38 +79,161 @@ while this is update dutil without changing that.
 
 """
 function WTPchange(d::DynState)
-    outp::Array{Float64,2} = zeros(286, 3)
+    outp::Array{Float64,2} = zeros(286, 7)
+    for i1 in 1:size(d.all,1)
+        for el in d.all[i1].mk.m # fix ALL WTP's for ALL firms 
+            WTPNew(el.putils, el.pwtp)
+        end  
+    end
     for ix in 1:size(d.all,1)
         outp[ix,1] = d.all[ix].fid
+        outp[ix,2] = d.all[ix].level
+        outp[ix,3] = FindWTP(d.all[ix])
         if d.all[ix].level == 1
-            println(d.all[ix].fid)
-            outp[ix,2] = FindWTP(d.all[ix])
-            println(FindWTP(d.all[ix]))
+            outp[ix,4] = 3                                     # Checking increase given transition TO 3 FROM 1
             for zp in d.all[ix].mk.m                              
                 UtilUp(zp, d.all[ix].fid, d.all[ix].level, 3)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
             end 
-            outp[ix,3] = FindWTP(d.all[ix])
-            println(FindWTP(d.all[ix]))
-            d.all[ix].level = 1
-            d.all[ix].tbu = true 
-            UtilDown(d.all[ix])
-            println(FindWTP(d.all[ix]))
-            println("********")
-        # elseif dyn.all[ix].level == 2
-        #     outp[ix,2] = FindWTP(dyn.all[ix])
-        #     dyn.all[ix].level = 3 
-        #     dyn.all[ix].tbu = true 
-        #     UpdateDUtil(dyn.all[ix])
-        #     outp[ix,3] = FindWTP(dyn.all[ix])
-        #     dyn.all[ix].level = 2
-        #     dyn.all[ix].tbu = true 
-        #     UpdateDUtil(dyn.all[ix])
-        # elseif dyn.all[ix].level == 3
-            # do nothing.
+            outp[ix,5] = FindWTP(d.all[ix]) 
+            for zp in d.all[ix].mk.m                           # Resetting WTP                      
+                UtilUp(zp, d.all[ix].fid, 3, d.all[ix].level)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,6] = 2                                     # checking increase given transition TO 2 FROM 1
+            for zp in d.all[ix].mk.m                              
+                UtilUp(zp, d.all[ix].fid, d.all[ix].level, 2)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,7] = FindWTP(d.all[ix]) 
+            for zp in d.all[ix].mk.m                           # Resetting WTP again.                      
+                UtilUp(zp, d.all[ix].fid, 2, d.all[ix].level)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+        elseif d.all[ix].level == 2
+            outp[ix,4] = 3                                     # Checking increase given transition TO 3 FROM 2
+            for zp in d.all[ix].mk.m                              
+                UtilUp(zp, d.all[ix].fid, d.all[ix].level, 3)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,5] = FindWTP(d.all[ix]) 
+            for zp in d.all[ix].mk.m                           # Resetting WTP                      
+                UtilUp(zp, d.all[ix].fid, 3, d.all[ix].level)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,6] = 1                                     # checking increase given transition TO 1 FROM 2
+            for zp in d.all[ix].mk.m                              
+                UtilUp(zp, d.all[ix].fid, d.all[ix].level, 1)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,7] = FindWTP(d.all[ix]) 
+            for zp in d.all[ix].mk.m                           # Resetting WTP again.                      
+                UtilUp(zp, d.all[ix].fid, 1, d.all[ix].level)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+        elseif d.all[ix].level == 3
+            outp[ix,4] = 1                                     # Checking increase given transition TO 1 FROM 3
+            for zp in d.all[ix].mk.m                              
+                UtilUp(zp, d.all[ix].fid, d.all[ix].level, 1)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,5] = FindWTP(d.all[ix]) 
+            for zp in d.all[ix].mk.m                           # Resetting WTP                      
+                UtilUp(zp, d.all[ix].fid, 1, d.all[ix].level)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,6] = 2                                     # checking increase given transition TO 2 FROM 3
+            for zp in d.all[ix].mk.m                              
+                UtilUp(zp, d.all[ix].fid, d.all[ix].level, 2)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end 
+            outp[ix,7] = FindWTP(d.all[ix]) 
+            for zp in d.all[ix].mk.m                           # Resetting WTP again.                      
+                UtilUp(zp, d.all[ix].fid, 2, d.all[ix].level)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+                WTPNew(zp.putils, zp.pwtp)
+            end         
         end 
     end 
-    return outp
+    return sortrows(outp, by=x->x[2])
 end 
+
+# TODO - not perfect yet, but getting better.  
+function WTPCheck(x::Array{Float64,2})
+    # structure of x is 
+    # [fid, actual level, initial WTP, TO level, new WTP, TO level, new WTP]
+    # These vectors track absolute and relative WTP differences: o(from)(to) 
+    # Absolute Differences: 
+    o13::Array{Float64,1} = Array{Float64,1}() # eg., from 1 to 3
+    o12::Array{Float64,1} = Array{Float64,1}()
+    o21::Array{Float64,1} = Array{Float64,1}()
+    o23::Array{Float64,1} = Array{Float64,1}()
+    o31::Array{Float64,1} = Array{Float64,1}()
+    o32::Array{Float64,1} = Array{Float64,1}()
+    # Relative Differences: 
+    ro13::Array{Float64,1} = Array{Float64,1}() # eg., from 1 to 3
+    ro12::Array{Float64,1} = Array{Float64,1}()
+    ro21::Array{Float64,1} = Array{Float64,1}()
+    ro23::Array{Float64,1} = Array{Float64,1}()
+    ro31::Array{Float64,1} = Array{Float64,1}()
+    ro32::Array{Float64,1} = Array{Float64,1}()
+    # Counts 
+    n1::Int64 = 0
+    n2::Int64 = 0
+    n3::Int64 = 0
+    for i = 1:size(x, 1) # rows 
+        if x[i,2] == 1
+            n1 += 1
+            push!(o13, x[i,3] - x[i,5])
+            push!(o12, x[i,3] - x[i,7]) 
+            push!(ro13, (((x[i,5]-x[i,3])/x[i,3]) -1.0)*100 )
+            push!(ro12, (((x[i,7]-x[i,3])/x[i,3]) -1.0)*100 )
+        elseif x[i,2] == 2
+            n2 += 1
+            push!(o23, x[i,3] - x[i,5])
+            push!(o21, x[i,3] - x[i,7])                     # this is from 2 TO 1 - should be negative
+            push!(ro23, (((x[i,5] - x[i,3])/x[i,3]) - 1.0)*100)   # from 2 to 3 - increase
+            push!(ro21, ((x[i,3] - x[i,7])/x[i,3])*100)           # from 2 to 1 - decrease
+        elseif x[i,2] == 3
+            n3 += 1
+            push!(o31 , x[i,3] - x[i, 5])                   # this should be negative 
+            push!(o32 , x[i,3] - x[i, 7])                   # this should be negative
+            push!(ro31 , ((x[i,3] - x[i, 5])/x[i,3])*100)         # this should be negative 
+            push!(ro32 , ((x[i,3] - x[i, 7])/x[i,3])*100)         # this should be negative            
+        else 
+            println("error at ", i)
+        end 
+    end 
+    println("Mean Changes - Absolute terms : ")
+    println(" Number at Level 1: ", n1)
+    println("Changing 1 to 3 - Absolute Change in WTP: ", round(mean(o13), 3), " Standard Deviation: ", round(std(o13), 3) )
+    println("Changing 1 to 2 - Absolute Change in WTP: ", round(mean(o12), 3), " Standard Deviation: ", round(std(o12), 3) )
+    println(" Number at Level 2: ", n2)
+    println("Changing 2 to 1 - Absolute Change in WTP: ", round(mean(o21), 3), " Standard Deviation: ", round(std(o21), 3) )
+    println("Changing 2 to 3 - Absolute Change in WTP: ", round(mean(o23), 3), " Standard Deviation: ", round(std(o23), 3) )
+    println(" Number at Level 3: ", n3)
+    println("Changing 3 to 1 - Absolute Change in WTP: ", round(mean(o31), 3), " Standard Deviation: ", round(std(o31), 3) )
+    println("Changing 3 to 2 - Absolute Change in WTP: ", round(mean(o32), 3), " Standard Deviation: ", round(std(o32), 3) )
+    println("Mean Changes - Relative Terms :")
+    println(" Number at Level 1: ", n1)
+    println("Changing 1 to 3 - Relative Change in WTP: +", round(mean(ro13), 2), "% Standard Deviation: ",round(std(ro13), 3) )
+    println("Changing 1 to 2 - Relative Change in WTP: +", round(mean(ro12), 2), "% Standard Deviation: ",round(std(ro12), 3) )
+    println(" Number at Level 2: ", n2)
+    println("Changing 2 to 1 - Relative Change in WTP: -", round(mean(ro21), 2), "% Standard Deviation: ",round(std(ro21), 3) )
+    println("Changing 2 to 3 - Relative Change in WTP: +", round(mean(ro23), 2), "% Standard Deviation: ",round(std(ro23), 3) )
+    println(" Number at Level 3: ", n3)
+    println("Changing 3 to 1 - Relative Change in WTP: -", round(mean(ro31), 2), "% Standard Deviation: ",round(std(ro31), 3) )
+    println("Changing 3 to 2 - Relative Change in WTP: -", round(mean(ro32), 2), "% Standard Deviation: ",round(std(ro32), 3) )
+end 
+
+
+
+
+
+
+
+
+
+
 
 """
 `DUtilCheck`
