@@ -398,6 +398,7 @@ every call.
 This will also ignore elements in arr which don't affect choices, since it loops over size(c.putils) only.
 The size of arr is not that important since all unused values are zero AND they are ignored.
 
+Shouldn't this be able to take putils as first argument and pwtp as the second???  
 
 ### Testing ###
 temparr = zeros(2, 12)
@@ -413,6 +414,7 @@ for i = 1:10
   ArrayZero(temparr)
 end 
 
+TODO - check whether this can serve for the role intended for the function in MapCompState.  
 
 """
 function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
@@ -420,17 +422,19 @@ function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
   # be at least one.  This solves the division by zero problem.  plus all elements which are zero can be ignored.
   # the first zero in the top row receives 1/int_sum in the second row.  This gets the prob of the OO.   
   # Note that nothing here is specific to WTP - this can compute shares given deterministic utilities too.  
-  int_sum::Float64 = 1.0 
-  for el in 1:size(c,2)
-    if c[1,el]!=0.0 
-      arr[1,el] = c[1,el]
-      arr[2,el] = exp(c[2,el])
-      int_sum += arr[2,el]
+  int_sum::Float64 = 1.0         # We know there is at least an OO, which has wtp = exp(0) = 1
+  ArrayZero(arr)                 # call this to clean up WTP array, i.e., dyn.all[].mk.m[].pwtp, reset all to zero.  
+  for el in 1:size(c,2)          # for all elements in det utils, here in c.  
+    if c[1,el]!=0.0              # skip empty fid locations 
+      arr[1,el] = c[1,el]        # assign top line to be fid 
+      arr[2,el] = exp(c[2,el])   # assign next line to be exp of det util 
+      int_sum += arr[2,el]       # running sum to compute normalization later.
     end
   end
   for i=1:size(c,2)
-    arr[2,i]/=int_sum   
+    arr[2,i]/=int_sum            # computes the normalization of WTP.  
   end
+  # This is WTP for the outside option.    
   arr[2,findfirst(arr[2,:], 0)] = 1/int_sum # this is a little expensive, but not too bad.
 end
 
@@ -2386,10 +2390,16 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end 
+          # TODO - fix up the WTP by calling ArrayZero.
+          # then call WTPNew on the result.
+          # but this needs to be done AFTER all of the states have been changed.  
+          # and for each zip code.  
+          # ALSO - where is this in the rest of the program? 
           D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # this is "storing where I was to fix it later"  
           D.all[locs[tp[1]]].level = tp[2]                      # this is "recording where I am" NB: timing of this line matters for utility update.  
         end 
       end
+      # somewhere like here - update WTP. AFTER all states have been mapped.  
     end 
   end 
 end 
@@ -2427,7 +2437,8 @@ This can be called in `MapCompState` and `ResetCompState`
 - Call in `ResetCompState` is not necessary, perhaps?  
 """
 function FixWTP()
-
+  # TODO - in progress but see if WTPNew can do this instead.  
+  return nothing
 end 
 
 
