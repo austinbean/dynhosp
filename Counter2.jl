@@ -2389,7 +2389,6 @@ function MapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, 
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
             UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end  
-          # ALSO - where is this in the rest of the program? 
           D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # this is "storing where I was to fix it later"  
           D.all[locs[tp[1]]].level = tp[2]                      # this is "recording where I am" NB: timing of this line matters for utility update.  
         end 
