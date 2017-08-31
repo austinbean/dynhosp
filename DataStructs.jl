@@ -1831,6 +1831,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   arry1 = zeros(Int64, 1550)                                                                   # allocates an array for use in GenP.  Can be re-used.
   arry2 = zeros(Int64, 1550)                                                                   # allocates an array for use in GenM.  Can be re-used.
   for i = 1:T
+    # TODO - check that WTP gets updated in this function, just in case.
     WTPMap(pats, Tex, wtpd1, wtparr1)
     WriteWTP(wtpd1, Tex, i) 
     GenPChoices(pats, d1, arry1)                                                               # this now modifies the dictionary in-place
@@ -2019,6 +2020,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
     end
     pmarkets = unique(keys(currentfac))                                                                # picks out the unique fipscodes remaining to be done.
     for i = 1:T
+      # TODO - check that WTP gets updated in this function, just in case.  
       WTPMap(pats, Tex, wtpd1, wtparr1)
       WriteWTP(wtpd1, Tex, i)
       GenPChoices(pats, d1, arry1)                                                                     # this now modifies the dictionary in-place
@@ -2054,8 +2056,8 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
       RecordCopy(EmptyState, Tex.mkts[fips].collection[currentfac[fips]])                             # copies the record 
       EmptyState.mkts[fips].noneqrecord[ Tex.mkts[fips].collection[currentfac[fips]].fid ] = true     # update the value in the non-equilibrium record sim to true.
         #The next piece is not strictly necessary.  The config and collection point to the same underlying objects.  
-      for num in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
-        if EmptyState.mkts[fips].config[num].fid == Tex.mkts[fips].collection[currentfac[fips]].fid   # check for equality in the fids
+      for nmb in 1:size(EmptyState.mkts[fips].config,1)                                               # iterate over the market config, which is an array.
+        if EmptyState.mkts[fips].config[nmb].fid == Tex.mkts[fips].collection[currentfac[fips]].fid   # check for equality in the fids
           RecordCopy(EmptyState, Tex.mkts[fips].collection[currentfac[fips]])                         # here I am reassigning.  
         end
       end
