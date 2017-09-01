@@ -1329,7 +1329,31 @@ ut = [0.1, 0.2, 0.3, 0.4, 0.5];
 fi = [111, 222, 333, 444, 19];
 UMap(ut, fi)
 
-10% speedup  
+10% speedup 
+
+## Testing ## 
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+inpt = ones(Int64, 1550); # largest group is 1511
+fids1, utils1 = DV(patients.zips[78759].pdetutils)
+tar = zeros(utils1)
+# nm is patients.zips[78759].ppatients.count391
+
+@benchmark UMap(utils1, fids1)
+
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     589.733 ns (0.00% GC)
+  median time:      599.922 ns (0.00% GC)
+  mean time:        631.099 ns (0.00% GC)
+  maximum time:     7.498 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     180
+
 """
 function UMap(utils::Array{Float64,1},fids::Array{Int64,1})::Int64
   const dist_μ::Int64 = 0
@@ -1362,14 +1386,28 @@ DV(patients.zips[78702].pdetutils)
 
 @code_warntype DV(patients.zips[78702].pdetutils)
 
-This is not type stable, which is weird...
+
+BenchmarkTools.Trial:
+  memory estimate:  400 bytes
+  allocs estimate:  4
+  --------------
+  minimum time:     355.186 ns (0.00% GC)
+  median time:      364.257 ns (0.00% GC)
+  mean time:        412.768 ns (10.08% GC)
+  maximum time:     18.768 μs (92.55% GC)
+  --------------
+  samples:          10000
+  evals/sample:     210
 """
-function DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}
-  out1::Array{Int64,1} = zeros(Int64, d.count)     #for the keys/FIDs
-  out2::Array{Float64,1} = zeros(Float64, d.count) #for the utils
-  for (i,k) in enumerate(keys(d))
-    out1[i]::Int64 = k
-    out2[i]::Float64 = d[k]
+function DV(d::Dict{Int64, Float64})
+  sz::Int64 = d.count
+  out1 = zeros(Int64, sz)     #for the keys/FIDs
+  out2 = zeros(sz)            #for the utils
+  cntr::Int64 = 1
+  for k in keys(d)
+    out1[cntr] += k
+    out2[cntr] += d[k]
+    cntr += 1
   end
   return out1, out2
 end
@@ -1413,12 +1451,22 @@ patients = NewPatients(Texas);
 dic1 = NewHospDict(Texas);
 fids1, utils1 = DV(patients.zips[78759].pdetutils)
 inpt = ones(Int64, 1550); # largest group is 1511
-ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
+@benchmark ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
 
 FIXME - there is a type instability here from the fact that DV?
 REMEMBER TO TURN ON THREADING.
 
-
+BenchmarkTools.Trial:
+  memory estimate:  19.41 KiB
+  allocs estimate:  1179
+  --------------
+  minimum time:     301.807 μs (0.00% GC)
+  median time:      305.258 μs (0.00% GC)
+  mean time:        317.284 μs (1.49% GC)
+  maximum time:     6.782 ms (94.11% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
 
 """
 function ChoiceVector(pd::Dict{Int64, Float64},
@@ -1426,8 +1474,6 @@ function ChoiceVector(pd::Dict{Int64, Float64},
                       ch::Array{Int64,1},
                       x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns.
-  # type instability in patientcount, it seems. 
-  # also in DV.   
   for (loc, nm) in enumerate(x)
     UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
     if loc == 1
@@ -1496,9 +1542,22 @@ BenchmarkTools.Trial:
   --------------
   samples:          10000
   evals/sample:     1
+# WITHOUT threads @threads annotation.
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     175.311 μs (0.00% GC)
+  median time:      177.967 μs (0.00% GC)
+  mean time:        190.264 μs (0.00% GC)
+  maximum time:     1.472 ms (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
 """
 function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1}, x::Int64)
-  Threads.@threads for i = 1:x
+  #Threads.@threads # using this DOES allocate.  If it isn't faster, cut it out.  
+  for i = 1:x
     inpt[i] = UMap(utils, fids)
   end
 end
@@ -1529,7 +1588,7 @@ end
 
 
 """
-`function GenPChoices(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})`
+`GenPChoices(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})`
 Returns a dictionary of private demands for the whole state.
 Takes as input a patientcollection, a dict{Int64, patientcount} and a re-usable array v.
 
@@ -1537,7 +1596,19 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 dic1 = NewHospDict(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
-GenPChoices(patients, dic1, inpt)
+@benchmark GenPChoices(patients, dic1, inpt)
+
+BenchmarkTools.Trial:
+  memory estimate:  9.65 MiB
+  allocs estimate:  516093
+  --------------
+  minimum time:     136.735 ms (0.00% GC)
+  median time:      143.552 ms (0.00% GC)
+  mean time:        143.091 ms (2.12% GC)
+  maximum time:     152.782 ms (4.55% GC)
+  --------------
+  samples:          35
+  evals/sample:     1
 """
 function GenPChoices(p::patientcollection, d::Dict{Int64, patientcount}, v::Array{Int64,1})
   for k in keys(p.zips)
@@ -1889,14 +1960,6 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
 
-
-"""
-`WTPDUpdate(f::Int64, p::patientcollection)`
-"""
-function WTPDUpdate(f::Int64, p::patientcollection)
-
-
-end 
 
 
 """
