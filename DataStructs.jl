@@ -227,8 +227,46 @@ function CreateEmpty(fi::Vector, dat::Matrix, sp::Int64)
   Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
   MakeIt(Tex, fi)
   TXSetup(Tex, dat, sp)
+  CleanEmpty(Tex, sp)
   return Tex
 end
+
+"""
+`CleanEmpty(Tex::EntireState, n::Int64)`
+Cleans up the new EntireState argument to make all entries in all places 0.
+"""
+function CleanEmpty(Tex::EntireState, n::Int64)
+  for fips in keys(Tex.mkts)
+    for fid in keys(Tex.mkts[fips].collection )
+      for i = 1:n 
+        Tex.mkts[fips].collection[fid].levelhistory[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand385[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand386[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand387[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand388[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand389[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand390[i] = 0
+        Tex.mkts[fips].collection[fid].pdemandhist.demand391[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand385[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand386[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand387[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand388[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand389[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand390[i] = 0
+        Tex.mkts[fips].collection[fid].mdemandhist.demand391[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w385[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w386[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w387[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w388[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w389[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w390[i] = 0
+        Tex.mkts[fips].collection[fid].wtphist.w391[i] = 0
+        Tex.mkts[fips].collection[fid].probhistory[i] = 0
+      end 
+    end 
+  end 
+end 
+
 
 #NB: Creates hospital datastructure
 #Texas = MakeNew(fips, ProjectModule.alldists );
@@ -1135,52 +1173,37 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 @benchmark CalcWTP(patients.zips[78702]) # add dollar sign before patients.
 
-Nice speed up - from 1.5 μs to 700 ns. 
 
-TO: 
-BenchmarkTools.Trial:
-  memory estimate:  16 bytes
-  allocs estimate:  1
+memory estimate:  0 bytes
+  allocs estimate:  0
   --------------
-  minimum time:     708.850 ns (0.00% GC)
-  median time:      711.886 ns (0.00% GC)
-  mean time:        728.721 ns (0.61% GC)
-  maximum time:     45.392 μs (97.25% GC)
+  minimum time:     482.185 ns (0.00% GC)
+  median time:      484.108 ns (0.00% GC)
+  mean time:        499.929 ns (0.00% GC)
+  maximum time:     1.332 μs (0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     140
-
-FROM: 
-
-@benchmark CalcWTP(patients.zips[78759])
-BenchmarkTools.Trial:
-  memory estimate:  1.97 KiB
-  allocs estimate:  7
-  --------------
-  minimum time:     1.552 μs (0.00% GC)
-  median time:      1.627 μs (0.00% GC)
-  mean time:        1.814 μs (7.34% GC)
-  maximum time:     228.033 μs (94.43% GC)
-  --------------
-  samples:          10000
-  evals/sample:     10 
+  evals/sample:     195
 
 How is this actually used again?  In NewSim...
 
 WriteWTP(WTPMap(pats, Tex), Tex, i) # and WTPMap calls CalcWTP
 
 newarr = zeros(2,12)
-CalcWTP(patients.zips[78759], newarr)
+@benchmark CalcWTP(patients.zips[78759].pdetutils, newarr)
 """
-function CalcWTP(zipc::zipcode, arr::Array{Float64,2})  
+function CalcWTP(zipc::Dict{Int64,Float64}, arr::Array{Float64,2})  
   interim::Float64 = 0.0
-  for (i,el) in enumerate(keys(zipc.pdetutils))
-    arr[1,i] = el 
-    arr[2,i] = exp(zipc.pdetutils[el])
-    interim += exp(zipc.pdetutils[el]) 
+  counter::Int64 = 1
+  for el in keys(zipc)
+    arr[1,counter] += el 
+    fl1::Float64 = exp(zipc[el])
+    arr[2,counter] += fl1 
+    interim += fl1  
+    counter += 1
   end
-  for k in 1:size(arr,2)
-    arr[2,k] = arr[2,k]/interim
+  for k in 1:size(arr,2) # this could be 1:counter, I think
+    arr[2,k] /= interim
   end 
 end
 
@@ -1229,32 +1252,33 @@ Input is from CalcWTP.  Output is sent to WriteWTP
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 WTPMap(patients, Texas)
-FROM:
-memory estimate:  2.50 MiB
-allocs estimate:  10737 
-mean time:        6.060 ms (3.14% GC) 
 
-TO: 
-memory estimate:  30.03 KiB
-allocs estimate:  1922
-mean time:        3.134 ms (0.21% GC)
+
+memory estimate:  0 bytes
+allocs estimate:  0
+mean time:        2.525 ms
 
 
 wtd = WTPDict(Texas)
 newarr = zeros(2,12)
 WTPMap(patients, Texas, wtd, newarr)
 
+@benchmark WTPMap(patients, Texas, wtd, newarr)
+
 """
-function WTPMap(pats::patientcollection, Tex::EntireState, wtpd::Dict{Int64,Float64}, arr::Array{Float64,2})   
+function WTPMap(pats::patientcollection, Tex::EntireState, wtpd::Dict{Int64,Float64}, arr::Array{Float64,2}) 
+  # TODO - check this against CDS - is that formula right or is it missing an inverse?  
   for zipc in keys(pats.zips)
-    ArrayZero(arr)                                    # call this before CalcWTP is called on each zip code   
-    CalcWTP(pats.zips[zipc], arr)                     # calculate WTP and store result in arr.
+    ArrayZero(arr)                                    # call this before CalcWTP is called on each zip code 
+    CalcWTP(pats.zips[zipc].pdetutils, arr)           # calculate WTP and store result in arr.
     for ix1 in 1:size(arr,2)                          # all of the fids are in the first row 
-      if arr[1,ix1] != 0                              # don't try to map the OO.
-        if (arr[2,ix1]!=1)&(!isnan(arr[2,ix1]))       # there should be no way for this to be 1 anyway.
-          wtpd[arr[1,ix1]] += log(1/(1-arr[2,ix1]))   # add WTP to dict 
-        elseif (arr[2,ix1] == 1)||(isnan(arr[2,ix1])) # if an error occurs, print it.  
-            println(zipc, "  ", arr[2,ix1])
+      fid::Float64 = arr[1,ix1]
+      ut::Float64 = arr[2,ix1]
+      if fid != 0.0                                   # don't try to map the OO.
+        if (ut !=1.0)&(!isnan(ut))                    # there should be no way for this to be 1 anyway.
+          wtpd[fid] += log(1/(1-ut))                  # add WTP to dict 
+        elseif (ut == 1.0)||(isnan(ut))               # if an error occurs, print it.  
+            println(zipc, "  ", fid, " ", ut)
         end
       end 
     end
@@ -1817,7 +1841,7 @@ Sources of Allocations:
 GenPChoices: memory estimate:  9.58 MiB   allocs estimate:  511404   mean time:   143.855 ms 
 UpdateDeterministic: memory estimate:  7.15 MiB allocs estimate:  453242 mean time:   22.707 ms
 WriteWTP: memory estimate:  62.56 KiB allocs estimate:  4004 mean time:   366.285 μs
-WTPMap: memory estimate:  30.03 KiB allocs estimate:  1922 mean time:     3.061 ms (0.19% GC) 
+WTPMap: memory estimate:  0 bytes allocs estimate:  0 mean time:        2.525 ms 
 EntryProcess: memory estimate:  422 bytes allocs estimate:  3 mean time:   84.371 μs (0.16% GC)
 CleanWTPDict: memory estimate:  0 bytes allocs estimate:  0 mean time:        8.756 μs
 """
@@ -1845,8 +1869,6 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
       end 
       for elm in el.config
         action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
-        # TODO - here add update of WTP given an action not equal to 10.
-        # FIXME 
         elm.probhistory[i] = elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]     # Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
@@ -1866,6 +1888,15 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   # TODO: Why return this?  Why not modify in place? this would require further modifications below 
   return Tex                                                                                   # Returns the whole state so the results can be written out.
 end
+
+
+"""
+`WTPDUpdate(f::Int64, p::patientcollection)`
+"""
+function WTPDUpdate(f::Int64, p::patientcollection)
+
+
+end 
 
 
 """
