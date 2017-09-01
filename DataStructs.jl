@@ -1811,7 +1811,7 @@ Runs a T period simulation using the whole state and whole collection of patient
 ## Testing: ## 
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
 patients = NewPatients(Texas);
-@time NewSim(10, Texas, patients); # 3.386766 seconds (9.28 M allocations: 183.511 MiB, 2.48% gc time)
+NewSim(20, Texas, patients); # 3.386766 seconds (9.28 M allocations: 183.511 MiB, 2.48% gc time)
 
 Sources of Allocations: 
 GenPChoices: memory estimate:  9.58 MiB   allocs estimate:  511404   mean time:   143.855 ms 
@@ -1840,14 +1840,25 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
     MDemandMap(d2, Tex, i)                                                                     # and this now cleans the dictionary up at the end, setting all demands to 0.
     for el in Tex.ms
       EntryProcess(el, i, T)                                                                   # call the Entry Process on every market - el.   
+      if el.fipscode == 48453
+        println("     ", i, "   ")
+      end 
       for elm in el.config
         action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
+        # TODO - here add update of WTP given an action not equal to 10.
+        # FIXME 
         elm.probhistory[i] = elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]     # Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
         elm.level = newchoice                                                                  # Set the level to be the new choice.
         elm.levelhistory[i] = newchoice
+        if el.fipscode == 48453
+          println("    ", elm.fid, " ", elm.level, " ", round(elm.wtphist.w385[i],2))
+          println("    ", patients.zips[78702].pdetutils)
+        end 
       end
+      # It would make sense to call the WTP update right here, in case it is not called earlier.
+      
     end
     UpdateDeterministic(pats)                                                                  # Updates deterministic component of utility
     CleanWTPDict(wtpd1)                                                                        # cleans the WTP Dictionary
@@ -1857,6 +1868,10 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
 end
 
 
+"""
+`EqAction`
+NOT COMPLETE. NOT EXPORTED.
+"""
 function EqAction{T<:Fac}( H::T,i::Int64)
   action = StatsBase.sample( ChoicesAvailable(H), H.chprobability  )                 # Take the action
   # TODO - surely this next line can be fixed.  
@@ -2033,6 +2048,8 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
           for elm in el.config
              if !elm.perturbed                                                                         # not perturbed, i.e., "perturbed" == false
                action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                   # Take the action
+               # TODO - here add update of WTP given an action not equal to 10.
+               # FIXME 
                elm.probhistory[i]= elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]       # Record the prob with which the action was taken.
                newchoice = LevelFunction(elm, action)                                                  # What is the new level?
                elm.chprobability = HospUpdate(elm, newchoice)                                          # What are the new probabilities, given the new level?
@@ -2040,12 +2057,15 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
                elm.levelhistory[i]=newchoice
              else # perturbed.
                action = StatsBase.sample( ChoicesAvailable(elm), HospPerturb(elm, elm.level,0.05))
+               # TODO - here add update of WTP given an action not equal to 10.
+               # FIXME 
                elm.probhistory[i]=elm.chprobability[findin(ChoicesAvailable(elm), action)[1]]
                newchoice = LevelFunction(elm, action)
                elm.chprobability = HospUpdate(elm, newchoice)
                elm.level = newchoice
                elm.levelhistory[i]=newchoice
              end
+            # It would make sense to call the WTP update right here, in case it is not called earlier.
           end
         end
       end
