@@ -1589,7 +1589,7 @@ function ChoiceVectorEXP(pd::Dict{Int64, Float64},
                          ch::Array{Int64,1},
                          x::patientcount,
                          cts::Dict{Int64,Int64})
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns - but this counts for 4 allocations.  
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns -  this counts for 4 allocations.  
   loc::Int64 = 1
   for nm in x
     UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
@@ -1598,30 +1598,39 @@ function ChoiceVectorEXP(pd::Dict{Int64, Float64},
       for i in keys(cts) 
         dt[i].count385 = cts[i]                          
       end
+      loc += 1
     elseif loc==2
       for i in keys(cts)
         dt[i].count386 = cts[i]
       end
+      loc += 1
     elseif loc==3
       for i in keys(cts)
         dt[i].count387 = cts[i]
       end
+      loc += 1
     elseif loc==4
       for i in keys(cts)
         dt[i].count388 = cts[i]
       end
+      loc += 1
     elseif loc==5
       for i in keys(cts)
         dt[i].count389 = cts[i]
       end
+      loc += 1
     elseif loc==6
       for i in keys(cts)
         dt[i].count390 = cts[i]
       end
+      loc += 1
     elseif loc==7
       for i in keys(cts)
         dt[i].count391 = cts[i]
       end
+      loc += 1
+    else 
+      # do nothing.  
     end
     ResVec(ch) #reset the vector. memory estimate:  0 bytes - 471.337 ns (0.00% GC)
   end
@@ -1678,6 +1687,8 @@ BenchmarkTools.Trial:
 """
 function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float64,1}, x::Int64)
   #Threads.@threads # using this DOES allocate.  If it isn't faster, cut it out.  
+  # TODO - can this use the dict instead of fids, utils arrays?  This would take EITHER changes to UMAP or 
+  # just call this with allocated vectors...?
   for i = 1:x
     inpt[i] = UMap(utils, fids)
   end
