@@ -1267,7 +1267,6 @@ WTPMap(patients, Texas, wtd, newarr)
 
 """
 function WTPMap(pats::patientcollection, Tex::EntireState, wtpd::Dict{Int64,Float64}, arr::Array{Float64,2}) 
-  # TODO - check this against CDS - is that formula right or is it missing an inverse?  
   for zipc in keys(pats.zips)
     ArrayZero(arr)                                    # call this before CalcWTP is called on each zip code 
     CalcWTP(pats.zips[zipc].pdetutils, arr)           # calculate WTP and store result in arr.
@@ -1384,7 +1383,7 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 DV(patients.zips[78702].pdetutils)
 
-@code_warntype DV(patients.zips[78702].pdetutils)
+@code_warntype DV($patients.zips[78702].pdetutils)
 
 
 BenchmarkTools.Trial:
@@ -1400,16 +1399,16 @@ BenchmarkTools.Trial:
   evals/sample:     210
 """
 function DV(d::Dict{Int64, Float64})
-  sz::Int64 = d.count
-  out1 = zeros(Int64, sz)     #for the keys/FIDs
-  out2 = zeros(sz)            #for the utils
+  sz = d.count                # nothing allocated by this line.
+  out1 = zeros(Int64, sz)     # for the fids - one allocation here.
+  out2 = zeros(sz)            # for the utils - one allocation here.
   cntr::Int64 = 1
-  for k in keys(d)
-    out1[cntr] += k
-    out2[cntr] += d[k]
+  for k in keys(d)            # can't avoid doing this together since the order is important.
+    out1[cntr] = k            # nothing allocated here.
+    out2[cntr] = d[k]         # nothing allocated by this line 
     cntr += 1
   end
-  return out1, out2
+  return out1, out2           # one allocation on this line... allocating a tuple 
 end
 
 
@@ -1454,7 +1453,7 @@ inpt = ones(Int64, 1550); # largest group is 1511
 @benchmark ChoiceVector(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients)
 
 FIXME - there is a type instability here from the fact that DV?
-REMEMBER TO TURN ON THREADING.
+Threading generates more allocations. 
 
 BenchmarkTools.Trial:
   memory estimate:  19.41 KiB
@@ -1474,6 +1473,7 @@ function ChoiceVector(pd::Dict{Int64, Float64},
                       ch::Array{Int64,1},
                       x::patientcount)
   fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns.
+  # TODO - can directly do nm in x, track counter separately. 
   for (loc, nm) in enumerate(x)
     UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
     if loc == 1
@@ -1505,9 +1505,130 @@ function ChoiceVector(pd::Dict{Int64, Float64},
         dt[ch[i]].count391 += 1
       end
     end
-    ResVec(ch) #reset the vector. - 471.337 ns (0.00% GC)
+    ResVec(ch) #reset the vector. memory estimate:  0 bytes - 471.337 ns (0.00% GC)
   end
 end
+
+"""
+`Frequency`
+This counts the frequency of all elements in the vector arr of Ints.
+It requires a dict of Int64's which will be {fid, count}
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+inpt = ones(Int64, 1550); # largest group is 1511
+fids1, utils1 = DV(patients.zips[78759].pdetutils)
+tar = zeros(utils1)
+# nm is patients.zips[78759].ppatients.count391
+UseThreads(inpt, fids1, utils1,  500)
+
+
+newd = Dict{Int64,Int64}()
+for k1 in keys(dic1)
+  newd[k1] = 0
+end 
+
+@benchmark Frequency(newd,  inpt, 500)
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     28.626 μs (0.00% GC)
+  median time:      28.802 μs (0.00% GC)
+  mean time:        28.832 μs (0.00% GC)
+  maximum time:     74.631 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
+"""
+function Frequency(pds::Dict{Int64,Int64}, arr::Array{Int64,1}, nm::Int64)
+  for el in keys(pds)        # this will operate with a smaller set of keys 
+    pds[el] = 0
+  end 
+  for i = 1:nm               # only go over elements which are used in the vector arr.  
+    if arr[i] != 1           # skip the default in the vector 
+      if haskey(pds, arr[i]) # this will always have the keys 
+        pds[arr[i]] += 1
+      else 
+        pds[arr[i]] = 1
+      end 
+    end 
+  end 
+end 
+
+"""
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+inpt = ones(Int64, 1550); # largest group is 1511
+fids1, utils1 = DV(patients.zips[78759].pdetutils)
+tar = zeros(utils1)
+# nm is patients.zips[78759].ppatients.count391
+UseThreads(inpt, fids1, utils1,  500)
+
+newd = Dict{Int64,Int64}()
+for k1 in keys(dic1)
+  newd[k1] = 0
+end 
+
+@benchmark ChoiceVectorEXP(patients.zips[78759].pdetutils, dic1, inpt, patients.zips[78759].ppatients, newd)
+
+BenchmarkTools.Trial:
+  memory estimate:  608 bytes
+  allocs estimate:  10
+  --------------
+  minimum time:     581.567 μs (0.00% GC)
+  median time:      585.169 μs (0.00% GC)
+  mean time:        603.198 μs (0.00% GC)
+  maximum time:     1.334 ms (0.00% GC)
+  --------------
+  samples:          8273
+  evals/sample:     1
+
+"""
+function ChoiceVectorEXP(pd::Dict{Int64, Float64},
+                         dt::Dict{Int64, patientcount},
+                         ch::Array{Int64,1},
+                         x::patientcount,
+                         cts::Dict{Int64,Int64})
+  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns - but this counts for 4 allocations.  
+  loc::Int64 = 1
+  for nm in x
+    UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
+    Frequency(cts, ch, nm)                               # compute the frequencies of the choices.
+    if loc == 1
+      for i in keys(cts) 
+        dt[i].count385 = cts[i]                          
+      end
+    elseif loc==2
+      for i in keys(cts)
+        dt[i].count386 = cts[i]
+      end
+    elseif loc==3
+      for i in keys(cts)
+        dt[i].count387 = cts[i]
+      end
+    elseif loc==4
+      for i in keys(cts)
+        dt[i].count388 = cts[i]
+      end
+    elseif loc==5
+      for i in keys(cts)
+        dt[i].count389 = cts[i]
+      end
+    elseif loc==6
+      for i in keys(cts)
+        dt[i].count390 = cts[i]
+      end
+    elseif loc==7
+      for i in keys(cts)
+        dt[i].count391 = cts[i]
+      end
+    end
+    ResVec(ch) #reset the vector. memory estimate:  0 bytes - 471.337 ns (0.00% GC)
+  end
+end
+
+
+
 
 """
 `function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1}, utils::Array{Float64,1}, temparry::Array{Float64, 1})`
@@ -1527,7 +1648,7 @@ inpt = ones(Int64, 1550); # largest group is 1511
 fids1, utils1 = DV(patients.zips[78759].pdetutils)
 tar = zeros(utils1)
 # nm is patients.zips[78759].ppatients.count391
-UseThreads(inpt, fids1, utils1,  2)
+UseThreads(inpt, fids1, utils1,  500)
 
 
 @benchmark UseThreads(inpt, fids1, utils1, 297) # put dollar signs in front of those.  
