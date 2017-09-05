@@ -1383,7 +1383,7 @@ Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 DV(patients.zips[78702].pdetutils)
 
-@code_warntype DV($patients.zips[78702].pdetutils)
+@code_warntype DV(patients.zips[78702].pdetutils)
 
 
 BenchmarkTools.Trial:
@@ -2079,7 +2079,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
         elm.levelhistory[i] = newchoice
         if el.fipscode == 48453
           println("    ", elm.fid, " ", elm.level, " ", round(elm.wtphist.w385[i],2))
-          println("    ", patients.zips[78702].pdetutils)
+          println("    ", pats.zips[78702].pdetutils)
         end 
       end
       # It would make sense to call the WTP update right here, in case it is not called earlier.
