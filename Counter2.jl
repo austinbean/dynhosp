@@ -3135,6 +3135,10 @@ ResultsWrite(res1,1)
 
 Check dyn.all[3]
 
+# Testing remotecall_fetch
+remotecall_fetch(ExactVal, 2, CounterObjects(1), [1], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); itlim = 100)
+
+# Testing ExactControl: 
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) # wall time in hours and minutes 
@@ -3161,9 +3165,8 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
               break                                                                   # function operates in place on results, so should break to permit saving. 
             else 
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
-                println("Solving: ", D.all[chs[ix]].fid)
+                println("Solving: ", D.all[chs[ix]].fid, " on ", p)
                 # TODO - change the call to ExactVal to not require a dict. 
-                # That may not be the right problem anyway... Have to check what remotecall_fetch acutally fetches.   
                 DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 100), D.all[chs[ix]].fid)
               elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl))
                 println("Approximating: ", D.all[chs[ix]].fid)
