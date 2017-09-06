@@ -21,27 +21,27 @@ remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.
 
 
 # Testing beginning:  
-dyn = CounterObjects(5);
+dyn = CounterObjects(1);
 all_l = Dict{Int64,Int64}()
 st_d = Dict{Int64, NTuple{9,Int64}}()
 neb = Array{Int64,1}()
 nfs = Array{Int64,1}()
 outv = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-outv[dyn.all[13].fid] = Dict{NTuple{10, Int64}, Float64 }()
+outv[dyn.all[52].fid] = Dict{NTuple{10, Int64}, Float64 }()
 
-FindComps(dyn, neb, dyn.all[13])
-NFids(dyn, nfs, dyn.all[13])
-push!(neb, 13)
+FindComps(dyn, neb, dyn.all[52])
+NFids(dyn, nfs, dyn.all[52])
+push!(neb, 52)
 CompsDict(neb, dyn, all_l)
 StateRecord(all_l, dyn, st_d)
-StateEnumerate(dyn.all[13].cns, outv[dyn.all[13].fid])
+StateEnumerate(dyn.all[52].cns, outv[dyn.all[52].fid])
 altstates = MakeStateBlock(nfs)                                                        
 inv_costs = zeros(9)
-wgts = zeros(outv[dyn.all[13].fid].count)                                            
-elts = Array{NTuple{10,Int64}}(outv[dyn.all[13].fid].count)                    
-dists = RecordDists(dyn, [13], all_l)                                               
+wgts = zeros(outv[dyn.all[52].fid].count)                                            
+elts = Array{NTuple{10,Int64}}(outv[dyn.all[52].fid].count)                    
+dists = RecordDists(dyn, [52], all_l)                                               
 statehold = zeros(Int64,9)
-k = dyn.all[13].fid
+k = dyn.all[52].fid
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
