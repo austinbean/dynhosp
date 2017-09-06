@@ -3135,8 +3135,10 @@ ResultsWrite(res1,1)
 
 Check dyn.all[3]
 
-# Testing remotecall_fetch
-remotecall_fetch(ExactVal, 2, CounterObjects(1), [1], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); itlim = 100)
+# Testing remotecall_fetch on problem fac: 52/1136061
+
+  d1 = remotecall_fetch(NewApprox, 2, CounterObjects(1), [52], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); itlim = 10_000)
+  d2 = NewApprox(dyn, [52], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = 1, wlm = 0, itlim = 200_0)
 
 Potential error - what happens when one terminates due to time but the other is still running?   
 """
@@ -3145,7 +3147,7 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
   strt = now()
   np = nprocs()
   sizelim::Int64 = 5
-  maxl::Int64 = 20
+  maxl::Int64 = 18
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
   for el in 1:size(D.all,1)                                                           # this is going to copy all firms and markets.  
     push!(chs, el)            
@@ -3167,10 +3169,15 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
                 println("Solving: ", D.all[chs[ix]].fid, " on ", p)
                 # TODO - change the call to ExactVal to not require a dict. 
+                # I'll bet what fails here is that this does not know what to do when time runs out across different processes  - maybe.  
                 DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = exlim), D.all[chs[ix]].fid)
               elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns)<maxl)
+                # OK - the issue is that some markets the set of states cannot be represented properly because the whole collection 
+                # requires too much memory.  
                 println("Approximating: ", D.all[chs[ix]].fid, " on ", p)
                 DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = aplim), D.all[chs[ix]].fid)
+              else 
+                println("Skipping: ", D.all[chs[ix]].fid, " because neighbors number: ", sum(D.all[chs[ix]].cns))
               end  
             end  
           end 
