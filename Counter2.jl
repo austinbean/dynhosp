@@ -3167,10 +3167,10 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
                 println("Solving: ", D.all[chs[ix]].fid, " on ", p)
                 # TODO - change the call to ExactVal to not require a dict. 
-                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 100), D.all[chs[ix]].fid)
+                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 10), D.all[chs[ix]].fid)
               elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl))
                 println("Approximating: ", D.all[chs[ix]].fid, " on ", p)
-                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 100), D.all[chs[ix]].fid)
+                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 10), D.all[chs[ix]].fid)
               end  
             end  
           end 
