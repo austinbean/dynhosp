@@ -3138,7 +3138,7 @@ Check dyn.all[3]
 # Testing remotecall_fetch
 remotecall_fetch(ExactVal, 2, CounterObjects(1), [1], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); itlim = 100)
 
-# Testing ExactControl: 
+Potential error - what happens when one terminates due to time but the other is still running?   
 """
 function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, aplim::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) # wall time in hours and minutes 
