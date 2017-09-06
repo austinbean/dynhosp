@@ -1,9 +1,9 @@
 # Runs the dynamic computation
 # Note the parameters wallh and wallm in ExactControl - these determine how long the simulation should take.  
 
-addprocs(68) # will work on Stampede
+#addprocs(68) # will work on Stampede
 
-#addprocs(2) # for testing at home.
+addprocs(2) # for testing at home.
 
 
 loc = pwd()
