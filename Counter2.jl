@@ -3140,7 +3140,7 @@ remotecall_fetch(ExactVal, 2, CounterObjects(1), [1], patientcount(0.0,0.0,0.0,0
 
 # Testing ExactControl: 
 """
-function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
+function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, aplim::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) # wall time in hours and minutes 
   strt = now()
   np = nprocs()
@@ -3167,10 +3167,10 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
                 println("Solving: ", D.all[chs[ix]].fid, " on ", p)
                 # TODO - change the call to ExactVal to not require a dict. 
-                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 10), D.all[chs[ix]].fid)
-              elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns<maxl))
+                DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = exlim), D.all[chs[ix]].fid)
+              elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns)<maxl)
                 println("Approximating: ", D.all[chs[ix]].fid, " on ", p)
-                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = 10), D.all[chs[ix]].fid)
+                DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = aplim), D.all[chs[ix]].fid)
               end  
             end  
           end 
