@@ -3147,7 +3147,7 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
   strt = now()
   np = nprocs()
   sizelim::Int64 = 5
-  maxl::Int64 = 12                                                                    # for 14 neighbors and above MakeStateBlock will cause the program to die.
+  maxl::Int64 = 10                                                                    # for 14 neighbors and above MakeStateBlock will cause the program to die.
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
   for el in 1:size(D.all,1)                                                           # this is going to copy all firms and markets.  
     push!(chs, el)            
