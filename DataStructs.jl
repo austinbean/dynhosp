@@ -1372,6 +1372,55 @@ function UMap(utils::Array{Float64,1},fids::Array{Int64,1})::Int64
   return fids[maxm]::Int64          # return fid of max util value. 
 end 
 
+
+"""
+`UMapDict`
+Experimental version of umap taking a dict.
+
+This is about half the speed, but does not allocate.
+The advantage of replacing this in the function ChoiceMap is that the step 
+DV = ..., ... which allocates two arrays could be avoided.  This is about half the 
+allocations in that function.  
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+
+UMapDict(patients.zips[78702].pdetutils)
+
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     904.737 ns (0.00% GC)
+  median time:      925.566 ns (0.00% GC)
+  mean time:        961.796 ns (0.00% GC)
+  maximum time:     2.771 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     38
+
+"""
+function UMapDict(utils::Dict{Int64,Float64})::Int64
+  const dist_μ::Int64 = 0
+  const dist_σ::Int64 = 1
+  const dist_ξ::Int64 = 0
+  d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
+  maxm::Int64 = 1                   # this is an index to a fid.  Will record max index.
+  maxu::Float64 = 0.0               # holds the value of max utility 
+  tem::Float64 = 0.0                # holds interim utility value
+  for i in keys(utils)
+    tem = utils[i]+rand(d)
+    if tem>maxu  
+        maxm = i                    # replace index if greater
+        maxu = tem                  # replace max util 
+    end 
+  end 
+  return maxm::Int64          # return fid of max util value. 
+end 
+
+
+
+
 """
 `DV(d::Dict{Int64, Float64})::Tuple{Array{Int64,1},Array{Float64,1}}`
 This is a more efficient version of `DicttoVec`.  Takes a dictionary of {Int64,Float64}
@@ -1511,6 +1560,9 @@ end
 
 """
 `Frequency`
+
+STILL AN EXPERIMENT.
+
 This counts the frequency of all elements in the vector arr of Ints.
 It requires a dict of Int64's which will be {fid, count}
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
@@ -1556,6 +1608,16 @@ function Frequency(pds::Dict{Int64,Int64}, arr::Array{Int64,1}, nm::Int64)
 end 
 
 """
+
+`ChoiceVectorEXP(pd::Dict{Int64, Float64},
+                         dt::Dict{Int64, patientcount},
+                         ch::Array{Int64,1},
+                         x::patientcount,
+                         cts::Dict{Int64,Int64})`
+
+STILL AN EXPERIMENT
+
+
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
@@ -1589,7 +1651,8 @@ function ChoiceVectorEXP(pd::Dict{Int64, Float64},
                          ch::Array{Int64,1},
                          x::patientcount,
                          cts::Dict{Int64,Int64})
-  fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns -  this counts for 4 allocations.  
+  #fids::Array{Int64,1}, utils::Array{Float64,1} = DV(pd) # very quick ≈ 300 ns -  this counts for 4 allocations.  
+  # NB - the above is unnecessary with the revised function UMapDict.  
   loc::Int64 = 1
   for nm in x
     UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
@@ -1693,6 +1756,31 @@ function UseThreads(inpt::Array{Int64,1},fids::Array{Int64,1},utils::Array{Float
     inpt[i] = UMap(utils, fids)
   end
 end
+
+
+
+"""
+`UseThreadsEXP()`
+
+THIS IS AN EXPERIMENT.
+
+This would take the dict directly, instead of splitting it into two vectors first.  
+
+Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = NewPatients(Texas);
+inpt = ones(Int64, 1550); # largest group is 1511
+fids1, utils1 = DV(patients.zips[78759].pdetutils)
+tar = zeros(utils1)
+"""
+function UseThreadsEXP(inpt::Array{Int64,1},utils::Dict{Int64,Float64}, x::Int64)
+  #Threads.@threads # using this DOES allocate.  If it isn't faster, cut it out.  
+  # TODO - can this use the dict instead of fids, utils arrays?  This would take EITHER changes to UMAP or 
+  # just call this with allocated vectors...?
+  for i = 1:x
+    inpt[i] = UMapDict(utils, fids)
+  end
+end
+
 
 """
 `function ResVec(v::Array{Int64,1})`
