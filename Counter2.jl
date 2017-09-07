@@ -3147,7 +3147,7 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
   strt = now()
   np = nprocs()
   sizelim::Int64 = 5
-  maxl::Int64 = 18
+  maxl::Int64 = 12                                                                    # for 14 neighbors and above MakeStateBlock will cause the program to die.
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
   for el in 1:size(D.all,1)                                                           # this is going to copy all firms and markets.  
     push!(chs, el)            
@@ -3173,7 +3173,7 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
                 DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = exlim), D.all[chs[ix]].fid)
               elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns)<maxl)
                 # OK - the issue is that some markets the set of states cannot be represented properly because the whole collection 
-                # requires too much memory.  
+                # requires too much memory.  This is a problem in MakeStateBlock.  
                 println("Approximating: ", D.all[chs[ix]].fid, " on ", p)
                 DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = aplim), D.all[chs[ix]].fid)
               else 
