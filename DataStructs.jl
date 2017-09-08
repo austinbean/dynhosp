@@ -1625,7 +1625,7 @@ fids1, utils1 = DV(patients.zips[78759].pdetutils)
 tar = zeros(utils1)
 # nm is patients.zips[78759].ppatients.count391
 UseThreads(inpt, fids1, utils1,  500)
-
+TODO - fix this - dic1 does not exist yet.
 newd = Dict{Int64,Int64}()
 for k1 in keys(dic1)
   newd[k1] = 0
@@ -1655,7 +1655,7 @@ function ChoiceVectorEXP(pd::Dict{Int64, Float64},
   # NB - the above is unnecessary with the revised function UMapDict.  
   loc::Int64 = 1
   for nm in x
-    UseThreads(ch, fids, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
+    UseThreads(ch, utils, nm)                      # ≈ 179 μs, for nm = 300, ≈ 12.504 μs for nm = 20
     Frequency(cts, ch, nm)                               # compute the frequencies of the choices.
     if loc == 1
       for i in keys(cts) 
@@ -1769,15 +1769,28 @@ This would take the dict directly, instead of splitting it into two vectors firs
 Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
 patients = NewPatients(Texas);
 inpt = ones(Int64, 1550); # largest group is 1511
-fids1, utils1 = DV(patients.zips[78759].pdetutils)
-tar = zeros(utils1)
+
+UseThreadsEXP(inpt, patients.zips[78759].pdetutils, 500)
+
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     442.187 μs (0.00% GC)
+  median time:      445.259 μs (0.00% GC)
+  mean time:        462.430 μs (0.00% GC)
+  maximum time:     1.110 ms (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
+
 """
 function UseThreadsEXP(inpt::Array{Int64,1},utils::Dict{Int64,Float64}, x::Int64)
   #Threads.@threads # using this DOES allocate.  If it isn't faster, cut it out.  
   # TODO - can this use the dict instead of fids, utils arrays?  This would take EITHER changes to UMAP or 
   # just call this with allocated vectors...?
   for i = 1:x
-    inpt[i] = UMapDict(utils, fids)
+    inpt[i] = UMapDict(utils)
   end
 end
 
