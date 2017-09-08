@@ -104,9 +104,8 @@ function ExactVal(D::DynState,
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
-    if its %1000 == 0
-      println("iteration: ", its)
-      println("minimum: ", CheckMin(outvals, tempvals))
+    if its %100 == 0
+      println("iteration: ", its, " minimum: ", CheckMin(outvals, tempvals))
       # add check on duration.
       current = now()
       if (current-strt)>wl 
