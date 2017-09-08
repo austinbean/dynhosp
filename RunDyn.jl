@@ -16,7 +16,7 @@ println("Sim Starting at: ", ds1)
 
 dyn = CounterObjects(5);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 4, 0, 10_000, 10_000; results = res1) # argument is: dynstate, wallhours, wallminutes, exactitlim, approxitlim
+ExactControl(dyn, 8, 0, 10_000, 10_000; results = res1) # argument is: dynstate, wallhours, wallminutes, exactitlim, approxitlim
 
 
 outp = ResultsWrite(res1)
