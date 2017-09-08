@@ -113,7 +113,7 @@ function ExactVal(D::DynState,
       end 
     end 
     if its%1000 == 0
-      println("fid: ", D.all[ch[1]].fid)
+      println("fid: ", D.all[chunk[1]].fid)
     end 
     # Copy the values and clean up.
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  

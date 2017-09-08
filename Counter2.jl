@@ -3105,7 +3105,9 @@ end
 
 
 """
-`ExactControl(D::DynState, wallh::Int64, wallm::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}())`
+`ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, aplim::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}())`
+
+TODO - add the keyword argument ARGS, or ARGS::Array{ASCIIString} to include command line arguments.
 
 Parallelizes ExactValue computation across cores.  
 - get available procs.  
@@ -3137,7 +3139,7 @@ Check dyn.all[3]
 
 # Testing remotecall_fetch on problem fac: 52/1136061
 
-  d1 = remotecall_fetch(NewApprox, 2, CounterObjects(1), [52], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); itlim = 10_000)
+  d1 = remotecall_fetch(NewApprox, 2, CounterObjects(1), [1], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); itlim = 10_000)
   d2 = NewApprox(dyn, [52], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = 1, wlm = 0, itlim = 200_0)
 
 Potential error - what happens when one terminates due to time but the other is still running?   
@@ -3186,6 +3188,30 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
     end 
   end 
 end 
+
+
+function argtest(ARGS) # take a command line argument with a list of addresses in dyn.all or list of fids.  
+  ps = nprocs() # number of processes
+  i = 1
+  fds = Array{Int64,1}()
+  for el in ARGS
+    push!(fds, convert(Int64,el))
+  end 
+  return fds
+  # TODO - following lines 
+  # nextix()=(idx=i;i+=1;idx)
+  # @sync begin 
+  #   for p in 1:ps 
+  #     if p!=myid()||ps==1
+  #       @async begin 
+  #         remotecall_fetch
+  #       end # of begin block 
+  #     end 
+  #    end 
+  #  end # of begin block 
+end
+
+
 
 
 """
