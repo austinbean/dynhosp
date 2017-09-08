@@ -67,6 +67,30 @@ Miscellaneous model computations for the paper:
 
 
 """
+`AverageD()`
+How much does the average patient travel in excess of the regular arrangement?
+
+- For each zip in a market, compute the total number of miles traveled, plus the average (easy)
+- Reallocate facilities, update utilities (easy)
+- Now recompute distances - see how much they increase.
+- What are the costs of that travel?
+
+"""
+function AverageD(d::DynState, fidlev::Array{Tuple{Int64,Int64}, 1})
+    outp::Array{Float64,2} = Array{Float64,2}(150, 5) # dimensions??
+    nfds::Array{Int64,1} = Array{Int64,1}()
+
+    return nothing 
+end 
+
+
+
+
+
+
+
+
+"""
 `WTPchange(d::DynState)`
 Take each firm.  Update the level.  Update the WTP.  Compute the change.
 See also `WTPCheck` below. 
