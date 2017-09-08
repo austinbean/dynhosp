@@ -90,20 +90,23 @@ function NewApprox(D::DynState,
     outvals[k][nextstate] = (1-(1/(1+tracker[nextstate])))*(outvals[k][nextstate]) + (1/(1+tracker[nextstate]))*(AppChoice(all_locs[k], k, p1, p2, D, inv_costs)) # only map the state out to one element of outvals.
     #println("its: ", its, " min: ", OutMin(outvals, tracker, k))
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])              # set it back 
-    if its %10_0 == 0
-      cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
-      if cv < 1e-6
-        converge = false # stop.
-      end 
-      println(cv, " ", converge )
-      ResetTracker(tracker)  
-      println("iteration: ", its)
+    # Check time every 100 iterations
+    if its%100 == 0
       current = now()
       if (current-strt)>wl 
         println("Time exceeded!") 
         return outvals
         break 
       end 
+    end 
+    # Check convergence every 1,000
+    if its%1_000 == 0  
+      cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
+      if cv < 1e-6
+        converge = false # stop.
+      end 
+      println("iteration: ", its, "  ", cv, " ", converge )
+      ResetTracker(tracker) 
     end 
     its += 1
   end 
