@@ -3128,7 +3128,7 @@ Parallelizes ExactValue computation across cores.
 
 dyn = CounterObjects(1);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 0, 2; results = res1)
+ExactControl(dyn, 0, 2, 1, 1, [4530790, ]; results = res1)
 
 
 ResultsWrite(res1,1)
@@ -3143,19 +3143,33 @@ Check dyn.all[3]
 
 Potential error - what happens when one terminates due to time but the other is still running?
 
-TODO - add the keyword argument ARGS, or ARGS::Array{ASCIIString} to include command line arguments.
-   
+This is not the right way to do this.  When there is an argument ARGS in the script, then 
+it should be passed as an array to ExactControl.  But this isn't called directly from a script like 
+that.  I want something like RunDyn 1 2 3 4 5 to pass [1,2,3,4,5] to ExactControl.  This only needs 
+to take that kind of arugument.  
+
 """
-function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, aplim::Int64; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
+function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, aplim::Int64, todo::Array{Int64,1}; results::Dict{Int64,Dict{NTuple{10,Int64},Float64}} = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()) # Wall should be a time type.  
   wl = Dates.Millisecond(Dates.Hour(wallh)) + Dates.Millisecond(Dates.Minute(wallm)) # wall time in hours and minutes 
   strt = now()
   np = nprocs()
   sizelim::Int64 = 5
   maxl::Int64 = 10                                                                    # for 14 neighbors and above MakeStateBlock will cause the program to die.
   chs::Array{Int64,1} = Array{Int64,1}()                                              # Create the set of smaller markets.
-  for el in 1:size(D.all,1)                                                           # this is going to copy all firms and markets.  
-    push!(chs, el)            
-    results[D.all[el].fid] = Dict{NTuple{10,Int64},Float64}()                         # populate the dict to hold results.  
+  if size(todo,1)>0
+    for el in todo                                                                    # if any fids are specified, do those first.    
+      fid::Int64 = el
+      indx = IndFind(D, fid)
+      if indx != 0
+        push!(chs, indx)            
+      end
+      results[fid] = Dict{NTuple{10,Int64},Float64}()                                 # populate the dict to hold results.  
+    end 
+  else # if no fids are specified, do all of them.
+    for el in 1:size(D.all,1)
+      push!(chs, el)
+      results[D.all[el].fid] = Dict{NTuple{10,Int64}, Float64}()
+    end 
   end 
   i = 1
   nextix()=(idx=i;i+=1;idx)                                                           # this function can use the i = 1 in this local scope - and i does persist within it.
@@ -3173,11 +3187,8 @@ function ExactControl(D::DynState, wallh::Int64, wallm::Int64, exlim::Int64, apl
               if sum(D.all[chs[ix]].cns) <= sizelim                                   # skips very large markets.
                 println("Solving: ", D.all[chs[ix]].fid, " on ", p)
                 # TODO - change the call to ExactVal to not require a dict. 
-                # I'll bet what fails here is that this does not know what to do when time runs out across different processes  - maybe.  
                 DictCopyFID(results, remotecall_fetch(ExactVal, p, CounterObjects(1),[chs[ix]],patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = exlim), D.all[chs[ix]].fid)
-              elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns)<maxl)
-                # OK - the issue is that some markets the set of states cannot be represented properly because the whole collection 
-                # requires too much memory.  This is a problem in MakeStateBlock.  
+              elseif (sum(D.all[chs[ix]].cns) > sizelim)&(sum(D.all[chs[ix]].cns)<=maxl)
                 println("Approximating: ", D.all[chs[ix]].fid, " on ", p)
                 DictCopyFID(results, remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wlh = wallh, wlm = wallm, itlim = aplim), D.all[chs[ix]].fid)
               else 
@@ -3193,6 +3204,40 @@ end
 
 
 
+"""
+`IndFind(D::DynState, f::Int64)`
+Takes a fid argument in f and returns the index in Dyn.all.
+
+dyn = CounterObjects(1);
+IndFind(dyn, dyn.all[10].fid) == 10
+IndFind(dyn, dyn.all[137].fid) == 137
+IndFind(dyn, -15) == 0
+"""
+function IndFind(D::DynState, f::Int64)
+  ix::Int64 = 0
+  for i = 1:size(D.all,1)
+    if D.all[i].fid == f 
+      ix = i  
+    end 
+  end 
+  return ix 
+end 
+
+"""
+`ArgVec(ARGS)`
+Takes the command line arguments and then returns a list of integers.
+The idea is to call something like jl RunDyn.jl 4530190 4530199 ... etc.  
+Note here that ARGS is a special keyword denoting command line arguments.  
+"""
+function ArgVec(ARGS) # take a command line argument with a list of addresses in dyn.all or list of fids.  
+  fds = Array{Int64,1}()
+  for (i,el) in enumerate(ARGS)
+    if isa(parse(el), Int64)
+      push!(fds, parse(el))
+    end 
+  end 
+  return fds
+end
 
 
 

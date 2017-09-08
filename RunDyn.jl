@@ -10,13 +10,14 @@ loc = pwd()
 println("current location: ", loc)
 using ProjectModule
 
+facs = ArgVec(ARGS) # take command line input - a list of fids.  
 
 ds1 = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
 println("Sim Starting at: ", ds1)
 
 dyn = CounterObjects(1);
 res1 = Dict{Int64,Dict{NTuple{10,Int64},Float64}}()
-ExactControl(dyn, 8, 0, 1, 1; results = res1) # argument is: dynstate, wallhours, wallminutes, exactitlim, approxitlim
+ExactControl(dyn, 8, 0, 1, 1, facs; results = res1) # argument is: dynstate, wallhours, wallminutes, exactitlim, approxitlim
 
 
 outp = ResultsWrite(res1)

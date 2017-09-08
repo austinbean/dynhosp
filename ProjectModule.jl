@@ -905,6 +905,8 @@ end
   export RoughCheck
   export InexactConvergence 
   export NewApprox 
+  export IndFind
+  export ArgVec
 
 
 
