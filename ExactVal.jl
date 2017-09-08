@@ -104,15 +104,16 @@ function ExactVal(D::DynState,
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
-    if its %100 == 0
-      println("iteration: ", its, " minimum: ", CheckMin(outvals, tempvals))
-      # add check on duration.
+    if its%100 == 0
       current = now()
       if (current-strt)>wl 
         println("Time exceeded!") 
         return outvals
         break 
       end 
+    end 
+    if its%1000 == 0
+      println("fid: ", D.all[ch[1]].fid)
     end 
     # Copy the values and clean up.
     DictCopy(outvals, tempvals, 1/(its+1))                                            # NB - weight placed on new vs. old values.  
