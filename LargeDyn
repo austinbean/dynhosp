@@ -1,0 +1,48 @@
+#!/bin/bash
+#----------------------------------------------------
+# Sample SLURM job script
+#   for TACC Stampede2 KNL nodes
+#
+#   *** Serial Job on Normal Queue ***
+#
+# Last revised: 27 Jun 2017
+#
+# Notes:
+#
+#   -- Copy/edit this script as desired.  Launch by executing
+#      "sbatch knl.serial.slurm" on a Stampede2 login node.
+# Run with "sbatch dynscript"
+#----------------------------------------------------
+
+#SBATCH -J DYNjob           # Job name
+#SBATCH -o DYNjob.o%j       # Name of stdout output file
+#SBATCH -e DYNjob.e%j       # Name of stderr error file
+#SBATCH -p normal          # Queue (partition) name
+#SBATCH -N 1               # Total # of nodes (must be 1 for serial)
+#SBATCH -n 1               # Total # of mpi tasks (should be 1 for serial)
+#SBATCH -t 12:30:00        # Run time (hh:mm:ss)
+#SBATCH --mail-user=austinbean@utexas.edu
+#SBATCH --mail-type=all    # Send email at begin and end of job
+#SBATCH -A        # Allocation name (req'd if you have more than 1)
+
+# Other commands must follow all #SBATCH directives...
+
+cd /home1/04179/abean/dynhosp
+pwd
+date
+
+# Launch serial code...
+# Large Markets: (21 listed here - include 40 more of the smaller markets to use the whole node effectively.)  Everything AFTER 293120 is a smaller market                               SMALL MARKETS START HERE
+../julia/julia RunDyn.jl 4916068 4916029 1216116 1672185 3390720 2153723 4530190 4536048 4530200 4536337 4530170 4536338 4536253 293005 293015 293122 293105 296025 293070 296002 293120 2910645 615100 616303 610460 670132 2219225 1776027 4816024 4813735 3210235 3032360 3036011 3032377 912625 3612695 1892840 390111 391525 393347 3292535
+
+# Firms with 1-4 neighbors: about 60 of them.
+# 2910645 615100 616303 610460 670132 2219225 1776027 4816024 4813735 3210235 3032360 3036011 3032377 912625 3612695 1892840 390111 391525 393347 3292535 895105 891170 3556218 3550740 1671615 1391330 1393700 2032430 4410034 2510635 2853800 3673715 552397 373510 376245 372600 2450258 2452849 2450244 1352660 1355097 972574 3472582 3475093 2093151 2576008 2576026 4090109 1832327 1836041 4233570 4233565 1873189 52390 52395 3179520 4693625 150310 4011810
+
+
+# The following are 5-10 neighbor firms:
+# 4916068 4916029 1216116 1672185 3390720 2153723 4530190 4536048 4530200 4536337 4530170 4536338 4536253 293005 293015 293122 293105 296025 293070 296002 293120
+
+# The following are 10+ neighbor firms.
+# 1130900 1131020 1132528 1135113 1131050 1136268 1135009 1132055 1136020 1136005 1131021 1136007 1136061 1130950 1131616 1136366 1792735 1215126 1216088 1215085 4390285 4395139 4391483 4396125 4390108 4395133 4391739 4391440 4391390 4391437 2012000 2013716 2015120 2011895 2015031 2012778 2016290 2011985 2016302 2011970 2015024 2015135 2015140 2016016 2011910 2011960 2011880 2012005 2016065 2015022 2012025 2012018 2011890 2015130 2019310 2012015 2016009 2010243 2012007 2015026 3396057 3396327 3396189 1572912 1576070 1576276 1576038 852480 856316 856354 856364 856181 856301 855094 3976115
+
+# ---------------------------------------------------
