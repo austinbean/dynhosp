@@ -75,12 +75,41 @@ How much does the average patient travel in excess of the regular arrangement?
 - Now recompute distances - see how much they increase.
 - What are the costs of that travel?
 
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 1);
+eq_patients = NewPatients(TexasEq);
+
+
 """
 function AverageD(d::DynState, fidlev::Array{Tuple{Int64,Int64}, 1})
-    outp::Array{Float64,2} = Array{Float64,2}(150, 5) # dimensions??
+    # Columns:
+    cols::Int64 = 5
+    outp::Array{Float64,2} = Array{Float64,2}(150, cols) # dimensions??
     nfds::Array{Int64,1} = Array{Int64,1}()
+    # Add that distance measuring function used in NewApprox.  s
+    for el in fidlev
+        push!(nfds, el[1]) # collects fids.
+    end 
+    locs::Array{Int64,1} = IndFind(nfds)
+    for el in fidlev 
 
-    return nothing 
+
+    end   
+    return outp  
+end 
+
+
+function FindAllPatients(pc::patientcollection, f::Int64)
+    sm::Int64 = 0
+    for k1 in keys(pc.zips)
+        for k2 in keys(pc.zips[k1].facilities)
+            if f == k2 
+                sm += sum(pc.zips[k1].mpatients)
+                sm += sum(pc.zips[k1].ppatients)
+            end 
+        end 
+    end 
+    return sm 
 end 
 
 
