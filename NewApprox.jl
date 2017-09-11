@@ -10,11 +10,13 @@
 
 Second attempt at EP approximation.
 
-dyn = CounterObjects(5);
+dyn = CounterObjects(1);
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ch2 = [11] # larger market. 
-NewApprox(dyn, [13], p1, p2; wlh = 0, wlm = 5, itlim = 200_000)
+NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 5, itlim = 200)
+
+
+Try this approximation with 4916068 - > where is that one?  This one has eight neighbors.  Index is 37.  
 
 # Testing remote call: 
 remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wallh = 0, wallm = 2 )
