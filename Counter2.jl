@@ -3497,7 +3497,7 @@ end
 Computes a continuation value for the PM approximation.
 Takes a next state and a section of the outvals for one firm, i.e., a single firm's values.
 
-# TODO - maybe the eulergamma term needs to be scaled?
+# TODO -  the eulergamma term needs to be scaled
 
 """
 function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64},Float64})
