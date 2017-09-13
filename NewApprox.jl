@@ -51,14 +51,6 @@ dists = RecordDists(dyn, [52], all_l)
 statehold = zeros(Int64,9)
 k = dyn.all[52].fid
 
-
-# TODO - is it possible that when strt = now() is compiled it fixes that?  No it is not - but maybe it's still a bad idea.  
-
-function t1()
-  strt = now()
-  println(strt)
-end 
-
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
@@ -117,10 +109,10 @@ function NewApprox(D::DynState,
       end 
     end 
     # Check convergence every 1,000,000 - takes 7 minutes for a large state.
-    # TODO - this is the really slow part. 
-    # TODO - Inexact Convergence does not check the time.  That is a big problem, since it is so slow!  Need to fix/work around.   
+    # TODO - Inexact Convergence does not check the time.  That is a big problem, since it is so slow!  Need to fix/work around. 
+    # TODO - check that InexactConvergence will check using correct wlh, wlm   
     if its%1_000_000 == 0  
-      # cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
+      # cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100; wh = wlh, wm = wlm)
       # if cv < 1e-6
       #   converge = false # stop.
       # end 
