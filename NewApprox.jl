@@ -21,6 +21,9 @@ Try this approximation with 4916068 - > where is that one?  This one has eight n
 # Testing remote call: 
 remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0), patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0); wallh = 0, wallm = 2 )
 
+# Problematic firms - these don't cancel in time.  Maybe this means they take more than 5 minutes to do 10 iterations?  Scarcely believable.
+4916068, 3390720, 4536048, 4536337, 4536253, 293005, 293015, 296015, 296025, 293070, 296002, 293120
+
 
 # Testing beginning:  
 dyn = CounterObjects(1);
@@ -44,6 +47,15 @@ elts = Array{NTuple{10,Int64}}(outv[dyn.all[52].fid].count)
 dists = RecordDists(dyn, [52], all_l)                                               
 statehold = zeros(Int64,9)
 k = dyn.all[52].fid
+
+
+# TODO - is it possible that when strt = now() is compiled it fixes that?  No it is not - but maybe it's still a bad idea.  
+
+function t1()
+  strt = now()
+  println(strt)
+end 
+
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
@@ -101,13 +113,14 @@ function NewApprox(D::DynState,
         break 
       end 
     end 
-    # Check convergence every 1,000
-    if its%1_000 == 0  
+    # Check convergence every 1,000,000 - takes 7 minutes for a large state.
+    # TODO - this is the really slow part.  
+    if its%1_000_000 == 0  
       cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
       if cv < 1e-6
         converge = false # stop.
       end 
-      println("iteration: ", its, "  ", cv, " ", converge )
+      #println("iteration: ", its, "  ", cv, " ", converge )
       ResetTracker(tracker) 
     end 
     its += 1
