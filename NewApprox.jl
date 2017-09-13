@@ -23,6 +23,9 @@ remotecall_fetch(NewApprox, p, CounterObjects(1), [chs[ix]], patientcount(0.0,0.
 
 # Problematic firms - these don't cancel in time.  Maybe this means they take more than 5 minutes to do 10 iterations?  Scarcely believable.
 4916068, 3390720, 4536048, 4536337, 4536253, 293005, 293015, 296015, 296025, 293070, 296002, 293120
+Likely problem: convergence test takes too long and does not check time.  
+
+
 
 
 # Testing beginning:  
@@ -114,12 +117,13 @@ function NewApprox(D::DynState,
       end 
     end 
     # Check convergence every 1,000,000 - takes 7 minutes for a large state.
-    # TODO - this is the really slow part.  
+    # TODO - this is the really slow part. 
+    # TODO - Inexact Convergence does not check the time.  That is a big problem, since it is so slow!  Need to fix/work around.   
     if its%1_000_000 == 0  
-      cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
-      if cv < 1e-6
-        converge = false # stop.
-      end 
+      # cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100)
+      # if cv < 1e-6
+      #   converge = false # stop.
+      # end 
       #println("iteration: ", its, "  ", cv, " ", converge )
       ResetTracker(tracker) 
     end 
