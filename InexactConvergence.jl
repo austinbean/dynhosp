@@ -29,6 +29,7 @@ Slowdown here comes from |states|×|itlim| iterations.
 
 InexactConvergence(dyn, [37], p1, p2, tr1, ab, 10) 138.363867 seconds (349.86 M allocations: 24.028 GiB, 1.82% gc time)
 
+InexactConvergence(dyn, [37], p1, p2, tr1, ab, 100) 1425.038687 seconds (3.50 G allocations: 240.145 GiB, 1.81% gc time)
 
 """
 function InexactConvergence(D::DynState,
@@ -37,7 +38,11 @@ function InexactConvergence(D::DynState,
                             p2::patientcount,
                             tracker::Dict{NTuple{10, Int64}, Int64}, 
                             outvals::Dict{Int64, Dict{NTuple{10, Int64},Float64}},
-                            itlim::Int64)
+                            itlim::Int64;
+                            wlh::Int64 = 100, 
+                            wlm::Int64 = 0)
+    strt = now()
+    wl = Dates.Millisecond(Dates.Hour(wlh)) + Dates.Millisecond(Dates.Minute(wlm)) - Dates.Millisecond(Dates.Minute(5))
     approxvals::Dict{NTuple{10, Int64},Float64} =Dict{NTuple{10, Int64},Float64}()        # put results of approximation here.  
     all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
     st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
@@ -69,6 +74,13 @@ function InexactConvergence(D::DynState,
             v::Float64 = AppChoice(all_locs[k], k, p1, p2, D, inv_costs)                  # this has roughly the right scale.
             appr += c + v 
             ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
+            if i%10 == 0
+              current = now()
+              if (current-strt)>wl 
+                println("Convergence check time exceeded!") 
+                break 
+              end 
+            end   
         end 
         if haskey(approxvals, k1)
             approxvals[k1] += appr/itlim
