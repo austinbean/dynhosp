@@ -39,8 +39,8 @@ function InexactConvergence(D::DynState,
                             tracker::Dict{NTuple{10, Int64}, Int64}, 
                             outvals::Dict{Int64, Dict{NTuple{10, Int64},Float64}},
                             itlim::Int64;
-                            wlh::Int64 = 100, 
-                            wlm::Int64 = 0)
+                            wh::Int64 = 100, 
+                            wm::Int64 = 0)
     strt = now()
     wl = Dates.Millisecond(Dates.Hour(wlh)) + Dates.Millisecond(Dates.Minute(wlm)) - Dates.Millisecond(Dates.Minute(5))
     approxvals::Dict{NTuple{10, Int64},Float64} =Dict{NTuple{10, Int64},Float64}()        # put results of approximation here.  
