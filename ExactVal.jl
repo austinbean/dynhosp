@@ -104,7 +104,7 @@ function ExactVal(D::DynState,
     end
     # Convergence Test - this modifies bools in totest.
     ExactConvergence(tempvals, outvals, totest, its; messages = false)   
-    if its%100 == 0
+    if its%10 == 0
       current = now()
       if (current-strt)>wl 
         println("Time exceeded!") 

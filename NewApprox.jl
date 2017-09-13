@@ -93,7 +93,7 @@ function NewApprox(D::DynState,
     #println("its: ", its, " min: ", OutMin(outvals, tracker, k))
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])              # set it back 
     # Check time every 100 iterations
-    if its%100 == 0
+    if its%10 == 0
       current = now()
       if (current-strt)>wl 
         println("Time exceeded!") 
