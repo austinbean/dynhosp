@@ -18,12 +18,13 @@ function tgen(d1)
   end 
   return tr 
 end 
-ddd = NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 100_000)
+dyn = CounterObjects(1);
+ddd = NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 100)
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 tr1 = tgen(ddd)
 
-InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 10)
+InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 10; 0, 6)
 
 Slowdown here comes from |states|×|itlim| iterations.
 
