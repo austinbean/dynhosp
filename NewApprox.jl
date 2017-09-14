@@ -124,11 +124,11 @@ function NewApprox(D::DynState,
     # TODO - Inexact Convergence does not check the time.  That is a big problem, since it is so slow!  Need to fix/work around. 
     # TODO - check that InexactConvergence will check using correct wlh, wlm   
     if its%1_000_000 == 0  
-      # cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100; wh = wlh, wm = wlm)
-      # if cv < 1e-6
-      #   converge = false # stop.
-      # end 
-      #println("iteration: ", its, "  ", cv, " ", converge )
+      cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100; wh = wlh, wm = wlm)
+      if cv < 1e-6
+        converge = false # stop.
+      end 
+      println("iteration: ", its, "  ", cv, " ", converge )
       ResetTracker(tracker) 
     end 
     its += 1
