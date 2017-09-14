@@ -51,6 +51,18 @@ dists = RecordDists(dyn, [52], all_l)
 statehold = zeros(Int64,9)
 k = dyn.all[52].fid
 
+ @time NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 1_0000)
+ 33.681478 seconds (94.45 M allocations: 6.483 GiB, 2.05% gc time)
+Dict{Int64,Dict{NTuple{10,Int64},Float64}} with 1 entry:
+  4916068 => Dict((0, 0, 0, 0, 2, 1, 1, 2, 0, 3)=>0.00343493,(0, 0, 0, 1, 2, 1,…
+
+
+ @time NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 100, itlim = 1_000_000)
+4198.062779 seconds (9.55 G allocations: 656.114 GiB, 1.82% gc time)
+Dict{Int64,Dict{NTuple{10,Int64},Float64}} with 1 entry:
+4916068 => Dict((0, 0, 0, 0, 2, 1, 1, 2, 0, 3)=>0.000258277,(0, 0, 0, 1, 2, 1, 2, 2, 0, 3)=>0.00015639…
+
+
 """
 function NewApprox(D::DynState,
                    chunk::Array{Int64,1}, 
