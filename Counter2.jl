@@ -2041,6 +2041,15 @@ function CNStoTuple(c::ProjectModule.neighbors)
 end 
 
 
+"""
+`CNStoTupleLevel(c::ProjectModule.neighbors)`
+returns a tuple from the CNS type with levels at the end 
+"""
+function CNStoTupleLevel(c::ProjectModule.neighbors)
+  return (c.level105, c.level205, c.level305, c.level1515, c.level2515, c.level3515, c.level11525, c.level21525, c.level31525,1), (c.level105, c.level205, c.level305, c.level1515, c.level2515, c.level3515, c.level11525, c.level21525, c.level31525,2), (c.level105, c.level205, c.level305, c.level1515, c.level2515, c.level3515, c.level11525, c.level21525, c.level31525,3)
+end 
+
+
 
 
 """
