@@ -402,20 +402,41 @@ end
 Finds the actual configuration of the market in f and then
 returns the values in the array m (containing sim results)
 which correspond to that state.  
+
+dynresults2017-09-09-10-53-56.csv
+dynresults2017-09-15-07-00-16.csv
+
+dres1 = readcsv("dynresults2017-09-09-10-53-56.csv", header = false)
+
+dres2 = readdlm("dynresults2017-09-15-07-00-16.csv", header = false)
+
 """
 function CompareResults(d::DynState, m::Array{Any,2}, f::Int64)
     ix = 0
+    col =  # indicates column in which state tuples are located
+    vals = # indicates column in which values located.
     for i = 1:size(d.all,1)
         if d.all[i].fid == f 
             ix = i # returns the index of i 
         end     
     end 
-
-    cf = 
-
-
-
+    cf1, cf2, cf3 = CNStoTupleLevel(dyn.all[ix].cns)
+    for i = 1:size(m,1)
+        if m[i,1] == f 
+            if m[i,col] == cf1 || m[i,col] == cf2 || m[i,col] == cf3
+                println("row, col ", i," ",col, "  ", m[i,col])
+                println(m[i,vals])
+            end 
+        end 
+    end 
 end 
+
+
+
+
+
+
+
 
 
 
