@@ -393,6 +393,32 @@ function DUtilCheck(h::simh)
     UpdateDUtil(h) 
 end 
 
+
+
+
+""" 
+`CompareResults(d::DynState, m::Array{Any,2})`
+
+Finds the actual configuration of the market in f and then
+returns the values in the array m (containing sim results)
+which correspond to that state.  
+"""
+function CompareResults(d::DynState, m::Array{Any,2}, f::Int64)
+    ix = 0
+    for i = 1:size(d.all,1)
+        if d.all[i].fid == f 
+            ix = i # returns the index of i 
+        end     
+    end 
+
+    cf = 
+
+
+
+end 
+
+
+
 #=
 This computation relates to determining the market sizes of individual hositals by checking the total number of births in 
 all zip codes attached to that hospital every year.  It is merged with some data from Stata.  Specifically, see TX Patient Uncertainty.do
