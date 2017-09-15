@@ -872,6 +872,7 @@ end
   export GenStates
   export PartialCombine 
   export TupletoCNS
+  export CNStoTuple
   export CompsDict
   export NStateKey
   export ConvTest
