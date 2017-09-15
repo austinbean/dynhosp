@@ -2032,6 +2032,14 @@ function TupletoCNS(n::NTuple{9,Int64})
   return ProjectModule.neighbors(n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[8], n[9])
 end 
 
+"""
+`CNStoTuple(c::ProjectModule.neighbors)`
+returns a tuple from the CNS type 
+"""
+function CNStoTuple(c::ProjectModule.neighbors)
+  return (c.level105, c.level205, c.level305, c.level1515, c.level2515, c.level3515, c.level11525, c.level21525, c.level31525)
+end 
+
 
 
 
