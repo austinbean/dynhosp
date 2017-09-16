@@ -1,5 +1,38 @@
 """
-`InexactConvergence(`
+`InexactConvergence(D::DynState,
+                    chunk::Array{Int64,1}, 
+                    p1::patientcount,
+                    p2::patientcount,
+                    tracker::Dict{NTuple{10, Int64}, Int64}, 
+                    outvals::Dict{Int64, Dict{NTuple{10, Int64},Float64}},
+                    itlim::Int64)`
+
+# generates the tracker to test with InexactConvergence
+As input take the output of NewApprox.
+function tgen(d1)
+  tr = Dict{NTuple{10, Int64}, Int64}()
+  for k1 in keys(d1)
+    for k2 in keys(d1[k1])
+      tr[k2] = 100
+    end 
+  end 
+  return tr 
+end 
+dyn = CounterObjects(1);
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ddd = NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 100)
+
+tr1 = tgen(ddd)
+# BoundsError?  Why?  Where?  
+InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 10; 0, 6)
+
+Slowdown here comes from |states|×|itlim| iterations.
+
+InexactConvergence(dyn, [37], p1, p2, tr1, ab, 10) 138.363867 seconds (349.86 M allocations: 24.028 GiB, 1.82% gc time)
+
+InexactConvergence(dyn, [37], p1, p2, tr1, ab, 100) 1425.038687 seconds (3.50 G allocations: 240.145 GiB, 1.81% gc time)
+
 """
 function InexactConvergence(D::DynState,
                             chunk::Array{Int64,1},
@@ -63,6 +96,6 @@ function InexactConvergence(D::DynState,
     for k1 in keys(tracker)
         test += tracker[k1]*(outvals[k][k1] - approxvals[k1])^2
     end 
-    return nothing #test/totv
+    return test/totv
 end 
 
