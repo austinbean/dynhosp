@@ -24,8 +24,7 @@ p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 ddd = NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 100)
 
 tr1 = tgen(ddd)
-# BoundsError?  Why?  Where?  
-InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 10; 0, 6)
+InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 1000; wh = 0, wm = 6)
 
 Slowdown here comes from |states|×|itlim| iterations.
 
@@ -66,6 +65,13 @@ function InexactConvergence(D::DynState,
     totv::Int64 = 0
     for k1 in keys(tracker)                                                               # these are states, complete with level.
         appr::Float64 = 0
+        current = now()
+        # Now this breaks out of the loop, but not the whole function!
+        if (current-strt)>wl 
+            println("Convergence check time exceeded!") 
+            return 0.0 # maybe it's the "return" that's causing the break, not the "break" itself.  
+            break 
+        end 
         for i = 1:itlim
             nextstate = DictRandomize(outvals[k], elts, wgts)                             # gets the next state. 
             # TODO - scale the euler constant in App Continuation.  
@@ -75,14 +81,7 @@ function InexactConvergence(D::DynState,
             InvCosts(StateShorten(nextstate), false, inv_costs)
             v::Float64 = AppChoice(all_locs[k], k, p1, p2, D, inv_costs)                  # this has roughly the right scale.
             appr += c + v 
-            ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
-            if i%10 == 0
-              current = now()
-              if (current-strt)>wl 
-                println("Convergence check time exceeded!") 
-                break 
-              end 
-            end   
+            ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])  
         end 
         if haskey(approxvals, k1)
             approxvals[k1] += appr/itlim
