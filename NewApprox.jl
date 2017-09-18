@@ -109,10 +109,8 @@ function NewApprox(D::DynState,
     MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
     InvCosts(st_dict[k], false, inv_costs)
     outvals[k][nextstate] = (1-(1/(1+tracker[nextstate])))*(outvals[k][nextstate]) + (1/(1+tracker[nextstate]))*(AppChoice(all_locs[k], k, p1, p2, D, inv_costs)) # only map the state out to one element of outvals.
-    #println("its: ", its, " min: ", OutMin(outvals, tracker, k))
     ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])              # set it back 
-    # Check time every 100 iterations
-    if its%10 == 0
+    if its%10 == 0                                                                      # Check time every 100 iterations
       current = now()
       if (current-strt)>wl 
         println("Time exceeded!") 
@@ -120,10 +118,7 @@ function NewApprox(D::DynState,
         break 
       end 
     end 
-    # Check convergence every 1,000,000 - takes 7 minutes for a large state.
-    # TODO - Inexact Convergence does not check the time.  That is a big problem, since it is so slow!  Need to fix/work around. 
-    # TODO - check that InexactConvergence will check using correct wlh, wlm   
-    if its%1_000_000 == 0  
+    if its%1_000_000 == 0                                                               # Check convergence every 1,000,000 - takes 7 minutes for a large state.
       cv::Float64 = InexactConvergence(D, chunk, p1, p2, tracker, outvals, 100; wh = wlh, wm = wlm)
       if cv < 1e-6
         converge = false # stop.
