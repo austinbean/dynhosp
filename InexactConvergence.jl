@@ -66,11 +66,10 @@ function InexactConvergence(D::DynState,
     for k1 in keys(tracker)                                                               # these are states, complete with level.
         appr::Float64 = 0
         current = now()
-        # Now this breaks out of the loop, but not the whole function!
         if (current-strt)>wl 
             println("Convergence check time exceeded!") 
-            return 0.0 # maybe it's the "return" that's causing the break, not the "break" itself.  
-            break 
+            return 1.0                                                                    #  it's the "return" that's causing the break, not the "break" itself.  
+            break                                                                         # this line has no effect.
         end 
         for i = 1:itlim
             nextstate = DictRandomize(outvals[k], elts, wgts)                             # gets the next state. 
