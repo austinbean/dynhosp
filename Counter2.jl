@@ -3514,14 +3514,14 @@ end
 Computes a continuation value for the PM approximation.
 Takes a next state and a section of the outvals for one firm, i.e., a single firm's values.
 
-# TODO -  the eulergamma term needs to be scaled
-
 """
 function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64},Float64})
-  β::Float64 = 0.95
+  const scalefact::Float64 = 3.0e9
+  const β::Float64 = 0.95
   s1::Float64 = 0.0
   s2::Float64 = 0.0
   s3::Float64 = 0.0
+  sc_g::Float64 = eulergamma/scalefact
   if haskey(vals, (nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1))
     s1 = vals[(nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1)]
   else
@@ -3545,7 +3545,7 @@ function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64
   pr2::Float64 = abs(s2)/ss
   pr3::Float64 = abs(s3)/ss 
   if (s1!=0.0)||(s2!=0.0)||(s3!=0.0)  
-    return β*(s1*pr1+s2*pr2+s3*pr3)+β*(eulergamma-log(pr1)*pr1-log(pr2)*pr2-log(pr3)*pr3)
+    return β*(s1*pr1+s2*pr2+s3*pr3)+β*(sc_g-log(pr1)*pr1-log(pr2)*pr2-log(pr3)*pr3)
   else 
     return 0.0
   end 
