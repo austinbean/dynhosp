@@ -43,7 +43,7 @@ function InexactConvergence(D::DynState,
                             wh::Int64 = 100, 
                             wm::Int64 = 0)
     strt = now()
-    wl = Dates.Millisecond(Dates.Hour(wh)) + Dates.Millisecond(Dates.Minute(wm)) - Dates.Millisecond(Dates.Minute(5))
+    wl = Dates.Millisecond(Dates.Hour(wh)) + Dates.Millisecond(Dates.Minute(wm)) - Dates.Millisecond(Dates.Minute(10))
     approxvals::Dict{NTuple{10, Int64},Float64} = Dict{NTuple{10, Int64},Float64}()       # put results of approximation here.  
     all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
     st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
@@ -73,7 +73,6 @@ function InexactConvergence(D::DynState,
         end 
         for i = 1:itlim
             nextstate = DictRandomize(outvals[k], elts, wgts)                             # gets the next state. 
-            # TODO - scale the euler constant in App Continuation.  
             c::Float64 = AppContinuation(nextstate, outvals[k])           
             r::Int64 = MakeConfig(nextstate, dists, altstates, statehold)
             MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
