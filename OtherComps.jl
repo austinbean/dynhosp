@@ -125,13 +125,17 @@ function AverageD(D::DynState,
   end
   # need to keep facility specific patient counts.  
   # For each hospital (fid), how many people traveled how far to the hospital (from each zip)
-  medss = Dict{Int64,Array{1,DR}}()
-  privs = Dict{Int64, Array{1,DR}}()
+  medcounts = Dict{Int64,Array{1,DR}}()
+  privcounts = Dict{Int64, Array{1,DR}}()
   totald = Dict{Int64,Float64}()
   for k1 in nfds # preallocate these.  No reason not to.  
     medcounts[k1] = Array{1,DR}()
     privcounts[k1] = Array{1,DR}()
   end  
+  # preallocate patient counts:
+  pcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  mcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  temparr = zeros(2, 12)
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
   inv_costs = zeros(9)
@@ -145,11 +149,23 @@ function AverageD(D::DynState,
         # Enumerate facilities, list all patients, run this demand est on each hosp,
         # at each zip, record distance, this multiplied by numbers gives total miles.  Then divide by number of people.
         # Can incorporate mortality here too.  
-        # TODO - need temparr, pcount, mcount 
-        DemComp(el.putils, temparr, pcount, f, PatExpByType(el.pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
-        DemComp(el.mutils, temparr, mcount, f, PatExpByType(el.mcounts, false)) 
-
-        push!(medcounts[k], )
+        # TODO - f is fid, 
+        for i = 1:size(D.all[location].mk.m,1)
+            # these compute the demands.
+            DemComp(D.all[location].mk.m[i].putils, temparr, pcount, f, PatExpByType(el.pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
+            DemComp(D.all[location].mk.m[i].mutils, temparr, mcount, f, PatExpByType(el.mcounts, false)) 
+            # copy the pcount and mcount 
+            mc1, pc1 = CopyCount(pcount, mcount) # TODO - write this.
+            # now measure the distance.
+            d1 = distance(D.all[location].lat, D.all[location].long, D.all[location].mk.m[i].lat, D.all[location].mk.m[i].long)
+            # push the copied p and m 
+            push!(medcounts[k], DR(mc1, d1))
+            push!(privcounts[k], DR(pc1, d1))
+            # reset patient counts 
+            ResetP(pcount)
+            ResetP(mcount) 
+        end 
+        
         UtilDown(D.all[location])
         ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
       end 
@@ -159,6 +175,24 @@ function AverageD(D::DynState,
   # Return equilibrium values:
   return outvals
 end
+
+
+function ResetP(pp::patientcount)
+ pp.count385 = 0.0
+ pp.count386 = 0.0
+ pp.count387 = 0.0
+ pp.count388 = 0.0
+ pp.count389 = 0.0
+ pp.count390 = 0.0
+ pp.count391 = 0.0
+end 
+
+function CopyCount(pc::patientcount, mc::patientcount)
+
+
+    return p1, p2 
+end 
+
 
 
 
