@@ -124,16 +124,14 @@ function AverageD(D::DynState,
     totest[D.all[el].fid] = false                                                       # all facilities to do initially set to false.  
   end
   # need to keep facility specific patient counts.  
-  medss = Dict{Int64,Array{1,ProjectModule.DR}}()
-  privs = Dict{Int64, Array{1,ProjectModule.DR}}()
+  # For each hospital (fid), how many people traveled how far to the hospital (from each zip)
+  medss = Dict{Int64,Array{1,DR}}()
+  privs = Dict{Int64, Array{1,DR}}()
   totald = Dict{Int64,Float64}()
-  for k1 in nfds
-    medcounts[k1] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-    privcounts[k1] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-    totald[k1] = 0.0 # record total distance.
-  end 
-
-
+  for k1 in nfds # preallocate these.  No reason not to.  
+    medcounts[k1] = Array{1,DR}()
+    privcounts[k1] = Array{1,DR}()
+  end  
   altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
   converge::Bool = true
   inv_costs = zeros(9)
@@ -147,19 +145,13 @@ function AverageD(D::DynState,
         # Enumerate facilities, list all patients, run this demand est on each hosp,
         # at each zip, record distance, this multiplied by numbers gives total miles.  Then divide by number of people.
         # Can incorporate mortality here too.  
-        DSimNew(D.all[location].mk, fid, p1, p2)                 # Computes the demand for that level.
+        # TODO - need temparr, pcount, mcount 
+        DemComp(el.putils, temparr, pcount, f, PatExpByType(el.pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
+        DemComp(el.mutils, temparr, mcount, f, PatExpByType(el.mcounts, false)) 
+
+        push!(medcounts[k], )
         UtilDown(D.all[location])
         ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
-        d1 = 0.0
-        for k1 in keys(medcounts)
-
-        end 
-
-        for k1 in nfds 
-            # clean up medcounts and privcounts
-            Clean...(medcounts[k1])
-            Clean...(privcounts[k1])
-        end 
       end 
     end  
     its += 1
