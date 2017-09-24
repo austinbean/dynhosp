@@ -198,3 +198,54 @@ function CopyCount(pc::patientcount, mc::patientcount)
     p2.count391 += mc.count391 
     return p1, p2 
 end 
+
+
+"""
+`TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::Dict{NTuple{10,Int64}, Dict{Int64, Array{DR,1}}})`
+Compute the average distances traveled per market config.  
+"""
+function TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::Dict{NTuple{10,Int64}, Dict{Int64, Array{DR,1}}}, f::Int64) 
+  # outp... fid, nine states, one level, one count of patients, one average distance
+  cols = 13
+  rows = mc.count 
+  outp = zeros(rows, cols)
+  rc = 1 # row counter
+  for k1 in keys(mc)       # the state config
+    pats::Float64 = 0.0
+    ds::Float64 = 0.0
+    for k2 in keys(mc[k1]) # the other firms.
+      for i = 1:size(mc[k1][k2],1)
+        a1, b1 = DREX(mc[k1][k2][i])
+        pats += a1
+        ds += a1*b1
+      end 
+    end 
+    println(ds)
+    # now put it in the output in some way... 
+    outp[rc,1] = f 
+    for j = 1:length(k1)
+      outp[rc, j+1] = k1[j]
+    end 
+    outp[rc,12] += pats 
+    outp[rc,13] += (ds/pats)
+    rc += 1
+  end 
+  return outp
+end
+
+
+"""
+`DREX(d::DR)`
+Returns sum of patients and distance.
+"""
+function DREX(d::DR)
+  return sum(d.p), d.d 
+end 
+
+
+
+
+#=
+
+
+=#
