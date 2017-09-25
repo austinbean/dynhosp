@@ -62,13 +62,7 @@ function AverageD(D::DynState,
   converge::Bool = true
   inv_costs = zeros(9)
   k = D.all[chunk[1]].fid  
-  while (its<2)                                                                         # if true keep going.  
-    # just do this for the key of the main firm.  
-    # create the state - and do this for ALL levels. 
-    # This is not right - we need to compute ALL demands for ALL facilities.  But that's quite doable.
-    # Enumerate facilities, list all patients, run this demand est on each hosp,
-    # at each zip, record distance, this multiplied by numbers gives total miles.  Then divide by number of people.
-    # Can incorporate mortality here too.                                                        
+  while (its<2)                                                                         # if true keep going.                                                         
     for r in 1:size(altstates,1)                                                      # Chooses a configuration. 
       st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
       MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
@@ -220,7 +214,6 @@ function TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::
         ds += a1*b1
       end 
     end 
-    println(ds)
     # now put it in the output in some way... 
     outp[rc,1] = f 
     for j = 1:length(k1)
