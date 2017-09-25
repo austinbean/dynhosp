@@ -15,6 +15,13 @@ How much does the average patient travel in excess of the regular arrangement?
 - What are the costs of that travel?
 
 
+for i = 1:size(a1[(0, 0, 0, 0, 0, 0, 1, 0, 0, 2)][3490795],1)
+       println(sum(a1[(0, 0, 0, 0, 0, 0, 1, 0, 0, 1)][3490795][i].p) )
+       println(sum(a1[(0, 0, 0, 0, 0, 0, 1, 0, 0, 2)][3490795][i].p) ) 
+       println(sum(a1[(0, 0, 0, 0, 0, 0, 1, 0, 0, 3)][3490795][i].p))
+       println("********")
+end 
+
 dyn = CounterObjects(1);
 chunk = [1];
 p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -68,6 +75,7 @@ function AverageD(D::DynState,
       MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
       original = D.all[chunk[1]].level                          # save the orginal level. 
       D.all[chunk[1]].level = 1
+      # Check the utility before and after this point.  How can it not be working?  
       UpdateD(D.all[all_locs[k]])                                  # updates the utility for a new level only for the main firm.
       k1 = NStateKey(st_dict[k],1) 
       medcounts[k1] =  Dict{Int64,Array{DR,1} }()
@@ -93,10 +101,9 @@ function AverageD(D::DynState,
       end 
       UtilDown(D.all[all_locs[k]])
       PatientZero(pcount, mcount)
-      ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
       # Level 2
       k2 = NStateKey(st_dict[k],2)
-      D.all[chunk[1]].level = 1
+      D.all[chunk[1]].level = 2
       UpdateD(D.all[all_locs[k]])
       medcounts[k2] =  Dict{Int64,Array{DR,1} }()
       privcounts[k2] =  Dict{Int64,Array{DR,1} }()
@@ -123,7 +130,7 @@ function AverageD(D::DynState,
       PatientZero(pcount, mcount)
       # Level 3
       k3 = NStateKey(st_dict[k],3)
-      D.all[chunk[1]].level = 1
+      D.all[chunk[1]].level = 3
       UpdateD(D.all[all_locs[k]])  
       medcounts[k3] =  Dict{Int64,Array{DR,1} }()
       privcounts[k3] =  Dict{Int64,Array{DR,1} }()
@@ -147,6 +154,7 @@ function AverageD(D::DynState,
         end 
       end 
       UtilDown(D.all[all_locs[k]])
+      ResetCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:]) # set it back 
       PatientZero(pcount, mcount)
       D.all[chunk[1]].level = original
     end 
@@ -197,6 +205,15 @@ end
 """
 `TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::Dict{NTuple{10,Int64}, Dict{Int64, Array{DR,1}}})`
 Compute the average distances traveled per market config.  
+
+dyn = CounterObjects(1);
+chunk = [1];
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+a1, b1 = AverageD(dyn, chunk, p1, p1);
+TakeAverage(a1, b1, 3490795)
+
 """
 function TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::Dict{NTuple{10,Int64}, Dict{Int64, Array{DR,1}}}, f::Int64) 
   # outp... fid, nine states, one level, one count of patients, one average distance
