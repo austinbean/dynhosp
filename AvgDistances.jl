@@ -28,6 +28,9 @@ p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
 AverageD(dyn, chunk, p1, p1)
+
+
+TODO - fix this... take a configuration.  Update that one configuration. 
 """
 function AverageD(D::DynState,
                   chunk::Array{Int64,1}, 
@@ -69,13 +72,13 @@ function AverageD(D::DynState,
   converge::Bool = true
   inv_costs = zeros(9)
   k = D.all[chunk[1]].fid  
-  while (its<2)                                                                         # if true keep going.                                                         
+  while (its<2)                                                                         
+    # TODO - take a market state.  Write this as a smaller function.                                                         
     for r in 1:size(altstates,1)                                                      # Chooses a configuration. 
       st_dict[k] = GiveState( D, chunk, all_locs, altstates[r,:], D.all[all_locs[k]].cns) 
       MapCompState(D, all_locs, chunk, FindFids(D, chunk), altstates[r,:])
       original = D.all[chunk[1]].level                          # save the orginal level. 
       D.all[chunk[1]].level = 1
-      # Check the utility before and after this point.  How can it not be working?  
       UpdateD(D.all[all_locs[k]])                                  # updates the utility for a new level only for the main firm.
       k1 = NStateKey(st_dict[k],1) 
       medcounts[k1] =  Dict{Int64,Array{DR,1} }()
@@ -162,6 +165,20 @@ function AverageD(D::DynState,
   end 
   return medcounts, privcounts
 end
+
+
+
+function MktD(d::DynState, chunk::Array{Int64,1}, st_dict::Dict{Int64,NTuple{9,Int64}}, all_locs::Dict{Int64,Int64}, conf::Array{Tuple{Int64,Int64},2})
+  st_dict[k] = GiveState( d, chunk, all_locs, conf, D.all[all_locs[k]].cns) 
+  MapCompState(d, all_locs, chunk, FindFids(D, chunk), conf)
+
+
+end 
+
+
+
+
+
 
 """
 `ResetP(pp::patientcount)`
