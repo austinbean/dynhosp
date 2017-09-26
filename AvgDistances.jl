@@ -182,6 +182,10 @@ conf = [(3490795, 1) (1391330, 2)]
 
 MktDistance(dyn, [1], all_locs, conf, medcounts, privcounts)
 
+TODO - Here is a problem: this records the state of the neighbors, but not including the main firm. 
+So all of that will get overwritten.  This is a problem, but it can be avoided, I think.  Change the 
+main state by 1 in the relevant 0-5 bin.  
+
 """
 function MktDistance(d::DynState, 
                      chunk::Array{Int64,1}, 
@@ -194,9 +198,10 @@ function MktDistance(d::DynState,
   MapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
   medcounts[state] =  Dict{Int64,Array{DR,1} }()
   privcounts[state] =  Dict{Int64,Array{DR,1} }()
-  privcounts = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  medcounts = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  pcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  mcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
   fds = Array{Int64,1}()
+  temparr = zeros(2, 12)
   for el in conf 
     push!(fds, el[1])
   end 
@@ -205,6 +210,8 @@ function MktDistance(d::DynState,
     privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
     for i = 1:size(d.all[all_locs[k]].mk.m,1)
         # these compute the demands.
+        # TODO - maybe I want to use an even lower level demand function to get all choices in the zip.  
+        # That would be better.  
         DemComp(d.all[all_locs[k]].mk.m[i].putils, temparr, pcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
         DemComp(d.all[all_locs[k]].mk.m[i].mutils, temparr, mcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].mcounts, false)) 
         # copy the pcount and mcount 
@@ -279,20 +286,21 @@ a1, b1 = AverageD(dyn, chunk, p1, p1);
 TakeAverage(a1, b1, 3490795)
 
 """
-function TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::Dict{NTuple{10,Int64}, Dict{Int64, Array{DR,1}}}, f::Int64) 
+function TakeAverage(mc::Dict, pc::Dict, f::Int64) 
   # outp... fid, nine states, one level, one count of patients, one average distance
+  # Level can be omitted, but then one column is always zero.  
   cols = 13
   rows = mc.count 
   outp = zeros(rows, cols)
-  rc = 1 # row counter
-  for k1 in keys(mc)       # the state config
+  rc = 1                                # row counter
+  for k1 in keys(mc)                    # the state 
     pats::Float64 = 0.0
     ds::Float64 = 0.0
-    for k2 in keys(mc[k1]) # the other firms.
+    for k2 in keys(mc[k1])              # the other firms.
       for i = 1:size(mc[k1][k2],1)
         a1, b1 = DREX(mc[k1][k2][i])
-        pats += a1
-        ds += a1*b1
+        pats += a1                      # records total number of patients.
+        ds += a1*b1                     # records distance traveled by patients in that zip.
       end 
     end 
     # now put it in the output in some way... 
@@ -301,7 +309,7 @@ function TakeAverage(mc::Dict{NTuple{10,Int64}, Dict{Int64,Array{DR,1} } }, pc::
       outp[rc, j+1] = k1[j]
     end 
     outp[rc,12] += pats 
-    outp[rc,13] += (ds/pats)
+    outp[rc,13] += (ds/pats)          # this is: total number of miles traveled divided by all patients to that hospital.  
     rc += 1
   end 
   return outp
