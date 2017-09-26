@@ -205,26 +205,24 @@ function MktDistance(d::DynState,
   for el in conf 
     push!(fds, el[1])
   end 
-  for k in fds # this will go over all of the neighboring firms. 
-    medcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
-    privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
-    for i = 1:size(d.all[all_locs[k]].mk.m,1)
-        # these compute the demands.
-        # TODO - maybe I want to use an even lower level demand function to get all choices in the zip.  
-        # That would be better.  But I think all I really want to do is update the zips attached to one facility.
-        # that's easier anyway - don't need all_locs.  Just need nfds.
-        DemComp(d.all[all_locs[k]].mk.m[i].putils, temparr, pcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
-        DemComp(d.all[all_locs[k]].mk.m[i].mutils, temparr, mcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].mcounts, false)) 
-        # copy the pcount and mcount 
-        mc1, pc1 = CopyCount(pcount, mcount) 
-        # now measure the distance.
-        d1 = distance(d.all[all_locs[k]].lat, d.all[all_locs[k]].long, d.all[all_locs[k]].mk.m[i].lat, d.all[all_locs[k]].mk.m[i].long)
-        # push the copied p and m 
-        push!(medcounts[state][d.all[all_locs[k]].fid], DR(mc1, d1))
-        push!(privcounts[state][d.all[all_locs[k]].fid], DR(pc1, d1))
-        # reset patient counts 
-        ResetP(pcount)
-        ResetP(mcount) 
+  medcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+  privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+  d1 = Dict{Int64,patientcount}()
+  d2 = Dict{Int64,patientcount}()
+  for i = 1:size(d.all[all_locs[k]].mk.m,1)
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
+    for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
+      mc1, pc1 = CopyCount(d1[fr], d2[fr]) 
+      # now measure the distance.
+      # FIXME - this won't work when fr = 0.
+      d1 = DistanceGet(d, fr, d.all[all_locs[fr]].mk.m[i].lat, d.all[all_locs[fr]].mk.m[i].long)
+      # push the copied p and m 
+      push!(medcounts[state][d.all[all_locs[k]].fid], DR(mc1, d1))
+      push!(privcounts[state][d.all[all_locs[k]].fid], DR(pc1, d1))
+      # reset patient counts 
+      ResetP(pcount)
+      ResetP(mcount) 
     end 
   end 
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
@@ -241,17 +239,67 @@ For EACH hospital
 A set of DR's. 
 So it must include a dict of fid,patientcount.
 d1 is {fid, Array{DR,1}}
-"""
-function TotalMktDemand(inparr::Array{Float64,2},temparr::Array{Float64,2}, d1::Dict{Int64, Array{DR,1}}, pp::patientcount)
-  # DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)  
-  # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
-  WTPNew(inparr, temparr) # updates temparr - now holds fids/WTP.
-  for i = 1:size(temparr,2)
-    # this isn't right yet... How do I find out WHICH element of d1 is the right one?  
 
-  end 
-  # returns nothing - operates on d1.
+
+dyn = CounterObjects(1);
+chunk = [1];
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+all_locs = Dict(3490795=>1, 1391330=>90)
+
+
+tempa = zeros(2,12)
+d1 = Dict{Int64,patientcount}()
+for el in dyn.all[10].mk.m[1].putils[1,:]
+  d1[el] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 end 
+TotalMktDemand(dyn.all[120].mk.m[1].putils, tempa, d1, PatExpByType(dyn.all[120].mk.m[1].pcounts, true))
+
+## Can test: ##
+sum(PatExpByType(dyn.all[11].mk.m[1].pcounts, true))
+tp = 0.0
+for k1 in keys(d1)
+  tp += sum(d1[k1])
+end
+This works in the cases I checked.  
+"""
+function TotalMktDemand(inparr::Array{Float64,2},temparr::Array{Float64,2}, d1::Dict{Int64, patientcount},pp::patientcount)
+  WTPNew(inparr, temparr)                                           # updates temparr - now holds fids/WTP.
+  for i = 1:size(temparr,2)                                         # this will loop over some zeros, but those will have zero mkt share.
+    if !haskey(d1, temparr[1,i])
+      d1[temparr[1,i]] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)  # add the key if it happens to not be there.  
+    end 
+    d1[temparr[1,i]].count385 += pp.count385*temparr[2,i]
+    d1[temparr[1,i]].count386 += pp.count386*temparr[2,i]
+    d1[temparr[1,i]].count387 += pp.count387*temparr[2,i]
+    d1[temparr[1,i]].count388 += pp.count388*temparr[2,i]
+    d1[temparr[1,i]].count389 += pp.count389*temparr[2,i]
+    d1[temparr[1,i]].count390 += pp.count390*temparr[2,i]
+    d1[temparr[1,i]].count391 += pp.count391*temparr[2,i]
+  end 
+end 
+
+
+"""
+`DistanceGet`
+Finds the location of f, the computes the distance, then returns a float with the distance.  
+"""
+function DistanceGet(d::DynState, f::Int64, lat::Float64, long::Float64)
+  fid = 0
+  dist = 0.0
+  for i = 1:size(d.all, 1)
+    if d.all[i].fid == f 
+      fid = i 
+      break 
+    end 
+  end 
+  if fid != 0
+    dist += distance(lat, long, dyn.all[fid].lat, dyn.all[fid].long)
+  end 
+  return dist 
+end 
+
 
 """
 `ResetP(pp::patientcount)`
