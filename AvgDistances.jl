@@ -211,7 +211,8 @@ function MktDistance(d::DynState,
     for i = 1:size(d.all[all_locs[k]].mk.m,1)
         # these compute the demands.
         # TODO - maybe I want to use an even lower level demand function to get all choices in the zip.  
-        # That would be better.  
+        # That would be better.  But I think all I really want to do is update the zips attached to one facility.
+        # that's easier anyway - don't need all_locs.  Just need nfds.
         DemComp(d.all[all_locs[k]].mk.m[i].putils, temparr, pcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
         DemComp(d.all[all_locs[k]].mk.m[i].mutils, temparr, mcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].mcounts, false)) 
         # copy the pcount and mcount 
@@ -231,8 +232,26 @@ end
 
 
 
+"""
+`TotalMktDemand`
+Here I need to compute the demand for everyone in the zip actually...
+Then I want to take this over all zips.
+EACH ZIP must include...
+For EACH hospital
+A set of DR's. 
+So it must include a dict of fid,patientcount.
+d1 is {fid, Array{DR,1}}
+"""
+function TotalMktDemand(inparr::Array{Float64,2},temparr::Array{Float64,2}, d1::Dict{Int64, Array{DR,1}}, pp::patientcount)
+  # DemComp(inparr::Array{Float64,2}, temparr::Array{Float64,2}, pp::patientcount,fid::Int64, c::patientcount)  
+  # NB: inparr is a sub-field of cpats.  inparr is either c.putils or c.mutils.
+  WTPNew(inparr, temparr) # updates temparr - now holds fids/WTP.
+  for i = 1:size(temparr,2)
+    # this isn't right yet... How do I find out WHICH element of d1 is the right one?  
 
-
+  end 
+  # returns nothing - operates on d1.
+end 
 
 """
 `ResetP(pp::patientcount)`
