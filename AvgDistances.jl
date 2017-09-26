@@ -166,13 +166,60 @@ function AverageD(D::DynState,
   return medcounts, privcounts
 end
 
+"""
+`MktDistance`
 
+dyn = CounterObjects(1);
+chunk = [1];
+p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
-function MktD(d::DynState, chunk::Array{Int64,1}, st_dict::Dict{Int64,NTuple{9,Int64}}, all_locs::Dict{Int64,Int64}, conf::Array{Tuple{Int64,Int64},2})
-  st_dict[k] = GiveState( d, chunk, all_locs, conf, D.all[all_locs[k]].cns) 
-  MapCompState(d, all_locs, chunk, FindFids(D, chunk), conf)
+all_locs = Dict(3490795=>1, 1391330=>90)
 
+medcounts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+conf = [(3490795, 1) (1391330, 2)]
 
+MktDistance(dyn, [1], all_locs, conf, medcounts, privcounts)
+
+"""
+function MktDistance(d::DynState, 
+                     chunk::Array{Int64,1}, 
+                     all_locs::Dict{Int64,Int64}, 
+                     conf::Array{Tuple{Int64,Int64},2}, 
+                     medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
+                     privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})
+  k = d.all[chunk[1]].fid 
+  state = GiveState(d, chunk, all_locs, conf, d.all[all_locs[k]].cns) 
+  MapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
+  medcounts[state] =  Dict{Int64,Array{DR,1} }()
+  privcounts[state] =  Dict{Int64,Array{DR,1} }()
+  privcounts = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  medcounts = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  fds = Array{Int64,1}()
+  for el in conf 
+    push!(fds, el[1])
+  end 
+  for k in fds # this will go over all of the neighboring firms. 
+    medcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+    privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+    for i = 1:size(d.all[all_locs[k]].mk.m,1)
+        # these compute the demands.
+        DemComp(d.all[all_locs[k]].mk.m[i].putils, temparr, pcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].pcounts, true))  # pcount is an empty, pre-allocated patientcount into which results are written.
+        DemComp(d.all[all_locs[k]].mk.m[i].mutils, temparr, mcount, d.all[all_locs[k]].fid, PatExpByType(d.all[all_locs[k]].mk.m[i].mcounts, false)) 
+        # copy the pcount and mcount 
+        mc1, pc1 = CopyCount(pcount, mcount) 
+        # now measure the distance.
+        d1 = distance(d.all[all_locs[k]].lat, d.all[all_locs[k]].long, d.all[all_locs[k]].mk.m[i].lat, d.all[all_locs[k]].mk.m[i].long)
+        # push the copied p and m 
+        push!(medcounts[state][d.all[all_locs[k]].fid], DR(mc1, d1))
+        push!(privcounts[state][d.all[all_locs[k]].fid], DR(pc1, d1))
+        # reset patient counts 
+        ResetP(pcount)
+        ResetP(mcount) 
+    end 
+  end 
+  ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
 
 
