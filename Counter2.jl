@@ -2593,7 +2593,7 @@ function UtilUp(c::cpats,
   # BE CAREFUL CHANGING THE NEXT TWO LINES, even if they look wrong.  
   const inten2inter_p::Float64 = 0.31972186   # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
   const inter2inten_p::Float64 = -0.31972186    # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
-  # BE CAREFUL CHANING ABOVE TWO LINES.
+  # BE CAREFUL CHANGING ABOVE TWO LINES.
   const inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
   const inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
