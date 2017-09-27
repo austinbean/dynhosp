@@ -194,6 +194,7 @@ function MktDistance(d::DynState,
                      medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
                      privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})
   k = d.all[chunk[1]].fid 
+  # TODO - fix this tuple to get the neighbors but also the main firm.  
   state = GiveState(d, chunk, all_locs, conf, d.all[all_locs[k]].cns) 
   MapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
   medcounts[state] =  Dict{Int64,Array{DR,1} }()
@@ -210,20 +211,31 @@ function MktDistance(d::DynState,
   d1 = Dict{Int64,patientcount}()
   d2 = Dict{Int64,patientcount}()
   for i = 1:size(d.all[all_locs[k]].mk.m,1)
+    # these compute the whole market demand for the state, i.e., the tuple.
     TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
     TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
     for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
-      mc1, pc1 = CopyCount(d1[fr], d2[fr]) 
-      # now measure the distance.
-      # FIXME - this won't work when fr = 0.
-      d1 = DistanceGet(d, fr, d.all[all_locs[fr]].mk.m[i].lat, d.all[all_locs[fr]].mk.m[i].long)
-      # push the copied p and m 
-      push!(medcounts[state][d.all[all_locs[k]].fid], DR(mc1, d1))
-      push!(privcounts[state][d.all[all_locs[k]].fid], DR(pc1, d1))
-      # reset patient counts 
-      ResetP(pcount)
-      ResetP(mcount) 
+      fdd = d.all[all_locs[k]].mk.m[i].putils[1,fr]
+      if fdd != 0 # this skips the OO.
+        mc1, pc1 = CopyCount(d1[fdd], d2[fdd]) 
+        # now measure the distance.
+        dis = DistanceGet(d, fdd, d.all[all_locs[k]].mk.m[i].lat, d.all[all_locs[k]].mk.m[i].long)
+        # push the copied p and m 
+        if !haskey(medcounts[state], fdd)
+          medcounts[state][fdd] = Array{DR,1}()
+        end  
+        if !haskey(privcounts[state], fdd)
+          privcounts[state][fdd] = Array{DR,1}()
+        end 
+        push!(medcounts[state][fdd], DR(mc1, dis))
+        push!(privcounts[state][fdd], DR(pc1, dis))
+        # reset patient counts 
+        ResetP(pcount)
+        ResetP(mcount) 
+      end 
     end 
+    CleanMktDemand(d1)
+    CleanMktDemand(d2)
   end 
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
@@ -280,12 +292,28 @@ function TotalMktDemand(inparr::Array{Float64,2},temparr::Array{Float64,2}, d1::
   end 
 end 
 
+"""
+`CleanMktDemand`
+Takes market demand and cleans it - sets all back to zero.  
+"""
+function CleanMktDemand(d1::Dict{Int64, patientcount})
+  for k1 in keys(d1)
+    d1[k1].count385 = 0.0
+    d1[k1].count386 = 0.0
+    d1[k1].count387 = 0.0
+    d1[k1].count388 = 0.0
+    d1[k1].count389 = 0.0
+    d1[k1].count390 = 0.0
+    d1[k1].count391 = 0.0
+  end   
+end 
+
 
 """
 `DistanceGet`
 Finds the location of f, the computes the distance, then returns a float with the distance.  
 """
-function DistanceGet(d::DynState, f::Int64, lat::Float64, long::Float64)
+function DistanceGet(d::DynState, f, lat::Float64, long::Float64)
   fid = 0
   dist = 0.0
   for i = 1:size(d.all, 1)
@@ -322,6 +350,7 @@ Copies the patientcounts.  Allocates new ones.
 function CopyCount(pc::patientcount, mc::patientcount)
     p1::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
     p2::patientcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    # First. 
     p1.count385 += pc.count385 
     p1.count386 += pc.count386 
     p1.count387 += pc.count387 
@@ -329,6 +358,7 @@ function CopyCount(pc::patientcount, mc::patientcount)
     p1.count389 += pc.count389 
     p1.count390 += pc.count390 
     p1.count391 += pc.count391 
+    # Second 
     p2.count385 += mc.count385 
     p2.count386 += mc.count386 
     p2.count387 += mc.count387 
