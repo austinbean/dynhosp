@@ -40,20 +40,34 @@ conf2 = [(3396057,1) (3390720,1) (3396327,1) (3396189,1) (2910645, 3)]
 MktDistance(dyn, [11], conf2, medcounts, privcounts)
 
 # Large Market 
-medcounts1 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
-privcounts1 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+medcounts1 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts1 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
 chunk = [245];
-conf2 = [(4530190,3) (4916068,1) (4916029,1) (4536048,1) (4530200,1) (4536337,1) (4530170,1) (4536338,1) (4536253,1)]
-MktDistance(dyn, [245], conf2, medcounts1, privcounts1)
+conf2 = [(4530190,3) (4916068,1) (4916029,1) (4536048,1) (4530200,1) (4536337,1) (4530170,1) (4536338,1) (4536253,1)];
+MktDistance(dyn, [245], conf2, medcounts1, privcounts1);
 
-medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
-privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
 chunk = [245];
-conf2 = [(4530190,3) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)]
-MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
+conf2 = [(4530190,1) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)];
+MktDistance(dyn, [245], conf2, medcounts2, privcounts2);
+
+v1 = TakeAverage(dyn, medcounts1, privcounts1, 4530190)
+v2 = TakeAverage(dyn, medcounts2, privcounts2, 4530190)
 
 # TODO - not working yet.  Patients declining weirdly in last test case.  
 
+  for i = 1:size(d.all, 1)
+    if d.all[i].fid == conf[1][1]
+        for j = 1:size(dyn.all[i].mk.m,1)
+            for k = 1:size(dyn.all[i].mk.m[j].putils[1,:], 1)
+                if dyn.all[i].mk.m[j].putils[1,k] == conf[1][1]
+                    println(dyn.all[i].mk.m[j].zp, "  ", dyn.all[i].mk.m[j].putils[2,k])
+                end 
+            end 
+        end 
+    end 
+  end
 """
 function MktDistance(d::DynState, 
                      chunk::Array{Int64,1},  
