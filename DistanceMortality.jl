@@ -326,6 +326,7 @@ Computes Medicaid and Private patient mortality among all hospitals.
 
 
 ## Testing ## 
+dyn = CounterObjects(1);
 
 medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
 privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
@@ -340,10 +341,12 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
                    mp_lin::Float64 = 0.005,
                    mp_quad::Float64 = 0.0,
                    nicad::Float64 = 0.06,
-                   fvlbw::Float64 = 0.014)
+                   fvlbw::Float64 = 0.014,
+                   regionalize::Bool = false,
+                   sp_fid::Int64 = 99999999)
   fds = Array{Int64,1}()
-  rws = length(conf)
-  for i = 1:rws 
+  rws = length(conf)+1
+  for i = 1:(rws-1) 
     push!(fds, conf[i][1])                   # collect the fids. 
   end 
   cls = 6                                    # fid, number of admits, nicu admits, vlbw, mortality rate, total deaths
@@ -365,15 +368,33 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
         cvln = fvlbw*ct                      # count of vlbw patients 
         mp = MortProb(cvln; lp = mp_lin, qp = mp_quad)
         mort = cvln*mp 
-        outp[rc, 1] = k2  
-        outp[rc, 2] = ct 
-        outp[rc, 3] = cna 
-        outp[rc, 4] = cvln
-        outp[rc, 5] = mp 
-        outp[rc, 6] = mort 
+        outp[rc, 1] = k2                     # firm fid 
+        outp[rc, 2] = ct                     # birth count 
+        outp[rc, 3] = cna                    # nicu admits 
+        outp[rc, 4] = cvln                   # vlbw 
+        outp[rc, 5] = mp                     # mort prob 
+        outp[rc, 6] = mort                   # total mort
         rc += 1
       end 
     end 
+  end 
+  if regionalize 
+    outp[rws, 1] = sp_fid                            # special fid in regionalized case 
+    outp[rws, 2] = sum(outp[:,2])                    # total birth count 
+    nic_ad = sum(outp[:,3])                          # total nicu admits in market
+    outp[rws, 3] = nic_ad          
+    vlbw_t = sum(outp[:,4])                          # total vlbw in market
+    outp[rws, 4] = vlbw_t           
+    mp = MortProb(vlbw_t; lp = mp_lin, qp = mp_quad) # mortality prob given total volume.
+    outp[rws, 5] = mp   
+    outp[rws, 6] = mp*vlbw_t                         # total mortality in market 
+  else 
+    outp[rws, 1] = sp_fid                            # here fid will be 999999 - not regionalizing.  
+    outp[rws, 2] = sum(outp[:,2])                    # total birth count 
+    outp[rws, 3] = sum(outp[:,3])                    # total nicu admits 
+    outp[rws, 4] = sum(outp[:,4])                    # total vlbw 
+    outp[rws, 5] = mean(outp[1:(rws-1),5])           # mean mortality rate over all facilities.
+    outp[rws, 6] = sum(outp[:,6])                    # total mortality 
   end 
   return outp 
 end 
@@ -384,7 +405,7 @@ end
 Returns a volume-implied hospital specific mortality rate.
 Uses estimates from the TX Birth Certificate Data.
 """
-function MortProb(v;lp::Float64 = 0.005, qp::Float64 = 0.0001)
+function MortProb(v::T;lp::Float64 = 0.005, qp::Float64 = 0.0001) where T <: Real
   return (lp*v)+(qp*(v^2))
 end 
 
