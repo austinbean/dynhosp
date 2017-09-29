@@ -358,17 +358,19 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
                    fvlbw::Float64 = 0.014,
                    regionalize::Bool = false,
                    sp_fid::Int64 = 99999999)
+  Ns::Int64 = 100                            # draws of mortality rate.  
   fds = Array{Int64,1}()
   rws = length(conf)+1
   for i = 1:(rws-1) 
     push!(fds, conf[i][1])                   # collect the fids. 
   end 
-  cls = 6                                    # fid, number of admits, nicu admits, vlbw, mortality rate, total deaths
+  cls = 7                                    # fid, number of admits, nicu admits, vlbw, mortality rate, mean total deaths, sd total deaths.
   outp::Array{Float64,2} = zeros(rws, cls)
   rc = 1                                     # counts rows!  in outp.  
   for k1 in keys(mc)                         # this is the market state 
     for k2 in keys(mc[k1])                   # these are the firms.
       if in(k2, fds)                         # these are the relevant firms.
+        dths = zeros(Ns)                     # will hold the Ns draws of the mortality rate.  
         ct = 0.0                             # count of patients                         
         for j = 1:size(mc[k1][k2], 1)        # medicaid patients 
           a, b = DREX(mc[k1][k2][j])
@@ -380,35 +382,48 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
         end 
         cna = ct*nicad                       # count of nicu admitted patients.
         cvln = fvlbw*ct                      # count of vlbw patients 
-        mp = MortProb(cvln; lp = mp_lin, qp = mp_quad)
-        mort = cvln*mp 
+        mps = 0.0 
+        for m = 1:Ns
+          mp = MortProb(cvln; lp = mp_lin, qp = mp_quad)
+          mps += mp                          # track total of probs.
+          dths[m] = cvln*mp
+        end 
         outp[rc, 1] = k2                     # firm fid 
         outp[rc, 2] = ct                     # birth count 
         outp[rc, 3] = cna                    # nicu admits 
         outp[rc, 4] = cvln                   # vlbw 
-        outp[rc, 5] = mp                     # mort prob 
-        outp[rc, 6] = mort                   # total mort
+        outp[rc, 5] = mps/Ns                 # mort prob mean, over Ns draws.  
+        outp[rc, 6] = mean(dths)             # total mort mean 
+        outp[rc, 7] = std(dths)              # total mortality st. d.
         rc += 1
       end 
     end 
   end 
   if regionalize 
+    dths = zeros(Ns)
     outp[rws, 1] = sp_fid                            # special fid in regionalized case 
     outp[rws, 2] = sum(outp[:,2])                    # total birth count 
     nic_ad = sum(outp[:,3])                          # total nicu admits in market
     outp[rws, 3] = nic_ad          
     vlbw_t = sum(outp[:,4])                          # total vlbw in market
-    outp[rws, 4] = vlbw_t           
-    mp = MortProb(vlbw_t; lp = mp_lin, qp = mp_quad) # mortality prob given total volume.
-    outp[rws, 5] = mp   
-    outp[rws, 6] = mp*vlbw_t                         # total mortality in market 
+    outp[rws, 4] = vlbw_t  
+    mps = 0.0
+    for m = 1:Ns
+      mp = MortProb(cvln; lp = mp_lin, qp = mp_quad)
+      mps += mp 
+      dths[m] = cvln*mp
+    end          
+    outp[rws, 5] = mps/Ns   
+    outp[rws, 6] = mean(dths)                        # total mortality in market 
+    outp[rws, 7] = std(dths)                         # standard deviation of market deaths.  
   else 
+    dths = zeros(Ns)
     outp[rws, 1] = sp_fid                            # here fid will be 999999 - not regionalizing.  
     outp[rws, 2] = sum(outp[:,2])                    # total birth count 
     outp[rws, 3] = sum(outp[:,3])                    # total nicu admits 
     outp[rws, 4] = sum(outp[:,4])                    # total vlbw 
     outp[rws, 5] = mean(outp[1:(rws-1),5])           # mean mortality rate over all facilities.
-    outp[rws, 6] = sum(outp[:,6])                    # total mortality 
+    outp[rws, 6] = sum(outp[:,6])                    # total mean mortality 
   end 
   return outp 
 end 
@@ -418,9 +433,18 @@ end
 `MortProb(v;lp::Float64 = 0.5, qp::Float64 = 0.001)`
 Returns a volume-implied hospital specific mortality rate.
 Uses estimates from the TX Birth Certificate Data.
+
 """
-function MortProb(v::T;lp::Float64 = 0.005, qp::Float64 = 0.0001) where T <: Real
-  return (lp*v)+(qp*(v^2))
+function MortProb(v::T) where T <: Real
+  const lin_μ = 0.0001876 # this is just the probit iv of NNdeath on instrumented volume 
+  const lin_σ = 0.0000808
+  const quad_μ = 0.0
+  const quad_σ = 1.0
+  lind = Distributions.Normal(lin_μ, lin_σ)
+  lp = Distributions.rand(lind)
+  quad = Distributions.Normal(quad_μ, quad_σ)
+  qp = Distributions.rand(quad)
+  return (lp*v) # +(qp*(v^2))*0.0 # NOTE - quadratic component removed for now
 end 
 
 
