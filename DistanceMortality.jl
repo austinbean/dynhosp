@@ -442,6 +442,9 @@ function MortProb(v::T) where T <: Real
   const quad_σ = 1.0
   lind = Distributions.Normal(lin_μ, lin_σ)
   lp = Distributions.rand(lind)
+  if lp < 0
+    lp = abs(lp) # TODO: this is messing with the distribution a bit.  but this should rarely be negative.
+  end 
   quad = Distributions.Normal(quad_μ, quad_σ)
   qp = Distributions.rand(quad)
   return (lp*v) # +(qp*(v^2))*0.0 # NOTE - quadratic component removed for now
