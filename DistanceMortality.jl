@@ -384,8 +384,11 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
         cvln = fvlbw*ct                      # count of vlbw patients 
         mps = 0.0 
         for m = 1:Ns
-          mp = MortProb(cvln; lp = mp_lin, qp = mp_quad)
+          mp = MortProb(cvln)
           mps += mp                          # track total of probs.
+          if cvln*mp < 0.0
+            println("prob: ", mp, " count ", cvln)
+          end 
           dths[m] = cvln*mp
         end 
         outp[rc, 1] = k2                     # firm fid 
@@ -409,7 +412,7 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
     outp[rws, 4] = vlbw_t  
     mps = 0.0
     for m = 1:Ns
-      mp = MortProb(cvln; lp = mp_lin, qp = mp_quad)
+      mp = MortProb(cvln)
       mps += mp 
       dths[m] = cvln*mp
     end          
@@ -423,9 +426,12 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
     outp[rws, 3] = sum(outp[:,3])                    # total nicu admits 
     outp[rws, 4] = sum(outp[:,4])                    # total vlbw 
     outp[rws, 5] = mean(outp[1:(rws-1),5])           # mean mortality rate over all facilities.
-    outp[rws, 6] = sum(outp[:,6])                    # total mean mortality 
+    outp[rws, 6] = sum(outp[:,6])/(rws-1)            # total mean mortality 
+    outp[rws, 7] = 0.0                               # not computing mean or sd of mortality rates.  
   end 
-  return outp 
+  out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
+  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
+  return out1
 end 
 
 
@@ -436,8 +442,9 @@ Uses estimates from the TX Birth Certificate Data.
 
 """
 function MortProb(v::T) where T <: Real
-  const lin_μ = 0.0001876 # this is just the probit iv of NNdeath on instrumented volume 
-  const lin_σ = 0.0000808
+  # this isn't right yet.  
+  const lin_μ = -0.0002086 # this is just the probit iv of NNdeath on instrumented volume 
+  const lin_σ = .0000985
   const quad_μ = 0.0
   const quad_σ = 1.0
   lind = Distributions.Normal(lin_μ, lin_σ)
