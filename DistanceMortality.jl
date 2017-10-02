@@ -1,3 +1,6 @@
+using DataFrames  
+
+
 
 mutable struct DR # this is... how many patients traveled what distances from a zip. 
     p::patientcount 
