@@ -370,6 +370,13 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
                    regionalize::Bool = false,
                    sp_fid::Int64 = 99999999)
   Ns::Int64 = 100                            # draws of mortality rate.  
+  fidloc = 1                                 # fid  location 
+  birthloc = 2                               # total births location 
+  niculoc = 3                                # nicu admits location 
+  vlbwloc = 4                                # total vlbw location 
+  mploc = 5                                  # mortality prob location 
+  mortloc = 6                                # total mortality  location 
+  msdloc = 7                                 # mortality sd location 
   fds = Array{Int64,1}()
   rws = length(conf)+1
   for i = 1:(rws-1) 
@@ -402,43 +409,44 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
           end 
           dths[m] = cvln*mp
         end 
-        outp[rc, 1] = k2                     # firm fid 
-        outp[rc, 2] = ct                     # birth count 
-        outp[rc, 3] = cna                    # nicu admits 
-        outp[rc, 4] = cvln                   # vlbw 
-        outp[rc, 5] = mps/Ns                 # mort prob mean, over Ns draws.  
-        outp[rc, 6] = mean(dths)             # total mort mean 
-        outp[rc, 7] = std(dths)              # total mortality st. d.
+        println("mort check: ", mps, "  ", mps/Ns)
+        outp[rc, fidloc] = k2                 # firm fid 
+        outp[rc, birthloc] = ct               # birth count 
+        outp[rc, niculoc] = cna               # nicu admits 
+        outp[rc, vlbwloc] = cvln              # vlbw 
+        outp[rc, mploc] = mps/Ns              # mort prob mean, over Ns draws.  
+        outp[rc, mortloc] = mean(dths)        # total mort mean 
+        outp[rc, msdloc] = std(dths)          # total mortality st. d.
         rc += 1
       end 
     end 
   end 
   if regionalize 
     dths = zeros(Ns)
-    outp[rws, 1] = sp_fid                            # special fid in regionalized case 
-    outp[rws, 2] = sum(outp[:,2])                    # total birth count 
-    nic_ad = sum(outp[:,3])                          # total nicu admits in market
-    outp[rws, 3] = nic_ad          
-    vlbw_t = sum(outp[:,4])                          # total vlbw in market
-    outp[rws, 4] = vlbw_t  
+    outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
+    outp[rws, birthloc] = sum(outp[:,birthloc])           # total birth count 
+    nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
+    outp[rws, niculoc] = nic_ad          
+    cvln = sum(outp[:,vlbwloc])                           # total vlbw in market
+    outp[rws, vlbwloc] = cvln  
     mps = 0.0
     for m = 1:Ns
       mp = MortProb(cvln)
       mps += mp 
       dths[m] = cvln*mp
     end          
-    outp[rws, 5] = mps/Ns   
-    outp[rws, 6] = mean(dths)                        # total mortality in market 
-    outp[rws, 7] = std(dths)                         # standard deviation of market deaths.  
+    outp[rws, mploc] = mps/Ns   
+    outp[rws, mortloc] = mean(dths)                       # total mortality in market 
+    outp[rws, msdloc] = std(dths)                         # standard deviation of market deaths.  
   else 
     dths = zeros(Ns)
-    outp[rws, 1] = sp_fid                            # here fid will be 999999 - not regionalizing.  
-    outp[rws, 2] = sum(outp[:,2])                    # total birth count 
-    outp[rws, 3] = sum(outp[:,3])                    # total nicu admits 
-    outp[rws, 4] = sum(outp[:,4])                    # total vlbw 
-    outp[rws, 5] = mean(outp[1:(rws-1),5])           # mean mortality rate over all facilities.
-    outp[rws, 6] = sum(outp[:,6])/(rws-1)            # total mean mortality 
-    outp[rws, 7] = 0.0                               # not computing mean or sd of mortality rates.  
+    outp[rws, fidloc] = sp_fid                            # here fid will be 999999 - not regionalizing.  
+    outp[rws, birthloc] = sum(outp[:,2])                  # total birth count 
+    outp[rws, niculoc] = sum(outp[:,3])                   # total nicu admits 
+    outp[rws, vlbwloc] = sum(outp[:,4])                   # total vlbw 
+    outp[rws, mploc] = mean(outp[1:(rws-1),5])            # mean mortality rate over all facilities.
+    outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
+    outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.  
   end 
   #out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
   #names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
@@ -533,7 +541,7 @@ function MortProb(v::T) where T <: Real
   if lp < 0.0
     lp = abs(lp)                            # This is messing with the distribution a bit, but this should rarely be negative.
   end 
-  return (lp*v)                             # quadratic component could be added.
+  return lp                                 # quadratic component could be added.
 end 
 
 
@@ -629,20 +637,20 @@ function FindThem(d::DynState, es::EntireState)
     # under the equilibrium arrangement.  
     MktDistance(d, [ix], actual_arr, medcts, privcts)      # distances computed.
     a1 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    m1 = Mortality(medcts, privcts, actual_arr)            # what does this return?  
+    m1 = Mortality(medcts, privcts, actual_arr)            # This returns a matrix  
     WriteVals(medcts, privcts, a1, m1)
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the level 3 arrangement.
-    MktDistance(d, [ix], new_arr, medcts, privcts) # distances computed.
-    a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    m2 = Mortality(medcts, privcts, actual_arr) # what does this return?  
+    MktDistance(d, [ix], new_arr, medcts, privcts) 
+    a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1])  
+    m2 = Mortality(medcts, privcts, actual_arr)  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the regionalized arrangement 
-    MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
-    a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    m3 = Mortality(medcts, privcts, actual_arr; regionalize = true) # what does this return?  
+    MktDistance(d, [ix], actual_arr, medcts, privcts) 
+    a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) 
+    m3 = Mortality(medcts, privcts, actual_arr; regionalize = true)   
     CleanDistDict(medcts)
     CleanDistDict(privcts)
   end 
