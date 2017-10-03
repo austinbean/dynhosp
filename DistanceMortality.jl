@@ -615,15 +615,58 @@ function FindThem(d::DynState, es::EntireState)
         end 
       end 
     end
-    MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.  
-    Mortality(medcts, privcts, actual_arr)
-    CleanDicts(medcts, privcts)
+    # under the equilibrium arrangement.  
+    MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
+    TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
+      # TODO - mortality current returns dataframe.  remove and fix.   
+    Mortality(medcts, privcts, actual_arr) # what does this return?  
+    CleanDistDict(medcts)
+    CleanDistDict(privcts)
+    # under the level 3 arrangement.
+    MktDistance(d, [ix], new_arr, medcts, privcts) # distances computed.
+    TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
+      # TODO - mortality current returns dataframe.  remove and fix.   
+    Mortality(medcts, privcts, actual_arr) # what does this return?  
+    CleanDistDict(medcts)
+    CleanDistDict(privcts)
+    # under the regionalized arrangement 
+    MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
+    TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
+      # TODO - mortality current returns dataframe.  remove and fix.   
+    Mortality(medcts, privcts, actual_arr; regionalize = true) # what does this return?  
+    CleanDistDict(medcts)
+    CleanDistDict(privcts)
 
   end  
 end 
 
 
 
+
+"""
+
+
+mutable struct DR # this is... how many patients traveled what distances from a zip. 
+    p::patientcount 
+    d::Float64 
+end
+"""
+function CleanDistDict(d1::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}})
+  for k1 in keys(d1)
+    for k2 in keys(d1[k1])
+      for i = 1:size(d1[k1][k2],1)
+        d1[k1][k2][i].p.count385 = 0.0
+        d1[k1][k2][i].p.count386 = 0.0
+        d1[k1][k2][i].p.count387 = 0.0
+        d1[k1][k2][i].p.count388 = 0.0
+        d1[k1][k2][i].p.count389 = 0.0
+        d1[k1][k2][i].p.count390 = 0.0
+        d1[k1][k2][i].p.count391 = 0.0
+        d1[k1][k2][i].d = 0.0
+      end 
+    end 
+  end 
+end
 
 #=
 
