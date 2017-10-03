@@ -72,7 +72,7 @@ v2 = TakeAverage(dyn, medcounts2, privcounts2, 4530190)
 """
 function MktDistance(d::DynState, 
                      chunk::Array{Int64,1},  
-                     conf::Array{Tuple{Int64,Int64},2}, 
+                     conf::Array{Tuple{Int64,Int64},2}, # this does take a configuration argument.  
                      medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
                      privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})
   k = d.all[chunk[1]].fid 
@@ -277,12 +277,14 @@ end
 Compute the average distances traveled per market config.  
 
 dyn = CounterObjects(1);
-chunk = [1];
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
-a1, b1 = AverageD(dyn, chunk, p1, p1);
-TakeAverage(a1, b1, 3490795)
+medcounts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+conf2 = [(4530190,1) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)];
+MktDistance(dyn, [245], conf2, medcounts, privcounts);
+
+
+TakeAverage(dyn, medcounts, privcounts, 3490795)
 
 """
 function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
@@ -294,7 +296,7 @@ function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
       loc = i 
     end 
   end   
-  cols = 13    # outp... fid, nine states, one level, one count of patients, one average distance
+  cols = 13                             # outp... fid, nine states, one level, one count of patients, one average distance
   rows = mc.count 
   outp = zeros(rows, cols)
   rc = 1                                # row counter
@@ -323,7 +325,7 @@ function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
     end 
     # outp[rc,11] =  # Level can be omitted, but then one column is always zero.
     outp[rc,12] += pats 
-    outp[rc,13] += (ds/pats)          # this is: total number of miles traveled divided by all patients to that hospital.  
+    outp[rc,13] += (ds/max(pats,1))       # this is: total number of miles traveled divided by all patients to that hospital.  
     rc += 1
   end 
   return outp
@@ -353,8 +355,6 @@ Mortality(medcounts2, privcounts2, conf2)
 
 """
 function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
-                   mp_lin::Float64 = 0.005,
-                   mp_quad::Float64 = 0.0,
                    nicad::Float64 = 0.06,
                    fvlbw::Float64 = 0.014,
                    regionalize::Bool = false,
@@ -443,19 +443,87 @@ Uses estimates from the TX Birth Certificate Data.
 
 """
 function MortProb(v::T) where T <: Real
-  # this isn't right yet.  
-  const lin_μ = -0.0002086 # this is just the probit iv of NNdeath on instrumented volume 
-  const lin_σ = .0000985
-  const quad_μ = 0.0
-  const quad_σ = 1.0
-  lind = Distributions.Normal(lin_μ, lin_σ)
-  lp = Distributions.rand(lind)
-  if lp < 0
-    lp = abs(lp) # TODO: this is messing with the distribution a bit.  but this should rarely be negative.
+  lin_μ = 0.0
+  lin_σ = 0.0
+  if v >= 0.0 & v<20.0           # these are marginal effects at mean values from data.  
+    lin_μ = 0.151
+    lin_σ = 0.0005
+  elseif v>=20.0 & v <40.0
+    lin_μ = 0.0145
+    lin_σ = 0.0004
+  elseif v>=40.0 & v <60.0
+    lin_μ = 0.0138
+    lin_σ = 0.0003
+  elseif v>=60.0 & v <80.0
+    lin_μ = 0.0132
+    lin_σ = 0.0003
+  elseif v>=80.0 & v <100.0
+    lin_μ = 0.0126
+    lin_σ = 0.0002
+  elseif v>=100.0 & v <120.0
+    lin_μ = 0.0121
+    lin_σ = 0.0002
+  elseif v>=120.0 & v <140.0
+    lin_μ = 0.0115
+    lin_σ = 0.0002
+  elseif v>=140.0 & v <160.0
+    lin_μ = 0.0110
+    lin_σ = 0.0002
+  elseif v>=160.0 & v <180.0
+    lin_μ = 0.0105
+    lin_σ = 0.0002
+  elseif v>=180.0 & v <200.0
+    lin_μ = 0.0100
+    lin_σ = 0.0003
+  elseif v>=200.0 & v <220.0
+    lin_μ = 0.0096
+    lin_σ = 0.0003
+  elseif v>=220.0 & v <240.0
+    lin_μ = 0.0091
+    lin_σ = 0.0003
+  elseif v>=240.0 & v <260.0
+    lin_μ = 0.0087
+    lin_σ = 0.0003
+  elseif v>=260.0 & v <280.0
+    lin_μ = 0.0083
+    lin_σ = 0.0004
+  elseif v>=280.0 & v <300.0
+    lin_μ = 0.0079
+    lin_σ = 0.0004
+  elseif v>=300.0 & v <320.0
+    lin_μ = 0.0075
+    lin_σ = 0.0004
+  elseif v>=320.0 & v <340.0
+    lin_μ = 0.0072
+    lin_σ = 0.0005
+  elseif v>=340.0 & v <360.0
+    lin_μ = 0.0068
+    lin_σ = 0.0005
+  elseif v>=360.0 & v <380.0
+    lin_μ = 0.0065
+    lin_σ = 0.0005
+  elseif v>=380.0 & v <400.0
+    lin_μ = 0.0062
+    lin_σ = 0.0005
+  elseif v>=400.0 & v <420.0
+    lin_μ = 0.0059
+    lin_σ = 0.0005
+  elseif v>=420.0 & v <440.0
+    lin_μ = 0.0056
+    lin_σ = 0.0005
+  elseif v>=440.0 & v <460.0
+    lin_μ = 0.0053
+    lin_σ = 0.0005
+  else # v > 460   
+    lin_μ = 0.0051
+    lin_σ = 0.0005
   end 
-  quad = Distributions.Normal(quad_μ, quad_σ)
-  qp = Distributions.rand(quad)
-  return (lp*v) # +(qp*(v^2))*0.0 # NOTE - quadratic component removed for now
+  lind = Distributions.Normal(lin_μ, lin_σ)
+  lp = Distributions.rand(lind)             # draw from the distribution 
+  if lp < 0.0
+    lp = abs(lp)                            # This is messing with the distribution a bit, but this should rarely be negative.
+  end 
+  return (lp*v)                             # quadratic component could be added.
 end 
 
 
@@ -473,7 +541,7 @@ end
 
 """
 `FindThem`
-
+dyn = CounterObjects(1);
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 1);
 NewPatients(TexasEq);
 
@@ -507,7 +575,13 @@ Austin 4536253
 
 """
 function FindThem(d::DynState, es::EntireState)
-  # Do these once 
+  # Need an output holder for the whole set of outputs. 
+  # TODO - get these dims right.  
+  # cols: fipscode, fid, ... whatever's in results... , 
+  rows = 1000
+  cols = 20
+  outp::Array{Float64,2}(rows, cols)
+  # Do these once - will do markets with more than neighbor at a firm.  
   todo = Dict{Int64, Bool}()
   for i in keys(es.mkts)
     for j in keys(es.mkts[i].collection)
@@ -517,21 +591,34 @@ function FindThem(d::DynState, es::EntireState)
       end 
     end 
   end 
-  for k1 in keys(todo) # fipscodes for places to do 
-    actual_arr::Array{Tuple{Int64,Int64},1}=Array{Tuple{Int64,Int64},1}()
-    new_arr::Array{Tuple{Int64,Int64},1}=Array{Tuple{Int64,Int64},1}()
-    fc = 0 # count facilities 
+  for k1 in keys(todo)                                                     # fipscodes for places to do 
+    actual_arr::Array{Tuple{Int64,Int64},1}=Array{Tuple{Int64,Int64},1}()  # actual configuration 
+    new_arr::Array{Tuple{Int64,Int64},1}=Array{Tuple{Int64,Int64},1}()     # assigning one level 3
+    fc = 0                                                                 # count facilities 
+    medcts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}}()              # dict for distance count 
+    privcts = Dict{NTuple{9,Int64},Dict{Int64,Array{DR,1}}}()              # dict for distance count 
+    ix = 0
     for k2 in keys(es.mkts[k1].collection)
-      if fc == 0
-        push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
-        push!(new_arr, (es.mkts[k1].collection[k2].fid, 3))
-        fc+=1
-      else 
-        push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
-        push!(new_arr, (es.mkts[k1].collection[k2].fid, 1))
+      if todo[k2]
+        if fc == 0
+          push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
+          push!(new_arr, (es.mkts[k1].collection[k2].fid, 3))
+          for i = 1:size(d.all,1)
+            if d.all[i].fid == k2 
+              ix = i 
+            end 
+          end 
+          fc+=1
+        else 
+          push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
+          push!(new_arr, (es.mkts[k1].collection[k2].fid, 1))
+        end 
       end 
     end
-    # do the computation here... 
+    MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.  
+    Mortality(medcts, privcts, actual_arr)
+    CleanDicts(medcts, privcts)
+
   end  
 end 
 
