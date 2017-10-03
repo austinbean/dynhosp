@@ -283,12 +283,12 @@ privcounts = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
 conf2 = [(4530190,1) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)];
 MktDistance(dyn, [245], conf2, medcounts, privcounts);
 
+TakeAverage(dyn, medcounts, privcounts, 4530190)
 
-TakeAverage(dyn, medcounts, privcounts, 3490795)
+Change this: return BOTH averages to that one facility, but also over the whole market.  
 
 """
 function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
-  # this can be changed... only check those facilities which are actual neighbors of f.  
   # Otherwise distances include many other firms.  
   loc = 0
   for i = 1:size(d.all,1)
@@ -296,38 +296,48 @@ function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
       loc = i 
     end 
   end   
-  cols = 13                             # outp... fid, nine states, one level, one count of patients, one average distance
-  rows = mc.count 
+  cols = 13                                    # outp... fid, nine states, one level, one count of patients, one average distance
+  rows = size(d.all[loc].nfids,1)+2            # neighbors, main firm, total for all.    
   outp = zeros(rows, cols)
-  rc = 1                                # row counter
-  for k1 in keys(mc)                    # the state 
-    pats::Float64 = 0.0
-    ds::Float64 = 0.0
-    for k2 in keys(mc[k1])              # the other firms.
-      if (in(d.all[loc].nfids, k2))||(k2 == f) # checks to make sure the firm is in the market.
-        println(k2)
+  rc = 1                                       # row counter
+  for k1 in keys(mc)                           # the state - i.e., the market configuration 
+    for k2 in keys(mc[k1])                     # the fids.
+      pats::Float64 = 0.0
+      ds::Float64 = 0.0
+      if (in(k2, d.all[loc].nfids))||(k2 == f) # checks to make sure the firm is in the market.
         for i = 1:size(mc[k1][k2],1)
           a1, b1 = DREX(mc[k1][k2][i])
-          pats += a1                      # records total number of medicare patients.
-          ds += a1*b1                     # records distance traveled by patients in that zip.
+          pats += a1                           # records total number of medicare patients.
+          ds += a1*b1                          # records distance traveled by patients in that zip.
         end 
         for i = 1:size(pc[k1][k2],1)
           a1, b1 = DREX(pc[k1][k2][i])
-          pats += a1                      # records total number of privately insured patients.
-          ds += a1*b1                     # records distance traveled by patients in that zip.
+          pats += a1                           # records total number of privately insured patients.
+          ds += a1*b1                          # records distance traveled by patients in that zip.
         end
+        outp[rc,1] = f 
+        for j = 1:length(k1)
+          outp[rc, j+1] = k1[j]                # this records the state (a 9 tuple) as nine columns  
+        end 
+        # outp[rc,11] =                        # Level can be omitted, but then one column is always zero.
+        outp[rc,12] += pats 
+        outp[rc,13] += (ds/max(pats,1))        # this is: total number of miles traveled divided by all patients to that hospital.  
+        rc += 1  
       end 
     end 
-    # now put it in the output in some way... 
-    outp[rc,1] = f 
-    for j = 1:length(k1)
-      outp[rc, j+1] = k1[j]
-    end 
-    # outp[rc,11] =  # Level can be omitted, but then one column is always zero.
-    outp[rc,12] += pats 
-    outp[rc,13] += (ds/max(pats,1))       # this is: total number of miles traveled divided by all patients to that hospital.  
-    rc += 1
   end 
+  # now values over the whole market: how many patients over how many miles....
+  totp = sum(outp[:,12])
+  sm_miles = 0.0
+  for i = 1:size(outp,1)
+    sm_miles += outp[i,12]*outp[i,13]
+  end 
+  outp[rows, 1] = 9999999 # special fid 
+  for j = 1:9
+    outp[rows, j+1] = outp[rows-1, j+1]
+  end 
+  outp[rows,12] = totp 
+  outp[rows,13] = sm_miles/totp 
   return outp
 end
 
@@ -432,7 +442,7 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
   end 
   #out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
   #names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
-  return out1
+  return outp
 end 
 
 
@@ -445,73 +455,73 @@ Uses estimates from the TX Birth Certificate Data.
 function MortProb(v::T) where T <: Real
   lin_μ = 0.0
   lin_σ = 0.0
-  if v >= 0.0 & v<20.0           # these are marginal effects at mean values from data.  
+  if (v >= 0.0) & (v<20.0)           # these are marginal effects at mean values from data.  
     lin_μ = 0.151
     lin_σ = 0.0005
-  elseif v>=20.0 & v <40.0
+  elseif (v>=20.0) & (v <40.0)
     lin_μ = 0.0145
     lin_σ = 0.0004
-  elseif v>=40.0 & v <60.0
+  elseif (v>=40.0) & (v <60.0)
     lin_μ = 0.0138
     lin_σ = 0.0003
-  elseif v>=60.0 & v <80.0
+  elseif (v>=60.0) & (v <80.0)
     lin_μ = 0.0132
     lin_σ = 0.0003
-  elseif v>=80.0 & v <100.0
+  elseif (v>=80.0) & (v <100.0)
     lin_μ = 0.0126
     lin_σ = 0.0002
-  elseif v>=100.0 & v <120.0
+  elseif (v>=100.0) & (v <120.0)
     lin_μ = 0.0121
     lin_σ = 0.0002
-  elseif v>=120.0 & v <140.0
+  elseif (v>=120.0) & (v <140.0)
     lin_μ = 0.0115
     lin_σ = 0.0002
-  elseif v>=140.0 & v <160.0
+  elseif (v>=140.0) & (v <160.0)
     lin_μ = 0.0110
     lin_σ = 0.0002
-  elseif v>=160.0 & v <180.0
+  elseif (v>=160.0) & (v <180.0)
     lin_μ = 0.0105
     lin_σ = 0.0002
-  elseif v>=180.0 & v <200.0
+  elseif (v>=180.0) & (v <200.0)
     lin_μ = 0.0100
     lin_σ = 0.0003
-  elseif v>=200.0 & v <220.0
+  elseif (v>=200.0) & (v <220.0)
     lin_μ = 0.0096
     lin_σ = 0.0003
-  elseif v>=220.0 & v <240.0
+  elseif (v>=220.0) & (v <240.0)
     lin_μ = 0.0091
     lin_σ = 0.0003
-  elseif v>=240.0 & v <260.0
+  elseif (v>=240.0) & (v <260.0)
     lin_μ = 0.0087
     lin_σ = 0.0003
-  elseif v>=260.0 & v <280.0
+  elseif (v>=260.0) & (v <280.0)
     lin_μ = 0.0083
     lin_σ = 0.0004
-  elseif v>=280.0 & v <300.0
+  elseif (v>=280.0) & (v <300.0)
     lin_μ = 0.0079
     lin_σ = 0.0004
-  elseif v>=300.0 & v <320.0
+  elseif (v>=300.0) & (v <320.0)
     lin_μ = 0.0075
     lin_σ = 0.0004
-  elseif v>=320.0 & v <340.0
+  elseif (v>=320.0) & (v <340.0)
     lin_μ = 0.0072
     lin_σ = 0.0005
-  elseif v>=340.0 & v <360.0
+  elseif (v>=340.0) & (v <360.0)
     lin_μ = 0.0068
     lin_σ = 0.0005
-  elseif v>=360.0 & v <380.0
+  elseif (v>=360.0) & (v <380.0)
     lin_μ = 0.0065
     lin_σ = 0.0005
-  elseif v>=380.0 & v <400.0
+  elseif (v>=380.0) & (v <400.0)
     lin_μ = 0.0062
     lin_σ = 0.0005
-  elseif v>=400.0 & v <420.0
+  elseif (v>=400.0) & (v <420.0)
     lin_μ = 0.0059
     lin_σ = 0.0005
-  elseif v>=420.0 & v <440.0
+  elseif (v>=420.0) & (v <440.0)
     lin_μ = 0.0056
     lin_σ = 0.0005
-  elseif v>=440.0 & v <460.0
+  elseif (v>=440.0) & (v <460.0)
     lin_μ = 0.0053
     lin_σ = 0.0005
   else # v > 460   
@@ -576,8 +586,9 @@ Austin 4536253
 """
 function FindThem(d::DynState, es::EntireState)
   # Need an output holder for the whole set of outputs. 
-  # TODO - get these dims right.  
   # cols: fipscode, fid, ... whatever's in results... , 
+  # TODO - what columns?  
+  df_names = [:fipscode, :fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality ]
   rows = 1000
   cols = 20
   outp::Array{Float64,2}(rows, cols)
@@ -616,25 +627,28 @@ function FindThem(d::DynState, es::EntireState)
       end 
     end
     # under the equilibrium arrangement.  
-    MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
-    TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    Mortality(medcts, privcts, actual_arr) # what does this return?  
+    MktDistance(d, [ix], actual_arr, medcts, privcts)      # distances computed.
+    a1 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
+    m1 = Mortality(medcts, privcts, actual_arr)            # what does this return?  
+    WriteVals(medcts, privcts, a1, m1)
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the level 3 arrangement.
     MktDistance(d, [ix], new_arr, medcts, privcts) # distances computed.
-    TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    Mortality(medcts, privcts, actual_arr) # what does this return?  
+    a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
+    m2 = Mortality(medcts, privcts, actual_arr) # what does this return?  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the regionalized arrangement 
     MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
-    TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    Mortality(medcts, privcts, actual_arr; regionalize = true) # what does this return?  
+    a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
+    m3 = Mortality(medcts, privcts, actual_arr; regionalize = true) # what does this return?  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
-
-  end  
+  end 
+  ret1 = convert(DataFrame, outp)
+  name!(ret1, df_names)
+  return  
 end 
 
 
