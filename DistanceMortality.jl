@@ -58,8 +58,6 @@ MktDistance(dyn, [245], conf2, medcounts2, privcounts2);
 v1 = TakeAverage(dyn, medcounts1, privcounts1, 4530190)
 v2 = TakeAverage(dyn, medcounts2, privcounts2, 4530190)
 
-# TODO - not working yet.  Patients declining weirdly in last test case.  
-
   for i = 1:size(d.all, 1)
     if d.all[i].fid == conf[1][1]
         for j = 1:size(dyn.all[i].mk.m,1)
@@ -470,6 +468,71 @@ Returns sum of patients and distance.
 """
 function DREX(d::DR)
   return sum(d.p), d.d 
+end 
+
+
+"""
+`FindThem`
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 1);
+NewPatients(TexasEq);
+
+Do this by county.  55 counties have no neighbors.
+99 counties have neighbors.
+- If neighbor, get fids, call MktDistance
+- Design config for that.  care about mortality only.  
+- Do as given, then with one lev 3 
+- compare 
+
+for i in keys(TexasEq.mkts)
+  for j = 1:size(TexasEq.mkts[i].config,1)
+    if length(TexasEq.mkts[i].config[j].hood)>7
+      println(i, "  ", TexasEq.mkts[i].config[j].fid,"  ", length(TexasEq.mkts[i].config[j].hood))
+    end
+  end
+end
+ct = 0
+for i in keys(TexasEq.mkts)
+  for j = 1:size(TexasEq.mkts[i].config,1)
+    if length(TexasEq.mkts[i].config[j].hood)==0
+      println(i, "  ", TexasEq.mkts[i].config[j].fid,"  ", length(TexasEq.mkts[i].config[j].hood))
+      ct+=1
+    end
+  end
+end
+
+
+Big Markets:
+Austin 4536253
+
+"""
+function FindThem(d::DynState, es::EntireState)
+  # Do these once 
+  todo = Dict{Int64, Bool}()
+  for i in keys(es.mkts)
+    for j in keys(es.mkts[i].collection)
+      todo[i] = false 
+      if (length(es.mkts[i].collection[j].hood) >0)&!(todo[i])
+        todo[i] = true 
+      end 
+    end 
+  end 
+  for k1 in keys(todo) # fipscodes for places to do 
+    actual_arr::Array{Tuple{Int64,Int64},1}=Array{Tuple{Int64,Int64},1}()
+    new_arr::Array{Tuple{Int64,Int64},1}=Array{Tuple{Int64,Int64},1}()
+    fc = 0 # count facilities 
+    for k2 in keys(es.mkts[k1].collection)
+      if fc == 0
+        push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
+        push!(new_arr, (es.mkts[k1].collection[k2].fid, 3))
+        fc+=1
+      else 
+        push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
+        push!(new_arr, (es.mkts[k1].collection[k2].fid, 1))
+      end 
+    end
+    # do the computation here... 
+  end  
 end 
 
 
