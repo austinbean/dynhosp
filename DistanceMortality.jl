@@ -430,8 +430,8 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
     outp[rws, 6] = sum(outp[:,6])/(rws-1)            # total mean mortality 
     outp[rws, 7] = 0.0                               # not computing mean or sd of mortality rates.  
   end 
-  out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
-  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
+  #out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
+  #names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
   return out1
 end 
 
@@ -618,21 +618,18 @@ function FindThem(d::DynState, es::EntireState)
     # under the equilibrium arrangement.  
     MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
     TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-      # TODO - mortality current returns dataframe.  remove and fix.   
     Mortality(medcts, privcts, actual_arr) # what does this return?  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the level 3 arrangement.
     MktDistance(d, [ix], new_arr, medcts, privcts) # distances computed.
     TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-      # TODO - mortality current returns dataframe.  remove and fix.   
     Mortality(medcts, privcts, actual_arr) # what does this return?  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the regionalized arrangement 
     MktDistance(d, [ix], actual_arr, medcts, privcts) # distances computed.
     TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-      # TODO - mortality current returns dataframe.  remove and fix.   
     Mortality(medcts, privcts, actual_arr; regionalize = true) # what does this return?  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
