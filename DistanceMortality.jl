@@ -595,11 +595,9 @@ Austin 4536253
 function FindThem(d::DynState, es::EntireState)
   # Need an output holder for the whole set of outputs. 
   # cols: fipscode, fid, ... whatever's in results... , 
-  # TODO - what columns?  
-  df_names = [:fipscode, :fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality ]
   rows = 1000
   cols = 20
-  outp::Array{Float64,2}(rows, cols)
+  outp = zeros(rows, cols)
   # Do these once - will do markets with more than neighbor at a firm.  
   todo = Dict{Int64, Bool}()
   for i in keys(es.mkts)
@@ -634,23 +632,27 @@ function FindThem(d::DynState, es::EntireState)
         end 
       end 
     end
+    # TODO - change of plan... return dataframes from both, join on fid column.  
+    # create a DF here which is something like... fipscode, fid.  Then join.  
     # under the equilibrium arrangement.  
     MktDistance(d, [ix], actual_arr, medcts, privcts)      # distances computed.
     a1 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
     m1 = Mortality(medcts, privcts, actual_arr)            # This returns a matrix  
-    WriteVals(medcts, privcts, a1, m1)
+    WriteVals(outp, medcts, privcts, a1, m1, :baseline)
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the level 3 arrangement.
     MktDistance(d, [ix], new_arr, medcts, privcts) 
     a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1])  
-    m2 = Mortality(medcts, privcts, actual_arr)  
+    m2 = Mortality(medcts, privcts, actual_arr) 
+    WriteVals(outp, medcts, privcts, a1, m1, :level3) 
     CleanDistDict(medcts)
     CleanDistDict(privcts)
     # under the regionalized arrangement 
     MktDistance(d, [ix], actual_arr, medcts, privcts) 
     a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) 
-    m3 = Mortality(medcts, privcts, actual_arr; regionalize = true)   
+    m3 = Mortality(medcts, privcts, actual_arr; regionalize = true) 
+    WriteVals(outp, medcts, privcts, a1, m1, :regionalize)  
     CleanDistDict(medcts)
     CleanDistDict(privcts)
   end 
@@ -660,6 +662,42 @@ function FindThem(d::DynState, es::EntireState)
 end 
 
 
+
+"""
+
+"""
+function ResultsWrite(out::Array{Float64,2}, dis::Array{Float64,2}, ms::Array{Float64,2}, fips::Int64, fid::Int64, s::Symbol)
+  #  df_names = [:fipscode, :fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality ]
+  #   TODO - what columns?  Or: what other columns...  All the distance columns, I think.  And the state columns.
+  # state should be 3-11
+  # fipscode, fid, state 3 - 11, totalbirths, nicuadmits, vlbw, mean mort rate, mean mortality, std_mortality, mean distance 
+  #  df_names = [:fipscode, :fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality ]
+  fipsloc = 1
+  fidloc = 2
+  state1 = 3
+  state2 = 4
+  state3 = 5
+  state4 = 6
+  state5 = 7
+  state6 = 8
+  state7 = 9
+  state8 = 10
+  state9 = 11
+  totbloc = 12 
+  nicadloc = 13
+  vlbwloc = 14
+  mmrloc = 15
+  mmloc = 16 
+  sdmloc = 17 
+  mdloc = 18
+  ix = findfirst(out[:,1], 0)
+  for j = 0:(size(ms, 1)-1)
+    out[ix+j, fipsloc] = fips
+    out[ix+j, fidloc] = dis[]
+  end 
+  # Can we join dataframes?  Is that easier?  
+
+end 
 
 
 """
