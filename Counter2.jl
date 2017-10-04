@@ -2274,7 +2274,7 @@ function GiveState(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64}, blo
   NeighborsZero(res) # set all elements to zero.  
   for m in ch # should have only one element - this is the MAIN firm.  
     for el in block #tuples - these are neighbors fids/levels.  el[1] == fid, el[2] == level, el[1] == 0 ⇒ no neighbors.
-      if el[1] != 0 # this case arises when there are no neighbors.  
+      if (el[1] != 0)&(haskey(locs, el[1])) # this case arises when there are no neighbors.  
         dist::Float64 = distance( D.all[m].lat, D.all[m].long, D.all[locs[el[1]]].lat, D.all[locs[el[1]]].long) # compute the distance.
         if el[2] == 1
           if (dist>0.0)&(dist<=5.0)
