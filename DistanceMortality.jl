@@ -39,7 +39,7 @@ MktDistance(dyn, [1], conf, medcounts, privcounts)
 medcounts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
 privcounts = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
 chunk = [11];
-conf2 = [(3396057,1) (3390720,1) (3396327,1) (3396189,1) (2910645, 3)]
+conf2 = [(3396057,1), (3390720,1), (3396327,1), (3396189,1), (2910645, 3)]
 MktDistance(dyn, [11], conf2, medcounts, privcounts)
 
 # Large Market 
@@ -72,7 +72,7 @@ v2 = TakeAverage(dyn, medcounts2, privcounts2, 4530190)
 """
 function MktDistance(d::DynState, 
                      chunk::Array{Int64,1},  
-                     conf::Array{Tuple{Int64,Int64},2}, # this does take a configuration argument.  
+                     conf::Array{Tuple{Int64,Int64}}, # this does take a configuration argument.  
                      medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
                      privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})
   k = d.all[chunk[1]].fid 
@@ -289,7 +289,6 @@ Change this: return BOTH averages to that one facility, but also over the whole 
 
 """
 function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
-  # Otherwise distances include many other firms.  
   loc = 0
   for i = 1:size(d.all,1)
     if d.all[i].fid == f 
@@ -332,13 +331,15 @@ function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
   for i = 1:size(outp,1)
     sm_miles += outp[i,12]*outp[i,13]
   end 
-  outp[rows, 1] = 9999999 # special fid 
+  outp[rows, 1] = 99999999 # special fid 
   for j = 1:9
     outp[rows, j+1] = outp[rows-1, j+1]
   end 
   outp[rows,12] = totp 
   outp[rows,13] = sm_miles/totp 
-  return outp
+  out1 = convert(DataFrame, outp)
+  names!(out1, [:fid, :lev1_05, :lev2_05, :lev3_05, :lev1_515, :lev2_515, :lev3_515, :lev1_1525, :lev2_1525, :lev3_1525, :level, :patients, :avg_distance])
+  return out1
 end
 
 
@@ -358,13 +359,13 @@ dyn = CounterObjects(1);
 medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
 privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
 chunk = [245];
-conf2 = [(4530190,3) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)]
+conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (4536337,3), (4530170,3), (4536338,3), (4536253,3)]
 MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
 
 Mortality(medcounts2, privcounts2, conf2)
 
 """
-function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
+function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
                    nicad::Float64 = 0.06,
                    fvlbw::Float64 = 0.014,
                    regionalize::Bool = false,
@@ -409,7 +410,6 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
           end 
           dths[m] = cvln*mp
         end 
-        println("mort check: ", mps, "  ", mps/Ns)
         outp[rc, fidloc] = k2                 # firm fid 
         outp[rc, birthloc] = ct               # birth count 
         outp[rc, niculoc] = cna               # nicu admits 
@@ -448,9 +448,9 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
     outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
     outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.  
   end 
-  #out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
-  #names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
-  return outp
+  out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
+  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
+  return out1
 end 
 
 
@@ -562,6 +562,7 @@ end
 dyn = CounterObjects(1);
 TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 1);
 NewPatients(TexasEq);
+FindThem(dyn, TexasEq)
 
 Do this by county.  55 counties have no neighbors.
 99 counties have neighbors.
@@ -615,8 +616,8 @@ function FindThem(d::DynState, es::EntireState)
     medcts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}}()              # dict for distance count 
     privcts = Dict{NTuple{9,Int64},Dict{Int64,Array{DR,1}}}()              # dict for distance count 
     ix = 0
-    for k2 in keys(es.mkts[k1].collection)
-      if todo[k2]
+    if todo[k1] # switch order of this with previous...
+      for k2 in keys(es.mkts[k1].collection)
         if fc == 0
           push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
           push!(new_arr, (es.mkts[k1].collection[k2].fid, 3))
@@ -630,74 +631,45 @@ function FindThem(d::DynState, es::EntireState)
           push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
           push!(new_arr, (es.mkts[k1].collection[k2].fid, 1))
         end 
+        # under the equilibrium arrangement. 
+        println(k1,"  ", k2, " ", ix, "  ", actual_arr)
+        MktDistance(d, [ix], actual_arr, medcts, privcts)      # distances computed.
+        df1 = join(TakeAverage(d, medcts, privcts, actual_arr[1][1]), Mortality(medcts, privcts, actual_arr), on = :fid, kind = :outer)
+        county = zeros(size(df1,1), 2)
+        for (ix,v) in enumerate(df1[:fid])
+          county[ix, 2] = k1
+          county[ix, 1] = v
+        end 
+        county = convert(DataFrame, county)
+        names!(county, [:fid, :fipscode])
+        df2 = join(df1, county, on = :fid, kind = :outer)
+        println(head(df2))
+        CleanDistDict(medcts)
+        CleanDistDict(privcts)
+        # # under the level 3 arrangement.
+        # MktDistance(d, [ix], new_arr, medcts, privcts) 
+        # a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1])  
+        # m2 = Mortality(medcts, privcts, actual_arr) 
+        # join(a2, m2, on = :fid, kind = :outer)
+        # CleanDistDict(medcts)
+        # CleanDistDict(privcts)
+        # # under the regionalized arrangement 
+        # MktDistance(d, [ix], actual_arr, medcts, privcts) 
+        # a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) 
+        # m3 = Mortality(medcts, privcts, actual_arr; regionalize = true) 
+        # join(a3, m3, on = :fid, kind = :outer) 
+        # CleanDistDict(medcts)
+        # CleanDistDict(privcts)
+        todo[k1] = false  # once finished, don't do again.  
       end 
     end
-    # TODO - change of plan... return dataframes from both, join on fid column.  
-    # create a DF here which is something like... fipscode, fid.  Then join.  
-    # under the equilibrium arrangement.  
-    MktDistance(d, [ix], actual_arr, medcts, privcts)      # distances computed.
-    a1 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) # keeping the fid of the first firm. 
-    m1 = Mortality(medcts, privcts, actual_arr)            # This returns a matrix  
-    WriteVals(outp, medcts, privcts, a1, m1, :baseline)
-    CleanDistDict(medcts)
-    CleanDistDict(privcts)
-    # under the level 3 arrangement.
-    MktDistance(d, [ix], new_arr, medcts, privcts) 
-    a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1])  
-    m2 = Mortality(medcts, privcts, actual_arr) 
-    WriteVals(outp, medcts, privcts, a1, m1, :level3) 
-    CleanDistDict(medcts)
-    CleanDistDict(privcts)
-    # under the regionalized arrangement 
-    MktDistance(d, [ix], actual_arr, medcts, privcts) 
-    a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) 
-    m3 = Mortality(medcts, privcts, actual_arr; regionalize = true) 
-    WriteVals(outp, medcts, privcts, a1, m1, :regionalize)  
-    CleanDistDict(medcts)
-    CleanDistDict(privcts)
   end 
-  ret1 = convert(DataFrame, outp)
-  name!(ret1, df_names)
-  return  
+#  ret1 = convert(DataFrame, outp)
+#  name!(ret1, df_names)
+  return  nothing
 end 
 
 
-
-"""
-
-"""
-function ResultsWrite(out::Array{Float64,2}, dis::Array{Float64,2}, ms::Array{Float64,2}, fips::Int64, fid::Int64, s::Symbol)
-  #  df_names = [:fipscode, :fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality ]
-  #   TODO - what columns?  Or: what other columns...  All the distance columns, I think.  And the state columns.
-  # state should be 3-11
-  # fipscode, fid, state 3 - 11, totalbirths, nicuadmits, vlbw, mean mort rate, mean mortality, std_mortality, mean distance 
-  #  df_names = [:fipscode, :fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality ]
-  fipsloc = 1
-  fidloc = 2
-  state1 = 3
-  state2 = 4
-  state3 = 5
-  state4 = 6
-  state5 = 7
-  state6 = 8
-  state7 = 9
-  state8 = 10
-  state9 = 11
-  totbloc = 12 
-  nicadloc = 13
-  vlbwloc = 14
-  mmrloc = 15
-  mmloc = 16 
-  sdmloc = 17 
-  mdloc = 18
-  ix = findfirst(out[:,1], 0)
-  for j = 0:(size(ms, 1)-1)
-    out[ix+j, fipsloc] = fips
-    out[ix+j, fidloc] = dis[]
-  end 
-  # Can we join dataframes?  Is that easier?  
-
-end 
 
 
 """
