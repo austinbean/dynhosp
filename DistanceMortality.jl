@@ -8,6 +8,53 @@ mutable struct DR # this is... how many patients traveled what distances from a 
 end 
 
 
+"""
+`Finder`
+Finds fid in d.all.
+Returns 0 if not there.  
+"""
+function Finder(d::DynState, f::Int64)
+  rr = 0
+  for i = 1:size(d.all,1)
+    if d.all[i].fid == f 
+      rr = i 
+      break  
+    end 
+  end
+  return rr 
+end 
+
+
+"""
+`DMMapCompState`
+
+This is dumb.  Second version of this function just for this part to avoid breaking the first one.  
+"""
+function DMMapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}, fids::Array{Int64,1} , states::Array{Tuple{Int64,Int64}})
+  if (length(states)>1)||(states[1][1] != 0)
+    for el in ch                                                # these are locations in D.all - but there should be only one ALWAYS.
+      for tp in states                                          # Levels need to be updated in the D - since these levels are drawn in UtilUp.
+        if haskey(locs, tp[1])
+          # do nothing 
+        else 
+          locs[tp[1]] = Finder(D, tp[1])
+        end 
+        if (D.all[locs[tp[1]]].level != tp[2])                  # level changes!
+          for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
+            UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+          end  
+          D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # this is "storing where I was to fix it later"  
+          D.all[locs[tp[1]]].level = tp[2]                      # this is "recording where I am" NB: timing of this line matters for utility update.  
+        end 
+      end 
+      for zp in D.all[el].mk.m
+        WTPNew(zp.putils, zp.pwtp)                              # once all utilities have been changed, fix the WTP.  
+      end 
+    end 
+  end 
+end 
+
+
 
 """
 `MktDistance(d::DynState, 
@@ -82,7 +129,7 @@ function MktDistance(d::DynState,
   push!(neighbors, chunk[1])
   CompsDict(neighbors, d, all_locs)
   state = TotalFix(GiveState(d, chunk, all_locs, conf, d.all[all_locs[k]].cns), d, chunk)
-  MapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
+  DMMapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
   medcounts[state] =  Dict{Int64,Array{DR,1} }()
   privcounts[state] =  Dict{Int64,Array{DR,1} }()
   pcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
@@ -571,40 +618,39 @@ Do this by county.  55 counties have no neighbors.
 - Do as given, then with one lev 3 
 - compare 
 
-for i in keys(TexasEq.mkts)
-  for j = 1:size(TexasEq.mkts[i].config,1)
-    if length(TexasEq.mkts[i].config[j].hood)>7
-      println(i, "  ", TexasEq.mkts[i].config[j].fid,"  ", length(TexasEq.mkts[i].config[j].hood))
-    end
-  end
-end
-ct = 0
-for i in keys(TexasEq.mkts)
-  for j = 1:size(TexasEq.mkts[i].config,1)
-    if length(TexasEq.mkts[i].config[j].hood)==0
-      println(i, "  ", TexasEq.mkts[i].config[j].fid,"  ", length(TexasEq.mkts[i].config[j].hood))
-      ct+=1
-    end
-  end
-end
-
-
 Big Markets:
 Austin 4536253
 
 """
 function FindThem(d::DynState, es::EntireState)
-  # Need an output holder for the whole set of outputs. 
-  # cols: fipscode, fid, ... whatever's in results... , 
-  rows = 1000
-  cols = 20
-  outp = zeros(rows, cols)
+  # Need an output holder for the whole set of outputs.  
+  outdf = DataFrame( fid = @data([0.0]), 
+                     lev1_05= @data([0.0]), 
+                     lev2_05= @data([0.0]), 
+                     lev3_05= @data([0.0]), 
+                     lev1_515= @data([0.0]), 
+                     lev2_515= @data([0.0]), 
+                     lev3_515= @data([0.0]), 
+                     lev1_1525= @data([0.0]), 
+                     lev2_1525= @data([0.0]), 
+                     lev3_1525= @data([0.0]), 
+                     level = @data([0.0]), 
+                     patients = @data([0.0]), 
+                     avg_distance = @data([0.0]), 
+                     totalbirths = @data([0.0]), 
+                     nicu_admits = @data([0.0]), 
+                     vlbw = @data([0.0]), 
+                     mean_mort_rate = @data([0.0]), 
+                     mean_mortality = @data([0.0]), 
+                     std_mortality = @data([0.0]), 
+                     fipscode = @data([0.0]), 
+                     counterfactual = @data([0.0])) 
   # Do these once - will do markets with more than neighbor at a firm.  
   todo = Dict{Int64, Bool}()
   for i in keys(es.mkts)
     for j in keys(es.mkts[i].collection)
       todo[i] = false 
-      if (length(es.mkts[i].collection[j].hood) >0)&!(todo[i])
+      if (length(es.mkts[i].collection[j].hood) >0)&!(todo[i])             # this will do only markets where firms have multiple neighbors
         todo[i] = true 
       end 
     end 
@@ -615,58 +661,66 @@ function FindThem(d::DynState, es::EntireState)
     fc = 0                                                                 # count facilities 
     medcts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}}()              # dict for distance count 
     privcts = Dict{NTuple{9,Int64},Dict{Int64,Array{DR,1}}}()              # dict for distance count 
-    ix = 0
-    if todo[k1] # switch order of this with previous...
-      for k2 in keys(es.mkts[k1].collection)
-        if fc == 0
-          push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
-          push!(new_arr, (es.mkts[k1].collection[k2].fid, 3))
-          for i = 1:size(d.all,1)
-            if d.all[i].fid == k2 
-              ix = i 
-            end 
+    for k2 in keys(es.mkts[k1].collection)
+      ix = 0
+      if todo[k1] 
+        for k3 in keys(es.mkts[k1].collection)                             # keys twice...?
+          if fc == 0
+            push!(actual_arr, (es.mkts[k1].collection[k3].fid, es.mkts[k1].collection[k3].level))
+            push!(new_arr, (es.mkts[k1].collection[k3].fid, 3))
+            ix = Finder(d, k3)
+            fc+=1
+          else 
+            push!(actual_arr, (es.mkts[k1].collection[k3].fid, es.mkts[k1].collection[k3].level))
+            push!(new_arr, (es.mkts[k1].collection[k3].fid, 1))
           end 
-          fc+=1
-        else 
-          push!(actual_arr, (es.mkts[k1].collection[k2].fid, es.mkts[k1].collection[k2].level))
-          push!(new_arr, (es.mkts[k1].collection[k2].fid, 1))
         end 
-        # under the equilibrium arrangement. 
-        println(k1,"  ", k2, " ", ix, "  ", actual_arr)
-        MktDistance(d, [ix], actual_arr, medcts, privcts)      # distances computed.
-        df1 = join(TakeAverage(d, medcts, privcts, actual_arr[1][1]), Mortality(medcts, privcts, actual_arr), on = :fid, kind = :outer)
-        county = zeros(size(df1,1), 2)
-        for (ix,v) in enumerate(df1[:fid])
-          county[ix, 2] = k1
-          county[ix, 1] = v
+        # Equilibrium Arrangement. 
+        medcts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}}()              # dict for distance count 
+        privcts = Dict{NTuple{9,Int64},Dict{Int64,Array{DR,1}}}()              # dict for distance count
+        MktDistance(d, [ix], actual_arr, medcts, privcts)                      # distances computed.
+        df11 = join(TakeAverage(d, medcts, privcts, actual_arr[1][1]), Mortality(medcts, privcts, actual_arr), on = :fid, kind = :outer)
+        county = zeros(size(df11,1), 3)                                        # this only needs to be done once.  
+        for (idx,v) in enumerate(df11[:fid])
+          county[idx, 3] = 1                                                   # signals what counterfactual.  
+          county[idx, 2] = k1
+          county[idx, 1] = v
         end 
         county = convert(DataFrame, county)
-        names!(county, [:fid, :fipscode])
-        df2 = join(df1, county, on = :fid, kind = :outer)
-        println(head(df2))
+        names!(county, [:fid, :fipscode, :counterfactual])
+        df21 = join(df11, county, on = :fid, kind = :outer)
+        append!(outdf, df21)
         CleanDistDict(medcts)
         CleanDistDict(privcts)
-        # # under the level 3 arrangement.
-        # MktDistance(d, [ix], new_arr, medcts, privcts) 
-        # a2 = TakeAverage(d, medcts, privcts, actual_arr[1][1])  
-        # m2 = Mortality(medcts, privcts, actual_arr) 
-        # join(a2, m2, on = :fid, kind = :outer)
-        # CleanDistDict(medcts)
-        # CleanDistDict(privcts)
-        # # under the regionalized arrangement 
-        # MktDistance(d, [ix], actual_arr, medcts, privcts) 
-        # a3 = TakeAverage(d, medcts, privcts, actual_arr[1][1]) 
-        # m3 = Mortality(medcts, privcts, actual_arr; regionalize = true) 
-        # join(a3, m3, on = :fid, kind = :outer) 
-        # CleanDistDict(medcts)
-        # CleanDistDict(privcts)
-        todo[k1] = false  # once finished, don't do again.  
+        # Single Level 3
+        medcts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}}()              # dict for distance count 
+        privcts = Dict{NTuple{9,Int64},Dict{Int64,Array{DR,1}}}()              # dict for distance count
+        MktDistance(d, [ix], new_arr, medcts, privcts)                         # distances computed.
+        df21 = join(TakeAverage(d, medcts, privcts, new_arr[1][1]), Mortality(medcts, privcts, new_arr), on = :fid, kind = :outer)
+        for (idx,v) in enumerate(df11[:fid])
+          county[idx, 3] = 2                                                   # signals what counterfactual.  
+        end 
+        df22 = join(df21, county, on = :fid, kind = :outer)
+        append!(outdf, df22)
+        CleanDistDict(medcts)
+        CleanDistDict(privcts)
+        # Single Regionalized Level 3
+        medcts = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}}()              # dict for distance count 
+        privcts = Dict{NTuple{9,Int64},Dict{Int64,Array{DR,1}}}()              # dict for distance count
+        MktDistance(d, [ix], new_arr, medcts, privcts)                         # distances computed.
+        df31 = join(TakeAverage(d, medcts, privcts, new_arr[1][1]), Mortality(medcts, privcts, new_arr; regionalize = true), on = :fid, kind = :outer)
+        for (idx,v) in enumerate(df11[:fid])
+          county[idx, 3] = 3                                                   # signals what counterfactual.  
+        end 
+        df23 = join(df31, county, on = :fid, kind = :outer)
+        append!(outdf, df23)
+        CleanDistDict(medcts)
+        CleanDistDict(privcts)
+        todo[k1] = false                                                       # once finished, don't do again.  
       end 
     end
   end 
-#  ret1 = convert(DataFrame, outp)
-#  name!(ret1, df_names)
-  return  nothing
+  return  outdf
 end 
 
 
