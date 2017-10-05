@@ -68,6 +68,105 @@ Miscellaneous model computations for the paper:
 
 
 
+"""
+`ExitComparison`
+Set every firm in every zip to exit  then figure out average distances traveled.
+conf2 = [4530190 4916068 4916029 4536048 4530200 4536337 4530170 4536338 4536253];
+medcounts_ex = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts_ex = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+
+ExitComparison(conf2, medcounts_ex, privcounts_ex, 4530190)
+"""
+function ExitComparison(conf::Array{Tuple{Int64,Int64}}, # this does take a list of fids  
+                        medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
+                        privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}},
+                        special::Int64)
+  d = CounterObjects(1); # call within function since this one won't get used again. 
+  chunk = [Finder(d, special)] # special fid. 
+  k = special;  
+  all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
+  neighbors::Array{Int64,1} = Array{Int64,1}()
+  FindComps(d, neighbors, d.all[chunk[1]])
+  push!(neighbors, chunk[1])
+  CompsDict(neighbors, d, all_locs)
+  state = (0,0,0,0,0,0,0,0,0)
+  medcounts[state] =  Dict{Int64,Array{DR,1} }()
+  privcounts[state] =  Dict{Int64,Array{DR,1} }()
+  pcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  mcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  fds = Array{Int64,1}()
+  temparr = zeros(2, 12)
+  for el in conf 
+    push!(fds, el[1])
+  end 
+  medcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+  privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+  d1 = Dict{Int64,patientcount}()
+  d2 = Dict{Int64,patientcount}()
+  for i = 1:size(d.all[all_locs[k]].mk.m,1)
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
+  end 
+  # test...
+  for ky1 in conf 
+    println(ky1)
+    println(d1[ky1])
+    println(d2[ky1])
+  end 
+  CleanMktDemand(d1)
+  CleanMktDemand(d2)
+  for k1 = size(d.all[chunk[1]].mk.m,1)
+    for k2 = 1:size(d.all[chunk[1]].mk.m[k1].putils, 2)
+      if !(d.all[chunk[1]].mk.m[k1].putils[1,k2] == special)
+        d.all[chunk[1]].mk.m[k1].putils[2,k2] = -50.0 # set ALL utilities for ALL unavailable options equal to -50.0  
+      end 
+    end 
+  end 
+  for i = 1:size(d.all[all_locs[k]].mk.m,1)
+    # these compute the whole market demand for the state, i.e., the tuple.
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
+    for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
+      fdd = d.all[all_locs[k]].mk.m[i].putils[1,fr]
+      if fdd != 0 # this skips the OO.
+        mc1, pc1 = CopyCount(d1[fdd], d2[fdd]) 
+        # now measure the distance.
+        dis = DistanceGet(d, fdd, d.all[all_locs[k]].mk.m[i].lat, d.all[all_locs[k]].mk.m[i].long)
+        # push the copied p and m 
+        if !haskey(medcounts[state], fdd)
+          medcounts[state][fdd] = Array{DR,1}()
+        end  
+        if !haskey(privcounts[state], fdd)
+          privcounts[state][fdd] = Array{DR,1}()
+        end 
+        push!(medcounts[state][fdd], DR(mc1, dis))
+        push!(privcounts[state][fdd], DR(pc1, dis))
+        # reset patient counts 
+        ResetP(pcount)
+        ResetP(mcount) 
+      end 
+    end 
+    CleanMktDemand(d1)
+    CleanMktDemand(d2)
+  end 
+  println("***************** AFTER *****************")
+  for ky1 in conf 
+    println(ky1)
+    println(d1[ky1])
+    println(d2[ky1])
+  end 
+end 
+
+
+
+
+
+
+
+
+
+
+
 function FindAllPatients(pc::patientcollection, f::Int64)
     sm::Int64 = 0
     for k1 in keys(pc.zips)
