@@ -151,11 +151,11 @@ function MktDistance(d::DynState,
   privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
   d1 = Dict{Int64,patientcount}()
   d2 = Dict{Int64,patientcount}()
-  dtest = Dict{Int64,patientcount}()
+  #dtest = Dict{Int64,patientcount}()
   for i = 1:size(d.all[all_locs[k]].mk.m,1)
     # these compute the whole market demand for the state, i.e., the tuple.
     TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
-    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, dtest, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
+    #TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, dtest, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
     TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
     for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
       fdd = d.all[all_locs[k]].mk.m[i].putils[1,fr]
@@ -182,6 +182,44 @@ function MktDistance(d::DynState,
   end 
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
+
+"""
+`PopAvgDist`
+
+Computes two average distances: one weighted by population, the other weighted by number of zip codes.
+
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 1);
+NewPatients(TexasEq);
+
+48201 Houston, 48453 Travis, 48029 Bexar, 48141 El Paso, 48439 Tarrant, 48113 Dallas 
+
+for cnty in [48201 48453 48029 48113 48439 48141]
+  sm = 0.0
+  for el in keys(TexasEq.mkts[cnty].collection) 
+    sm += PopAvgDist(dyn, el)[1]
+  end 
+  println(cnty, "  ", sm/TexasEq.mkts[cnty].collection.count, "    ", TexasEq.mkts[cnty].collection.count)
+end 
+"""
+function PopAvgDist(d::DynState, fid::Int64)
+  k = Finder(d, fid)
+  td = 0.0                   # total distance*total people 
+  tp = 0.0                   # total people 
+  tz = size(d.all[k].mk.m,1) # total zips 
+  vtd = 0.0                  # unweighted distance  
+  for i = 1:size(d.all[k].mk.m,1)
+    sm = d.all[k].mk.m[i].pcounts.u385 + d.all[k].mk.m[i].pcounts.u386 + d.all[k].mk.m[i].pcounts.u387 + d.all[k].mk.m[i].pcounts.u388 + d.all[k].mk.m[i].pcounts.u389 + d.all[k].mk.m[i].pcounts.u390 + d.all[k].mk.m[i].pcounts.u391
+    smm = d.all[k].mk.m[i].mcounts.u385 + d.all[k].mk.m[i].mcounts.u386 + d.all[k].mk.m[i].mcounts.u387 + d.all[k].mk.m[i].mcounts.u388 + d.all[k].mk.m[i].mcounts.u389 + d.all[k].mk.m[i].mcounts.u390 + d.all[k].mk.m[i].mcounts.u391
+    ds1 = distance(d.all[k].mk.m[i].lat, d.all[k].mk.m[i].long, d.all[k].lat, d.all[k].long)
+    td += ds1*(sm+smm)
+    tp += (sm+smm)
+    vtd += ds1 
+  end 
+  return round(td/tp,3), round(vtd/tz,3)
+end
+
+
+
 
 
 """
@@ -282,7 +320,7 @@ function DistanceGet(d::DynState, f, lat::Float64, long::Float64)
     end 
   end 
   if fid != 0
-    dist += distance(lat, long, dyn.all[fid].lat, dyn.all[fid].long)
+    dist += distance(lat, long, d.all[fid].lat, d.all[fid].long)
   end 
   return dist 
 end 
