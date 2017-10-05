@@ -361,7 +361,7 @@ function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
           pats += a1                           # records total number of privately insured patients.
           ds += a1*b1                          # records distance traveled by patients in that zip.
         end
-        outp[rc,1] = f 
+        outp[rc,1] = k2                        # writes out which FID is being checked.  
         for j = 1:length(k1)
           outp[rc, j+1] = k1[j]                # this records the state (a 9 tuple) as nine columns  
         end 
@@ -372,13 +372,12 @@ function TakeAverage(d::DynState, mc::Dict, pc::Dict, f::Int64)
       end 
     end 
   end 
-  # now values over the whole market: how many patients over how many miles....
-  totp = sum(outp[:,12])
+  totp = sum(outp[:,12])                       # now values over the whole market: how many patients over how many miles....
   sm_miles = 0.0
   for i = 1:size(outp,1)
     sm_miles += outp[i,12]*outp[i,13]
   end 
-  outp[rows, 1] = 99999999 # special fid 
+  outp[rows, 1] = 99999999                     # special fid 
   for j = 1:9
     outp[rows, j+1] = outp[rows-1, j+1]
   end 
