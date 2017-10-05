@@ -1,5 +1,5 @@
 using DataFrames  
-
+using CSV 
 
 
 mutable struct DR # this is... how many patients traveled what distances from a zip. 
@@ -752,6 +752,24 @@ function CleanDistDict(d1::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1}}})
 end
 
 #=
+# Running this and saving:
+using ProjectModule
+include("DistanceMortality.jl")
+dyn = CounterObjects(1);
+TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 1);
+NewPatients(TexasEq);
+df1 = FindThem(dyn, TexasEq)
 
+# dealing with missing vals is not working...
+for i = 1:size(df1,1)
+  for j = 1:size(df1,2)
+    if isna(df1[i,j])
+      df1[i,j] = -1.0
+    end
+  end
+end
+
+
+CSV.write("reg_counter_results.csv", ab; header = true)
 
 =#
