@@ -71,18 +71,24 @@ Miscellaneous model computations for the paper:
 """
 `ExitComparison`
 Set every firm in every zip to exit  then figure out average distances traveled.
+Also prints a population and a zip code weighted average distance traveled.  
+
+dyn = CounterObjects(1);
 conf2 = [4530190 4916068 4916029 4536048 4530200 4536337 4530170 4536338 4536253];
 medcounts_ex = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
 privcounts_ex = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
 
 ExitComparison(conf2, medcounts_ex, privcounts_ex, 4530190)
+
+v3 = TakeAverage(dyn, medcounts_ex, privcounts_ex, 4530190)
 """
-function ExitComparison(conf::Array{Tuple{Int64,Int64}}, # this does take a list of fids  
+function ExitComparison(conf::Array{Int64}, # this does take a list of fids  
                         medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
                         privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}},
                         special::Int64)
   d = CounterObjects(1); # call within function since this one won't get used again. 
-  chunk = [Finder(d, special)] # special fid. 
+  loc = Finder(d, special)
+  chunk = [loc] # special fid. 
   k = special;  
   all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
   neighbors::Array{Int64,1} = Array{Int64,1}()
@@ -103,22 +109,31 @@ function ExitComparison(conf::Array{Tuple{Int64,Int64}}, # this does take a list
   privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
   d1 = Dict{Int64,patientcount}()
   d2 = Dict{Int64,patientcount}()
+  td = 0.0 # total distance*total people 
+  tp = 0.0 # total people 
+  tz = size(d.all[all_locs[k]].mk.m,1) # total zips 
+  vtd = 0.0 # just distances - compute mean distance to a zip by dividing by tz 
   for i = 1:size(d.all[all_locs[k]].mk.m,1)
-    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
-    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
+    sm = d.all[all_locs[k]].mk.m[i].pcounts.u385 + d.all[all_locs[k]].mk.m[i].pcounts.u386 + d.all[all_locs[k]].mk.m[i].pcounts.u387 + d.all[all_locs[k]].mk.m[i].pcounts.u388 + d.all[all_locs[k]].mk.m[i].pcounts.u389 + d.all[all_locs[k]].mk.m[i].pcounts.u390 + d.all[all_locs[k]].mk.m[i].pcounts.u391
+    smm = d.all[all_locs[k]].mk.m[i].mcounts.u385 + d.all[all_locs[k]].mk.m[i].mcounts.u386 + d.all[all_locs[k]].mk.m[i].mcounts.u387 + d.all[all_locs[k]].mk.m[i].mcounts.u388 + d.all[all_locs[k]].mk.m[i].mcounts.u389 + d.all[all_locs[k]].mk.m[i].mcounts.u390 + d.all[all_locs[k]].mk.m[i].mcounts.u391
+    ds1 = distance(d.all[all_locs[k]].mk.m[i].lat, d.all[all_locs[k]].mk.m[i].long, d.all[loc].lat, d.all[loc].long)
+    td += ds1*(sm+smm)
+    tp += (sm+smm)
+    vtd += ds1 
   end 
+  println("pop weighted avg ", td/tp, "  unweighted ", vtd/tz)
   # test...
-  for ky1 in conf 
-    println(ky1)
-    println(d1[ky1])
-    println(d2[ky1])
-  end 
   CleanMktDemand(d1)
   CleanMktDemand(d2)
-  for k1 = size(d.all[chunk[1]].mk.m,1)
+  for k1 = 1:size(d.all[chunk[1]].mk.m,1)
     for k2 = 1:size(d.all[chunk[1]].mk.m[k1].putils, 2)
       if !(d.all[chunk[1]].mk.m[k1].putils[1,k2] == special)
-        d.all[chunk[1]].mk.m[k1].putils[2,k2] = -50.0 # set ALL utilities for ALL unavailable options equal to -50.0  
+        d.all[chunk[1]].mk.m[k1].putils[2,k2] = -500.0 # set ALL utilities for ALL unavailable options equal to -50.0  
+      end 
+    end 
+    for k2 = 1:size(d.all[chunk[1]].mk.m[k1].mutils, 2)
+      if !(d.all[chunk[1]].mk.m[k1].mutils[1,k2] == special)
+        d.all[chunk[1]].mk.m[k1].mutils[2,k2] = -500.0 # set ALL utilities for ALL unavailable options equal to -50.0  
       end 
     end 
   end 
@@ -148,13 +163,7 @@ function ExitComparison(conf::Array{Tuple{Int64,Int64}}, # this does take a list
     end 
     CleanMktDemand(d1)
     CleanMktDemand(d2)
-  end 
-  println("***************** AFTER *****************")
-  for ky1 in conf 
-    println(ky1)
-    println(d1[ky1])
-    println(d2[ky1])
-  end 
+  end  
 end 
 
 
