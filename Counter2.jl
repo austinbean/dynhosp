@@ -2583,7 +2583,8 @@ and "current" is the field dyn.all[].level - this can and may change.
 function UtilUp(c::cpats, 
                 fid::Int64, 
                 actual::Int64,  # this one should be permanent.
-                current::Int64) # this one should vary.
+                current::Int64; # this one should vary.
+                audit = false) 
   # Medicaid.
   const inten2inter_med::Float64 = -0.57239721 # Should be positive: - intensive + intermediate, both medicaid:  (-ProjectModule.medicaidneoint_c) + ProjectModule.medicaidsoloint_c       
   const inter2inten_med::Float64 = 0.57239721  # Should be negatve: - intermediate + intensive, both medicaid:  (-ProjectModule.medicaidsoloint_c) + ProjectModule.medicaidneoint_c           
@@ -2599,6 +2600,9 @@ function UtilUp(c::cpats,
   # TODO - maybe find this by hand and cut that allocation? 
   const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
   const indx_p::Int64 = findfirst(c.putils[1,:], fid)
+  if audit&(indx_m!=0)&(indx_p!=0)
+    println("BEFORE: ", fid, "  ", c.mutils[1,indx_m], "  ", c.mutils[2,indx_m], "  ", c.putils[1,indx_p], "  ", c.putils[2,indx_p] )
+  end 
   # NB: format of the next set of lines is: if you WERE actual and are going TO current... So FROM "actual" TO "current".
   if (indx_m!=0)&(indx_p!=0) # only update when both are present - it is never possible for one to be present and the other absent
     if (actual == 1)&(current == 1)
@@ -2646,6 +2650,9 @@ function UtilUp(c::cpats,
     elseif (actual == 999)&(current == 999)
       # do nothing.
     end 
+  end 
+  if audit&(indx_m!=0)&(indx_p!=0)
+    println("AFTER:  ", fid, "  ", c.mutils[1,indx_m], "  ", c.mutils[2,indx_m], "  ", c.putils[1,indx_p], "  ", c.putils[2,indx_p] )
   end 
 end 
 
