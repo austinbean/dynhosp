@@ -41,7 +41,7 @@ function DMMapCompState(D::DynState, locs::Dict{Int64,Int64}, ch::Array{Int64,1}
         end 
         if (D.all[locs[tp[1]]].level != tp[2])                  # level changes!
           for zp in D.all[el].mk.m                              # these are the zipcodes at each D.all[el]
-            UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2])  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
+            UtilUp(zp, tp[1], D.all[locs[tp[1]]].level, tp[2]; audit = false)  # UtilUp(c::cpats, fid::Int64, actual::Int64, current::Int64)
           end  
           D.all[locs[tp[1]]].actual = D.all[locs[tp[1]]].level  # this is "storing where I was to fix it later"  
           D.all[locs[tp[1]]].level = tp[2]                      # this is "recording where I am" NB: timing of this line matters for utility update.  
@@ -102,8 +102,16 @@ chunk = [245];
 conf2 = [(4530190,1) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)];
 MktDistance(dyn, [245], conf2, medcounts2, privcounts2);
 
+# Make everyone exit:
+medcounts3 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts3 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+chunk = [245];
+conf2 = [(4530190,1) (4916068,999) (4916029,999) (4536048,999) (4530200,999) (4536337,999) (4530170,999) (4536338,999) (4536253,999)];
+MktDistance(dyn, [245], conf2, medcounts3, privcounts3);
+
 v1 = TakeAverage(dyn, medcounts1, privcounts1, 4530190)
 v2 = TakeAverage(dyn, medcounts2, privcounts2, 4530190)
+v3 = TakeAverage(dyn, medcounts3, privcounts3, 4530190)
 
   for i = 1:size(d.all, 1)
     if d.all[i].fid == conf[1][1]
@@ -143,9 +151,11 @@ function MktDistance(d::DynState,
   privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
   d1 = Dict{Int64,patientcount}()
   d2 = Dict{Int64,patientcount}()
+  dtest = Dict{Int64,patientcount}()
   for i = 1:size(d.all[all_locs[k]].mk.m,1)
     # these compute the whole market demand for the state, i.e., the tuple.
     TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, dtest, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
     TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
     for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
       fdd = d.all[all_locs[k]].mk.m[i].putils[1,fr]
