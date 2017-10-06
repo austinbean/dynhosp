@@ -181,15 +181,27 @@ function MktDistance(d::DynState,
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
 
+"""
+`MktProf(d::DynState, chunk::Array{Int64}, conf::Array{Tuple{Int64,Int64}}, profs::Dict{Int64, Array{Float64,1}})`
+
+Expected profit.  Two sources of variation: number of patients in zip (via DrawAll), choices of patients within zip.  
 
 
+dyn = CounterObjects(1);
+chunk = [245];
+conf2 = [(4530190,3) (4916068,1) (4916029,1) (4536048,1) (4530200,1) (4536337,1) (4530170,1) (4536338,1) (4536253,1)];
+prof1 = Dict{Int64, Array{Float64,1}}();
+
+MktProf(dyn, chunk, conf2, prof1)
+
+"""
 function MktProf(d::DynState, 
                  chunk::Array{Int64},  
                  conf::Array{Tuple{Int64,Int64}}, # this does take a configuration argument.  
-                 medps::Dict{Int64, Array{Float64,1}} , 
-                 privps::Dict{Int64, Array{Float64,1}})
-  loc = Finder(d, chunk[1])
+                 profs::Dict{Int64, Array{Float64,1}})
+  loc = Finder(d, conf[1][1])
   k = d.all[loc].fid 
+  Ns = 100 # number of sims.
   all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
   neighbors::Array{Int64,1} = Array{Int64,1}()
   FindComps(d, neighbors, d.all[loc])
@@ -197,25 +209,31 @@ function MktProf(d::DynState,
   CompsDict(neighbors, d, all_locs)
   state = TotalFix(GiveState(d, chunk, all_locs, conf, d.all[all_locs[k]].cns), d, chunk)
   DMMapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
-  
-  
   fds = Array{Int64,1}()
   temparr = zeros(2, 12)
   for el in conf 
     push!(fds, el[1])
+    if !haskey(profs, el[1])
+      profs[el[1]] = zeros(Ns)
+    end 
   end 
-
-
   d1 = Dict{Int64,patientcount}()
   d2 = Dict{Int64,patientcount}()
-  for i = 1:size(d.all[all_locs[k]].mk.m,1)
-    # these compute the whole market demand for the state, i.e., the tuple.
-    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, DrawAll(d.all[chunk[1]].mk.m[i].pcounts) )
-    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, DrawAll(d.all[chunk[1]].mk.m[i].pcounts) )
-    # Profit here.  
-
-    CleanMktDemand(d1)
-    CleanMktDemand(d2)
+  for k = 1:Ns
+    for i = 1:size(d.all[loc].mk.m,1)
+      # these compute the whole market demand for the state, i.e., the tuple.
+      TotalMktDemand(d.all[loc].mk.m[i].putils, temparr, d1, DrawAll(d.all[loc].mk.m[i].pcounts) )
+      TotalMktDemand(d.all[loc].mk.m[i].mutils, temparr, d2, DrawAll(d.all[loc].mk.m[i].pcounts) ) 
+      # Profit here.  
+      for ky in fds
+        if (haskey(d1, ky))&&(haskey(d2,ky))
+          profs[ky][k] = PatientRev(d.all[all_locs[ky]], d1[ky], d2[ky], 10)
+        end 
+      end 
+      # Clean up demand here.
+      CleanMktDemand(d1)
+      CleanMktDemand(d2)
+    end 
   end 
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
