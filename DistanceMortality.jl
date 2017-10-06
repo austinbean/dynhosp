@@ -472,12 +472,13 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
   mploc = 5                                  # mortality prob location 
   mortloc = 6                                # total mortality  location 
   msdloc = 7                                 # mortality sd location 
+  hhiloc = 8                                 # HHI  
   fds = Array{Int64,1}()
   rws = length(conf)+1
   for i = 1:(rws-1) 
     push!(fds, conf[i][1])                   # collect the fids. 
   end 
-  cls = 7                                    # fid, number of admits, nicu admits, vlbw, mortality rate, mean total deaths, sd total deaths.
+  cls = 8                                    # fid, number of admits, nicu admits, vlbw, mortality rate, mean total deaths, sd total deaths, hhi.
   outp::Array{Float64,2} = zeros(rws, cls)
   rc = 1                                     # counts rows!  in outp.  
   for k1 in keys(mc)                         # this is the market state 
@@ -518,7 +519,8 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
   if regionalize 
     dths = zeros(Ns)
     outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
-    outp[rws, birthloc] = sum(outp[:,birthloc])           # total birth count 
+    bc = sum(outp[:,birthloc])                            # sum total births
+    outp[rws, birthloc] =                                 # record birth count 
     nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
     outp[rws, niculoc] = nic_ad          
     cvln = sum(outp[:,vlbwloc])                           # total vlbw in market
@@ -531,19 +533,30 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
     end          
     outp[rws, mploc] = mps/Ns   
     outp[rws, mortloc] = mean(dths)                       # total mortality in market 
-    outp[rws, msdloc] = std(dths)                         # standard deviation of market deaths.  
+    outp[rws, msdloc] = std(dths)                         # standard deviation of market deaths. 
+    hhi = 0.0
+    for i = 1:(rws-1)
+      hhi += (outp[i,birthloc]/bc)^2
+    end 
+    outp[rws, hhiloc] = hhi 
   else 
     dths = zeros(Ns)
-    outp[rws, fidloc] = sp_fid                            # here fid will be 999999 - not regionalizing.  
-    outp[rws, birthloc] = sum(outp[:,2])                  # total birth count 
+    outp[rws, fidloc] = sp_fid                            # here fid will be 999999 - not regionalizing. 
+    bc = sum(outp[:,2])                                   # compute total birth count
+    outp[rws, birthloc] = bc                              # write birth count.
     outp[rws, niculoc] = sum(outp[:,3])                   # total nicu admits 
     outp[rws, vlbwloc] = sum(outp[:,4])                   # total vlbw 
     outp[rws, mploc] = mean(outp[1:(rws-1),5])            # mean mortality rate over all facilities.
     outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
-    outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.  
+    outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.
+    hhi = 0.0
+    for i = 1:(rws-1)
+      hhi+=(outp[i,birthloc]/bc)^2
+    end 
+    outp[rws, hhiloc] = hhi  
   end 
   out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
-  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality])
+  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
   return out1
 end 
 
@@ -689,7 +702,8 @@ function FindThem(d::DynState, es::EntireState)
                      vlbw = @data([0.0]), 
                      mean_mort_rate = @data([0.0]), 
                      mean_mortality = @data([0.0]), 
-                     std_mortality = @data([0.0]), 
+                     std_mortality = @data([0.0]),
+                     hhi=@data([0.0]), 
                      fipscode = @data([0.0]), 
                      counterfactual = @data([0.0])) 
   # Do these once - will do markets with more than neighbor at a firm.  
