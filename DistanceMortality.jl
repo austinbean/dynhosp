@@ -151,11 +151,9 @@ function MktDistance(d::DynState,
   privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
   d1 = Dict{Int64,patientcount}()
   d2 = Dict{Int64,patientcount}()
-  #dtest = Dict{Int64,patientcount}()
   for i = 1:size(d.all[all_locs[k]].mk.m,1)
     # these compute the whole market demand for the state, i.e., the tuple.
     TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
-    #TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, dtest, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
     TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
     for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
       fdd = d.all[all_locs[k]].mk.m[i].putils[1,fr]
@@ -182,6 +180,49 @@ function MktDistance(d::DynState,
   end 
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
+
+
+
+function MktProf(d::DynState, 
+                 chunk::Array{Int64},  
+                 conf::Array{Tuple{Int64,Int64}}, # this does take a configuration argument.  
+                 medps::Dict{Int64, Array{Float64,1}} , 
+                 privps::Dict{Int64, Array{Float64,1}})
+  loc = Finder(d, chunk[1])
+  k = d.all[loc].fid 
+  all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
+  neighbors::Array{Int64,1} = Array{Int64,1}()
+  FindComps(d, neighbors, d.all[loc])
+  push!(neighbors, loc)
+  CompsDict(neighbors, d, all_locs)
+  state = TotalFix(GiveState(d, chunk, all_locs, conf, d.all[all_locs[k]].cns), d, chunk)
+  DMMapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
+  
+  
+  fds = Array{Int64,1}()
+  temparr = zeros(2, 12)
+  for el in conf 
+    push!(fds, el[1])
+  end 
+
+
+  d1 = Dict{Int64,patientcount}()
+  d2 = Dict{Int64,patientcount}()
+  for i = 1:size(d.all[all_locs[k]].mk.m,1)
+    # these compute the whole market demand for the state, i.e., the tuple.
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, DrawAll(d.all[chunk[1]].mk.m[i].pcounts) )
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, DrawAll(d.all[chunk[1]].mk.m[i].pcounts) )
+    # Profit here.  
+
+    CleanMktDemand(d1)
+    CleanMktDemand(d2)
+  end 
+  ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
+end 
+
+
+
+
 
 """
 `PopAvgDist`
@@ -279,7 +320,7 @@ function TotalMktDemand(inparr::Array{Float64,2},temparr::Array{Float64,2}, d1::
     if !haskey(d1, temparr[1,i])
       d1[temparr[1,i]] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)  # add the key if it happens to not be there.  
     end 
-    d1[temparr[1,i]].count385 += pp.count385*temparr[2,i]
+    d1[temparr[1,i]].count385 += pp.count385*temparr[2,i]           # recall that temparr will have a fraction in it.  
     d1[temparr[1,i]].count386 += pp.count386*temparr[2,i]
     d1[temparr[1,i]].count387 += pp.count387*temparr[2,i]
     d1[temparr[1,i]].count388 += pp.count388*temparr[2,i]
