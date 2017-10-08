@@ -194,6 +194,96 @@ end
 
 
 
+"""
+`DChoiceTest(d::DynState, f::Int64, conf::Array{Tuple{Int64,Int64},1})`
+
+for i = 1:size(dyn.all,1)
+  if (length(dyn.all[i].nfids) < 2)&(length(dyn.all[i].nfids) > 0)
+    println(i)
+  end 
+end 
+
+Try 159, 160.
+
+dyn = CounterObjects(1);
+
+tc = [(1811145, 1), (1813240,1)]
+a, b = DChoiceTest(dyn, 1811145, tc)
+
+for k1 in keys(a)
+  describe(a[k1])
+  println( round(percentile(a[k1], 0.05), 2), "   ",   round(percentile(a[k1], 0.95), 2))
+end 
+
+"""
+function DChoiceTest(d::DynState, f::Int64, conf::Array{Tuple{Int64,Int64},1})
+  Ns::Int64 = 100
+  outp::Dict{Tuple{Int64,Int64}, patientcount} = Dict{Tuple{Int64,Int64}, patientcount}()
+  outp[(f,1)] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  outp[(f,2)] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  outp[(f,3)] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  # Count total patientcount 
+  out2::Dict{Tuple{Int64,Int64}, Array{Float64,1}} = Dict{Tuple{Int64,Int64}, Array{Float64,1}}()
+  out2[(f,1)] = zeros(Ns)
+  out2[(f,2)] = zeros(Ns)
+  out2[(f,3)] = zeros(Ns)
+
+  loc = Finder(d,f)
+  k = d.all[loc].fid 
+  all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
+  neighbors::Array{Int64,1} = Array{Int64,1}()
+  FindComps(d, neighbors, d.all[loc])
+  push!(neighbors, loc)
+  CompsDict(neighbors, d, all_locs)
+  state = TotalFix(GiveState(d, [loc], all_locs, conf, d.all[all_locs[k]].cns), d, [loc])
+  DMMapCompState(d, all_locs, [loc], FindFids(d, [loc]), conf)
+  fds = Array{Int64,1}()
+  temparr = zeros(2, 12)
+  d1 = Dict{Int64,patientcount}()
+  d2 = Dict{Int64,patientcount}()
+  for el in conf 
+    push!(fds, el[1])
+    d1[el[1]] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    d2[el[1]] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  end 
+  # set all utilities outside to very low values.  
+  for i = 1:size(d.all[loc].mk.m,1)
+    for j = 1:size(d.all[loc].mk.m[i].putils,2)
+      if !in(d.all[loc].mk.m[i].putils[1,j], fds)
+        d.all[loc].mk.m[i].putils[2,j] = -500.0
+      end 
+    end 
+  end 
+  for j = 1:3
+    newt = Array{Tuple{Int64,Int64},1}()
+    for el in conf 
+      if el[1] == f 
+        push!(newt, (el[1], j))
+      else 
+        push!(newt, el)
+      end 
+    end 
+    DMMapCompState(d, all_locs, [loc], FindFids(d, [loc]), newt)
+    for r = 1:Ns
+      for i = 1:size(d.all[all_locs[k]].mk.m,1)
+        TotalMktDemand(d.all[loc].mk.m[i].putils, temparr, d1, DrawAll(d.all[loc].mk.m[i].pcounts) )
+        TotalMktDemand(d.all[loc].mk.m[i].mutils, temparr, d2, DrawAll(d.all[loc].mk.m[i].mcounts) )
+        outp[(f,j)] += d1[f]
+        outp[(f,j)] += d2[f]
+        CleanMktDemand(d1)
+        CleanMktDemand(d2)
+      end
+      out2[(f,j)][r] = sum(outp[(f,j)])
+      outp[(f,j)] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    end
+  end 
+  return out2 
+end 
+
+
+
+
+
 
 
 """
