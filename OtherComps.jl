@@ -196,7 +196,13 @@ end
 
 """
 `DChoiceTest(d::DynState, f::Int64, conf::Array{Tuple{Int64,Int64},1})`
+This function does the following: sets everyone to the configuration in `conf`,
+sets the utilities of all other firms very low, so none should be chosen,
+then simulates demand Ns (=100) times 
 
+
+
+# To identify small markets...
 for i = 1:size(dyn.all,1)
   if (length(dyn.all[i].nfids) < 2)&(length(dyn.all[i].nfids) > 0)
     println(i)
@@ -245,12 +251,13 @@ function DChoiceTest(d::DynState, f::Int64, conf::Array{Tuple{Int64,Int64},1})
     push!(fds, el[1])
     d1[el[1]] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
     d2[el[1]] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    outp[el] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    out2[el] = zeros(3*Ns) # Note this nonsense here... storing all results for other firm as single 3*Ns array.
   end 
-  # set all utilities outside to very low values.  
   for i = 1:size(d.all[loc].mk.m,1)
     for j = 1:size(d.all[loc].mk.m[i].putils,2)
       if !in(d.all[loc].mk.m[i].putils[1,j], fds)
-        d.all[loc].mk.m[i].putils[2,j] = -500.0
+        d.all[loc].mk.m[i].putils[2,j] = -500.0 # set all utilities outside to very low values.
       end 
     end 
   end 
@@ -270,14 +277,27 @@ function DChoiceTest(d::DynState, f::Int64, conf::Array{Tuple{Int64,Int64},1})
         TotalMktDemand(d.all[loc].mk.m[i].mutils, temparr, d2, DrawAll(d.all[loc].mk.m[i].mcounts) )
         outp[(f,j)] += d1[f]
         outp[(f,j)] += d2[f]
+        # for other firms 
+        for ek in fds 
+          if ek != f
+            outp[(ek,1)] += d1[ek]
+            outp[(ek,1)] += d2[ek] 
+          end 
+        end 
         CleanMktDemand(d1)
         CleanMktDemand(d2)
       end
       out2[(f,j)][r] = sum(outp[(f,j)])
       outp[(f,j)] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+      for k1 in fds 
+        if k1!=f 
+          out2[(k1,1)][r+100*(j-1)] = sum(outp[(k1,1)]) # note that nonsense too.  storing all results for other firm as single 3*Ns array.
+          outp[(k1,1)] = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+        end 
+      end 
     end
   end 
-  return out2 
+  return outp, out2 
 end 
 
 
