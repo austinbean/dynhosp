@@ -221,6 +221,41 @@ for k1 in keys(a)
   println( round(percentile(a[k1], 0.05), 2), "   ",   round(percentile(a[k1], 0.95), 2))
 end 
 
+
+saveout = zeros(100, 6)
+for i = 1:100
+  saveout[i, 1] = b[(1811145, 1)][i]
+  saveout[i, 2] = b[(1813240, 1)][i]
+  saveout[i, 3] = b[(1811145, 2)][i]
+  saveout[i, 4] = b[(1813240, 1)][i+100]
+  saveout[i, 5] = b[(1811145, 3)][i]
+  saveout[i, 6] = b[(1813240, 1)][i+200]
+end 
+so = convert(DataFrame, saveout)
+names!(so, [:lev1_main, :lev1_o_1, :lev2_main, :lev1_o_2, :lev3_main, :lev1_o_3])
+CSV.write("demand_example.csv", so; header = true)
+
+saveout = zeros(300, 3)
+for i = 1:100
+  saveout[i, 1] = 1
+  saveout[i, 2] = b[(1811145, 1)][i]
+  saveout[i, 3] = b[(1813240, 1)][i]
+
+  saveout[i+100, 1] = 2
+  saveout[i+100, 2] = b[(1811145, 2)][i]
+  saveout[i+100, 3] = b[(1813240, 1)][i+100]
+
+  saveout[i+200, 1] = 3
+  saveout[i+200, 2] = b[(1811145, 3)][i]
+  saveout[i+200, 3] = b[(1813240, 1)][i+200]
+end 
+so = convert(DataFrame, saveout)
+names!(so, [:lev, :main, :alt])
+CSV.write("demand_example.csv", so; header = true)
+
+
+Imported, cleaned up and graphed in the Stata File "Demand Example.do".  Graph is "DemandSim.png"
+
 """
 function DChoiceTest(d::DynState, f::Int64, conf::Array{Tuple{Int64,Int64},1})
   Ns::Int64 = 100
