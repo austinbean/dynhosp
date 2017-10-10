@@ -21,7 +21,7 @@ replace lev = 1.5 if lev == 1 & nn == 1
 replace lev = 2.5 if lev == 2 & nn == 1
 replace lev = 3.5 if lev == 3 & nn == 1
 
-graph twoway (bar mn_ lev if nn == 1, barw(0.4)) (bar mn_ lev if nn == 2, barw(0.4)) (rcap p95_ p5_ lev if nn == 1, lcolor(orange)) (rcap p95_ p5_ lev if nn == 2, lcolor(orange)), xlabel(1 "1" 1.5 "1" 2 "1" 2.5 "2" 3 "1" 3.5 "3") xline(1.75) xline(2.75) yscale(range(0 1200)) ytitle("Patients Admitted") xtitle("Facility Levels") graphregion(color(white)) legend(lab(1 "Investing") lab( 2 "Not Investing") lab(3 "5-95 %-tile") lab( 4 "5-95 %-tile" ) ) title("Simulated Demand Response to Firm Investment") subtitle("Sherman County, TX") note("Texoma Med. Center - Denison, TX"  "Wilson N Jones Med. Center - Sherman, TX")
+graph twoway (bar mn_ lev if nn == 1, barw(0.4)) (bar mn_ lev if nn == 2, barw(0.4)) (rcap p95_ p5_ lev if nn == 1, lcolor(orange)) (rcap p95_ p5_ lev if nn == 2, lcolor(orange)), xlabel(1 "1" 1.5 "1" 2 "1" 2.5 "2" 3 "1" 3.5 "3") xline(1.75) xline(2.75) yscale(range(0 1200)) ytitle("Patients Admitted") xtitle("Facility Levels") graphregion(color(white)) legend(lab(1 "Investing") lab( 2 "Not Investing") lab(3 "5-95 %-tile") lab( 4 "5-95 %-tile" ) ) title("Simulated Demand Response to Firm Investment") subtitle("Grayson County, TX") note("Texoma Med. Center - Denison, TX"  "Wilson N Jones Med. Center - Sherman, TX")
 
 
 
