@@ -2,10 +2,6 @@ using DataFrames
 using CSV 
 
 
-mutable struct DR # this is... how many patients traveled what distances from a zip. 
-    p::patientcount 
-    d::Float64 
-end 
 
 
 """
@@ -58,11 +54,11 @@ end
 
 """
 `MktDistance(d::DynState, 
-                     chunk::Array{Int64,1}, 
-                     all_locs::Dict{Int64,Int64}, 
-                     conf::Array{Tuple{Int64,Int64},2}, 
-                     medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
-                     privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})`
+             chunk::Array{Int64,1}, 
+             all_locs::Dict{Int64,Int64}, 
+             conf::Array{Tuple{Int64,Int64},2}, 
+             medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
+             privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})`
 
 Records all distances traveled to all firms in all zips around the firm in ch.
 Records all patient volumes and choices for each firm in a vector of DR's, each 
@@ -124,6 +120,8 @@ v3 = TakeAverage(dyn, medcounts3, privcounts3, 4530190)
         end 
     end 
   end
+TODO - this would be better if set to make all non-conf options very low util.  Then none would be chosen. 
+
 """
 function MktDistance(d::DynState, 
                      chunk::Array{Int64,1},  
@@ -180,6 +178,83 @@ function MktDistance(d::DynState,
   end 
   ResetCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # set it back 
 end 
+
+
+
+
+"""
+`SubgroupDistance`
+
+Similar to MktDistance, but sets all utils for non-conf facilities very low to avoid choosing them.  
+
+"""
+function SubgroupDistance(chunk::Array{Int64,1},  
+                          conf::Array{Tuple{Int64,Int64}}, # this does take a configuration argument.  
+                          medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
+                          privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})
+  d = CounterObjects(1)  
+  k = d.all[chunk[1]].fid 
+  all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
+  neighbors::Array{Int64,1} = Array{Int64,1}()
+  FindComps(d, neighbors, d.all[chunk[1]])
+  push!(neighbors, chunk[1])
+  CompsDict(neighbors, d, all_locs)
+  state = TotalFix(GiveState(d, chunk, all_locs, conf, d.all[all_locs[k]].cns), d, chunk)
+  DMMapCompState(d, all_locs, chunk, FindFids(d, chunk), conf) # This can include a state for the firm in chunk.
+  medcounts[state] =  Dict{Int64,Array{DR,1} }()
+  privcounts[state] =  Dict{Int64,Array{DR,1} }()
+  pcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  mcount = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+  fds = Array{Int64,1}()
+  temparr = zeros(2, 12)
+  for el in conf 
+    push!(fds, el[1])
+  end 
+  medcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+  privcounts[state][d.all[all_locs[k]].fid] =  Array{DR,1}()
+  d1 = Dict{Int64,patientcount}()
+  d2 = Dict{Int64,patientcount}()
+  for i1 = 1:size(d.all[all_locs[k]].mk.m,1)
+    for fr = 1:size(d.all[all_locs[k]].mk.m[i1].putils[1,:],1)
+      if !in(d.all[all_locs[k]].mk.m[i1].putils[1,fr], fds) # check if in the fids or not 
+        d.all[all_locs[k]].mk.m[i1].putils[2,fr] -= 100.0   # set all other utilities very low.  
+      end 
+    end 
+  end 
+  for i = 1:size(d.all[all_locs[k]].mk.m,1)
+    # these compute the whole market demand for the state, i.e., the tuple.
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].putils, temparr, d1, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, true))
+    TotalMktDemand(d.all[chunk[1]].mk.m[i].mutils, temparr, d2, PatExpByType(d.all[chunk[1]].mk.m[i].pcounts, false))
+    for fr = 1:size(d.all[all_locs[k]].mk.m[i].putils[1,:],1) # copy the pcount and mcount for each firm. loop over firms !
+      fdd = d.all[all_locs[k]].mk.m[i].putils[1,fr]
+      if fdd != 0 # this skips the OO.
+        mc1, pc1 = CopyCount(d1[fdd], d2[fdd]) 
+        # now measure the distance.
+        dis = DistanceGet(d, fdd, d.all[all_locs[k]].mk.m[i].lat, d.all[all_locs[k]].mk.m[i].long)
+        # push the copied p and m 
+        if !haskey(medcounts[state], fdd)
+          medcounts[state][fdd] = Array{DR,1}()
+        end  
+        if !haskey(privcounts[state], fdd)
+          privcounts[state][fdd] = Array{DR,1}()
+        end 
+        push!(medcounts[state][fdd], DR(mc1, dis))
+        push!(privcounts[state][fdd], DR(pc1, dis))
+        # reset patient counts 
+        ResetP(pcount)
+        ResetP(mcount) 
+      end 
+    end 
+    CleanMktDemand(d1)
+    CleanMktDemand(d2)
+  end 
+end 
+
+
+
+
+
+
 
 """
 `MktProf(d::DynState, chunk::Array{Int64}, conf::Array{Tuple{Int64,Int64}}, profs::Dict{Int64, Array{Float64,1}})`
@@ -865,7 +940,8 @@ end
 
 
 """
-
+`CleanDistDict`
+Sets all distances traveled back to zero.  
 
 mutable struct DR # this is... how many patients traveled what distances from a zip. 
     p::patientcount 
