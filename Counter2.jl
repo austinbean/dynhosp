@@ -2161,6 +2161,7 @@ end
 `Cost3(n::Int64)`
 Returns Cost of Level 3 given existing number.
 Scaling factor included.
+The boolean forces the fees to increase with facility numbers or not.  
 """
 function Cost3(n::Int64; fs::Bool = false)
   if fs
@@ -2174,7 +2175,8 @@ end
 """
 `Cost2(n::Int64)`
 Returns Cost of Level 2 given existing number.
-Scaling factor included.  
+Scaling factor included. 
+The boolean forces the fees to increase with facility numbers or not.   
 """
 function Cost2(n::Int64; fs::Bool = false)
   if fs
