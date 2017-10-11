@@ -1860,7 +1860,7 @@ function AllMortality(d::Dict{Int64, LBW}, Tex::EntireState)
   #TODO 02/14/2017 - fix this comprehension, which is surely slow.
   outp::Dict{Int64, Int64} = Dict{Int64,Int64}() # = Dict(j => 0 for j in keys(d))
   for el in keys(d)
-    outp[el] = floor(sum(d[el])*VolMortality(sum(d[el]), Tex.mkts[ Tex.fipsdirectory[el] ].collection[el].level))         # Function calls the level too
+    outp[el] = floor(sum(d[el])*MortProb(sum(d[el])) )         # Function calls the level too
   end
   return outp
 end
@@ -1869,9 +1869,15 @@ end
 
 """
 `VolMortality(v::Int64)`
+DEPRECATED...
+Switched out for MortProb.  Do not use.  
+
 This function needs to return a mortality rate for the volume.  That is, take the number of patients and return the mortality
 rate as a function of the patient volume.  This data comes from Chung, Phibbs, Boscardin, et al Medical Care 2010
 "The Effect of Neonatal Intensive Care Level and Hospital Volume on Mortality of Very Low Birth Weigh Infants"
+
+
+# TODO - sub this out for the mortality function in Counter 2, which does not take a level argument.  
 """
 function VolMortality{T<:Real}(v::T, lev::Int64)
   if lev == 1
