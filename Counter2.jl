@@ -2130,7 +2130,7 @@ Takes the vector outp as an input and changes particular coordinates
 which correspond to costs used in `ExactChoice` to represent the costs 
 of changing levels.  
 """
-function InvCosts(st::NTuple{9,Int64},b1::Bool,outp::Array{Float64,1})
+function InvCosts(st::NTuple{9,Int64},b1::Bool,outp::Array{Float64,1}; fees::Bool = false )
   #=
     ϕ13::Float64 = inv_costs[1] 
     ϕ12::Float64 = inv_costs[2]
@@ -2145,14 +2145,14 @@ function InvCosts(st::NTuple{9,Int64},b1::Bool,outp::Array{Float64,1})
   l1::Int64 = st[1]+st[4]+st[7]
   l2::Int64 = st[2]+st[5]+st[8]
   l3::Int64 = st[3]+st[6]+st[9]
-  outp[1] = Cost3(l3)
-  outp[2] = Cost2(l2)
+  outp[1] = Cost3(l3; fs = fees)
+  outp[2] = Cost2(l2; fs = fees)
   outp[3] = 0.0 
-  outp[4] = Cost3(l3)
+  outp[4] = Cost3(l3; fs = fees)
   #outp[5] = 
   outp[6] = 0.0
   #outp[7] = 
-  outp[8] = Cost2(l2)
+  outp[8] = Cost2(l2; fs = fees)
   outp[9] = 0.0
   return outp
 end
@@ -2161,10 +2161,13 @@ end
 `Cost3(n::Int64)`
 Returns Cost of Level 3 given existing number.
 Scaling factor included.
-TODO - eventually both should be functions of the estimated cost OR estimated volume changes.
 """
-function Cost3(n::Int64)
-  return 0.002*n
+function Cost3(n::Int64; fs::Bool = false)
+  if fs
+    return 0.002*n
+  else 
+    return 0.002
+  end 
 end 
 
 
@@ -2172,10 +2175,13 @@ end
 `Cost2(n::Int64)`
 Returns Cost of Level 2 given existing number.
 Scaling factor included.  
-TODO - eventually both should be functions of the estimated cost OR estimated volume changes.
 """
-function Cost2(n::Int64)
-  return 0.002*n
+function Cost2(n::Int64; fs::Bool = false)
+  if fs
+    return 0.002*n
+  else 
+    return 0.002
+  end 
 end  
 
 
