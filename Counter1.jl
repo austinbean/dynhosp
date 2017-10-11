@@ -270,6 +270,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
               res.hist[el].values[currentfac[el]].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k])
               res.hist[el].values[currentfac[el]].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
               res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510
+              # TODO - this VolMortality should be subbed out for MortProb in DistanceMortality.jl, but the level needs to be figured out.  
               res.hist[el].values[currentfac[el]].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)
               res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k]
               mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]                        # this is confusing - has this behavior changed since 0.4?
@@ -303,6 +304,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
             res.hist[el].values[currentfac[el]].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k])
             res.hist[el].values[currentfac[el]].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
             res.hist[el].values[currentfac[el]].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k]
+            # TODO - this VolMortality should be subbed out for MortProb in DistanceMortality.jl, but the level needs to be figured out.  
             res.hist[el].values[currentfac[el]].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k], Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510 + sharedvlbw[k])
             res.hist[el].values[currentfac[el]].hosprecord[k].profit[i] = pdict[k] + MeanCost(sharedvlbw[k],3)
             mortcount += res.hist[el].values[currentfac[el]].hosprecord[k].deaths[end]
@@ -369,6 +371,7 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
         res.hist[el].values[0].hosprecord[k].totbr[i] = sum(drgp[k])+sum(drgm[k])
         res.hist[el].values[0].hosprecord[k].totlbw[i] = mappeddemand[k].bt2025 + mappeddemand[k].bt1520 + mappeddemand[k].bt1015 + mappeddemand[k].bt510
         res.hist[el].values[0].hosprecord[k].totvlbw[i] = mappeddemand[k].bt1015 + mappeddemand[k].bt510
+        # TODO - this VolMortality should be subbed out for MortProb in DistanceMortality.jl, but the level needs to be figured out.  
         res.hist[el].values[0].hosprecord[k].deaths[i] = VolMortality(mappeddemand[k].bt1015 + mappeddemand[k].bt510, Tex.mkts[el].collection[k].level)*(mappeddemand[k].bt1015 + mappeddemand[k].bt510)
         res.hist[el].values[0].hosprecord[k].profit[i] = pdict[k]
         mortcount += res.hist[el].values[0].hosprecord[k].deaths[end]
