@@ -629,12 +629,23 @@ mutable struct simh<:ProjectModule.Fac
 end
 
 """
-`mutable struct DynState` # this should hold a collection of ALL of the hospitals, for the approximation.
+`DynState` # this should hold a collection of ALL of the hospitals, for the approximation.
 -  all::Array{simh, 1}
 """
 mutable struct DynState <: DS # this should hold a collection of ALL of the hospitals, for the approximation.
   all::Array{simh, 1}
 end
+
+
+"""
+`DR`
+two fields: a patientcount p and a Float64 d one of which holds a count, the other a distance.
+"""
+mutable struct DR # this is... how many patients traveled what distances from a zip. 
+    p::patientcount 
+    d::Float64 
+end 
+
 
 
 
@@ -652,6 +663,7 @@ end
   include("utilities.jl")
   include("InexactConvergence.jl")
   include("NewApprox.jl")
+  include("DistanceMortality.jl")
   #include("Reboot.jl")
 
 
@@ -909,6 +921,26 @@ end
   export IndFind
   export ArgVec
 
+  # DistanceMortality functions   
+  export Finder 
+  export DMMapCompState
+  export MktDistance
+  export SubgroupDistance
+  export MktProf
+  export FCheck
+  export PopAvgDist
+  export TotalFix
+  export TotalMktDemand
+  export CleanMktDemand
+  export DistanceGet
+  export ResetP 
+  export CopyCount
+  export TakeAverage 
+  export Mortality 
+  export MortProb
+  export DREX 
+  export FindThem
+  export CleanDistDict
 
 
   # Export types
@@ -931,6 +963,7 @@ end
   export simrun
   export hyrec
   export patientrange
+  export DR # this from distancemortality only.  
 
   # Counter2.jl types 
   export nlrec
