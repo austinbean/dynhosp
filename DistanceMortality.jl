@@ -185,14 +185,25 @@ end
 """
 `SubgroupDistance`
 
-Similar to MktDistance, but sets all utils for non-conf facilities very low to avoid choosing them.  
+Similar to MktDistance, but sets all utils for non-conf facilities very low to avoid choosing them.
 
+conf2 = [(4530190,3) (4916068,1) (4916029,1) (4536048,1) (4530200,1) (4536337,1) (4530170,1) (4536338,1) (4536253,1)];
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(4530190, conf2, medcounts2, privcounts2)
+
+
+conf3 = [(4530190,3) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3) (4530170,3) (4536338,3) (4536253,3)];
+medcounts3 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts3 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(4530190, conf3, medcounts3, privcounts3)
 """
-function SubgroupDistance(chunk::Array{Int64,1},  
+function SubgroupDistance(f::Int64,  
                           conf::Array{Tuple{Int64,Int64}}, # this does take a configuration argument.  
                           medcounts::Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }, 
                           privcounts::Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}})
-  d = CounterObjects(1)  
+  d = CounterObjects(1) 
+  chunk = [Finder(d, f)]
   k = d.all[chunk[1]].fid 
   all_locs::Dict{Int64,Int64} = Dict{Int64,Int64}()
   neighbors::Array{Int64,1} = Array{Int64,1}()
@@ -248,6 +259,8 @@ function SubgroupDistance(chunk::Array{Int64,1},
     CleanMktDemand(d1)
     CleanMktDemand(d2)
   end 
+  f1 = TakeAverage(d, medcounts, privcounts, conf[1][1])
+  return f1  
 end 
 
 
@@ -711,6 +724,144 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
   names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
   return out1
 end 
+
+
+
+"""
+`MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64},2};
+           mp_lin::Float64 = 0.005,
+           mp_quad::Float64 = 0.0,
+           nicad::Float64 = 0.06,
+           fvlbw::Float64 = 0.014)`
+Computes Medicaid and Private patient mortality among all hospitals.
+
+
+## Testing ## 
+dyn = CounterObjects(1);
+
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk = [245];
+conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (4536337,3), (4530170,3), (4536338,3), (4536253,3)]
+MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
+
+Mortality(medcounts2, privcounts2, conf2)
+
+"""
+function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
+                         nicad::Float64 = 0.06,
+                         fvlbw::Float64 = 0.014,
+                         regionalize::Bool = false,
+                         sp_fid::Int64 = 99999999)
+  Ns::Int64 = 100                            # draws of mortality rate.  
+  fidloc = 1                                 # fid  location 
+  birthloc = 2                               # total births location 
+  niculoc = 3                                # nicu admits location 
+  vlbwloc = 4                                # total vlbw location 
+  mploc = 5                                  # mortality prob location 
+  mortloc = 6                                # total mortality  location 
+  msdloc = 7                                 # mortality sd location 
+  hhiloc = 8                                 # HHI  
+  fds = Array{Int64,1}()
+  rws = length(conf)+1
+  for i = 1:(rws-1) 
+    push!(fds, conf[i][1])                   # collect the fids. 
+  end 
+  cls = 8                                    # fid, number of admits, nicu admits, vlbw, mortality rate, mean total deaths, sd total deaths, hhi.
+  outp::Array{Float64,2} = zeros(rws, cls)
+  mtarget = merged[1]                        # this will be the target of transfers.
+  msource = Array{Int64,1}()
+  # need to take all of the fids in merged[2:end] and add these to target.
+  for el in 2:length(merged)
+    push!(msource, merged[el])               # collect the sources of merged facilities.
+  end 
+  rc = 1                                     # counts rows!  in outp.  
+  for k1 in keys(mc)                         # this is the market state 
+    for k2 in keys(mc[k1])                   # these are the firms.
+      if in(k2, fds)                         # these are the relevant firms.
+        # TODO here things differ depending on whether it's a merged firm or not.
+        dths = zeros(Ns)                     # will hold the Ns draws of the mortality rate.  
+        ct = 0.0                             # count of patients                         
+        for j = 1:size(mc[k1][k2], 1)        # medicaid patients 
+          a, b = DREX(mc[k1][k2][j])
+          ct += a 
+        end 
+        for j = 1:size(pc[k1][k2], 1)        # private patients 
+          a, b = DREX(pc[k1][k2][j])
+          ct += a 
+        end 
+        cna = ct*nicad                       # count of nicu admitted patients.
+        cvln = fvlbw*ct                      # count of vlbw patients 
+        mps = 0.0 
+        for m = 1:Ns
+          mp = MortProb(cvln)
+          mps += mp                          # track total of probs.
+          if cvln*mp < 0.0
+            println("prob: ", mp, " count ", cvln)
+          end 
+          dths[m] = cvln*mp
+        end 
+        outp[rc, fidloc] = k2                 # firm fid 
+        outp[rc, birthloc] = ct               # birth count 
+        outp[rc, niculoc] = cna               # nicu admits 
+        outp[rc, vlbwloc] = cvln              # vlbw 
+        outp[rc, mploc] = mps/Ns              # mort prob mean, over Ns draws.  
+        outp[rc, mortloc] = mean(dths)        # total mort mean 
+        outp[rc, msdloc] = std(dths)          # total mortality st. d.
+        rc += 1
+      end 
+    end 
+  end 
+
+  # TODO - this is where it should be treated differently, I think.  
+  if regionalize 
+    dths = zeros(Ns)
+    outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
+    bc = sum(outp[:,birthloc])                            # sum total births
+    outp[rws, birthloc] =                                 # record birth count 
+    nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
+    outp[rws, niculoc] = nic_ad          
+    cvln = sum(outp[:,vlbwloc])                           # total vlbw in market
+    outp[rws, vlbwloc] = cvln  
+    mps = 0.0
+    for m = 1:Ns
+      mp = MortProb(cvln)
+      mps += mp 
+      dths[m] = cvln*mp
+    end          
+    outp[rws, mploc] = mps/Ns   
+    outp[rws, mortloc] = mean(dths)                       # total mortality in market 
+    outp[rws, msdloc] = std(dths)                         # standard deviation of market deaths. 
+    hhi = 0.0
+    for i = 1:(rws-1)
+      hhi += (outp[i,birthloc]/bc)^2
+    end 
+    outp[rws, hhiloc] = hhi 
+  else 
+    dths = zeros(Ns)
+    outp[rws, fidloc] = sp_fid                            # here fid will be 999999 - not regionalizing. 
+    bc = sum(outp[:,2])                                   # compute total birth count
+    outp[rws, birthloc] = bc                              # write birth count.
+    outp[rws, niculoc] = sum(outp[:,3])                   # total nicu admits 
+    outp[rws, vlbwloc] = sum(outp[:,4])                   # total vlbw 
+    outp[rws, mploc] = mean(outp[1:(rws-1),5])            # mean mortality rate over all facilities.
+    outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
+    outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.
+    hhi = 0.0
+    for i = 1:(rws-1)
+      hhi+=(outp[i,birthloc]/bc)^2
+    end 
+    outp[rws, hhiloc] = hhi  
+  end 
+  out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
+  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
+  return out1
+end 
+
+
+
+
+
 
 
 """
