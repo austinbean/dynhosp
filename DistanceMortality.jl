@@ -745,8 +745,9 @@ privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
 chunk = [245];
 conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (4536337,3), (4530170,3), (4536338,3), (4536253,3)]
 MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
+merge1 = [4530190, 4536337]
 
-Mortality(medcounts2, privcounts2, conf2)
+MergerMortality(medcounts2, privcounts2, conf2, merge1)
 
 """
 function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
@@ -770,7 +771,6 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
   outp::Array{Float64,2} = zeros(rws, cls)
   mtarget = merged[1]                        # this will be the target of transfers.
   msource = Array{Int64,1}()
-  # need to take all of the fids in merged[2:end] and add these to target.
   for el in 2:length(merged)
     push!(msource, merged[el])               # collect the sources of merged facilities.
   end 
@@ -778,7 +778,6 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
   for k1 in keys(mc)                         # this is the market state 
     for k2 in keys(mc[k1])                   # these are the firms.
       if in(k2, fds)                         # these are the relevant firms.
-        # TODO here things differ depending on whether it's a merged firm or not.
         dths = zeros(Ns)                     # will hold the Ns draws of the mortality rate.  
         ct = 0.0                             # count of patients                         
         for j = 1:size(mc[k1][k2], 1)        # medicaid patients 
@@ -813,31 +812,53 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
   end 
   nicm = 0.0
   vlbwm = 0.0 
-  for el in msource # fids of merger sources 
+  for el in msource                                      # fids of merger sources 
     ix1 = 0 
-    for nm in 1:size(outp,1) # find the index of the merger source.  
-      if el == out[nm,1]
-        ix1 = nm             # the index of the merging firm.   
+    for nm in 1:size(outp,1)                             # find the index of the merger source.  
+      if el == outp[nm,1]
+        ix1 = nm                                         # the index of the merging firm.   
       end 
     end 
-    nicm += outp[ix1,niculoc])                           # total nicu admits in market
+    nicm += outp[ix1,niculoc]                            # total nicu admits in market
     vlbwm += outp[ix1,vlbwloc]                           # total vlbw in market
   end 
-  # now do this for the target firm.  
+  # now do this for the target firm.
+  ix1 = 0 
+  for nm in 1:size(outp,1)                               # find the index of the merger source.  
+    if mtarget == outp[nm,1]
+      ix1 = nm                                           # the index of the merging firm.   
+    end 
+  end   
   dths = zeros(Ns)
   outp[rws, fidloc] = mtarget                            # here fid will be 999999 - not regionalizing. 
-  bc = sum(outp[:,2])                                   # compute total birth count
-  outp[rws, birthloc] = bc                              # write birth count.
-  outp[rws, niculoc] = sum(outp[:,3])                   # total nicu admits 
-  outp[rws, vlbwloc] = sum(outp[:,4])                   # total vlbw 
-  outp[rws, mploc] = mean(outp[1:(rws-1),5])            # mean mortality rate over all facilities.
-  outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
-  outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.
-  hhi = 0.0
-  for i = 1:(rws-1)
-    hhi+=(outp[i,birthloc]/bc)^2
+  outp[rws, birthloc] = (outp[ix1,birthloc] + nicm)      # write birth count.
+  outp[rws, niculoc] = (outp[ix1,niculoc] + nicm)        # total nicu admits 
+  outp[rws, vlbwloc] = (outp[ix1,vlbwloc] + vlbwm)       # total vlbw 
+  mps = 0.0 
+  cvln = outp[rws, niculoc]                              # total volume 
+  for m = 1:Ns
+    mp = MortProb(cvln)
+    mps += mp                                            # track total of probs.
+    if cvln*mp < 0.0
+      println("prob: ", mp, " count ", cvln)
+    end 
+    dths[m] = cvln*mp
   end 
-  outp[rws, hhiloc] = hhi  
+  outp[rws, mploc] = mps/Ns                              # mean mortality rate over all facilities.
+  outp[rws, mortloc] = mean(dths)                        # total mean mortality 
+  outp[rws, msdloc] = std(dths)                          # not computing mean or sd of mortality rates.
+  hhi = 0.0
+  tb = 0.0
+  # TODO - would be nice to do an HHI computation here.  
+  # for j = 1:rws 
+  #   if outp[j,1] != mtarget # this isn't right.  
+  #     tb += out[j, birthloc]   # compute total number of births 
+  #   end 
+  # end  
+  # for i = 1:rws
+  #   hhi+=(outp[i,birthloc]/tb)^2
+  # end 
+  # outp[rws, hhiloc] = hhi  
   out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
   names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
   return out1
