@@ -623,6 +623,9 @@ MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
 
 Mortality(medcounts2, privcounts2, conf2)
 
+TODO - this is computing mortality at non-level 3.  Esp for firms at lev 2 this will be wrong, but at lev 1 the 
+patients need to be transferred.  Then the mortality rates should be recomputed.  Ugh.  
+
 """
 function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
                    nicad::Float64 = 0.06,
@@ -747,7 +750,11 @@ conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (45363
 MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
 merge1 = [4530190, 4536337]
 
+merge2 = [4530190, 4916068, 4916029, 4536048, 4530200, 4536337, 4530170, 4536338]
+
 MergerMortality(medcounts2, privcounts2, conf2, merge1)
+
+MergerMortality(medcounts2, privcounts2, conf2, merge2)
 
 """
 function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
@@ -821,6 +828,8 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
     end 
     nicm += outp[ix1,niculoc]                            # total nicu admits in market
     vlbwm += outp[ix1,vlbwloc]                           # total vlbw in market
+    outp[ix1,niculoc] = 0.0                              # nicu patients transferred - set to zero.  
+    outp[ix1,vlbwloc] = 0.0                              # all patients transferred - set to zero.
   end 
   # now do this for the target firm.
   ix1 = 0 
@@ -849,16 +858,19 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
   outp[rws, msdloc] = std(dths)                          # not computing mean or sd of mortality rates.
   hhi = 0.0
   tb = 0.0
-  # TODO - would be nice to do an HHI computation here.  
-  # for j = 1:rws 
-  #   if outp[j,1] != mtarget # this isn't right.  
-  #     tb += out[j, birthloc]   # compute total number of births 
-  #   end 
-  # end  
-  # for i = 1:rws
-  #   hhi+=(outp[i,birthloc]/tb)^2
-  # end 
-  # outp[rws, hhiloc] = hhi  
+  # TODO - would be nice to do an HHI computation here. 
+  fi = findfirst(outp[:,1], mtarget) 
+  for j = 1:rws 
+    if j != fi # this isn't right.  
+      tb += outp[j, birthloc]   # compute total number of births 
+    end 
+  end  
+  for i = 1:rws
+    if i != fi 
+      hhi+=(outp[i,birthloc]/tb)^2
+    end 
+  end 
+  outp[rws, hhiloc] = hhi  
   out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
   names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
   return out1
