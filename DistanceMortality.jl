@@ -858,7 +858,6 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
   outp[rws, msdloc] = std(dths)                          # not computing mean or sd of mortality rates.
   hhi = 0.0
   tb = 0.0
-  # TODO - would be nice to do an HHI computation here. 
   fi = findfirst(outp[:,1], mtarget) 
   for j = 1:rws 
     if j != fi # this isn't right.  
