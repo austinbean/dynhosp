@@ -685,6 +685,7 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
     dths = zeros(Ns)
     outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
     bc = sum(outp[:,birthloc])                            # sum total births
+    # TODO - fix!  bc???  
     outp[rws, birthloc] =                                 # record birth count 
     nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
     outp[rws, niculoc] = nic_ad          
@@ -750,9 +751,7 @@ Mortality(medcounts2, privcounts2, conf2)
 """
 function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
                          nicad::Float64 = 0.06,
-                         fvlbw::Float64 = 0.014,
-                         regionalize::Bool = false,
-                         sp_fid::Int64 = 99999999)
+                         fvlbw::Float64 = 0.014)
   Ns::Int64 = 100                            # draws of mortality rate.  
   fidloc = 1                                 # fid  location 
   birthloc = 2                               # total births location 
@@ -812,47 +811,33 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
       end 
     end 
   end 
-
-  # TODO - this is where it should be treated differently, I think.  
-  if regionalize 
-    dths = zeros(Ns)
-    outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
-    bc = sum(outp[:,birthloc])                            # sum total births
-    outp[rws, birthloc] =                                 # record birth count 
-    nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
-    outp[rws, niculoc] = nic_ad          
-    cvln = sum(outp[:,vlbwloc])                           # total vlbw in market
-    outp[rws, vlbwloc] = cvln  
-    mps = 0.0
-    for m = 1:Ns
-      mp = MortProb(cvln)
-      mps += mp 
-      dths[m] = cvln*mp
-    end          
-    outp[rws, mploc] = mps/Ns   
-    outp[rws, mortloc] = mean(dths)                       # total mortality in market 
-    outp[rws, msdloc] = std(dths)                         # standard deviation of market deaths. 
-    hhi = 0.0
-    for i = 1:(rws-1)
-      hhi += (outp[i,birthloc]/bc)^2
+  nicm = 0.0
+  vlbwm = 0.0 
+  for el in msource # fids of merger sources 
+    ix1 = 0 
+    for nm in 1:size(outp,1) # find the index of the merger source.  
+      if el == out[nm,1]
+        ix1 = nm             # the index of the merging firm.   
+      end 
     end 
-    outp[rws, hhiloc] = hhi 
-  else 
-    dths = zeros(Ns)
-    outp[rws, fidloc] = sp_fid                            # here fid will be 999999 - not regionalizing. 
-    bc = sum(outp[:,2])                                   # compute total birth count
-    outp[rws, birthloc] = bc                              # write birth count.
-    outp[rws, niculoc] = sum(outp[:,3])                   # total nicu admits 
-    outp[rws, vlbwloc] = sum(outp[:,4])                   # total vlbw 
-    outp[rws, mploc] = mean(outp[1:(rws-1),5])            # mean mortality rate over all facilities.
-    outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
-    outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.
-    hhi = 0.0
-    for i = 1:(rws-1)
-      hhi+=(outp[i,birthloc]/bc)^2
-    end 
-    outp[rws, hhiloc] = hhi  
+    nicm += outp[ix1,niculoc])                           # total nicu admits in market
+    vlbwm += outp[ix1,vlbwloc]                           # total vlbw in market
   end 
+  # now do this for the target firm.  
+  dths = zeros(Ns)
+  outp[rws, fidloc] = mtarget                            # here fid will be 999999 - not regionalizing. 
+  bc = sum(outp[:,2])                                   # compute total birth count
+  outp[rws, birthloc] = bc                              # write birth count.
+  outp[rws, niculoc] = sum(outp[:,3])                   # total nicu admits 
+  outp[rws, vlbwloc] = sum(outp[:,4])                   # total vlbw 
+  outp[rws, mploc] = mean(outp[1:(rws-1),5])            # mean mortality rate over all facilities.
+  outp[rws, mortloc] = sum(outp[:,6])                   # total mean mortality 
+  outp[rws, msdloc] = 0.0                               # not computing mean or sd of mortality rates.
+  hhi = 0.0
+  for i = 1:(rws-1)
+    hhi+=(outp[i,birthloc]/bc)^2
+  end 
+  outp[rws, hhiloc] = hhi  
   out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
   names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
   return out1
