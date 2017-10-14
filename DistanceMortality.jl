@@ -740,6 +740,7 @@ end
 Computes Medicaid and Private patient mortality among all hospitals.
 
 
+
 ## Testing ## 
 dyn = CounterObjects(1);
 
@@ -747,13 +748,14 @@ medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
 privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
 chunk = [245];
 conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (4536337,3), (4530170,3), (4536338,3), (4536253,3)]
-MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
 merge1 = [4530190, 4536337]
-
-merge2 = [4530190, 4916068, 4916029, 4536048, 4530200, 4536337, 4530170, 4536338]
-
+MktDistance(dyn, [245], conf2, medcounts2, privcounts2) # nb - this line must be run first. 
 MergerMortality(medcounts2, privcounts2, conf2, merge1)
 
+merge2 = [4530190, 4916068, 4916029, 4536048, 4530200, 4536337, 4530170, 4536338]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
 MergerMortality(medcounts2, privcounts2, conf2, merge2)
 
 """
@@ -825,16 +827,20 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
       if el == outp[nm,1]
         ix1 = nm                                         # the index of the merging firm.   
       end 
+    end
+    if ix1 != 0 
+      nicm += outp[ix1,niculoc]                            # total nicu admits in market
+      vlbwm += outp[ix1,vlbwloc]                           # total vlbw in market
+      outp[ix1,niculoc] = 0.0                              # nicu patients transferred - set to zero.  
+      outp[ix1,vlbwloc] = 0.0                              # all patients transferred - set to zero.
     end 
-    nicm += outp[ix1,niculoc]                            # total nicu admits in market
-    vlbwm += outp[ix1,vlbwloc]                           # total vlbw in market
-    outp[ix1,niculoc] = 0.0                              # nicu patients transferred - set to zero.  
-    outp[ix1,vlbwloc] = 0.0                              # all patients transferred - set to zero.
   end 
   # now do this for the target firm.
   ix1 = 0 
+  println(outp[:,1])
   for nm in 1:size(outp,1)                               # find the index of the merger source.  
     if mtarget == outp[nm,1]
+      println("Yes")
       ix1 = nm                                           # the index of the merging firm.   
     end 
   end   
