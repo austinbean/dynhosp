@@ -187,6 +187,8 @@ end
 
 Similar to MktDistance, but sets all utils for non-conf facilities very low to avoid choosing them.
 
+# List values for several cities
+# AUSTIN 48453
 conf2 = [(4530190,3) (4916068,1) (4916029,1) (4536048,1) (4530200,1) (4536337,1) (4530170,1) (4536338,1) (4536253,1)];
 medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
 privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
@@ -197,6 +199,41 @@ conf3 = [(4530190,3) (4916068,3) (4916029,3) (4536048,3) (4530200,3) (4536337,3)
 medcounts3 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
 privcounts3 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
 SubgroupDistance(4530190, conf3, medcounts3, privcounts3)
+
+# HOUSTON 48201
+hf = [2012000, 2013716, 2015120, 2011895, 2015031, 2012778, 2016290, 2011985, 2016302, 2011970, 2015024, 2015135, 2015140, 2016016, 2011910, 2011960, 2011880, 2012005, 2016065, 2015022, 2012025, 2012018, 2011890, 2015130, 2019310, 2012015, 2016009, 2010243, 2012007, 2015026]
+for el in hf 
+  print( "(el, 1), ") # add dollar sign. 
+end 
+
+dyn = CounterObjects(1);
+hconf1 = [(2012000, 3), (2013716, 3), (2015120, 3), (2011895, 3), (2015031, 3), (2012778, 3), (2016290, 3), (2011985, 3), (2016302, 3), (2011970, 3), (2015024, 3), (2015135, 3), (2015140, 3), (2016016, 3), (2011910, 3), (2011960, 3), (2011880, 3), (2012005, 3), (2016065, 3), (2015022, 3), (2012025, 3), (2012018, 3), (2011890, 3), (2015130, 3), (2019310, 3), (2012015, 3), (2016009, 3), (2010243, 3), (2012007, 3), (2015026, 3)]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(2012000, hconf1, medcounts2, privcounts2)
+
+dyn = CounterObjects(1);
+hconf2 = [(2012000, 3), (2013716, 1), (2015120, 1), (2011895, 1), (2015031, 1), (2012778, 1), (2016290, 1), (2011985, 1), (2016302, 1), (2011970, 1), (2015024, 1), (2015135, 1), (2015140, 1), (2016016, 1), (2011910, 1), (2011960, 1), (2011880, 1), (2012005, 1), (2016065, 1), (2015022, 1), (2012025, 1), (2012018, 1), (2011890, 1), (2015130, 1), (2019310, 1), (2012015, 1), (2016009, 1), (2010243, 1), (2012007, 1), (2015026, 1)]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(2012000, hconf2, medcounts2, privcounts2)
+
+
+# BEXAR 48029
+dyn = CounterObjects(1);
+sconf1 = [(293005,3), (293010,1), (293015,1), (293070,1), (293105,1), (293120,1), (293122,1), (296002,1), (296025,1), (296191,1)]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(293005, sconf1, medcounts2, privcounts2)
+
+dyn = CounterObjects(1);
+sconf2 = [(293005,3), (293010,3), (293015,3), (293070,3), (293105,3), (293120,3), (293122,3), (296002,3), (296025,3), (296191,3)]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(293005, sconf2, medcounts2, privcounts2)
+
+# Dallas 48113
+
 """
 function SubgroupDistance(f::Int64,  
                           conf::Array{Tuple{Int64,Int64}}, # this does take a configuration argument.  
