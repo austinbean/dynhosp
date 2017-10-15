@@ -6,6 +6,10 @@ module ProjectModule
   using Distributions
   using StatsBase
   using Combinatorics
+  using DataFrames  
+  using CSV 
+
+
 
   dir = pwd()
   global pathdata = "";global pathpeople = "";global  pathprograms = "";
