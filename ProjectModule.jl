@@ -8,6 +8,10 @@ module ProjectModule
   using Combinatorics
   using DataFrames  
   using CSV 
+  using Plots
+  plotlyjs()   # call PlotlyJS backend to Plots.
+
+
 
 
 
@@ -668,6 +672,8 @@ end
   include("InexactConvergence.jl")
   include("NewApprox.jl")
   include("DistanceMortality.jl")
+  include("MetHast.jl")
+  include("NewLTE.jl")
   #include("Reboot.jl")
 
 
@@ -924,6 +930,14 @@ end
   export NewApprox 
   export IndFind
   export ArgVec
+
+  # MetHast.jl / NewLTE.jl 
+  export MetropolisHastings
+  export BBLObjective
+  export TestMH
+  export Intervals
+  export GetModes
+  export ResultsPrint 
 
   # DistanceMortality functions   
   export Finder 
