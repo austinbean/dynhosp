@@ -1,6 +1,3 @@
-using DataFrames  
-using CSV 
-
 
 
 
@@ -233,6 +230,17 @@ privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
 SubgroupDistance(293005, sconf2, medcounts2, privcounts2)
 
 # Dallas 48113
+dyn = CounterObjects(1);
+dconf1 = [(1130900,3), (1130950,1), (1131020,1), (1131021,1), (1131050,1), (1131616,1), (1132055,1), (1132528,1), (1135009,1), (1135113,1), (1136005,1), (1136007,1), (1136020,1), (1136061,1), (1136268,1), (1136366,1), (1136372,1)]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(1130900, dconf1, medcounts2, privcounts2)
+
+dyn = CounterObjects(1);
+dconf2 = [(1130900,3), (1130950,3), (1131020,3), (1131021,3), (1131050,3), (1131616,3), (1132055,3), (1132528,3), (1135009,3), (1135113,3), (1136005,3), (1136007,3), (1136020,3), (1136061,3), (1136268,3), (1136366,3), (1136372,3)]
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }();
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}();
+SubgroupDistance(1130900, dconf2, medcounts2, privcounts2)
 
 """
 function SubgroupDistance(f::Int64,  
@@ -726,7 +734,7 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
     outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
     bc = sum(outp[:,birthloc])                            # sum total births
     # TODO - fix!  bc???  
-    outp[rws, birthloc] =                                 # record birth count 
+    outp[rws, birthloc] =  bc                             # record birth count 
     nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
     outp[rws, niculoc] = nic_ad          
     cvln = sum(outp[:,vlbwloc])                           # total vlbw in market
