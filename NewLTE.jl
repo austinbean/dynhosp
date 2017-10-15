@@ -2,31 +2,6 @@
 
 
 
-#TODO - remove DataFrames, sub for readcsv.  Ugh.  
-#using DataFrames
-using Distributions
-using StatsBase
-using Plots
-plotlyjs()   # call PlotlyJS backend to Plots.
-
-#dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
-#dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
-
-dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-21-19-03-37.csv", header = false)
-dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-22-15-49-17.csv", header = false)
-dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-31-18-32-44.csv", header = false)
-
-
-
-#dat = convert(Array{Float64,2}, dat)
-
-# Equilibrium and non-equilibrium Medicaid patient revenue:
-eq_const = sum( dat[:, 26:31], 2);
-neq_const = sum( dat[:,66:72], 2);
-
-# Equilibrium and non-equilibrium WTP, DRG costs, per-patient values:
-interimeq_opt = hcat(dat[:, 2:25], dat[:, 33:41]);
-interimneq_opt = hcat(dat[:,42:65], dat[:,73:81]);
 
 
 
@@ -68,7 +43,7 @@ function BBLObjective(x::Vector, inp1::Array{Float64,2}, inp2::Array{Float64,2},
     end 
     sm += nc*((min(interim+cons1[i]-cons2[i],0))^2)        # params*(eq_opt - neq_opt) + eq_const - neq_const
   end 
-  return -sm 
+  return sm 
 end 
 
 
@@ -132,13 +107,18 @@ function Intervals(x::Array{Float64,2})
   # mean, variance, 5%-th percentile, 95%-th percentile
   params::Int64 = 4
   syms = [:α₁, :α₂, :α₃, :γ¹₅, :γ₅², :γ₅³, :γ₆¹, :γ₆², :γ₆³, :γ₇¹, :γ₇², :γ₇³, :γ₈¹, :γ₈², :γ₈³, :γ₉¹, :γ₉², :γ₉³, :γ₀¹, :γ₀², :γ₀³, :γ₁¹, :γ₁², :γ₁³, :ϕ12, :ϕ13, :ϕ1EX, :ϕ21, :ϕ23, :ϕ2EX, :ϕ31, :ϕ32, :ϕ3EX]
-  outp::Array{Any,2} = Array{Any,2}(size(x,2), params+1)
+  outp::Array{Any,2} = Array{Any,2}(size(x,2)+1, params+1)
+  outp[1,1] = "Parameter"
+  outp[1,2] = "Mean"
+  outp[1,3] = "St. Dev."
+  outp[1,4] = "5th Percentile"
+  outp[1,5] = "95th Percentile" 
   for i = 1:size(x,2)
-    outp[i,1] = syms[i]
-    outp[i,2] = mean(x[:,i])
-    outp[i,3] = StatsBase.std(x[:,i])
-    outp[i,4] = StatsBase.percentile(x[:,i], 5)
-    outp[i,5] = StatsBase.percentile(x[:,i], 95)      
+    outp[i+1,1] = syms[i]
+    outp[i+1,2] = mean(x[:,i])
+    outp[i+1,3] = StatsBase.std(x[:,i])
+    outp[i+1,4] = StatsBase.percentile(x[:,i], 5)
+    outp[i+1,5] = StatsBase.percentile(x[:,i], 95)      
   end 
   return outp 
 end 
@@ -157,6 +137,27 @@ function ResultsPrint(x::Array{Float64}, start::Array{Float64,1})
   end
 end
 
+#=
+# Actual procedures.  
+
+#dat = readtable("/Users/austinbean/Google Drive/Simulation Results/dynhospsimresults.csv");
+#dat = readtable("/Users/austinbean/Desktop/dynhospsimulationresults2.csv"); # This one is just for testing purposes.  Not a real set of results.
+
+dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-21-19-03-37.csv", header = false)
+dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-22-15-49-17.csv", header = false)
+dat = readcsv("/Users/austinbean/Desktop/dynhosp/Results/longobjective2017-07-31-18-32-44.csv", header = false)
+
+
+
+#dat = convert(Array{Float64,2}, dat)
+
+# Equilibrium and non-equilibrium Medicaid patient revenue:
+eq_const = sum( dat[:, 26:31], 2);
+neq_const = sum( dat[:,66:72], 2);
+
+# Equilibrium and non-equilibrium WTP, DRG costs, per-patient values:
+interimeq_opt = hcat(dat[:, 2:25], dat[:, 33:41]);
+interimneq_opt = hcat(dat[:,42:65], dat[:,73:81]);
 
 
 #drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
@@ -187,6 +188,8 @@ Intervals(sim_vals)
 
 histogram(sim_vals[:,1], nbins=50)
 histogram(sim_vals[:,2], nbins=20)
+
+=#
 
 
 
