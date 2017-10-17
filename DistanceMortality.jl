@@ -784,7 +784,7 @@ end
            fvlbw::Float64 = 0.014)`
 Computes Medicaid and Private patient mortality among all hospitals.
 
-
+TODO - add a WTP check.  
 
 ## Testing ## 
 dyn = CounterObjects(1);
