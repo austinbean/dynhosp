@@ -804,6 +804,9 @@ conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (45363
 
 MktDistance(dyn, [245], merge2, medcounts2, privcounts2)
 MergerMortality(medcounts2, privcounts2, conf2, merge2)
+w1 = MergerWTP(dyn, 4530190, [4530190])
+w2 = MergerWTP(dyn, 4530190, [4536337])
+w3 = MergerWTP(dyn, 4530190, [4350190, 4536337])
 
 """
 function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
@@ -949,9 +952,13 @@ function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
   ta = zeros(2,opts)
   for i = 1:size(d.all[loc].mk.m,1)
     WTPNew(d.all[loc].mk.m[i].putils, ta)
-    for j = 1:opts 
+    for j = 1:size(ta,2) 
+      println( sum(ta[1,j].==merged), " ", ta[1,j]==f )
       if in(ta[1,j], merged)
+        println("found ", ta[1,j], " adding ", ta[2,j])
         wtp += ta[2,j]  # WTP of merged facility.  
+        println("new wtp: ", wtp)
+        println("  ")
       end   
     end 
   end 
