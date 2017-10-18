@@ -862,6 +862,7 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
         outp[rc, mploc] = mps/Ns              # mort prob mean, over Ns draws.  
         outp[rc, mortloc] = mean(dths)        # total mort mean 
         outp[rc, msdloc] = std(dths)          # total mortality st. d.
+        # TODO - WTP measure right here.  
         rc += 1
       end 
     end 
@@ -923,9 +924,38 @@ function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, me
     end 
   end 
   outp[rws, hhiloc] = hhi  
-  out1 = convert(DataFrame, outp)                    # returning a dataframe just to use the column naming capability
-  names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
+  out1 = convert(DataFrames.DataFrame, outp)                    # returning a dataframe just to use the column naming capability
+  DataFrames.names!(out1, [:fid, :totalbirths, :nicu_admits, :vlbw, :mean_mort_rate, :mean_mortality, :std_mortality, :hhi])
   return out1
+end 
+
+
+
+"""
+`MergerWTP`
+Computes WTP for merged firm.
+Does this by taking the sum of the two.  
+
+dyn = CounterObjects(1);
+MergerWTP(dyn, 3490795, [3490795])
+MergerWTP(dyn, 3490795, [16122])
+MergerWTP(dyn, 3490795, [3490795, 16122]) # should be sum of previous two lines.  
+
+"""
+function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
+  const opts = 12
+  loc = Finder(d, f)
+  wtp = 0.0
+  ta = zeros(2,opts)
+  for i = 1:size(d.all[loc].mk.m,1)
+    WTPNew(d.all[loc].mk.m[i].putils, ta)
+    for j = 1:opts 
+      if in(ta[1,j], merged)
+        wtp += ta[2,j]  # WTP of merged facility.  
+      end   
+    end 
+  end 
+  return wtp
 end 
 
 
@@ -1057,28 +1087,28 @@ Austin 4536253
 """
 function FindThem(d::DynState, es::EntireState)
   # Need an output holder for the whole set of outputs.  
-  outdf = DataFrame( fid = @data([0.0]), 
-                     lev1_05= @data([0.0]), 
-                     lev2_05= @data([0.0]), 
-                     lev3_05= @data([0.0]), 
-                     lev1_515= @data([0.0]), 
-                     lev2_515= @data([0.0]), 
-                     lev3_515= @data([0.0]), 
-                     lev1_1525= @data([0.0]), 
-                     lev2_1525= @data([0.0]), 
-                     lev3_1525= @data([0.0]), 
-                     level = @data([0.0]), 
-                     patients = @data([0.0]), 
-                     avg_distance = @data([0.0]), 
-                     totalbirths = @data([0.0]), 
-                     nicu_admits = @data([0.0]), 
-                     vlbw = @data([0.0]), 
-                     mean_mort_rate = @data([0.0]), 
-                     mean_mortality = @data([0.0]), 
-                     std_mortality = @data([0.0]),
-                     hhi=@data([0.0]), 
-                     fipscode = @data([0.0]), 
-                     counterfactual = @data([0.0])) 
+  outdf = DataFrames.DataFrame( fid = DataFrames.@data([0.0]), 
+                     lev1_05= DataFrames.@data([0.0]), 
+                     lev2_05= DataFrames.@data([0.0]), 
+                     lev3_05= DataFrames.@data([0.0]), 
+                     lev1_515= DataFrames.@data([0.0]), 
+                     lev2_515= DataFrames.@data([0.0]), 
+                     lev3_515= DataFrames.@data([0.0]), 
+                     lev1_1525= DataFrames.@data([0.0]), 
+                     lev2_1525= DataFrames.@data([0.0]), 
+                     lev3_1525= DataFrames.@data([0.0]), 
+                     level = DataFrames.@data([0.0]), 
+                     patients = DataFrames.@data([0.0]), 
+                     avg_distance = DataFrames.@data([0.0]), 
+                     totalbirths = DataFrames.@data([0.0]), 
+                     nicu_admits = DataFrames.@data([0.0]), 
+                     vlbw = DataFrames.@data([0.0]), 
+                     mean_mort_rate = DataFrames.@data([0.0]), 
+                     mean_mortality = DataFrames.@data([0.0]), 
+                     std_mortality = DataFrames.@data([0.0]),
+                     hhi=DataFrames.@data([0.0]), 
+                     fipscode = DataFrames.@data([0.0]), 
+                     counterfactual = DataFrames.@data([0.0])) 
   # Do these once - will do markets with more than neighbor at a firm.  
   todo = Dict{Int64, Bool}()
   for i in keys(es.mkts)
