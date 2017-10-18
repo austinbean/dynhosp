@@ -959,6 +959,8 @@ end
   export DREX 
   export FindThem
   export CleanDistDict
+  export MergerMortality
+  export MergerWTP
 
 
   # Export types
