@@ -404,6 +404,7 @@ Shouldn't this be able to take putils as first argument and pwtp as the second??
 temparr = zeros(2, 12)
 WTPNew(dyn.all[2].mk.m[1].putils, temparr)
 dyn.all[2].mk.m[1].putils[2,:] = zeros(1,6)
+
 ArrayZero(temparr)
 
 # prior version (not correcting for occasional NaN's) 0.000001 / 0 allocations.
