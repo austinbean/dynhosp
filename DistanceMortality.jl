@@ -944,8 +944,36 @@ MergerWTP(dyn, 3490795, [3490795])
 MergerWTP(dyn, 3490795, [16122])
 MergerWTP(dyn, 3490795, [3490795, 16122]) # should be sum of previous two lines.  
 
+# Travis County - 
 MergerWTP(dyn, 4530190, [4530190])
+MergerWTP(dyn, 4530190, [4536337])
 MergerWTP(dyn, 4530190, [4530190, 4536337])
+
+# Tarrant 
+MergerWTP(dyn, 4390285, [4390285])
+MergerWTP(dyn, 4390285, [4390108])
+MergerWTP(dyn, 4390285, [4390285 4390108])
+
+# Harris 
+MergerWTP(dyn, 2011890, [2011960])
+MergerWTP(dyn, 2011890, [2011890])
+MergerWTP(dyn, 2011890, [2011960 2011890])
+
+# El Paso 
+MergerWTP(dyn, 1415121, [1415121])
+MergerWTP(dyn, 1415121, [1411240])
+MergerWTP(dyn, 1415121, [1415121, 1411240])
+
+
+# Bexar 
+MergerWTP(dyn, 293005, [293120])
+MergerWTP(dyn, 293005, [293005])
+MergerWTP(dyn, 293005, [293005, 293120])
+
+# Dallas 
+MergerWTP(dyn, 1130900, [1130950])
+MergerWTP(dyn, 1130900, [1130900])
+MergerWTP(dyn, 1130900, [1130900 1130950])
 
 """
 function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
