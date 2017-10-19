@@ -806,7 +806,7 @@ MktDistance(dyn, [245], merge2, medcounts2, privcounts2)
 MergerMortality(medcounts2, privcounts2, conf2, merge2)
 w1 = MergerWTP(dyn, 4530190, [4530190])
 w2 = MergerWTP(dyn, 4530190, [4536337])
-w3 = MergerWTP(dyn, 4530190, [4350190, 4536337])
+w3 = MergerWTP(dyn, 4530190, [4530190, 4536337])
 
 """
 function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
@@ -945,6 +945,7 @@ MergerWTP(dyn, 3490795, [16122])
 MergerWTP(dyn, 3490795, [3490795, 16122]) # should be sum of previous two lines.  
 
 MergerWTP(dyn, 4530190, [4530190])
+MergerWTP(dyn, 4530190, [4530190, 4536337])
 
 """
 function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
