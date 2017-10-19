@@ -944,6 +944,8 @@ MergerWTP(dyn, 3490795, [3490795])
 MergerWTP(dyn, 3490795, [16122])
 MergerWTP(dyn, 3490795, [3490795, 16122]) # should be sum of previous two lines.  
 
+MergerWTP(dyn, 4530190, [4530190])
+
 """
 function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
   const opts = 12
@@ -953,12 +955,8 @@ function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
   for i = 1:size(d.all[loc].mk.m,1)
     WTPNew(d.all[loc].mk.m[i].putils, ta)
     for j = 1:size(ta,2) 
-      println( sum(ta[1,j].==merged), " ", ta[1,j]==f )
       if in(ta[1,j], merged)
-        println("found ", ta[1,j], " adding ", ta[2,j])
         wtp += ta[2,j]  # WTP of merged facility.  
-        println("new wtp: ", wtp)
-        println("  ")
       end   
     end 
   end 
