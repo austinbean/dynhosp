@@ -657,16 +657,138 @@ end
 Computes Medicaid and Private patient mortality among all hospitals.
 
 
+for el in [2010243, 2011880, 2011890, 2011895, 2011910, 2011960, 2011970, 2011985, 2012000, 2012005, 2012007, 2012015, 2012018, 2012025, 2012778, 2013716, 2015022, 2015024, 2015026, 2015031, 2015120, 2015130, 2015135, 2015140, 2016009, 2016016, 2016065, 2016290, 2016302, 2019310]
+  loc = Finder(dyn, el)
+  println( el, "  ", loc , "  ", size(dyn.all[loc].nfids,1) )
+end 
+
+Finder(dyn, 2010243)
+
+
 ## Testing ## 
 dyn = CounterObjects(1);
 
+
+# Travis County 453
 medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
 privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
 chunk = [245];
 conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (4536337,3), (4530170,3), (4536338,3), (4536253,3)]
 MktDistance(dyn, [245], conf2, medcounts2, privcounts2)
-
 Mortality(medcounts2, privcounts2, conf2)
+Mortality(medcounts2, privcounts2, conf2; regionalize = true)
+
+# Harris County 201
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk = [128]
+MktDistance(dyn, [128], conf2, medcounts2, privcounts2)
+conf2 = [(2011890,3) (2010243,1) (2011880,1) (2011895,1) (2011910,1) (2011960,1) (2011970,1) (2011985,1) (2012000,1) (2012005,1) (2012007,1) (2012015,1) (2012018,1) (2012025,1) (2012778,1) (2013716,1) (2015022,1) (2015024,1) (2015026,1) (2015031,1) (2015120,1) (2015130,1) (2015135,1) (2015140,1) (2016009,1) (2016016,1) (2016065,1) (2016290,1) (2016302,1) (2019310,1)] 
+Mortality(medcounts2, privcounts2, conf2; regionalize = true)
+
+# Dallas 113
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Tarrant 439
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Bexar 29
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# El Paso 141
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Collin 85
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Hidalgo 215
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Denton 121
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Fort Bend 157
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Montgomery 339
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Cameron 61
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Nueces 355
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Brazoria 39
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Bell 27
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Galveston 167
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Lubbock 303
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+# Jefferson 245
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
+
+# Webb 479
+medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
+privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
+chunk =
+conf2 =
+
 
 TODO - this is computing mortality at non-level 3.  Esp for firms at lev 2 this will be wrong, but at lev 1 the 
 patients need to be transferred.  Then the mortality rates should be recomputed.  Ugh.  
@@ -733,7 +855,6 @@ function Mortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}};
     dths = zeros(Ns)
     outp[rws, fidloc] = sp_fid                            # special fid in regionalized case 
     bc = sum(outp[:,birthloc])                            # sum total births
-    # TODO - fix!  bc???  
     outp[rws, birthloc] =  bc                             # record birth count 
     nic_ad = sum(outp[:,niculoc])                         # total nicu admits in market
     outp[rws, niculoc] = nic_ad          
@@ -784,7 +905,6 @@ end
            fvlbw::Float64 = 0.014)`
 Computes Medicaid and Private patient mortality among all hospitals.
 
-TODO - add a WTP check.  
 
 ## Testing ## 
 dyn = CounterObjects(1);
@@ -801,12 +921,10 @@ merge2 = [4530190, 4916068, 4916029, 4536048, 4530200, 4536337, 4530170, 4536338
 medcounts2 = Dict{NTuple{9,Int64}, Dict{Int64,Array{DR,1} } }()
 privcounts2 = Dict{NTuple{9,Int64}, Dict{Int64, Array{DR,1}}}()
 conf2 = [(4530190,3), (4916068,3), (4916029,3), (4536048,3), (4530200,3), (4536337,3), (4530170,3), (4536338,3), (4536253,3)]
-
+# List by county for several options.  
 MktDistance(dyn, [245], merge2, medcounts2, privcounts2)
 MergerMortality(medcounts2, privcounts2, conf2, merge2)
-w1 = MergerWTP(dyn, 4530190, [4530190])
-w2 = MergerWTP(dyn, 4530190, [4536337])
-w3 = MergerWTP(dyn, 4530190, [4530190, 4536337])
+
 
 """
 function MergerMortality(mc::Dict, pc::Dict, conf::Array{Tuple{Int64,Int64}}, merged::Array{Int64};
@@ -974,6 +1092,11 @@ MergerWTP(dyn, 293005, [293005, 293120])
 MergerWTP(dyn, 1130900, [1130950])
 MergerWTP(dyn, 1130900, [1130900])
 MergerWTP(dyn, 1130900, [1130900 1130950])
+
+# A two hospital county... Gregg County (Longview and Kilgore, TX)
+MergerWTP(dyn, 1832150, [1832150])
+MergerWTP(dyn, 1832150, [1832327]) 
+MergerWTP(dyn, 1832150, [1832150, 1832327]) 
 
 """
 function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
