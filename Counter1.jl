@@ -155,7 +155,7 @@ be subtracted from the profit of the function.  This will weight these costs acc
 conditional distribution of DRG's in 2005 between 385 and 390 (not 391).  Other assumptions could
 be made but this is a start.
 """
-function MeanCost{T<:Real}(count::T, level::Int ; alf1::Float64 = 29182.967,
+function MeanCost(count::T, level::Int ; alf1::Float64 = 29182.967,
                                                   alf2::Float64 = 22167.6375,
                                                   alf3::Float64 = 23074.8403,
                                                   gamma_1_385::Float64 = 34628.8402,
@@ -181,7 +181,7 @@ function MeanCost{T<:Real}(count::T, level::Int ; alf1::Float64 = 29182.967,
                                                   weight387::Float64 = 0.073,
                                                   weight388::Float64 = 0.161,
                                                   weight389::Float64 = 0.16,
-                                                  weight390::Float64 = 0.45)
+                                                  weight390::Float64 = 0.45) where T<:Real
   if level == 1
     return count*(alf1*count - (weight385*gamma_1_385 + weight386*gamma_1_386 + weight387*gamma_1_387 + weight388*gamma_1_388 + weight389*gamma_1_389 + weight390*gamma_1_390))
   elseif level == 2
@@ -336,8 +336,10 @@ Note: run this on a NEW state record unless the levels have been set back to wha
 Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
 CMakeIt(Tex, ProjectModule.fips);
 FillState(Tex, ProjectModule.alldists);
-"""
+
 #TODO: check this against some mortality data from NCHS.
+
+"""
 function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange::Bool = false, level::Int64 = 3)
   d1 = NewHospDict(Tex) # creates a dict for GenP below.
   d2 = NewHospDict(Tex) # creates a dict for GenM below
@@ -625,7 +627,6 @@ end
 
 
 """
-
 function ProfitChange(ch::counterhistory)
   outp::Dict{Int64, Array{Float64, 1}} = Dict{Int64, Array{Float64, 1}}() # fid, (facility, nofac) ? -> What do I want out of this?
   hasfac::Float64 =0.0

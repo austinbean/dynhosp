@@ -320,7 +320,7 @@ end
 Takes a hospital, returns the choices available at that level as vectors.
 e.g., returns the numbered choices available to it.
 """
-function ChoicesAvailable{T<:Fac}(h::T)
+function ChoicesAvailable(h::T) where T<:Fac
   if h.level == 1
     return [10 2 1 11]::Array{Int64,2}
   elseif h.level == 2
@@ -340,7 +340,7 @@ end
 Takes a hospital record and a choice and returns the corresponding level.
 That is, what will the level be next period.
 """
-function LevelFunction{T<:Fac}(h::T, choice::Int64)
+function LevelFunction(h::T, choice::Int64) where T<:Fac
   if h.level == 1
     if choice == 10
       return 1
@@ -395,7 +395,7 @@ NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 
 """
-function NeighborAppend{T<:Fac}(elm::T, entrant::T)
+function NeighborAppend(elm::T, entrant::T) where T<:Fac
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if !in(entrant.fid, elm.hood)
     if (dist < 25.0)&(entrant.level != -999)
@@ -446,7 +446,7 @@ NeighborRemove(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 NeighborAppend(Tex.mkts[48453].config[1], Tex.mkts[48453].config[2])
 
 """
-function NeighborRemove{T<:Fac}(elm::T, entrant::T)
+function NeighborRemove(elm::T, entrant::T) where T<:Fac
   dist::Float64 = distance(elm.lat, elm.long, entrant.lat, entrant.long )
   if in(entrant.fid, elm.hood)
     if dist < 25.0
@@ -637,7 +637,7 @@ NewSim(10, Tex, patients);
 
 HospUpdate(Texas.mkts[48453].config[1], 1; update = true)
 """
-function HospUpdate{T<:ProjectModule.Fac}(hosp::T, choice::Int64; update = false)
+function HospUpdate(hosp::T, choice::Int64; update = false) where T<:ProjectModule.Fac
  levl = (-1, -1)
  if (hosp.level!=choice)||update # want to be able to force this to rerun when the data is cleaned again.
    if choice != -999
@@ -1355,9 +1355,9 @@ BenchmarkTools.Trial:
 
 """
 function UMap(utils::Array{Float64,1},fids::Array{Int64,1})::Int64
-  const dist_μ::Int64 = 0
-  const dist_σ::Int64 = 1
-  const dist_ξ::Int64 = 0
+  dist_μ::Int64 = 0
+  dist_σ::Int64 = 1
+  dist_ξ::Int64 = 0
   d = Distributions.GeneralizedExtremeValue(dist_μ, dist_σ, dist_ξ)
   maxm::Int64 = 1                   # this is an index to a fid.  Will record max index.
   maxu::Float64 = 0.0               # holds the value of max utility 
@@ -1767,7 +1767,6 @@ This assumes all LBW patients get admitted and then draws admit probs for those 
 that not all are born in hospitals with NICU's, so this is a bit problematic.
 This function also returns the two arguments ppat and mpat.  These are needed later.
 """
-
 function PatientDraw(ppat::Dict, mpat::Dict, Tex::EntireState;
                      bins = collect(1:13),
                      weightpr = weightprobs[:,2], # TODO - these are vectors of fixed size.  Hard code them and drop the import 
@@ -1879,7 +1878,7 @@ rate as a function of the patient volume.  This data comes from Chung, Phibbs, B
 
 # TODO - sub this out for the mortality function in Counter 2, which does not take a level argument.  
 """
-function VolMortality{T<:Real}(v::T, lev::Int64)
+function VolMortality(v::T, lev::Int64) where T<:Real
   if lev == 1
     if (v>=0)&(v<10)
       return (-0.72*v + 19.9)/100
@@ -1937,8 +1936,8 @@ EntryProcess: memory estimate:  422 bytes allocs estimate:  3 mean time:   84.37
 CleanWTPDict: memory estimate:  0 bytes allocs estimate:  0 mean time:        8.756 μs
 """
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
-  const entrants::Array{Float64,1} = [0, 1, 2, 3] 
-  const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
+  entrants::Array{Float64,1} = [0, 1, 2, 3] 
+  entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
   d1 = NewHospDict(Tex)                                                                        # creates a dict for GenP below.
   d2 = NewHospDict(Tex)                                                                        # creates a dict for GenM below
   wtpd1 = WTPDict(Tex)                                                                         # creates a dict for WTPMap
@@ -1986,7 +1985,7 @@ end
 `EqAction`
 NOT COMPLETE. NOT EXPORTED.
 """
-function EqAction{T<:Fac}( H::T,i::Int64)
+function EqAction( H::T,i::Int64) where T<:Fac
   action = StatsBase.sample( ChoicesAvailable(H), H.chprobability  )                 # Take the action
   # TODO - surely this next line can be fixed.  
   H.probhistory[i] = H.chprobability[ findin(ChoicesAvailable(H), action)[1] ]     # Record the prob with which the action was taken.
@@ -2010,8 +2009,8 @@ Puts the entry process in a separate function.
 
 """
 function EntryProcess(el::Market, i::Int64, T::Int64)
-  const entrants::Array{Int64,1} = [0, 1, 2, 3] 
-  const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
+  entrants::Array{Int64,1} = [0, 1, 2, 3] 
+  entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
   entrant = StatsBase.sample(entrants, StatsBase.Weights(entryprobs))
   if entrant != 0
     entloc = NewEntrantLocation(el)                                                        # called on the market
@@ -2055,7 +2054,7 @@ end
 This function will copy all the elements of the perturbed hospital
 to the output record.
 """
-function RecordCopy{T<:ProjectModule.Fac}(ES::EntireState, h::T)
+function RecordCopy(ES::EntireState, h::T) where T<:ProjectModule.Fac
   fips = ES.fipsdirectory[h.fid]
   for i = 1:length(h.probhistory)
     # probhistory
@@ -2115,8 +2114,8 @@ Personal:
 
 """
 function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)                           # fi = fips,
-  const entrants::Array{Int64,1} = [0, 1, 2, 3]
-  const entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
+  entrants::Array{Int64,1} = [0, 1, 2, 3]
+  entryprobs::Array{Float64,1} = [0.9895, 0.008, 0.0005, 0.002]
   EmptyState = CreateEmpty(fi, di, T);                                                                  # This is just a container of EntireState type - does not need linking.
   termflag = true                                                                                       # Initializes the termination flag.
   counter = 1
@@ -2411,7 +2410,7 @@ Maps all of the hospital results out to a big matrix, sorted in the first column
 
 """
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
-  const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
+  drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
@@ -2527,16 +2526,16 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
   # how many exactly... WTP1, WTP2, WTP3, COST1, COST2, COST3, REV385, REV386, REV387, REV388, REV389, REV390, REV391, Transitionsx9
   # this should be 22
   # TODO - also need to add some kind of composite for the mothers...?  Or what?  
-  const params::Int64 = 22
-  const dim2::Int64 = 45
-  const drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
-  const weight385::Float64 = 1.38
-  const weight386::Float64 = 4.57
-  const weight387::Float64 = 3.12
-  const weight388::Float64 = 1.88
-  const weight389::Float64 = 3.20
-  const weight390::Float64 = 1.13
-  const weight391::Float64 = 0.15
+  params::Int64 = 22
+  dim2::Int64 = 45
+  drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
+  weight385::Float64 = 1.38
+  weight386::Float64 = 4.57
+  weight387::Float64 = 3.12
+  weight388::Float64 = 1.88
+  weight389::Float64 = 3.20
+  weight390::Float64 = 1.13
+  weight391::Float64 = 0.15
   dim1 = Tex.fipsdirectory.count
   outp = Array{Float64,2}(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
@@ -2610,7 +2609,7 @@ OuterSim(3)
 
 """
 function OuterSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
-  outp = @sync @parallel (+) for j = 1:MCcount
+  outp = @sync @distributed (+) for j = 1:MCcount
     println("Current iteration ", j)
     TexasEq = CreateEmpty(fi, di, T1)
     #TexasNeq = MakeNew(fi, da);                                                                         # Returns a separate EntireState.
@@ -2686,7 +2685,7 @@ eq_patients = NewPatients(TexasEq);
 
 """
 function CombinedSim(MCcount::Int; T1::Int64 = 3, fi = ProjectModule.fips, di = ProjectModule.alldists)
-  outp1, outp2 = @sync @parallel (ArrayTupleSum) for j = 1:MCcount
+  outp1, outp2 = @sync @distributed (ArrayTupleSum) for j = 1:MCcount
     println("iteration: ", j)
     TexasEq = CreateEmpty(fi, di, T1)
     eq_patients = NewPatients(TexasEq)
@@ -2714,8 +2713,10 @@ NewSim(50, Texas, patients);
 
 DoubleResults(Texas, Texas)
 
-"""
+
 # TODO - what does T do here?  Nothing, it seems... 
+
+"""
 function DoubleResults(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50)
   # return two arrays, this can be combined with (+)
   # no - tuple of arrays cannot be combined because tuples are immutable.  

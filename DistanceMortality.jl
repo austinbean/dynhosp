@@ -1100,7 +1100,7 @@ MergerWTP(dyn, 1832150, [1832150, 1832327])
 
 """
 function MergerWTP(d::DynState, f::Int64, merged::Array{Int64})
-  const opts = 12
+  opts = 12
   loc = Finder(d, f)
   wtp = 0.0
   ta = zeros(2,opts)
@@ -1131,7 +1131,7 @@ function MortProb(v::T) where T <: Real
   lin_μ = 0.0
   lin_σ = 0.0
   if (v >= 0.0) & (v<20.0)           # these are marginal effects at mean values from data.  
-    lin_μ = 0.151
+    lin_μ = 0.151 # TODO - verify this number... 0.15 and not 0.015???
     lin_σ = 0.0005
   elseif (v>=20.0) & (v <40.0)
     lin_μ = 0.0145
@@ -1244,28 +1244,8 @@ Austin 4536253
 """
 function FindThem(d::DynState, es::EntireState)
   # Need an output holder for the whole set of outputs.  
-  outdf = DataFrames.DataFrame( fid = DataFrames.@data([0.0]), 
-                     lev1_05= DataFrames.@data([0.0]), 
-                     lev2_05= DataFrames.@data([0.0]), 
-                     lev3_05= DataFrames.@data([0.0]), 
-                     lev1_515= DataFrames.@data([0.0]), 
-                     lev2_515= DataFrames.@data([0.0]), 
-                     lev3_515= DataFrames.@data([0.0]), 
-                     lev1_1525= DataFrames.@data([0.0]), 
-                     lev2_1525= DataFrames.@data([0.0]), 
-                     lev3_1525= DataFrames.@data([0.0]), 
-                     level = DataFrames.@data([0.0]), 
-                     patients = DataFrames.@data([0.0]), 
-                     avg_distance = DataFrames.@data([0.0]), 
-                     totalbirths = DataFrames.@data([0.0]), 
-                     nicu_admits = DataFrames.@data([0.0]), 
-                     vlbw = DataFrames.@data([0.0]), 
-                     mean_mort_rate = DataFrames.@data([0.0]), 
-                     mean_mortality = DataFrames.@data([0.0]), 
-                     std_mortality = DataFrames.@data([0.0]),
-                     hhi=DataFrames.@data([0.0]), 
-                     fipscode = DataFrames.@data([0.0]), 
-                     counterfactual = DataFrames.@data([0.0])) 
+outdf = DataFrames.DataFrame( fid = [0.0], lev1_05= [0.0], lev2_05= [0.0], lev3_05= [0.0], lev1_515= [0.0], lev2_515= [0.0], lev3_515= [0.0], lev1_1525= [0.0], lev2_1525= [0.0], lev3_1525= [0.0], level = [0.0], patients = [0.0], avg_distance = [0.0], totalbirths = [0.0], nicu_admits = [0.0], vlbw = [0.0], mean_mort_rate = [0.0], mean_mortality = [0.0], std_mortality = [0.0],hhi=[0.0], fipscode = [0.0], counterfactual = [0.0])
+
   # Do these once - will do markets with more than neighbor at a firm.  
   todo = Dict{Int64, Bool}()
   for i in keys(es.mkts)

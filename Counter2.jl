@@ -683,7 +683,7 @@ memory estimate:  0 bytes
   mean time:        74.396 ns (0.00% GC)
   maximum time:     202.816 ns (0.00% GC)
 """
-function HUtil{T<:ProjectModule.Fac}(c::cpats, sr::T, p_or_m::Bool)
+function HUtil(c::cpats, sr::T, p_or_m::Bool) where T<:ProjectModule.Fac
   mcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.medicaiddistance_c, ProjectModule.medicaiddistsq_c, ProjectModule.medicaidneoint_c, ProjectModule.medicaidsoloint_c, ProjectModule.medicaiddistbed_c, ProjectModule.medicaidclosest_c)
   pcoeffs::ProjectModule.coefficients = coefficients(ProjectModule.privatedistance_c, ProjectModule.privatedistsq_c, ProjectModule.privateneoint_c, ProjectModule.privatesoloint_c, ProjectModule.privatedistbed_c, ProjectModule.privateclosest_c)
   # TODO - hardcode these values above in mcoeffs and pcoeffs for now.  
@@ -1143,45 +1143,45 @@ function SinglePay(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount,
                     action::Int64)
-  # CONSTANTS:
-    const scalefact::Float64 = 3.0e9
-    const alf1::Float64 = 8336.17
-    const alf2::Float64 = 36166.6
-    const alf3::Float64 = 16309.47
-    const gamma_1_385::Float64 = 20680.0 # ✓
-    const gamma_2_385::Float64 = 42692.37 # ✓
-    const gamma_3_385::Float64 = 20962.97 # ✓
-    const gamma_1_386::Float64 = 81918.29 # X
-    const gamma_2_386::Float64 = 74193.4 # X
-    const gamma_3_386::Float64 = 99065.79 # X
-    const gamma_1_387::Float64 = 30405.32 # X
-    const gamma_2_387::Float64 = 49801.84 # X
-    const gamma_3_387::Float64 = 22376.8 # X
-    const gamma_1_388::Float64 = 10051.55 # ✓
-    const gamma_2_388::Float64 = 19019.18 # X
-    const gamma_3_388::Float64 = 33963.5 # X
-    const gamma_1_389::Float64 = 29122.89 # X
-    const gamma_2_389::Float64 = 14279.58 # X
-    const gamma_3_389::Float64 = 20708.15 # X
-    const gamma_1_390::Float64 = 22830.05 # X
-    const gamma_2_390::Float64 = 6754.76 # X
-    const gamma_3_390::Float64 = 3667.42 # ✓
-    const gamma_1_391::Float64 = 9089.77 # X
-    const gamma_2_391::Float64 = 8120.85 # X
-    const gamma_3_391::Float64 = 1900.5 # ✓
-    const level12::Float64 = 1.64669492e6
-    const level13::Float64 = 5.0165876e6
-    const level21::Float64 = -366430.33
-    const level23::Float64 = 1.83969306e6
-    const level31::Float64 = -90614.32
-    const level32::Float64 = -157206.98
-    const mcaid385::Float64 = 151380.0
-    const mcaid386::Float64 = 48417.0
-    const mcaid387::Float64 = 18845.0
-    const mcaid388::Float64 = 7507.0
-    const mcaid389::Float64 = 9424.0
-    const mcaid390::Float64 = 4623.0
-    const mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+  # ConstANTS:
+    scalefact::Float64 = 3.0e9
+    alf1::Float64 = 8336.17
+    alf2::Float64 = 36166.6
+    alf3::Float64 = 16309.47
+    gamma_1_385::Float64 = 20680.0 # ✓
+    gamma_2_385::Float64 = 42692.37 # ✓
+    gamma_3_385::Float64 = 20962.97 # ✓
+    gamma_1_386::Float64 = 81918.29 # X
+    gamma_2_386::Float64 = 74193.4 # X
+    gamma_3_386::Float64 = 99065.79 # X
+    gamma_1_387::Float64 = 30405.32 # X
+    gamma_2_387::Float64 = 49801.84 # X
+    gamma_3_387::Float64 = 22376.8 # X
+    gamma_1_388::Float64 = 10051.55 # ✓
+    gamma_2_388::Float64 = 19019.18 # X
+    gamma_3_388::Float64 = 33963.5 # X
+    gamma_1_389::Float64 = 29122.89 # X
+    gamma_2_389::Float64 = 14279.58 # X
+    gamma_3_389::Float64 = 20708.15 # X
+    gamma_1_390::Float64 = 22830.05 # X
+    gamma_2_390::Float64 = 6754.76 # X
+    gamma_3_390::Float64 = 3667.42 # ✓
+    gamma_1_391::Float64 = 9089.77 # X
+    gamma_2_391::Float64 = 8120.85 # X
+    gamma_3_391::Float64 = 1900.5 # ✓
+    level12::Float64 = 1.64669492e6
+    level13::Float64 = 5.0165876e6
+    level21::Float64 = -366430.33
+    level23::Float64 = 1.83969306e6
+    level31::Float64 = -90614.32
+    level32::Float64 = -157206.98
+    mcaid385::Float64 = 151380.0
+    mcaid386::Float64 = 48417.0
+    mcaid387::Float64 = 18845.0
+    mcaid388::Float64 = 7507.0
+    mcaid389::Float64 = 9424.0
+    mcaid390::Float64 = 4623.0
+    mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
   # Compute WTP.
     outp::Float64 = 0.0
     levelc::Float64 = 0.0
@@ -1496,7 +1496,6 @@ ContVal(compprobs, dyn.all[18].fid, d1, 1)
 # FIXME - competitors are being added here who should not be.  
 
 """
-
 function ContVal(futures::Dict{NTuple{9,Int64},Float64}, 
                  fid::Int64, 
                  stable::Dict{ Int64, Dict{NTuple{10, Int64},  Float64 } }, 
@@ -1776,7 +1775,6 @@ dyn.all[19].nfids = [672285, 373510] # this correction should not be necessary.
 compprobs = TotalCombine(dyn, 18, nd2, cp2)
 
 """
-
 function TotalCombine(D::DynState,
                       location::Int64,
                       comps::Dict{Int64,Int64},# dict of fids/locations from nbs in ExactChoice.  
@@ -2078,38 +2076,38 @@ function PatientRev(s::simh,
                     mpats::ProjectModule.patientcount,
                     ppats::ProjectModule.patientcount,
                     action::Int64)
-    const scalefact::Float64 = 3.0e9
-    const alf1::Float64 = 8336.17  # SA Run 
-    const alf2::Float64 = 19062.0  # SA run
-    const alf3::Float64 = 798648.0 # SA run 
-    const gamma_1_385::Float64 = 20680.0 # ✓
-    const gamma_2_385::Float64 = 42692.37 # ✓
-    const gamma_3_385::Float64 = 20962.97 # ✓
-    const gamma_1_386::Float64 = 81918.29 # X
-    const gamma_2_386::Float64 = 74193.4 # X
-    const gamma_3_386::Float64 = 99065.79 # X
-    const gamma_1_387::Float64 = 30405.32 # X
-    const gamma_2_387::Float64 = 49801.84 # X
-    const gamma_3_387::Float64 = 22376.8 # X
-    const gamma_1_388::Float64 = 10051.55 # ✓
-    const gamma_2_388::Float64 = 19019.18 # X
-    const gamma_3_388::Float64 = 33963.5 # X
-    const gamma_1_389::Float64 = 29122.89 # X
-    const gamma_2_389::Float64 = 14279.58 # X
-    const gamma_3_389::Float64 = 20708.15 # X
-    const gamma_1_390::Float64 = 22830.05 # X
-    const gamma_2_390::Float64 = 6754.76 # X
-    const gamma_3_390::Float64 = 3667.42 # ✓
-    const gamma_1_391::Float64 = 9089.77 # X
-    const gamma_2_391::Float64 = 8120.85 # X
-    const gamma_3_391::Float64 = 1900.5 # ✓
-    const mcaid385::Float64 = 151380.0
-    const mcaid386::Float64 = 48417.0
-    const mcaid387::Float64 = 18845.0
-    const mcaid388::Float64 = 7507.0
-    const mcaid389::Float64 = 9424.0
-    const mcaid390::Float64 = 4623.0
-    const mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
+    scalefact::Float64 = 3.0e9
+    alf1::Float64 = 8336.17  # SA Run 
+    alf2::Float64 = 19062.0  # SA run
+    alf3::Float64 = 798648.0 # SA run 
+    gamma_1_385::Float64 = 20680.0 # ✓
+    gamma_2_385::Float64 = 42692.37 # ✓
+    gamma_3_385::Float64 = 20962.97 # ✓
+    gamma_1_386::Float64 = 81918.29 # X
+    gamma_2_386::Float64 = 74193.4 # X
+    gamma_3_386::Float64 = 99065.79 # X
+    gamma_1_387::Float64 = 30405.32 # X
+    gamma_2_387::Float64 = 49801.84 # X
+    gamma_3_387::Float64 = 22376.8 # X
+    gamma_1_388::Float64 = 10051.55 # ✓
+    gamma_2_388::Float64 = 19019.18 # X
+    gamma_3_388::Float64 = 33963.5 # X
+    gamma_1_389::Float64 = 29122.89 # X
+    gamma_2_389::Float64 = 14279.58 # X
+    gamma_3_389::Float64 = 20708.15 # X
+    gamma_1_390::Float64 = 22830.05 # X
+    gamma_2_390::Float64 = 6754.76 # X
+    gamma_3_390::Float64 = 3667.42 # ✓
+    gamma_1_391::Float64 = 9089.77 # X
+    gamma_2_391::Float64 = 8120.85 # X
+    gamma_3_391::Float64 = 1900.5 # ✓
+    mcaid385::Float64 = 151380.0
+    mcaid386::Float64 = 48417.0
+    mcaid387::Float64 = 18845.0
+    mcaid388::Float64 = 7507.0
+    mcaid389::Float64 = 9424.0
+    mcaid390::Float64 = 4623.0
+    mcaid391::Float64 = 3664.0 # to DRG mean added 3094 - avg reimbursement for DRGs 370-375 under TX Medicaid (2012)
     outp::Float64 = 0.0
     wtp::Float64 = FindWTP(s)  
     if s.level == 1
@@ -2595,20 +2593,20 @@ function UtilUp(c::cpats,
                 current::Int64; # this one should vary.
                 audit = false) 
   # Medicaid.
-  const inten2inter_med::Float64 = -0.57239721 # Should be positive: - intensive + intermediate, both medicaid:  (-ProjectModule.medicaidneoint_c) + ProjectModule.medicaidsoloint_c       
-  const inter2inten_med::Float64 = 0.57239721  # Should be negatve: - intermediate + intensive, both medicaid:  (-ProjectModule.medicaidsoloint_c) + ProjectModule.medicaidneoint_c           
-  const inten_med::Float64 = 1.3499395         # Should be positive: the intensive coeff for medicaid:  ProjectModule.medicaidneoint_c
-  const inter_med::Float64 = 0.77754229        # Should be positive: the intermediate coeff for medicaid:  ProjectModule.medicaidsoloint_c
+  inten2inter_med::Float64 = -0.57239721 # Should be positive: - intensive + intermediate, both medicaid:  (-ProjectModule.medicaidneoint_c) + ProjectModule.medicaidsoloint_c       
+  inter2inten_med::Float64 = 0.57239721  # Should be negatve: - intermediate + intensive, both medicaid:  (-ProjectModule.medicaidsoloint_c) + ProjectModule.medicaidneoint_c           
+  inten_med::Float64 = 1.3499395         # Should be positive: the intensive coeff for medicaid:  ProjectModule.medicaidneoint_c
+  inter_med::Float64 = 0.77754229        # Should be positive: the intermediate coeff for medicaid:  ProjectModule.medicaidsoloint_c
   # Private 
   # BE CAREFUL CHANGING THE NEXT TWO LINES, even if they look wrong.  
-  const inten2inter_p::Float64 = 0.31972186   # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
-  const inter2inten_p::Float64 = -0.31972186    # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
+  inten2inter_p::Float64 = 0.31972186   # Should be negative: - intensive + intermediate, both private: (-ProjectModule.privateneoint_c) + ProjectModule.privatesoloint_c     
+  inter2inten_p::Float64 = -0.31972186    # Should be positive: - intermediate + intensive, both private:  (-ProjectModule.privatesoloint_c) + ProjectModule.privateneoint_c  
   # BE CAREFUL CHANGING ABOVE TWO LINES.
-  const inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
-  const inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
+  inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
+  inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
-  const indx_m::Int64 = findfirst(c.mutils[1,:], fid)
-  const indx_p::Int64 = findfirst(c.putils[1,:], fid)
+  indx_m::Int64 = findfirst(c.mutils[1,:], fid)
+  indx_p::Int64 = findfirst(c.putils[1,:], fid)
   if audit&(indx_m!=0)&(indx_p!=0)
     println("BEFORE: ", fid, "  ", c.mutils[1,indx_m], "  ", c.mutils[2,indx_m], "  ", c.putils[1,indx_p], "  ", c.putils[2,indx_p] )
   end 
@@ -3532,8 +3530,8 @@ Takes a next state and a section of the outvals for one firm, i.e., a single fir
 
 """
 function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64},Float64})
-  const scalefact::Float64 = 3.0e9
-  const β::Float64 = 0.95
+  scalefact::Float64 = 3.0e9
+  β::Float64 = 0.95
   s1::Float64 = 0.0
   s2::Float64 = 0.0
   s3::Float64 = 0.0

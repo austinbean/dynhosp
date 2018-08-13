@@ -335,14 +335,14 @@ function UtilCCheck(d1::DynState, d2::DynState)
   neighbors::Array{Int64,1} = Array{Int64,1}()                                          
   nfds::Array{Int64,1} = Array{Int64,1}()
   all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()
-  for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
-    FindComps(d1, neighbors, d1.all[el])                                                  # these are addresses of competitors in D.all 
-    NFids(d1, nfds, d1.all[el])                                                           # records the fids of neighbors only, as fids.  
-    push!(neighbors, el)                                                                # add the location of the firm in chunk
-    if !haskey(outvals, d1.all[el].fid)                                                  # add an empty dict IF there isn't already an entry.
-      outvals[d1.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+  for el1 in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
+    FindComps(d1, neighbors, d1.all[el1])                                                  # these are addresses of competitors in D.all 
+    NFids(d1, nfds, d1.all[el1])                                                           # records the fids of neighbors only, as fids.  
+    push!(neighbors, el1)                                                                # add the location of the firm in chunk
+    if !haskey(outvals, d1.all[el1].fid)                                                  # add an empty dict IF there isn't already an entry.
+      outvals[d1.all[el1].fid] = Dict{NTuple{10, Int64}, Float64 }()
     end 
-    tempvals[d1.all[el].fid] = Dict{NTuple{10, Int64}, Float64 }()
+    tempvals[d1.all[el1].fid] = Dict{NTuple{10, Int64}, Float64 }()
     CompsDict(neighbors, d1, all_locs)                                                   # now this is Dict{Fid, Location}
     StateRecord(all_locs, d1, st_dict)                                                   # returns the restricted state.
     for el2 in neighbors                                                                # adds keys for the neighbors to the temp dict. 
@@ -352,14 +352,14 @@ function UtilCCheck(d1::DynState, d2::DynState)
       StateEnumerate(TupletoCNS(st_dict[d1.all[el2].fid]), outvals[d1.all[el2].fid]) 
       StateEnumerate(TupletoCNS(st_dict[d1.all[el2].fid]), tempvals[d1.all[el2].fid])
     end 
-    if !haskey(outvals, d1.all[el].fid)
-      StateEnumerate(d1.all[el].cns, outvals[d1.all[el].fid])
-      StateEnumerate(d1.all[el].cns, tempvals[d1.all[el].fid])                            # this does NOT need starting values.  
+    if !haskey(outvals, d1.all[el1].fid)
+      StateEnumerate(d1.all[el1].cns, outvals[d1.all[el1].fid])
+      StateEnumerate(d1.all[el1].cns, tempvals[d1.all[el1].fid])                            # this does NOT need starting values.  
     end 
-    if haskey(outvals, d1.all[el].fid)
+    if haskey(outvals, d1.all[el1].fid)
       DictCopy(tempvals, outvals, 1.0)                                                  # if there is an entry for the value, copy FROM outvals TO tempvals.  
     end                                
-    totest[d1.all[el].fid] = false                                                       # all facilities to do initially set to false.  
+    totest[d1.all[el1].fid] = false                                                       # all facilities to do initially set to false.  
   end
   #=
   Other States to test:
@@ -374,6 +374,7 @@ function UtilCCheck(d1::DynState, d2::DynState)
     if !totest[k]  
       for r in 1:size(altstates,1)
         #println(altstates[r,:])
+        # TODO - note on dep warning above - the use of "el" in the next line is a problem because it is also the name of the counter in the loop above.  
         st_dict[k] = GiveState(d1, chunk, all_locs, altstates[r,:], d1.all[el].cns)
         MapCompState(d1, all_locs, chunk, FindFids(d1, chunk), altstates[r,:]) 
         println("Pre-audit: ")

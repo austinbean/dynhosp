@@ -73,7 +73,9 @@
 # Data Concerning Hospital Choices.
 
 #Model Coefficients for Privately Insured and Medicaid Patients.  
-      medcoeffs, medcoeffsnames = readcsv(pathpeople*"TX 2005 Medicaid Model.csv", header = true);
+      #medcoeffs, medcoeffsnames = readcsv(pathpeople*"TX 2005 Medicaid Model.csv", header = true);
+      medcoeffs, medcoeffsnames = readdlm(pathpeople*"TX 2005 Medicaid Model.csv", ','; header = true);
+
 
       global const medicaiddistance_c = medcoeffs[1,2] 
       global const medicaiddistsq_c = medcoeffs[2,2]
@@ -83,7 +85,9 @@
       global const medicaiddistbed_c = medcoeffs[6,2]
       medicaiddemandmodelparameters = [medicaiddistance_c medicaiddistsq_c medicaidneoint_c medicaidsoloint_c medicaidclosest_c medicaiddistbed_c]
 
-      privcoeffs, privcoeffsnames = readcsv(pathpeople*"TX 2005 Private Ins Model.csv", header = true);
+      #privcoeffs, privcoeffsnames = readcsv(pathpeople*"TX 2005 Private Ins Model.csv", header = true);
+      privcoeffs, privcoeffsnames = readdlm(pathpeople*"TX 2005 Private Ins Model.csv", ','; header = true);
+
 
       global const privatedistance_c = privcoeffs[1,2]
       global const privatedistsq_c = privcoeffs[2,2]
@@ -95,10 +99,10 @@
 
 
   # Zip Codes - a list of all of them.   
-     zp = readcsv(pathprograms*"TXzipsonly.csv", header = false)
+     zp = readdlm(pathprograms*"TXzipsonly.csv", ','; header = false)
      TXzips = convert(Array{Int64,1}, zp[:,1])
   #Zip Codes - a list of all of them 
-    zips = readcsv(pathprograms*"TXzipsonly.csv", header = false);
+    zips = readdlm(pathprograms*"TXzipsonly.csv", ',' ;header = false);
     zips = convert(Array, zp[:,1]);
 
 
@@ -113,7 +117,7 @@
     idloc = 1; # Also for Hospital data, here as "data"
 
     # Collect FIDs
-    allfids, txfnames = readcsv(pathprograms*"TXfidsonly.csv", header = true)
+    allfids, txfnames = readdlm(pathprograms*"TXfidsonly.csv", ','; header = true)
     allfids = vec(convert(Array{Int64,2}, allfids))
 
   # Get this from hospitaldistancepair.py and TX Hospital Sets.do and hosplatlong.py
@@ -121,7 +125,7 @@
 
 
 # Distances 
-  alldists, alldlabs = readcsv(pathdata*"TX Zip All Hospital Distances.csv", header = true);
+  alldists, alldlabs = readdlm(pathdata*"TX Zip All Hospital Distances.csv", ','; header = true);
 
   for j = 1:size(alldists,2) # covers the first row separately
     if (alldists[1,j] == "")
@@ -141,7 +145,7 @@
   end 
 
 #Zip Code Choice Sets 
-  choices, chnames = readcsv(pathdata*"TX Zip Code Choice Sets.csv", header = true);
+  choices, chnames = readdlm(pathdata*"TX Zip Code Choice Sets.csv", ','; header = true);
 
   for j = 1:size(choices,2) # covers the first row separately
     if (choices[1,j] == "")
@@ -168,13 +172,13 @@
   # writecsv("allfipscodes.csv", ProjectModule.fips)
   # NB: save the next line - this converts what comes out of "data" above (TX Transition Probs.csv) to a list of unique fipscodes plus 0
   # fips2 = convert(Array{Int64}, union(unique(data[:,78]), unique(alldists[:,7]))) # NB: here "data" from above is used.
-  fips = vec(convert(Array{Int64,2}, readcsv("allfipscodes.csv")))
+  fips = vec(convert(Array{Int64,2}, readdlm("allfipscodes.csv", ',')))
   data05 = 0 # data[(data[:,75].==2005), :] ; # NB - killing this because it has bad data and I want to find what is using it and change it.
 
 # Birthweight and NICU Admission Probs 
-  bwp, bwplabel = readcsv(pathdata*"2005 Birth Weight Probabilities.csv", header = true);
+  bwp, bwplabel = readdlm(pathdata*"2005 Birth Weight Probabilities.csv", ','; header = true);
 
-  np, nplabel = readcsv(pathdata*"2005 NICU Admission Probabilities.csv", header = true);
+  np, nplabel = readdlm(pathdata*"2005 NICU Admission Probabilities.csv", ','; header = true);
 
   weightprobs = zeros(size(bwp,1), 2)
   nicuprobs = zeros(size(np,1), 2)
@@ -192,12 +196,12 @@
 
   # Add counts of patients per zip and DRG.
 
-  pcount, pcountnames = readcsv(pathprograms*"All Zips Patient Count by DRG.csv", header = true, comments = false);
+  pcount, pcountnames = readdlm(pathprograms*"All Zips Patient Count by DRG.csv", ','; header = true, comments = false);
 
 
   # Logit Estimate Coefficients:
 
-  regcoeffs, regnames = readcsv(pathdata*"TX Choice Model.csv", header = true);
+  regcoeffs, regnames = readdlm(pathdata*"TX Choice Model.csv", ','; header = true);
 
 
 

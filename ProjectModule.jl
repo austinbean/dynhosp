@@ -3,14 +3,17 @@
 
 module ProjectModule
   #using DataFrames # this needs to be inside and outside the module?
+
+
+  using Distributed # base.parallel removed - update for 1.0  
+  using DelimitedFiles # for readcsv - 1.0.  
   using Distributions
   using StatsBase
   using Combinatorics
   using DataFrames  
   using CSV 
-  using Plots
-  plotlyjs()   # call PlotlyJS backend to Plots.
-
+  #using Plots
+  #plotlyjs()   # call PlotlyJS backend to Plots.
 
 
 
@@ -174,7 +177,7 @@ end
 
 
 
-  immutable initial <: INIT 
+  struct initial <: INIT 
     level::Int64
   end
 
