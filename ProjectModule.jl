@@ -123,41 +123,35 @@ module ProjectModule
     level21525::Int64
     level31525::Int64
   end
+  import Base.iterate 
 
- Base.start(::neighbors) = :level105
-
-function Base.next(n::neighbors, state)
-  if state == :level105
+  function Base.iterate(n::neighbors)
     return n.level105, :level205
-  elseif state == :level205
-    return n.level205, :level305
-  elseif state == :level305
-    return n.level305, :level1515
-  elseif state == :level1515
-    return n.level1515, :level2515
-  elseif state == :level2515
-    return n.level2515, :level3515
-  elseif state == :level3515
-    return n.level3515, :level15125
-  elseif state == :level15125
-    return n.level11525, :level21525
-  elseif state == :level21525
-    return n.level21525, :level31525
-  elseif state == :level31525
-    return n.level31525, :level4
-  else
-    return :level4
-  end
-end
+  end 
 
-function Base.done(n::neighbors, state)
-  if state == :level4
-    return true
-  else
-    return false
-  end
-end
-
+  function Base.iterate(n::neighbors, state)
+    if state == :level105 
+      return n.level105, :level205
+    elseif state == :level205
+      return n.level205, :level305
+    elseif state == :level305
+      return n.level305, :level1515
+    elseif state == :level1515
+      return n.level1515, :level2515  
+    elseif state == :level2515
+      return n.level2515, :level3515 
+    elseif state == :level3515
+      return n.level3515, :level11525 
+    elseif state == :level11525
+      return n.level11525, :level21525
+    elseif state == :level21525
+      return n.level21525, :level31525
+    elseif state == :level31525
+      return n.level31525, nothing 
+    else  
+      return nothing 
+    end 
+  end 
 
   function Base.isequal(n1::neighbors, n2::neighbors)::Bool
     n1.level105 == n2.level105 && n1.level205 == n2.level205 && n1.level305 == n2.level305 && n1.level1515 == n2.level1515 && n1.level2515 == n2.level2515 && n1.level3515 == n2.level3515 && n1.level11525 == n2.level11525 && n1.level21525 == n2.level21525 && n1.level31525 == n2.level31525
@@ -257,16 +251,20 @@ end
   function sum(x::patientcount)
     return x.count385 + x.count386 + x.count387 + x.count388 + x.count389 + x.count390 + x.count391
   end
+  # New iteration protocol for 1.0
+  import Base.iterate 
 
-  Base.start(::patientcount) = :count385
-  
-  function Base.next(p::patientcount, state)
-    if state == :count385
+  function Base.iterate(p::patientcount)
+    return p.count385, :count386 
+  end 
+
+  function Base.iterate(p::patientcount, state)
+    if state == :count385 
       return p.count385, :count386
-    elseif state == :count386
+    elseif state == :count386 
       return p.count386, :count387
     elseif state == :count387
-      return p.count387, :count388
+      return p.count387 , :count388
     elseif state == :count388
       return p.count388, :count389
     elseif state == :count389
@@ -274,18 +272,11 @@ end
     elseif state == :count390
       return p.count390, :count391
     elseif state == :count391
-      return p.count391, :count392
-    else
-      return :count392
-    end
-  end
-  function Base.done(p::patientcount, state)
-    if state == :count392
-      return true
-    else
-      return false
-    end
-  end
+      return p.count391, nothing
+    else  
+      return nothing 
+    end 
+  end 
 
   mutable struct patientrange{T<:Real} <: PR 
     l385::T 
