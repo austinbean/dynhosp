@@ -12,6 +12,7 @@ module ProjectModule
   using Combinatorics
   using DataFrames  
   using CSV 
+  using LinearAlgebra
   #using Plots
   #plotlyjs()   # call PlotlyJS backend to Plots.
 
