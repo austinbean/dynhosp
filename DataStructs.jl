@@ -48,9 +48,18 @@ end
 
  Testing:
 
- Tex = EntireState(Array{hospital,1}(), Dict{Int64,Market}(), Dict{Int64,hospital}())
- MakeIt(Tex, ProjectModule.fips);
- TXSetup(Tex, ProjectModule.alldists, 12);
+ Tex = pm.EntireState(Array{pm.hospital,1}(), Dict{Int64,pm.Market}(), Dict{Int64,pm.hospital}())
+ pm.MakeIt(Tex, pm.fips);
+ pm.TXSetup(Tex, pm.alldists, 12);
+
+
+h1 = pm.hospital(1, 1.1, 1.1, "hi", 123, 1, pm.initial(1), Array{Int64,1}(), pm.DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()),
+ pm.DemandHistory( Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}(), Array{Int64,1}()),
+ pm.WTP( Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}(), Array{Float64,1}()),
+ pm.Weights([0.0]), Array{Float64,1}(),
+ pm.neighbors(0,0,0,0,0,0,0,0,0),
+ Array{Int64,1}(),0 , false )
+
 
 """
 function TXSetup(Tex::EntireState,
@@ -84,14 +93,14 @@ function TXSetup(Tex::EntireState,
                   fips,
                   level, # level
                   initial(level) , #initial level - immutable.
-                  Array{Int64,1}(sp), #level history
-                  DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #private demand history
-                  DemandHistory( Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp), Array{Int64,1}(sp),  Array{Int64,1}(sp), Array{Int64,1}(sp) ), #medicaid demand history
-                  WTP( Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp), Array{Float64,1}(sp),  Array{Float64,1}(sp), Array{Float64,1}(sp) ),
+                  zeros(Int64,sp), #level history
+                  DemandHistory( zeros(Int64,sp),  zeros(Int64,sp), zeros(Int64,sp), zeros(Int64,sp), zeros(Int64,sp),  zeros(Int64,sp), zeros(Int64,sp) ), #private demand history
+                  DemandHistory( zeros(Int64,sp),  zeros(Int64,sp), zeros(Int64,sp), zeros(Int64,sp), zeros(Int64,sp),  zeros(Int64,sp), zeros(Int64,sp) ), #medicaid demand history
+                  WTP( zeros(sp),  zeros(sp), zeros(sp), zeros(sp), zeros(sp),  zeros(sp), zeros(sp) ),
                   Weights([0.0]), #choice probs
-                  Array{Float64,1}(sp), #prob history
+                  zeros(sp), #prob history
                   neighbors(0,0,0,0,0,0,0,0,0), #neighbors
-                  Array{Int64,1}(), # hood (array of fids) - uncertain length.
+                  Array{Int64,1}(undef,0), # hood (array of fids) - uncertain length.  0 element array of Ints.  
                     0    , # beds added later.
                   false ) ) # perturbed or not?
       end
@@ -221,6 +230,8 @@ end
 
 Testing:
 Tex = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50)
+
+Tex = pm.EntireState(Array{pm.hospital,1}(), Dict{Int64,pm.Market}(), Dict{Int64,pm.hospital}())
 
 """
 function CreateEmpty(fi::Vector, dat::Matrix, sp::Int64)
@@ -1959,13 +1970,14 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
       end 
       for elm in el.config
         action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
-        elm.probhistory[i] = elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]     # Record the prob with which the action was taken.
+        # TODO - 1.0 08/14/2018 - there is no more findin.  
+        elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm))[1] ]     # Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
         elm.level = newchoice                                                                  # Set the level to be the new choice.
         elm.levelhistory[i] = newchoice
         if el.fipscode == 48453
-          println("    ", elm.fid, " ", elm.level, " ", round(elm.wtphist.w385[i],2))
+          println("    ", elm.fid, " ", elm.level, " ", round(elm.wtphist.w385[i]; digits = 2))
           println("    ", pats.zips[78702].pdetutils)
         end 
       end
@@ -2112,6 +2124,12 @@ Personal:
 @time PSim(40);                  # 403.344224 seconds (1.16 G allocations: 21.912 GiB, 1.85% gc time)  
 @time CombinedSim(1; T1 = 40);   # 415.258146 seconds (1.20 G allocations: 22.750 GiB, 1.90% gc time)
 
+
+# fixing dumb comprehension:
+r=pm.CreateEmpty(pm.fips, pm.alldists, 10);
+hcat( [ [i, !r.mkts[48453].noneqrecord[i]] for i in keys(r.mkts[48453].noneqrecord) ]...)
+prod( hcat( [ [i, !r.mkts[48453].noneqrecord[i]] for i in keys(r.mkts[48453].noneqrecord) ]...) ,1 )
+
 """
 function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)                           # fi = fips,
   entrants::Array{Int64,1} = [0, 1, 2, 3]
@@ -2133,8 +2151,8 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
     d2 = NewHospDict(Tex)                                                                               # creates a dict for GenM below
     for el in keys(EmptyState.mkts)
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)]) # this is pretty fast: 0.000005 seconds (10 allocations: 240 bytes)
-        # TODO - get rid of this comprehension.
-        pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...) , 1) # 0.033497 seconds (14.66 k allocations: 794.414 KiB)
+        # TODO - this allocates a lot, but what it's doing is simple.  Maybe replace with a function.  
+        pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...), dims=1) # 0.033497 seconds (14.66 k allocations: 794.414 KiB)
         pfid = pfids[findfirst(pfids)]                                                                  # takes the first non-zero element of the above and returns the element.
         currentfac[EmptyState.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
         for hos in Tex.mkts[el].config
