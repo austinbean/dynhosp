@@ -1970,8 +1970,9 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
       end 
       for elm in el.config
         action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
-        # TODO - 1.0 08/14/2018 - there is no more findin.  
-        elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm))[1] ]     # Record the prob with which the action was taken.
+        # TODO - 1.0 08/14/2018 - there is no more findin. 
+        # This returns a cartesian index, not just an integer...  maybe [2] would work?  
+        elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm)) ][1]     # Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
         elm.level = newchoice                                                                  # Set the level to be the new choice.
@@ -2101,6 +2102,22 @@ function RecordCopy(ES::EntireState, h::T) where T<:ProjectModule.Fac
 end
 
 
+"""
+`FidListReturn(d::Dict{Int64,Bool})`
+Replaces a slow comprehension in PSim.
+Takes a dict of Int64, Bool and returns a list of 
+elements with `false`.
+"""
+function FidListReturn(d::Dict{Int64,Bool})
+  outp = zeros(Int64, 0)
+  for el in keys(d)
+    if !d[el]
+      push!(outp, el)
+    end 
+  end 
+  return outp
+end 
+
 
 """
 `PSim(T::Int64 ; di = ProjectModule.alldists, fi = fips, entrants = [0, 1, 2, 3], entryprobs = [0.9895, 0.008, 0.0005, 0.002])`
@@ -2151,9 +2168,8 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
     d2 = NewHospDict(Tex)                                                                               # creates a dict for GenM below
     for el in keys(EmptyState.mkts)
       if !reduce(&, [ EmptyState.mkts[el].noneqrecord[i] for i in keys(EmptyState.mkts[el].noneqrecord)]) # this is pretty fast: 0.000005 seconds (10 allocations: 240 bytes)
-        # TODO - this allocates a lot, but what it's doing is simple.  Maybe replace with a function.  
-        pfids = prod(hcat( [ [i, !EmptyState.mkts[el].noneqrecord[i]] for i in keys(EmptyState.mkts[el].noneqrecord) ]...), dims=1) # 0.033497 seconds (14.66 k allocations: 794.414 KiB)
-        pfid = pfids[findfirst(pfids)]                                                                  # takes the first non-zero element of the above and returns the element.
+        pfids = FidListReturn(EmptyState.mkts[el].noneqrecord)                              
+        pfid = pfids[findfirst(x->x!=0, pfids)]                                                         # takes the first non-zero element of the above and returns the element.
         currentfac[EmptyState.fipsdirectory[pfid]] = pfid                                               # Now the Key is the fipscode and the value is the fid.
         for hos in Tex.mkts[el].config
           if hos.fid == pfid
