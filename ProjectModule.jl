@@ -771,6 +771,7 @@ end
   export ArrayTupleSum 
   export WTPDict
   export CleanWTPDict
+  export FidListReturn
   
 
   # Export Counter1.jl Functions 
