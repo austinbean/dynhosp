@@ -2576,7 +2576,7 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
   weight390::Float64 = 1.13
   weight391::Float64 = 0.15
   dim1 = Tex.fipsdirectory.count
-  outp = Array{Float64,2}(dim1, dim2)
+  outp = zeros(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
   disc::Float64 = (1-beta^(T+1))/(1-beta)
   for el in 1:size(fids,1)
@@ -2604,7 +2604,7 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     arr[12] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]  # Patients*revenue avg. at DRG 390
     arr[13] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]  # Patients*revenue avg. at DRG 391, 13 parameters to here.
     arr[14:end] = (alltrans = (beta^T)*outprob*transitions)                   # 9 here. 
-    index = findfirst(outp[:,1], hosp.fid)                                    # find where the fid is in the list.
+    index = findfirst(isequal(hosp.fid), outp[:,1])
     outp[index, 2:(params+1)] = arr
     # NB: Here starts the second state record.
     hosp_neq = OtherTex.mkts[OtherTex.fipsdirectory[el]].collection[el]       # Find the record in the OTHER EntireState
@@ -2627,7 +2627,7 @@ function ResultsOutVariant(Tex::EntireState, OtherTex::EntireState; T::Int64 = 5
     narr[14:end] = disc*outprobn*transitionsn
     outp[index, (params+2):dim2] = narr
   end
-  return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
+  return sortslices(outp, dims=1)                                                    # sort by first column (fid)
 end 
 
 
