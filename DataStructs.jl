@@ -1934,8 +1934,8 @@ end
 Runs a T period simulation using the whole state and whole collection of patient records.
 
 ## Testing: ## 
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
-patients = NewPatients(Texas);
+Texas = pm.CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 20);
+patients = pm.NewPatients(Texas);
 NewSim(20, Texas, patients); # 3.386766 seconds (9.28 M allocations: 183.511 MiB, 2.48% gc time)
 
 Sources of Allocations: 
@@ -1945,6 +1945,13 @@ WriteWTP: memory estimate:  62.56 KiB allocs estimate:  4004 mean time:   366.28
 WTPMap: memory estimate:  0 bytes allocs estimate:  0 mean time:        2.525 ms 
 EntryProcess: memory estimate:  422 bytes allocs estimate:  3 mean time:   84.371 μs (0.16% GC)
 CleanWTPDict: memory estimate:  0 bytes allocs estimate:  0 mean time:        8.756 μs
+
+- NB - these give different returns: one a Cartesian index, the other the index, depending on whether it's 1 or 2 d.
+v1 = [2 3 4 5 7 1]
+findall(x->x==1, v1)
+
+v1[findall(x->x==1, v1)]
+
 """
 function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
   entrants::Array{Float64,1} = [0, 1, 2, 3] 
@@ -1972,7 +1979,7 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
         action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
         # TODO - 1.0 08/14/2018 - there is no more findin. 
         # This returns a cartesian index, not just an integer...  maybe [2] would work?  
-        elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm)) ][1]     # Record the prob with which the action was taken.
+        elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm))[1][2] ]     # Gross solution - access Cartesian Index element with [1] and 2nd coordinate with [2]. Record the prob with which the action was taken.
         newchoice = LevelFunction(elm, action)                                                 # What is the new level?
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
         elm.level = newchoice                                                                  # Set the level to be the new choice.
@@ -2028,11 +2035,11 @@ function EntryProcess(el::Market, i::Int64, T::Int64)
   if entrant != 0
     entloc = NewEntrantLocation(el)                                                        # called on the market
     newfid = -floor(rand()*1e6)-1000000                                                    # all entrant fids negative to facilitate their removal later.
-    entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), Array{Int64,1}(T),
-                     DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
-                     DemandHistory( Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T),  Array{Int64,1}(T), Array{Int64,1}(T) ),
-                     WTP( Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T),  Array{Float64,1}(T), Array{Float64,1}(T) ),
-                     StatsBase.Weights([0.1, 0.1, 0.1, 0.1]), Array{Float64,1}(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), Array{Int64, 1}(), 0, false)
+    entr = hospital( newfid, entloc[1], entloc[2], " Entrant $newfid ", el.fipscode, entrant, initial(entrant), zeros(Int64,T),
+                     DemandHistory( zeros(Int64,T),  zeros(Int64,T), zeros(Int64,T), zeros(Int64,T), zeros(Int64,T),  zeros(Int64,T), zeros(Int64,T) ),
+                     DemandHistory( zeros(Int64,T),  zeros(Int64,T), zeros(Int64,T), zeros(Int64,T), zeros(Int64,T),  zeros(Int64,T), zeros(Int64,T) ),
+                     WTP( zeros(T),  zeros(T), zeros(T), zeros(T), zeros(T),  zeros(T), zeros(T) ),
+                     StatsBase.Weights([0.1, 0.1, 0.1, 0.1]), zeros(T), neighbors(0, 0, 0, 0, 0, 0, 0, 0, 0), zeros(Int64,0), 0, false)
     entr.levelhistory[i] = entrant
     push!(el.config, entr)                                                                 # need to create a new record for this hospital in the market
     el.collection[newfid] = entr
@@ -2196,8 +2203,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
              if !elm.perturbed                                                                         # not perturbed, i.e., "perturbed" == false
                action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                   # Take the action
                # TODO - here add update of WTP given an action not equal to 10.
-               # FIXME 
-               elm.probhistory[i]= elm.chprobability[ findin(ChoicesAvailable(elm), action)[1] ]       # Record the prob with which the action was taken.
+               elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm))[1][2] ]     # Gross solution - access Cartesian Index element with [1] and 2nd coordinate with [2]. Record the prob with which the action was taken.
                newchoice = LevelFunction(elm, action)                                                  # What is the new level?
                elm.chprobability = HospUpdate(elm, newchoice)                                          # What are the new probabilities, given the new level?
                elm.level = newchoice                                                                   # Set the level to be the new choice.
@@ -2205,8 +2211,7 @@ function PSim(T::Int64; di = ProjectModule.alldists, fi = ProjectModule.fips)   
              else # perturbed.
                action = StatsBase.sample( ChoicesAvailable(elm), HospPerturb(elm, elm.level,0.05))
                # TODO - here add update of WTP given an action not equal to 10.
-               # FIXME 
-               elm.probhistory[i]=elm.chprobability[findin(ChoicesAvailable(elm), action)[1]]
+               elm.probhistory[i] = elm.chprobability[ findall( x->x==action,ChoicesAvailable(elm))[1][2] ]     # Gross solution - access Cartesian Index element with [1] and 2nd coordinate with [2]. Record the prob with which the action was taken.
                newchoice = LevelFunction(elm, action)
                elm.chprobability = HospUpdate(elm, newchoice)
                elm.level = newchoice
@@ -2446,7 +2451,7 @@ Maps all of the hospital results out to a big matrix, sorted in the first column
 function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta::Float64 = 0.95,  dim2::Int64 = 81) #dim2 - 33 paramsx2 + 7x2 records of medicaid volumes + one identifying FID
   drgamt::Array{Float64,1} = [12038.83, 66143.19, 19799.52, 4044.67, 6242.39, 1329.98, 412.04]
   dim1 = Tex.fipsdirectory.count
-  outp = Array{Float64,2}(dim1, dim2)
+  outp = zeros(dim1, dim2)
   fids = [k for k in keys(Tex.fipsdirectory)]
   disc::Float64 = (1-beta^(T+1))/(1-beta) 
   for el in 1:size(fids,1)
@@ -2490,7 +2495,7 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     arr[30] = disc*outprob*(medicaid[6]+medicaid[13]+medicaid[20])*drgamt[6]    # (390_m_1 + 390_m_2 + 390_m_3)* revenue avg. at DRG 390
     arr[31] = disc*outprob*(medicaid[7]+medicaid[14]+medicaid[21])*drgamt[7]    # (391_m_1 + 391_m_2 + 391_m_3)* revenue avg. at DRG 391
     arr[32:end] = (alltrans = disc*outprob*transitions)                         # Transitions.
-    index = findfirst(outp[:,1], hosp.fid)                                          # find where the fid is in the list.
+    index = findfirst(isequal(hosp.fid), outp[:,1])                              # find where the fid is in the list.
     outp[index, 2:41] = arr
     # NB: Here starts the second state record.
     hosp_neq = OtherTex.mkts[OtherTex.fipsdirectory[el]].collection[el]             # Find the record in the OTHER EntireState
@@ -2532,7 +2537,7 @@ function ResultsOut(Tex::EntireState, OtherTex::EntireState; T::Int64 = 50, beta
     narr[32:end] = disc*outprobn*transitionsn                                 # Transitions - 9 of them.
     outp[index, 42:end] = narr
   end
-  return sortrows(outp, by=x->x[1])                                                    # sort by first column (fid)
+  return sortslices(outp, dims=1)                                                    # sort by first column (fid)
 end
 
 
