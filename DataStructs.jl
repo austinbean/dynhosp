@@ -1038,10 +1038,10 @@ function FillState(Tex::EntireState, data::Matrix, ns::Int64;
                   fips,
                   level,
                   level,
-                  Array{Int64,1}(ns), #volume
-                  Array{Int64, 1}(ns), #mortality
-                  Array{Float64,1}(ns), #ppayoff
-                  Array{Float64,1}(ns), #mpayoff
+                  zeros(Int64,ns), #volume
+                  zeros(Int64,ns), #mortality
+                  zeros(ns), #ppayoff
+                  zeros(ns), #mpayoff
                     0    , # beds added later.
                   LBW(0,0,0,0,0,0), # LBW Infants.
                   false, # has intensive
@@ -1260,19 +1260,17 @@ Takes a patient collection and an entire state and returns a dict{fid, WTP}
 computed by calling CalcWTP.  Right now it ignores Inf and NaN.
 Input is from CalcWTP.  Output is sent to WriteWTP
 
-Texas = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-patients = NewPatients(Texas);
-WTPMap(patients, Texas)
 
 
 memory estimate:  0 bytes
 allocs estimate:  0
 mean time:        2.525 ms
 
-
-wtd = WTPDict(Texas)
+Texas = pm.CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+patients = pm.NewPatients(Texas);
+wtd = pm.WTPDict(Texas)
 newarr = zeros(2,12)
-WTPMap(patients, Texas, wtd, newarr)
+pm.WTPMap(patients, Texas, wtd, newarr)
 
 @benchmark WTPMap(patients, Texas, wtd, newarr)
 
