@@ -121,7 +121,7 @@ the facility for some period.  If everyone has been finished, returns true.
 function TermFl(EmTex::EntireState)
   isdone = true
   for mark in keys(EmTex.mkts) # iterates over markets
-    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].collection[i].finished  for i in keys(EmTex.mkts[mark].collection) ] ))
+    isdone = (isdone)&(reduce(&, [ EmTex.mkts[mark].collection[i].finished  for i in keys(EmTex.mkts[mark].collection) ], init=true ))
   end
   return isdone
 end
