@@ -66,31 +66,31 @@ end
 `Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64}; params = [])`
 Computes the actual firm payoffs.  Uses parameters computed from one run of the LTE.
 """
-function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64} ;
-                alf1::Float64 = 29182.967,
-                alf2::Float64 = 22167.6375,
-                alf3::Float64 = 23074.8403,
-                gamma_1_385::Float64 = 34628.8402,
-                gamma_2_385::Float64 = 14921.003,
-                gamma_3_385::Float64 = 12822.723,
-                gamma_1_386::Float64 = 104578.867,
-                gamma_2_386::Float64 = 95366.0004,
-                gamma_3_386::Float64 = 69353.471,
-                gamma_1_387::Float64 = 34498.5261,
-                gamma_2_387::Float64 = 48900.8396,
-                gamma_3_387::Float64 = 24639.0552,
-                gamma_1_388::Float64 = 26561.8688,
-                gamma_2_388::Float64 = 20895.5001,
-                gamma_3_388::Float64 = 29775.8381,
-                gamma_1_389::Float64 = 20653.5821,
-                gamma_2_389::Float64 = 20102.2097,
-                gamma_3_389::Float64 = 8279.774,
-                gamma_1_390::Float64 = 7372.3301,
-                gamma_2_390::Float64 = 2514.8717,
-                gamma_3_390::Float64 = 26113.4462,
-                gamma_1_391::Float64 = 27018.9915,
-                gamma_2_391::Float64 = 15079.2889,
-                gamma_3_391::Float64 = 1912.7285 ) # params
+function Payoff(ppats::Dict{Int64, ProjectModule.patientcount}, mpats::Dict{Int64, ProjectModule.patientcount}, Tex::EntireState, wtp::Dict{Int64,Float64})
+  alf1::Float64 = 29182.967
+  alf2::Float64 = 22167.6375
+  alf3::Float64 = 23074.8403
+  gamma_1_385::Float64 = 34628.8402
+  gamma_2_385::Float64 = 14921.003
+  gamma_3_385::Float64 = 12822.723
+  gamma_1_386::Float64 = 104578.867
+  gamma_2_386::Float64 = 95366.0004
+  gamma_3_386::Float64 = 69353.471
+  gamma_1_387::Float64 = 34498.5261
+  gamma_2_387::Float64 = 48900.8396
+  gamma_3_387::Float64 = 24639.0552
+  gamma_1_388::Float64 = 26561.8688
+  gamma_2_388::Float64 = 20895.5001
+  gamma_3_388::Float64 = 29775.8381
+  gamma_1_389::Float64 = 20653.5821
+  gamma_2_389::Float64 = 20102.2097
+  gamma_3_389::Float64 = 8279.774
+  gamma_1_390::Float64 = 7372.3301
+  gamma_2_390::Float64 = 2514.8717
+  gamma_3_390::Float64 = 26113.4462
+  gamma_1_391::Float64 = 27018.9915
+  gamma_2_391::Float64 = 15079.2889
+  gamma_3_391::Float64 = 1912.7285  # params
   outp::Dict{Int64,Float64} = Dict{Int64,Float64}() # Dict(k => 0.0 for k in keys(ppats))
   for k1 in keys(ppats) # put the dictionary together.
     if k1 != 0 # don't add OO.
@@ -333,9 +333,10 @@ This function runs a baseline simulation of mortality rates in each market.  It 
 to reduce the impact that the random component of the choice model has.  It should return a counterhistory for which
 a mortality baseline can be determined.
 Note: run this on a NEW state record unless the levels have been set back to what they were in reality.
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists);
+Tex = pm.EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}())
+pm.CMakeIt(Tex, ProjectModule.fips);
+pm.FillState(Tex, ProjectModule.alldists);
+pm.Baseline(10, Tex, )
 
 #TODO: check this against some mortality data from NCHS.
 
@@ -350,17 +351,20 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
   for mk in keys(Tex.mkts)
     res.hist[mk].values = Dict( 0=>simrun(mk, Dict{Int64,hyrec}(), 0.0, 0))                              # 0 records that this is the equilibrium.
     for k1 in keys(Tex.mkts[mk].collection)
-      res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T)) for k2 in keys(Tex.mkts[mk].collection))
+      res.hist[mk].values[0].hosprecord = Dict( k2 => hyrec(k2, zeros(Int64,T), zeros(Int64,T), zeros(Int64,T), zeros(T), zeros(T)) for k2 in keys(Tex.mkts[mk].collection))
     end
   end
   CounterCleanResults(res)
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
-  wtpc = WTPMap(pats, Tex)                                                                           # Facilities are unchanging, so WTP will remain constant.
+  # TODO - 08/17/2018 - Fix this WTP Map.  Wrong call signature.  Weird.   
+  newarr = zeros(2,12)
+  wtd = WTPDict(Tex)
+  WTPMap(pats, Tex, wtd, newarr)                                                                           # Facilities are unchanging, so WTP will remain constant.
   for i = 1:T
     GenPChoices(pats, d1, arry1)
     GenMChoices(pats, d2, arry2)                                                                                      # T is now the sim periods, not sequential choices.
     mappeddemand, drgp, drgm = PatientDraw(d1,  d1,  Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-    pdict = Payoff(drgp, drgm, Tex, wtpc)
+    pdict = Payoff(drgp, drgm, Tex, wtd)
     if levelchange                                                                                       # NB: this should permit changing the level of every hospital.
       for k1 in keys(Tex.mkts)
         SetLevel(Tex.mkts[k1], 0, level)                                                                 # NB: this will set the level of *everyone* to "level"
