@@ -206,10 +206,13 @@ By varying the `level` parameter, it is possible to simulate the assignment of l
 Or the assignment of everyone to have level 3.
 # TODO: There is at least an interesting counterfactual where everyone has level 3, another where every county does.
 
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 20);
-patients = NewPatients(Tex);
+Tex = pm.EntireState(Array{pm.Market,1}(), Dict{Int64, pm.Market}(), Dict{Int64, Int64}());
+pm.CMakeIt(Tex, ProjectModule.fips);
+pm.FillState(Tex, ProjectModule.alldists, 20);
+patients = pm.NewPatients(Tex);
+
+pm.CounterSim(10, Tex, patients);
+
 
 """
 function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int64 = 1, reassign::Bool = true)
@@ -223,7 +226,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
   for mk in keys(Tex.mkts) #these are fipscodes
     res.hist[mk].values = Dict( k=>simrun(mk, Dict{Int64,hyrec}(), 0.0, k) for k in keys(Tex.mkts[mk].collection)) # for each FID in the market, a simrun record element.
     for k1 in keys(Tex.mkts[mk].collection)
-      res.hist[mk].values[k1].hosprecord = Dict( k2 => hyrec(k2, Array{Int64,1}(T), Array{Int64,1}(T), Array{Int64,1}(T), Array{Float64,1}(T), Array{Float64,1}(T)) for k2 in keys(Tex.mkts[mk].collection))
+      res.hist[mk].values[k1].hosprecord = Dict( k2 => hyrec(k2, zeros(Int64,T), zeros(Int64,T), zeros(Int64,T), zeros(T), zeros(T)) for k2 in keys(Tex.mkts[mk].collection))
     end
   end
   CounterCleanResults(res)
@@ -233,9 +236,14 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     currentfac = Dict{Int64, Int64}()                                                                       # this will be filled with {fipscode, fid} entries for unfinished facilities.
     mkt_fips = Array{Int64,1}()                                                                             # Tracks the fipscodes which still need to be done.
     for el in keys(Tex.mkts)
-      if !reduce(&, [Tex.mkts[el].collection[i].finished for i in keys(Tex.mkts[el].collection)])
-        pfids = prod(hcat( [ [i, !Tex.mkts[el].collection[i].finished] for i in keys(Tex.mkts[el].collection) ]...) , 1)
-        pfid = pfids[findfirst(pfids)]                                                                      # takes the first non-zero element of the above and returns the element.
+      # TODO - need to specify an init value here.  Probably init = true
+      # What do I want this to do for empty collections?  Skip, probably.  
+      if !reduce(&, [Tex.mkts[el].collection[i].finished for i in keys(Tex.mkts[el].collection)], init=true)
+        if isempty(keys(Tex.mkts[el].collection))
+          println("Empty? ", el)
+        end 
+        pfids = prod(hcat( [ [i, !Tex.mkts[el].collection[i].finished] for i in keys(Tex.mkts[el].collection) ]...) , dims=1)
+        pfid = pfids[findfirst(x->x!=0,pfids)]                                                                      # takes the first non-zero element of the above and returns the element.
         currentfac[Tex.fipsdirectory[pfid]] = pfid                                                          # Now the Key is the fipscode and the value is the fid.
         push!(mkt_fips, el)                                                                                 # Want to do this collection of markets which still have uncompleted hospitals.
         for hos in Tex.mkts[el].config
@@ -252,7 +260,9 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
     # TODO: stop here - think about cutting off the section above this line below the while termflag component.
     println(mkt_fips)
     UpdateDeterministic(pats)                                                                               # NB: The update happens every time we do a new set of facilities.
-    wtpc = WTPMap(pats, Tex)                                                                                # Facilities are unchanging, so WTP will remain constant.
+    newarr = zeros(2,12)
+    wtd = WTPDict(Tex) # this will overwrite for each market.  
+    WTPMap(pats, Tex, wtd, newarr) 
     for i = 1:T                                                                                             # T is now the sim periods, not sequential choices.
       #TODO - Clean these dictionaries up later.
       #TODO - these are not being reset to 0.  ???
@@ -260,7 +270,7 @@ function CounterSim(T::Int, Tex::EntireState, pats::patientcollection; lev::Int6
       GenMChoices(pats, d2, arry2)
       #TODO - don't reallocate demand every period - clean up
       mappeddemand, drgp, drgm = PatientDraw(d1, d2, Tex)        # NB: this is creating a Dict{Int64, LBW} of fids and low birth weight volumes.
-      pdict = Payoff(drgp, drgm, Tex, wtpc)
+      pdict = Payoff(drgp, drgm, Tex, wtd)
       if !reassign                                                                                        # NB: Under this counterfactual, I am restricting investment and NOT transferring.
         for el in mkt_fips
           fac = currentfac[el]
@@ -356,7 +366,6 @@ function Baseline(T::Int, Tex::EntireState, pats::patientcollection; levelchange
   end
   CounterCleanResults(res)
   UpdateDeterministic(pats)                                                                              # NB: The update happens every time we do a new set of facilities.
-  # TODO - 08/17/2018 - Fix this WTP Map.  Wrong call signature.  Weird.   
   newarr = zeros(2,12)
   wtd = WTPDict(Tex)
   WTPMap(pats, Tex, wtd, newarr)                                                                           # Facilities are unchanging, so WTP will remain constant.
