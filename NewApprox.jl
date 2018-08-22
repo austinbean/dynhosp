@@ -94,7 +94,7 @@ function NewApprox(D::DynState,
   converge::Bool = true
   inv_costs = zeros(9)
   wgts = zeros(outvals[D.all[chunk[1]].fid].count)                                      # this will hold the weights.  
-  elts = Array{NTuple{10,Int64}}(outvals[D.all[chunk[1]].fid].count)                    # this will hold the states
+  elts = Array{NTuple{10,Int64}}(undef,outvals[D.all[chunk[1]].fid].count)              # this will hold the states
   dists = RecordDists(D, chunk, all_locs)                                               # for each neighbor, record the distance to the main firm.  Do this once.
   statehold = zeros(Int64,9)
   k::Int64 = D.all[chunk[1]].fid 
