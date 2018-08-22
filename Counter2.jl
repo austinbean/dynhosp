@@ -1355,9 +1355,9 @@ StateBlock([(10,1); (10,2); (10,3); (10,999)], 20)
 StateBlock([], 10)
 """
 function StateBlock(n::Array, i::Int64) 
-  len, width = size(n,1,2)
+  len, width = size(n)
   if len > 1 # add these elements to whatever array exists.  
-    outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(4*len, width+1)
+    outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(undef, 4*len, width+1) # new 1.0 syntax - zeros won't work.  
     for el in 1:size(n,1) # rows of input 
         outp[4*(el-1)+1,1] = (i,1)
         outp[4*(el-1)+2,1] = (i,2)
@@ -2604,8 +2604,18 @@ function UtilUp(c::cpats,
   inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
   inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
-  indx_m::Int64 = findfirst(x->x==fid, c.mutils[1,:])
-  indx_p::Int64 = findfirst(x->x==fid, c.putils[1,:])
+
+# can do the ternary thing... fancy.  
+#  (findfirst(x->x==fid, c.putils[1,:]) == nothing) ? (indx_m = 0) : (indx_m == findfirst(x->x==fid, c.putils[1,:]))
+  indx_m = 0
+  indx_p = 0
+  if findfirst(x->x==fid, c.mutils[1,:]) != nothing 
+    indx_m = findfirst(x->x==fid, c.mutils[1,:])
+  end 
+  if findfirst(x->x==fid, c.putils[1,:]) != nothing
+    indx_p = findfirst(x->x==fid, c.putils[1,:])
+  end 
+
   if audit&(indx_m!=0)&(indx_p!=0)
     println("BEFORE: ", fid, "  ", c.mutils[1,indx_m], "  ", c.mutils[2,indx_m], "  ", c.putils[1,indx_p], "  ", c.putils[2,indx_p] )
   end 
@@ -2931,8 +2941,11 @@ Make the relevant combinations.
 Why shouldn't this directly take some tuple arguments?  I know that's what I want
 in the end.
 """
-function EnumerLevel(n::NTuple{3,Int64})
-  firstnonzero::Int64 = findfirst(x->x!=0,n) # 0.7 correction.  
+function EnumerLevel(n::NTuple{3,Int64}) 
+  firstnonzero = 0
+  if sum(n)!= 0 # a special case is (0,0,0) - this catches that.  
+    firstnonzero = findfirst(x->x!=0,n) # 0.7 correction. 
+  end 
   t1::NTuple{3,Int64}=(n[1], n[2], n[3]+1)
   t2::NTuple{3,Int64}=(n[1], n[2]+1, n[3])
   t3::NTuple{3,Int64}=(n[1]+1, n[2], n[3])
@@ -2986,7 +2999,7 @@ function EnumUp(nsum::Int64; fixed::Bool = false)
   strt = 1
   if nsum > 0
     while termflag
-      lng = length(outp)
+      lng = length(outp) # can never be nothing...
       if lng > 1
         for el in strt+1:lng # won't doublecount, but won't work on first round.
           for nt in EnumerLevel(outp[el])
@@ -2994,6 +3007,9 @@ function EnumUp(nsum::Int64; fixed::Bool = false)
           end
         end
       else # this should be the length 1 case only.
+        if findfirst(x->x==nothing,EnumerLevel(outp[1] ))!=nothing
+          println("hi.  fuckup here.  ")
+        end 
         for nt in EnumerLevel(outp[1])
           push!(outp, nt)
         end
@@ -3394,8 +3410,8 @@ RecordDists(dyn, ch2, all_locs2)
 
 """
 function RecordDists(D::DynState, ch::Array{Int64,1}, locs::Dict{Int64,Int64})
-  outp::Array{Float64,2} = Array{Float64,2}(locs.count-1, 2)
-  fds::Array{Int64,1} = Array{Int64,1}()
+  outp::Array{Float64,2} = zeros(locs.count-1, 2)
+  fds::Array{Int64,1} = zeros(Int64,0)
   mfd::Int64 = D.all[ch[1]].fid
   mlat::Float64 = D.all[ch[1]].lat
   mlong::Float64 = D.all[ch[1]].long
