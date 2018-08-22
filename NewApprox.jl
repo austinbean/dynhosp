@@ -10,10 +10,10 @@
 
 Second attempt at EP approximation.
 
-dyn = CounterObjects(1);
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 5, itlim = 200)
+dyn = pm.CounterObjects(1);
+p1 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+pm.NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 5, itlim = 200)
 
 
 Try this approximation with 4916068 - > where is that one?  This one has eight neighbors.  Index is 37.  
