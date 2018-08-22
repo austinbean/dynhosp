@@ -434,8 +434,8 @@ function WTPNew(c::Array{Float64,2}, arr::Array{Float64,2})
   end
   for i=1:size(c,2)
     arr[2,i]/=int_sum                       # computes the normalization of WTP.  
-  end
-  arr[2,findfirst(arr[2,:], 0)] = 1/int_sum # This is WTP for the outside option. this is a little expensive, but not too bad.
+  end  
+  arr[2,findfirst(x->x==0.0, arr[2,:])] = 1/int_sum # This is WTP for the outside option. this is a little expensive, but not too bad.
 end
 
 
@@ -947,8 +947,7 @@ function StartingVals(h::simh,
                       ppats::patientcount,
                       mpats::patientcount;
                       disc::Float64 = 0.95)
-       #return [0.0,0.0,0.0,0.0]
-  return vcat(repmat([min(SinglePay(h, ppats, mpats, 10)/(1-disc), 100.0)],3), [min(SinglePay(h, ppats, mpats, 10)/((1-disc)*1000), 100.0)])
+  return vcat(repeat([min( max(SinglePay(h, ppats, mpats, 10)/(1-disc),0), 100.0)],3), [min( max(SinglePay(h, ppats, mpats, 10)/((1-disc)*1000),0), 100.0)])
 end
 
 
@@ -1098,7 +1097,7 @@ This is the continuation value ignoring the error.
 function WProb(n::nlrec)
   prd::Float64 = 0.0
   for el in keys(n.aw)
-    prd += n.aw[el]*n.psi[2,findfirst(n.psi[1,:], el)]
+    prd += n.aw[el]*n.psi[2,findfirst(x->x==el,n.psi[1,:])]
   end
   return prd
 end
@@ -1110,7 +1109,7 @@ end
 Computes the continuation value of the error.
 """
 function ContError(n::nlrec)
-  return (eulergamma - dot(log.(n.psi[2,:]), n.psi[2,:])) 
+  return (MathConstants.eulergamma - dot(log.(n.psi[2,:]), n.psi[2,:])) 
 end
 
 
@@ -2605,8 +2604,8 @@ function UtilUp(c::cpats,
   inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
   inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
-  indx_m::Int64 = findfirst(c.mutils[1,:], fid)
-  indx_p::Int64 = findfirst(c.putils[1,:], fid)
+  indx_m::Int64 = findfirst(x->x==fid, c.mutils[1,:])
+  indx_p::Int64 = findfirst(x->x==fid, c.putils[1,:])
   if audit&(indx_m!=0)&(indx_p!=0)
     println("BEFORE: ", fid, "  ", c.mutils[1,indx_m], "  ", c.mutils[2,indx_m], "  ", c.putils[1,indx_p], "  ", c.putils[2,indx_p] )
   end 
@@ -2933,7 +2932,7 @@ Why shouldn't this directly take some tuple arguments?  I know that's what I wan
 in the end.
 """
 function EnumerLevel(n::NTuple{3,Int64})
-  firstnonzero::Int64 = findfirst(n)
+  firstnonzero::Int64 = findfirst(x->x!=0,n) # 0.7 correction.  
   t1::NTuple{3,Int64}=(n[1], n[2], n[3]+1)
   t2::NTuple{3,Int64}=(n[1], n[2]+1, n[3])
   t3::NTuple{3,Int64}=(n[1]+1, n[2], n[3])
@@ -2943,6 +2942,8 @@ function EnumerLevel(n::NTuple{3,Int64})
     return (t3,) # NB: must return a tuple else the iteration in StateEnumerate won't work.
   elseif firstnonzero == 2
     return t3,t2
+  elseif firstnonzero == nothing 
+    println("enumerlevel error, ", n)
   end
 end
 
@@ -2975,6 +2976,8 @@ for i = 0:25
 end
 OR: 
 EnumUp(3; fixed = true) # will return 10 elements, instead of 20.  
+
+pm.EnumUp(2)
 """
 function EnumUp(nsum::Int64; fixed::Bool = false)
   termflag::Bool = true
@@ -3535,7 +3538,7 @@ function AppContinuation(nextstate::NTuple{10,Int64},vals::Dict{NTuple{10, Int64
   s1::Float64 = 0.0
   s2::Float64 = 0.0
   s3::Float64 = 0.0
-  sc_g::Float64 = eulergamma/scalefact
+  sc_g::Float64 = MathConstants.eulergamma/scalefact
   if haskey(vals, (nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1))
     s1 = vals[(nextstate[1],nextstate[2],nextstate[3],nextstate[4],nextstate[5],nextstate[6],nextstate[7],nextstate[8],nextstate[9],1)]
   else
