@@ -1355,7 +1355,7 @@ StateBlock([(10,1); (10,2); (10,3); (10,999)], 20)
 StateBlock([], 10)
 """
 function StateBlock(n::Array, i::Int64) 
-  len, width = size(n)
+  len, width = size(n, 1), size(n, 2) # 1.0 fix.  
   if len > 1 # add these elements to whatever array exists.  
     outp::Array{Tuple{Int64,Int64},2} = Array{Tuple{Int64,Int64},2}(undef, 4*len, width+1) # new 1.0 syntax - zeros won't work.  
     for el in 1:size(n,1) # rows of input 
@@ -2604,18 +2604,10 @@ function UtilUp(c::cpats,
   inten_p::Float64 = 1.1859899           # Should be: intensive coeff for private:  ProjectModule.privateneoint_c
   inter_p::Float64 = 0.86626804            # Should be: intermediate coeff for private:  
   # TODO - maybe find this by hand and cut that allocation? 
-
-# can do the ternary thing... fancy.  
-#  (findfirst(x->x==fid, c.putils[1,:]) == nothing) ? (indx_m = 0) : (indx_m == findfirst(x->x==fid, c.putils[1,:]))
-  indx_m = 0
-  indx_p = 0
-  if findfirst(x->x==fid, c.mutils[1,:]) != nothing 
-    indx_m = findfirst(x->x==fid, c.mutils[1,:])
-  end 
-  if findfirst(x->x==fid, c.putils[1,:]) != nothing
-    indx_p = findfirst(x->x==fid, c.putils[1,:])
-  end 
-
+  # assign the indx_m:  (check if it's NOT there and if not assign 0, else assign the location)
+  (findfirst(x->x==fid, c.mutils[1,:])==nothing) ? (indx_m = 0) : (indx_m = findfirst(x->x==fid, c.mutils[1,:]))
+  # assign the indx_p: (check if it's not there (i.e., = nothing), then assign the location if it is)
+  (findfirst(x->x==fid, c.putils[1,:])==nothing) ? (indx_p = 0) : (indx_p = findfirst(x->x==fid, c.putils[1,:]))
   if audit&(indx_m!=0)&(indx_p!=0)
     println("BEFORE: ", fid, "  ", c.mutils[1,indx_m], "  ", c.mutils[2,indx_m], "  ", c.putils[1,indx_p], "  ", c.putils[2,indx_p] )
   end 
