@@ -1881,7 +1881,7 @@ function CombineVInput(inpt::Array{Int64,1}, pr::Float64, args...)
   for (i, arg) in enumerate(args)
     if length(arg)==length(inpt)
       val, indx = findmax(arg)
-      outp[indx] += 1
+      outp[indx[2]] += 1 # this is a dumb fix - Cartesian types can index, but arg is 2D and outp is 1D 
       fl *= val 
     end 
   end 
