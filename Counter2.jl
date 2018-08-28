@@ -2477,9 +2477,13 @@ a dict{Fid, Location}.  For use with FindComps, which returns an array.
 NB: does NOT append the location of the args... to FindComps.
 
 ### TESTING ###
-
+- Test is broken, function not necessarily.
+function FindComps(D::DynState, arr::Array{Int64,1}, args::simh...)
+FindComps(dyn, dyn.all[])
+earr = Array{Int64,1}(undef,0)
 testcd = Dict{Int64, Int64}()
-CompsDict(FindComps(dyn, dyn.all[11]), dyn, testcd)
+pm.FindComps(dyn, earr, dyn.all[11])
+pm.CompsDict(earr, dyn, testcd)
 testcd == Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198) # returns true.
 """
 function CompsDict(arr1::Array{Int64,1}, D::DynState, outp::Dict{Int64,Int64})
