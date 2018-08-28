@@ -20,38 +20,38 @@ NB - level won't change.  I can compute the value of being in all of these state
 
 
 ##### TESTING ######
-TexasEq = CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
-Tex = EntireState(Array{Market,1}(), Dict{Int64, Market}(), Dict{Int64, Int64}());
-CMakeIt(Tex, ProjectModule.fips);
-FillState(Tex, ProjectModule.alldists, 50);
-patients = NewPatients(Tex);
+TexasEq = pm.CreateEmpty(ProjectModule.fips, ProjectModule.alldists, 50);
+Tex = pm.EntireState(Array{pm.Market,1}(), Dict{Int64, pm.Market}(), Dict{Int64, Int64}());
+pm.CMakeIt(Tex, ProjectModule.fips);
+pm.FillState(Tex, ProjectModule.alldists, 50);
+patients = pm.NewPatients(Tex);
 
-dyn = DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);; 
+dyn = pm.DynStateCreate(TexasEq, Tex, patients, ProjectModule.pcount);
 
 # To Run:
 
 d1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
 d2 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64}  }()
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p1 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 #fid = 3490795;
 #location = 1;
 
 locs_d = Dict( 1391330 => 90, 3490795 => 1) # dict of locations.
 
 st_dict = Dict{Int64,NTuple{9,Int64}}()
-StateRecord(locs_d, dyn, st_dict)   # dict of restricted states. 
+pm.StateRecord(locs_d, dyn, st_dict)   # dict of restricted states. 
 
 
 d1[dyn.all[1].fid] = Dict{NTuple{10,Int64}, Float64}()
-d1[dyn.all[1].fid][StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
-d1[dyn.all[1].fid][StateKey(dyn.all[1], 2)] = 0.0
-d1[dyn.all[1].fid][StateKey(dyn.all[1], 3)] = 0.0
+d1[dyn.all[1].fid][pm.StateKey(dyn.all[1], dyn.all[1].level)] = 0.0
+d1[dyn.all[1].fid][pm.StateKey(dyn.all[1], 2)] = 0.0
+d1[dyn.all[1].fid][pm.StateKey(dyn.all[1], 3)] = 0.0
 
 # FIXME - finish writing the test for this.  
 
 
-ExactChoice(d1, d2, locs_d, st_dict, 3490795, 1, p1, p2, dyn, false)
+pm.ExactChoice(d1, d2, locs_d, st_dict, 3490795, 1, p1, p2, dyn, false)
 
 d1[dyn.all[1].fid]
 
