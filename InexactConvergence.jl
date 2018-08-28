@@ -18,13 +18,13 @@ function tgen(d1)
   end 
   return tr 
 end 
-dyn = CounterObjects(1);
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-ddd = NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 100)
+dyn = pm.CounterObjects(1);
+p1 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+ddd = pm.NewApprox(dyn, [37], p1, p2; wlh = 0, wlm = 10, itlim = 100)
 
 tr1 = tgen(ddd)
-InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 1000; wh = 0, wm = 6)
+pm.InexactConvergence(dyn, [37], p1, p2,  tr1, ddd, 1000; wh = 0, wm = 6)
 
 Slowdown here comes from |states|×|itlim| iterations.
 
@@ -47,8 +47,8 @@ function InexactConvergence(D::DynState,
     approxvals::Dict{NTuple{10, Int64},Float64} = Dict{NTuple{10, Int64},Float64}()       # put results of approximation here.  
     all_locs::Dict{Int64,Int64} = Dict{Int64, Int64}()                                    # will record the locations of competitors (Fid, Loc in Dyn.all) Dict, NOT the firm itself.  
     st_dict::Dict{Int64,NTuple{9,Int64}} = Dict{Int64,NTuple{9,Int64}}()                  # will record the states of all firms from the point of view of el.
-    neighbors::Array{Int64,1} = Array{Int64,1}()                                          # will record the locations in D.all[] of competing firms AND the firm itself.
-    nfds::Array{Int64,1} = Array{Int64,1}()                                               # records the fids of neighbors, as fids, not locations. 
+    neighbors::Array{Int64,1} = zeros(Int64,0)                                          # will record the locations in D.all[] of competing firms AND the firm itself.
+    nfds::Array{Int64,1} = zeros(Int64,0)                                               # records the fids of neighbors, as fids, not locations. 
     for el in chunk                                                                       # goal of this loop is to: set up the dictionaries containing values with entries for the fids.  
         FindComps(D, neighbors, D.all[el])                                                # these are addresses of competitors in D.all 
         NFids(D, nfds, D.all[el])                                                         # records the fids of neighbors only, as fids.  
@@ -58,7 +58,7 @@ function InexactConvergence(D::DynState,
     altstates = MakeStateBlock(nfds)                                                      # generates a list of states to try, e.g., entry, exit and levels for each possible competitor.  
     inv_costs = zeros(9)
     wgts = zeros(outvals[D.all[chunk[1]].fid].count)                                      # this will hold the weights.  
-    elts = Array{NTuple{10,Int64}}(outvals[D.all[chunk[1]].fid].count)                    # this will hold the states
+    elts = Array{NTuple{10,Int64}}(undef,outvals[D.all[chunk[1]].fid].count)                    # this will hold the states
     dists = RecordDists(D, chunk, all_locs)                                               # for each neighbor, record the distance to the main firm.  Do this once.
     statehold = zeros(Int64,9)
     k::Int64 = D.all[chunk[1]].fid                                                        # track total number of visits made.  
@@ -69,7 +69,6 @@ function InexactConvergence(D::DynState,
         if (current-strt)>wl 
             println("Convergence check time exceeded!") 
             return 1.0                                                                    #  it's the "return" that's causing the break, not the "break" itself.  
-            break                                                                         # this line has no effect.
         end 
         for i = 1:itlim
             nextstate = DictRandomize(outvals[k], elts, wgts)                             # gets the next state. 
