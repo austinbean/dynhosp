@@ -1,6 +1,6 @@
 # ProjectTests.jl
 
-using Base.Test
+using Test
 
 dyn = CounterObjects(50);
 
@@ -252,5 +252,14 @@ end
     Base.Test.@test StateCheck(ns1, cl)
     Base.Test.@test StateCheck(ns2, cl)
     Base.Test.@test !StateCheck(ns3, cl)
+end 
+
+
+@testset "FindComps Tests" begin
+  global earr = Array{Int64,1}(undef,0)
+  global testcd = Dict{Int64, Int64}()
+  pm.FindComps(dyn, earr, dyn.all[11])
+  pm.CompsDict(earr, pm.CounterObjects(1), testcd)
+  @test testcd == Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198) #  
 end 
 
