@@ -18,12 +18,12 @@ triopoly:
 # testing: 
 
 
-dyn = CounterObjects(5);
+dyn = pm.CounterObjects(5);
 ch = [1] # first element
-p1 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
-p2 = patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p1 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+p2 = pm.patientcount(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 out1 = Dict{ Int64, Dict{NTuple{10, Int64}, Float64 } }()
-ExactVal(dyn, ch, p1, p2; outvals = out1 )
+pm.ExactVal(dyn, ch, p1, p2; wlh = 0, wlm = 10, itlim = 10)
 
 
 
