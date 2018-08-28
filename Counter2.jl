@@ -1902,6 +1902,10 @@ The number of elements should be growing with EACH call, according to something 
 in1 = [([1,0,0], 1.0)]
 GenStates(in1, [0,0.5,0], [0,0,0.5], [0.3, 0, 0])
 
+pm.GenStates(in1, [0,0.5,0], [0,0,0.5], [0.3, 0, 0])==[([1, 1, 0], 0.5)
+ ([1, 0, 1], 0.5)
+ ([2, 0, 0], 0.3)]
+
 # would like: ([1 1 0], 0.5), ([1 0 1], 0.5), ([2 0 0], 0.3)
 # the issue might be that inpt above is getting modified!
 # I need to keep that element constant and evaluate these elements on it.  
