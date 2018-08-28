@@ -263,3 +263,16 @@ end
   @test testcd == Dict(3396057 => 195, 3390720 => 196, 3396327 => 197, 3396189 => 198) #  
 end 
 
+
+@testset "CombineVInput Tests" begin
+   @test pm.CombineVInput([1, 0, 0], 0.5, [0, 0.3, 0], [0, 0.3, 0]) == ([1, 2, 0], 0.045)
+   @test pm.CombineVInput([1, 0, 0], 0.5, [0, 0.3, 0]) == ([1, 1, 0], 0.15)
+
+end
+
+@testset "GenStates Test " begin 
+  @test pm.GenStates(in1, [0,0.5,0], [0,0,0.5], [0.3, 0, 0])==[([1, 1, 0], 0.5)
+ ([1, 0, 1], 0.5)
+ ([2, 0, 0], 0.3)]
+end 
+
