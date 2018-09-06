@@ -7,15 +7,15 @@ loc = pwd()
 println("current location: ", loc)
 using ProjectModule
 
-ds1 = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
+ds1 = Dates.format(Dates.now(), "yyyy-mm-dd-HH-MM-SS")
 println("Sim Starting at: ", ds1)
 
-res1, res2 = CombinedSim(1; T1 = 1) # 476/68 = 7 reps/core.  
+res1, res2 = CombinedSim(468; T1 = 50) # 476/68 = 7 reps/core.  468/18 cores at HCMG
 
 println("Estimation Done - Saving")
 println("size? ", size(res1), " ", size(res2))
 
-ds = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS")
+ds = Dates.format(Dates.now(), "yyyy-mm-dd-HH-MM-SS")
 
 println("Finished at: ", ds)
 
