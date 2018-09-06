@@ -66,6 +66,10 @@
     global pathdata = "/Users/imelda/Desktop/PROJECTFILES/"
     global pathpeople = "/Users/imelda/Desktop/PROJECTFILES/"
     global pathprogram = "/Users/imelda/Desktop/PROJECTFILES/"
+  elseif (dir=="/home/hcmg/beanaus/dynhosp") # Wharton HPC 
+    global pathdata = "/home/hcmg/beanaus/dynhosp"
+    global pathpeople = "/home/hcmg/beanaus/dynhosp"
+    global pathprogram = "/home/hcmg/beanaus/dynhosp"
   end
   ###### Import the hospital data and convert to a matrix -
 
