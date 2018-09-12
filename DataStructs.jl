@@ -1970,9 +1970,9 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
     MDemandMap(d2, Tex, i)                                                                     # and this now cleans the dictionary up at the end, setting all demands to 0.
     for el in Tex.ms
       EntryProcess(el, i, T)                                                                   # call the Entry Process on every market - el.   
-      if el.fipscode == 48453
-        println("     ", i, "   ")
-      end 
+      # if el.fipscode == 48453
+      #   println("     ", i, "   ")
+      # end 
       for elm in el.config
         action = StatsBase.sample( ChoicesAvailable(elm), elm.chprobability )                  # Take the action
         # TODO - 1.0 08/14/2018 - there is no more findin. 
@@ -1982,10 +1982,10 @@ function NewSim(T::Int, Tex::EntireState, pats::patientcollection)
         elm.chprobability = HospUpdate(elm, newchoice)                                         # What are the new probabilities, given the new level?
         elm.level = newchoice                                                                  # Set the level to be the new choice.
         elm.levelhistory[i] = newchoice
-        if el.fipscode == 48453
-          println("    ", elm.fid, " ", elm.level, " ", round(elm.wtphist.w385[i]; digits = 2))
-          println("    ", pats.zips[78702].pdetutils)
-        end 
+        # if el.fipscode == 48453
+        #   println("    ", elm.fid, " ", elm.level, " ", round(elm.wtphist.w385[i]; digits = 2))
+        #   println("    ", pats.zips[78702].pdetutils)
+        # end 
       end
       # It would make sense to call the WTP update right here, in case it is not called earlier.
       
