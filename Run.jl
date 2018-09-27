@@ -1,5 +1,5 @@
 
-
+using Distributed 
 #addprocs(30) # will work on Amazon.
 addprocs() # will work on home machine.
 #addprocs(68) # will work on Stampede
