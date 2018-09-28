@@ -5,7 +5,8 @@ addprocs() # will work on home machine.
 #addprocs(68) # will work on Stampede
 loc = pwd()
 println("current location: ", loc)
-using ProjectModule
+@everywhere push!(LOAD_PATH, loc)
+@everywhere using ProjectModule
 
 ds1 = Dates.format(Dates.now(), "yyyy-mm-dd-HH-MM-SS")
 println("Sim Starting at: ", ds1)
