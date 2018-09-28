@@ -12,7 +12,7 @@ loc = pwd()
 ds1 = Dates.format(Dates.now(), "yyyy-mm-dd-HH-MM-SS")
 println("Sim Starting at: ", ds1)
 
-res1, res2 = CombinedSim(6; T1 = 1) # 476/68 = 7 reps/core.  468/18 cores at HCMG
+res1, res2 = CombinedSim(468; T1 = 40) # 476/68 = 7 reps/core.  468/18 cores at HCMG
 
 println("Estimation Done - Saving")
 println("size? ", size(res1), " ", size(res2))
